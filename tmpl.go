@@ -95,15 +95,21 @@ func Select%s(db *sql.DB, query string, args ...interface{}) ([]*%s, error) {
 `
 
 // function template to insert a single row.
-const sInsert = `
+const sInsertWithLastId = `
 func Insert%s(db *sql.DB, query string, v *%s) error {
-
 	res, err := db.Exec(query, Slice%s(v)[1:]...)
 	if err != nil {
 		return err
 	}
 
-	v.ID, err = res.LastInsertId()
+	v.%s, err = res.LastInsertId()
+	return err
+}
+`
+
+const sInsertPlain = `
+func Insert%s(db *sql.DB, query string, v *%s) error {
+	_, err := db.Exec(query, Slice%s(v)[1:]...)
 	return err
 }
 `
@@ -111,9 +117,8 @@ func Insert%s(db *sql.DB, query string, v *%s) error {
 // function template to update a single row.
 const sUpdate = `
 func Update%s(db *sql.DB, query string, v *%s) error {
-
 	args := Slice%s(v)[1:]
-	args = append(args, v.ID)
+	args = append(args, v.%s)
 	_, err := db.Exec(query, args...)
 	return err 
 }

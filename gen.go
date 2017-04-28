@@ -7,8 +7,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/drone/sqlgen/parse"
-	"github.com/drone/sqlgen/schema"
+	"github.com/rickb777/sqlgen/parse"
+	"github.com/rickb777/sqlgen/schema"
 )
 
 var (
@@ -55,8 +55,8 @@ func main() {
 		if *extraFuncs {
 			writeSelectRow(&buf, tree)
 			writeSelectRows(&buf, tree)
-			writeInsertFunc(&buf, tree)
-			writeUpdateFunc(&buf, tree)
+			writeInsertFunc(&buf, tree, table)
+			writeUpdateFunc(&buf, tree, table)
 		}
 	} else {
 		writePackage(&buf, *pkgName)

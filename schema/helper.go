@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/acsellers/inflections"
-	"github.com/drone/sqlgen/parse"
+	"github.com/rickb777/sqlgen/parse"
 )
 
 func Load(tree *parse.Node) *Table {
@@ -25,6 +25,7 @@ func Load(tree *parse.Node) *Table {
 	for _, node := range tree.Edges() {
 
 		field := new(Field)
+		field.GoName = node.Name
 
 		// Lookup the SQL column type
 		// TODO: move this to a function
@@ -44,13 +45,6 @@ func Load(tree *parse.Node) *Table {
 
 			if node.Tags.Skip {
 				continue
-			}
-
-			// default ID and int64 to primary key
-			// with auto-increment
-			if node.Name == "ID" && node.Kind == parse.Int64 {
-				node.Tags.Primary = true
-				node.Tags.Auto = true
 			}
 
 			field.Auto = node.Tags.Auto
@@ -103,8 +97,8 @@ func Load(tree *parse.Node) *Table {
 
 			parts = append(parts, part.Name)
 		}
-		field.Name = strings.Join(parts, "_")
-		field.Name = inflections.Underscore(field.Name)
+		field.SqlName = strings.Join(parts, "_")
+		field.SqlName = inflections.Underscore(field.SqlName)
 
 		table.Fields = append(table.Fields, field)
 	}

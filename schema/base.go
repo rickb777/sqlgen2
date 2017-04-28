@@ -124,21 +124,22 @@ func (b *base) columns(fields []*Field, inline, assign, def bool) string {
 	return buf.String()
 }
 
+const fieldIndentation = " "
+
 // helper function to write a block of columns to w.
 func (b *base) columnw(w io.Writer, fields []*Field, inline, assign, def bool) {
 
+	comma := ""
 	for i, field := range fields {
+		io.WriteString(w, comma)
+		comma = ","
+
 		if !inline {
 			io.WriteString(w, "\n")
 		}
 
-		switch {
-		case i == 0 && !inline:
-			io.WriteString(w, " ")
-		case i != 0:
-			io.WriteString(w, ",")
-		}
-		io.WriteString(w, field.Name)
+		io.WriteString(w, fieldIndentation)
+		io.WriteString(w, field.SqlName)
 
 		if assign {
 			io.WriteString(w, "=")
@@ -180,7 +181,7 @@ func (b *base) clause(fields []*Field, pos int) string {
 		}
 
 		buf.WriteString(" ")
-		buf.WriteString(field.Name)
+		buf.WriteString(field.SqlName)
 		buf.WriteString("=")
 		buf.WriteString(b.Dialect.Param(i + pos))
 

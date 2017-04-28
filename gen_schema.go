@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"bitbucket.org/pkg/inflect"
-	"github.com/drone/sqlgen/schema"
+	"github.com/rickb777/sqlgen/schema"
 )
 
 // writeSchema writes SQL statements to CREATE, INSERT,
@@ -101,7 +101,7 @@ func writePackage(w io.Writer, name string) {
 }
 
 // writeConst is a helper function that writes the
-// body string to a Go const variable.
+// body string to a Go const.
 func writeConst(w io.Writer, body string, label ...string) {
 	// create a snake case variable name from
 	// the specified labels. Then convert the

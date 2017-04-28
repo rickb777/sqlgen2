@@ -7,7 +7,8 @@ import (
 	"strings"
 
 	"github.com/acsellers/inflections"
-	"github.com/drone/sqlgen/parse"
+	"github.com/rickb777/sqlgen/parse"
+	"github.com/rickb777/sqlgen/schema"
 )
 
 func writeImports(w io.Writer, tree *parse.Node, pkgs ...string) {
@@ -42,7 +43,7 @@ func writeImports(w io.Writer, tree *parse.Node, pkgs ...string) {
 	// write the import block, including each
 	// encoder package that was specified.
 	fmt.Fprintln(w, "\nimport (")
-	for pkg, _ := range pmap {
+	for pkg := range pmap {
 		fmt.Fprintf(w, "\t%q\n", pkg)
 	}
 	fmt.Fprintln(w, ")")
@@ -237,22 +238,26 @@ func writeSelectRows(w io.Writer, tree *parse.Node) {
 	fmt.Fprintf(w, sSelectRows, plural, tree.Type, plural)
 }
 
-func writeInsertFunc(w io.Writer, tree *parse.Node) {
-	// TODO this assumes I'm using the ID field.
-	// we should not make that assumption
-	fmt.Fprintf(w, sInsert, tree.Type, tree.Type, tree.Type)
+func writeInsertFunc(w io.Writer, tree *parse.Node, table *schema.Table) {
+	if table.HasLastInsertId() {
+		fmt.Fprintf(w, sInsertWithLastId, tree.Type, tree.Type, tree.Type, table.PrimaryKeyFieldName())
+	} else {
+		fmt.Fprintf(w, sInsertPlain, tree.Type, tree.Type, tree.Type)
+	}
 }
 
-func writeUpdateFunc(w io.Writer, tree *parse.Node) {
-	fmt.Fprintf(w, sUpdate, tree.Type, tree.Type, tree.Type)
+func writeUpdateFunc(w io.Writer, tree *parse.Node, table *schema.Table) {
+	if len(table.Primary) > 0 {
+		fmt.Fprintf(w, sUpdate, tree.Type, tree.Type, tree.Type, table.PrimaryKeyFieldName())
+	}
 }
 
 // join is a helper function that joins nodes
 // together by name using the seperator.
 func join(nodes []*parse.Node, sep string) string {
 	var parts []string
-	for _, node := range nodes {
-		parts = append(parts, node.Name)
+	for _, n := range nodes {
+		parts = append(parts, n.Name)
 	}
 	return strings.Join(parts, sep)
 }

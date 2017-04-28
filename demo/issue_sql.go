@@ -30,7 +30,7 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 	}
 
 	v := &Issue{}
-	v.ID = v0
+	v.Id = v0
 	v.Number = v1
 	v.Title = v2
 	v.Body = v3
@@ -68,7 +68,7 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 		}
 
 		v := &Issue{}
-		v.ID = v0
+		v.Id = v0
 		v.Number = v1
 		v.Title = v2
 		v.Body = v3
@@ -90,7 +90,7 @@ func SliceIssue(v *Issue) []interface{} {
 	var v5 string
 	var v6 []byte
 
-	v0 = v.ID
+	v0 = v.Id
 	v1 = v.Number
 	v2 = v.Title
 	v3 = v.Body
@@ -124,68 +124,66 @@ func SelectIssues(db *sql.DB, query string, args ...interface{}) ([]*Issue, erro
 }
 
 func InsertIssue(db *sql.DB, query string, v *Issue) error {
-
 	res, err := db.Exec(query, SliceIssue(v)[1:]...)
 	if err != nil {
 		return err
 	}
 
-	v.ID, err = res.LastInsertId()
+	v.Id, err = res.LastInsertId()
 	return err
 }
 
 func UpdateIssue(db *sql.DB, query string, v *Issue) error {
-
 	args := SliceIssue(v)[1:]
-	args = append(args, v.ID)
+	args = append(args, v.Id)
 	_, err := db.Exec(query, args...)
 	return err
 }
 
 const CreateIssueStmt = `
 CREATE TABLE IF NOT EXISTS issues (
- issue_id       SERIAL PRIMARY KEY 
-,issue_number   INTEGER
-,issue_title    VARCHAR(512)
-,issue_body     VARCHAR(2048)
-,issue_assignee VARCHAR(512)
-,issue_state    VARCHAR(50)
-,issue_labels   BYTEA
+ issue_id       SERIAL PRIMARY KEY ,
+ issue_number   INTEGER,
+ issue_title    VARCHAR(512),
+ issue_body     VARCHAR(2048),
+ issue_assignee VARCHAR(512),
+ issue_state    VARCHAR(50),
+ issue_labels   BYTEA
 );
 `
 
 const InsertIssueStmt = `
 INSERT INTO issues (
- issue_number
-,issue_title
-,issue_body
-,issue_assignee
-,issue_state
-,issue_labels
+ issue_number,
+ issue_title,
+ issue_body,
+ issue_assignee,
+ issue_state,
+ issue_labels
 ) VALUES ($1,$2,$3,$4,$5,$6)
 `
 
 const SelectIssueStmt = `
 SELECT 
- issue_id
-,issue_number
-,issue_title
-,issue_body
-,issue_assignee
-,issue_state
-,issue_labels
+ issue_id,
+ issue_number,
+ issue_title,
+ issue_body,
+ issue_assignee,
+ issue_state,
+ issue_labels
 FROM issues 
 `
 
 const SelectIssueRangeStmt = `
 SELECT 
- issue_id
-,issue_number
-,issue_title
-,issue_body
-,issue_assignee
-,issue_state
-,issue_labels
+ issue_id,
+ issue_number,
+ issue_title,
+ issue_body,
+ issue_assignee,
+ issue_state,
+ issue_labels
 FROM issues 
 LIMIT $1 OFFSET $2
 `
@@ -197,30 +195,67 @@ FROM issues
 
 const SelectIssuePkeyStmt = `
 SELECT 
- issue_id
-,issue_number
-,issue_title
-,issue_body
-,issue_assignee
-,issue_state
-,issue_labels
+ issue_id,
+ issue_number,
+ issue_title,
+ issue_body,
+ issue_assignee,
+ issue_state,
+ issue_labels
 FROM issues 
 WHERE issue_id=$1
 `
 
 const UpdateIssuePkeyStmt = `
 UPDATE issues SET 
- issue_id=$1
-,issue_number=$2
-,issue_title=$3
-,issue_body=$4
-,issue_assignee=$5
-,issue_state=$6
-,issue_labels=$7 
+ issue_id=$1,
+ issue_number=$2,
+ issue_title=$3,
+ issue_body=$4,
+ issue_assignee=$5,
+ issue_state=$6,
+ issue_labels=$7 
 WHERE issue_id=$8
 `
 
 const DeleteIssuePkeyStmt = `
 DELETE FROM issues 
 WHERE issue_id=$1
+`
+
+const CreateIssueAssigneeStmt = `
+CREATE INDEX IF NOT EXISTS issue_assignee ON issues ( issue_assignee)
+`
+
+const SelectIssueAssigneeStmt = `
+SELECT 
+ issue_id,
+ issue_number,
+ issue_title,
+ issue_body,
+ issue_assignee,
+ issue_state,
+ issue_labels
+FROM issues 
+WHERE issue_assignee=$1
+`
+
+const SelectIssueAssigneeRangeStmt = `
+SELECT 
+ issue_id,
+ issue_number,
+ issue_title,
+ issue_body,
+ issue_assignee,
+ issue_state,
+ issue_labels
+FROM issues 
+WHERE issue_assignee=$1
+LIMIT $2 OFFSET $3
+`
+
+const SelectIssueAssigneeCountStmt = `
+SELECT count(1)
+FROM issues 
+WHERE issue_assignee=$1
 `

@@ -24,7 +24,8 @@ type Table struct {
 }
 
 type Field struct {
-	Name    string
+	GoName  string
+	SqlName string
 	Type    int
 	Primary bool
 	Auto    bool
@@ -36,4 +37,15 @@ type Index struct {
 	Unique bool
 
 	Fields []*Field
+}
+
+func (t *Table) HasLastInsertId() bool {
+	return len(t.Primary) == 1 && t.Primary[0].Type == INTEGER
+}
+
+func (t *Table) PrimaryKeyFieldName() string {
+	if len(t.Primary) != 1 {
+		return ""
+	}
+	return t.Primary[0].GoName
 }

@@ -47,7 +47,7 @@ func ScanHook(row *sql.Row) (*Hook, error) {
 	}
 
 	v := &Hook{}
-	v.ID = v0
+	v.Id = v0
 	v.Sha = v1
 	v.After = v2
 	v.Before = v3
@@ -115,7 +115,7 @@ func ScanHooks(rows *sql.Rows) ([]*Hook, error) {
 		}
 
 		v := &Hook{}
-		v.ID = v0
+		v.Id = v0
 		v.Sha = v1
 		v.After = v2
 		v.Before = v3
@@ -158,7 +158,7 @@ func SliceHook(v *Hook) []interface{} {
 	var v14 string
 	var v15 string
 
-	v0 = v.ID
+	v0 = v.Id
 	v1 = v.Sha
 	v2 = v.After
 	v3 = v.Before
@@ -218,104 +218,102 @@ func SelectHooks(db *sql.DB, query string, args ...interface{}) ([]*Hook, error)
 }
 
 func InsertHook(db *sql.DB, query string, v *Hook) error {
-
 	res, err := db.Exec(query, SliceHook(v)[1:]...)
 	if err != nil {
 		return err
 	}
 
-	v.ID, err = res.LastInsertId()
+	v.Id, err = res.LastInsertId()
 	return err
 }
 
 func UpdateHook(db *sql.DB, query string, v *Hook) error {
-
 	args := SliceHook(v)[1:]
-	args = append(args, v.ID)
+	args = append(args, v.Id)
 	_, err := db.Exec(query, args...)
 	return err
 }
 
 const CreateHookStmt = `
 CREATE TABLE IF NOT EXISTS hooks (
- hook_id                      INTEGER PRIMARY KEY AUTO_INCREMENT
-,hook_sha                     VARCHAR(512)
-,hook_after                   VARCHAR(512)
-,hook_before                  VARCHAR(512)
-,hook_created                 BOOLEAN
-,hook_deleted                 BOOLEAN
-,hook_forced                  BOOLEAN
-,hook_head_id                 VARCHAR(512)
-,hook_head_message            VARCHAR(512)
-,hook_head_timestamp          VARCHAR(512)
-,hook_head_author_name        VARCHAR(512)
-,hook_head_author_email       VARCHAR(512)
-,hook_head_author_username    VARCHAR(512)
-,hook_head_committer_name     VARCHAR(512)
-,hook_head_committer_email    VARCHAR(512)
-,hook_head_committer_username VARCHAR(512)
+ hook_id                      INTEGER PRIMARY KEY AUTO_INCREMENT,
+ hook_sha                     VARCHAR(512),
+ hook_after                   VARCHAR(512),
+ hook_before                  VARCHAR(512),
+ hook_created                 BOOLEAN,
+ hook_deleted                 BOOLEAN,
+ hook_forced                  BOOLEAN,
+ hook_head_id                 VARCHAR(512),
+ hook_head_message            VARCHAR(512),
+ hook_head_timestamp          VARCHAR(512),
+ hook_head_author_name        VARCHAR(512),
+ hook_head_author_email       VARCHAR(512),
+ hook_head_author_username    VARCHAR(512),
+ hook_head_committer_name     VARCHAR(512),
+ hook_head_committer_email    VARCHAR(512),
+ hook_head_committer_username VARCHAR(512)
 );
 `
 
 const InsertHookStmt = `
 INSERT INTO hooks (
- hook_sha
-,hook_after
-,hook_before
-,hook_created
-,hook_deleted
-,hook_forced
-,hook_head_id
-,hook_head_message
-,hook_head_timestamp
-,hook_head_author_name
-,hook_head_author_email
-,hook_head_author_username
-,hook_head_committer_name
-,hook_head_committer_email
-,hook_head_committer_username
+ hook_sha,
+ hook_after,
+ hook_before,
+ hook_created,
+ hook_deleted,
+ hook_forced,
+ hook_head_id,
+ hook_head_message,
+ hook_head_timestamp,
+ hook_head_author_name,
+ hook_head_author_email,
+ hook_head_author_username,
+ hook_head_committer_name,
+ hook_head_committer_email,
+ hook_head_committer_username
 ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 `
 
 const SelectHookStmt = `
 SELECT 
- hook_id
-,hook_sha
-,hook_after
-,hook_before
-,hook_created
-,hook_deleted
-,hook_forced
-,hook_head_id
-,hook_head_message
-,hook_head_timestamp
-,hook_head_author_name
-,hook_head_author_email
-,hook_head_author_username
-,hook_head_committer_name
-,hook_head_committer_email
-,hook_head_committer_username
+ hook_id,
+ hook_sha,
+ hook_after,
+ hook_before,
+ hook_created,
+ hook_deleted,
+ hook_forced,
+ hook_head_id,
+ hook_head_message,
+ hook_head_timestamp,
+ hook_head_author_name,
+ hook_head_author_email,
+ hook_head_author_username,
+ hook_head_committer_name,
+ hook_head_committer_email,
+ hook_head_committer_username
 FROM hooks 
 `
 
 const SelectHookRangeStmt = `
 SELECT 
- hook_id
-,hook_sha
-,hook_after
-,hook_before
-,hook_created
-,hook_deleted
-,hook_forced
-,hook_head_id
-,hook_head_message
-,hook_head_timestamp
-,hook_head_author_name
-,hook_head_author_email
-,hook_head_author_username
-,hook_head_committer_name
-,hook_head_committer_email
-,hook_head_committer_username
+ hook_id,
+ hook_sha,
+ hook_after,
+ hook_before,
+ hook_created,
+ hook_deleted,
+ hook_forced,
+ hook_head_id,
+ hook_head_message,
+ hook_head_timestamp,
+ hook_head_author_name,
+ hook_head_author_email,
+ hook_head_author_username,
+ hook_head_committer_name,
+ hook_head_committer_email,
+ hook_head_committer_username
 FROM hooks 
 LIMIT ? OFFSET ?
 `
@@ -327,44 +325,44 @@ FROM hooks
 
 const SelectHookPkeyStmt = `
 SELECT 
- hook_id
-,hook_sha
-,hook_after
-,hook_before
-,hook_created
-,hook_deleted
-,hook_forced
-,hook_head_id
-,hook_head_message
-,hook_head_timestamp
-,hook_head_author_name
-,hook_head_author_email
-,hook_head_author_username
-,hook_head_committer_name
-,hook_head_committer_email
-,hook_head_committer_username
+ hook_id,
+ hook_sha,
+ hook_after,
+ hook_before,
+ hook_created,
+ hook_deleted,
+ hook_forced,
+ hook_head_id,
+ hook_head_message,
+ hook_head_timestamp,
+ hook_head_author_name,
+ hook_head_author_email,
+ hook_head_author_username,
+ hook_head_committer_name,
+ hook_head_committer_email,
+ hook_head_committer_username
 FROM hooks 
 WHERE hook_id=?
 `
 
 const UpdateHookPkeyStmt = `
 UPDATE hooks SET 
- hook_id=?
-,hook_sha=?
-,hook_after=?
-,hook_before=?
-,hook_created=?
-,hook_deleted=?
-,hook_forced=?
-,hook_head_id=?
-,hook_head_message=?
-,hook_head_timestamp=?
-,hook_head_author_name=?
-,hook_head_author_email=?
-,hook_head_author_username=?
-,hook_head_committer_name=?
-,hook_head_committer_email=?
-,hook_head_committer_username=? 
+ hook_id=?,
+ hook_sha=?,
+ hook_after=?,
+ hook_before=?,
+ hook_created=?,
+ hook_deleted=?,
+ hook_forced=?,
+ hook_head_id=?,
+ hook_head_message=?,
+ hook_head_timestamp=?,
+ hook_head_author_name=?,
+ hook_head_author_email=?,
+ hook_head_author_username=?,
+ hook_head_committer_name=?,
+ hook_head_committer_email=?,
+ hook_head_committer_username=? 
 WHERE hook_id=?
 `
 

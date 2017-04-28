@@ -33,7 +33,7 @@ func ScanUser(row *sql.Row) (*User, error) {
 	}
 
 	v := &User{}
-	v.ID = v0
+	v.Id = v0
 	v.Login = v1
 	v.Email = v2
 	v.Avatar = v3
@@ -77,7 +77,7 @@ func ScanUsers(rows *sql.Rows) ([]*User, error) {
 		}
 
 		v := &User{}
-		v.ID = v0
+		v.Id = v0
 		v.Login = v1
 		v.Email = v2
 		v.Avatar = v3
@@ -103,7 +103,7 @@ func SliceUser(v *User) []interface{} {
 	var v7 string
 	var v8 string
 
-	v0 = v.ID
+	v0 = v.Id
 	v1 = v.Login
 	v2 = v.Email
 	v3 = v.Avatar
@@ -141,76 +141,74 @@ func SelectUsers(db *sql.DB, query string, args ...interface{}) ([]*User, error)
 }
 
 func InsertUser(db *sql.DB, query string, v *User) error {
-
 	res, err := db.Exec(query, SliceUser(v)[1:]...)
 	if err != nil {
 		return err
 	}
 
-	v.ID, err = res.LastInsertId()
+	v.Id, err = res.LastInsertId()
 	return err
 }
 
 func UpdateUser(db *sql.DB, query string, v *User) error {
-
 	args := SliceUser(v)[1:]
-	args = append(args, v.ID)
+	args = append(args, v.Id)
 	_, err := db.Exec(query, args...)
 	return err
 }
 
 const CreateUserStmt = `
 CREATE TABLE IF NOT EXISTS users (
- user_id     INTEGER PRIMARY KEY AUTOINCREMENT
-,user_login  TEXT
-,user_email  TEXT
-,user_avatar TEXT
-,user_active BOOLEAN
-,user_admin  BOOLEAN
-,user_token  TEXT
-,user_secret TEXT
-,user_hash   TEXT
+ user_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+ user_login  TEXT,
+ user_email  TEXT,
+ user_avatar TEXT,
+ user_active BOOLEAN,
+ user_admin  BOOLEAN,
+ user_token  TEXT,
+ user_secret TEXT,
+ user_hash   TEXT
 );
 `
 
 const InsertUserStmt = `
 INSERT INTO users (
- user_login
-,user_email
-,user_avatar
-,user_active
-,user_admin
-,user_token
-,user_secret
-,user_hash
+ user_login,
+ user_email,
+ user_avatar,
+ user_active,
+ user_admin,
+ user_token,
+ user_secret,
+ user_hash
 ) VALUES (?,?,?,?,?,?,?,?)
 `
 
 const SelectUserStmt = `
 SELECT 
- user_id
-,user_login
-,user_email
-,user_avatar
-,user_active
-,user_admin
-,user_token
-,user_secret
-,user_hash
+ user_id,
+ user_login,
+ user_email,
+ user_avatar,
+ user_active,
+ user_admin,
+ user_token,
+ user_secret,
+ user_hash
 FROM users 
 `
 
 const SelectUserRangeStmt = `
 SELECT 
- user_id
-,user_login
-,user_email
-,user_avatar
-,user_active
-,user_admin
-,user_token
-,user_secret
-,user_hash
+ user_id,
+ user_login,
+ user_email,
+ user_avatar,
+ user_active,
+ user_admin,
+ user_token,
+ user_secret,
+ user_hash
 FROM users 
 LIMIT ? OFFSET ?
 `
@@ -222,30 +220,30 @@ FROM users
 
 const SelectUserPkeyStmt = `
 SELECT 
- user_id
-,user_login
-,user_email
-,user_avatar
-,user_active
-,user_admin
-,user_token
-,user_secret
-,user_hash
+ user_id,
+ user_login,
+ user_email,
+ user_avatar,
+ user_active,
+ user_admin,
+ user_token,
+ user_secret,
+ user_hash
 FROM users 
 WHERE user_id=?
 `
 
 const UpdateUserPkeyStmt = `
 UPDATE users SET 
- user_id=?
-,user_login=?
-,user_email=?
-,user_avatar=?
-,user_active=?
-,user_admin=?
-,user_token=?
-,user_secret=?
-,user_hash=? 
+ user_id=?,
+ user_login=?,
+ user_email=?,
+ user_avatar=?,
+ user_active=?,
+ user_admin=?,
+ user_token=?,
+ user_secret=?,
+ user_hash=? 
 WHERE user_id=?
 `
 
@@ -255,35 +253,35 @@ WHERE user_id=?
 `
 
 const CreateUserLoginStmt = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_login ON users (user_login)
+CREATE UNIQUE INDEX IF NOT EXISTS user_login ON users ( user_login)
 `
 
 const SelectUserLoginStmt = `
 SELECT 
- user_id
-,user_login
-,user_email
-,user_avatar
-,user_active
-,user_admin
-,user_token
-,user_secret
-,user_hash
+ user_id,
+ user_login,
+ user_email,
+ user_avatar,
+ user_active,
+ user_admin,
+ user_token,
+ user_secret,
+ user_hash
 FROM users 
 WHERE user_login=?
 `
 
 const UpdateUserLoginStmt = `
 UPDATE users SET 
- user_id=?
-,user_login=?
-,user_email=?
-,user_avatar=?
-,user_active=?
-,user_admin=?
-,user_token=?
-,user_secret=?
-,user_hash=? 
+ user_id=?,
+ user_login=?,
+ user_email=?,
+ user_avatar=?,
+ user_active=?,
+ user_admin=?,
+ user_token=?,
+ user_secret=?,
+ user_hash=? 
 WHERE user_login=?
 `
 
@@ -293,35 +291,35 @@ WHERE user_login=?
 `
 
 const CreateUserEmailStmt = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_email ON users (user_email)
+CREATE UNIQUE INDEX IF NOT EXISTS user_email ON users ( user_email)
 `
 
 const SelectUserEmailStmt = `
 SELECT 
- user_id
-,user_login
-,user_email
-,user_avatar
-,user_active
-,user_admin
-,user_token
-,user_secret
-,user_hash
+ user_id,
+ user_login,
+ user_email,
+ user_avatar,
+ user_active,
+ user_admin,
+ user_token,
+ user_secret,
+ user_hash
 FROM users 
 WHERE user_email=?
 `
 
 const UpdateUserEmailStmt = `
 UPDATE users SET 
- user_id=?
-,user_login=?
-,user_email=?
-,user_avatar=?
-,user_active=?
-,user_admin=?
-,user_token=?
-,user_secret=?
-,user_hash=? 
+ user_id=?,
+ user_login=?,
+ user_email=?,
+ user_avatar=?,
+ user_active=?,
+ user_admin=?,
+ user_token=?,
+ user_secret=?,
+ user_hash=? 
 WHERE user_email=?
 `
 
