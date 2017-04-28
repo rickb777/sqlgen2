@@ -8,7 +8,7 @@ type posgres struct {
 	base
 }
 
-func newPosgres() Dialect {
+func newPostgres() Dialect {
 	d := &posgres{}
 	d.base.Dialect = d
 	return d

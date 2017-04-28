@@ -44,7 +44,9 @@ func writeImports(w io.Writer, tree *parse.Node, pkgs ...string) {
 	// encoder package that was specified.
 	fmt.Fprintln(w, "\nimport (")
 	for pkg := range pmap {
-		fmt.Fprintf(w, "\t%q\n", pkg)
+		if pkg != "" {
+			fmt.Fprintf(w, "\t%q\n", pkg)
+		}
 	}
 	fmt.Fprintln(w, ")")
 }
@@ -240,9 +242,9 @@ func writeSelectRows(w io.Writer, tree *parse.Node) {
 
 func writeInsertFunc(w io.Writer, tree *parse.Node, table *schema.Table) {
 	if table.HasLastInsertId() {
-		fmt.Fprintf(w, sInsertWithLastId, tree.Type, tree.Type, tree.Type, table.PrimaryKeyFieldName())
+		fmt.Fprintf(w, sInsertAndGetLastId, tree.Type, tree.Type, tree.Type, table.PrimaryKeyFieldName())
 	} else {
-		fmt.Fprintf(w, sInsertPlain, tree.Type, tree.Type, tree.Type)
+		fmt.Fprintf(w, sInsert, tree.Type, tree.Type, tree.Type)
 	}
 }
 

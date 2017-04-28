@@ -10,31 +10,31 @@ var tagTests = []struct {
 	tag *Tag
 }{
 	{
-		`sql:"-"`,
+		TagKey + `:"-"`,
 		&Tag{Skip: true},
 	},
 	{
-		`sql:"pk: true, auto: true"`,
+		TagKey + `:"pk: true, auto: true"`,
 		&Tag{Primary: true, Auto: true},
 	},
 	{
-		`sql:"name: foo"`,
+		TagKey + `:"name: foo"`,
 		&Tag{Name: "foo"},
 	},
 	{
-		`sql:"type: varchar"`,
+		TagKey + `:"type: varchar"`,
 		&Tag{Type: "varchar"},
 	},
 	{
-		`sql:"size: 2048"`,
+		TagKey + `:"size: 2048"`,
 		&Tag{Size: 2048},
 	},
 	{
-		`sql:"index: fake_index"`,
+		TagKey + `:"index: fake_index"`,
 		&Tag{Index: "fake_index"},
 	},
 	{
-		`sql:"unique: fake_unique_index"`,
+		TagKey + `:"unique: fake_unique_index"`,
 		&Tag{Unique: "fake_unique_index"},
 	},
 }

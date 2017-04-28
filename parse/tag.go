@@ -13,6 +13,8 @@ const (
 	EncodeJson = "json"
 )
 
+const TagKey = "sql"
+
 // Tag stores the parsed data from the tag string in
 // a struct field.
 type Tag struct {
@@ -33,7 +35,7 @@ func parseTag(raw string) (*Tag, error) {
 	var tag = new(Tag)
 
 	raw = strings.Replace(raw, "`", "", -1)
-	raw = reflect.StructTag(raw).Get("sql")
+	raw = reflect.StructTag(raw).Get(TagKey)
 
 	// if the tag indicates the field should
 	// be skipped we can exit right away.

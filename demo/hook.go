@@ -1,6 +1,6 @@
 package demo
 
-//go:generate sqlgen -file hook.go -type Hook -pkg demo -o hook_sql.go -db mysql
+//go:generate sqlgen -file hook.go -type Hook -o hook_sql.go -db mysql
 
 type Hook struct {
 	Id         int64 `sql:"pk: true, auto: true"`
