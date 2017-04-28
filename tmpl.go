@@ -9,10 +9,9 @@ const %s = %s
 var sQuote = "`\n%s\n`"
 
 // template to declare the package name.
-var sPackage = `
-package %s
+var sPackage = `// THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
 
-// THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
+package %s
 `
 
 // template to delcare the package imports.
@@ -25,17 +24,16 @@ import (
 // function template to scan a single row.
 const sScanRow = `
 func Scan%s(row *sql.Row) (*%s, error) {
-	%s
-
+%s
 	err := row.Scan(
-		%s
+%s
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	v := &%s{}
-	%s
+%s
 
 	return v, nil
 }
@@ -47,17 +45,17 @@ func Scan%s(rows *sql.Rows) ([]*%s, error) {
 	var err error
 	var vv []*%s
 
-	%s
+%s
 	for rows.Next() {
 		err = rows.Scan(
-			%s
+%s
 		)
 		if err != nil {
 			return vv, err
 		}
 
 		v := &%s{}
-		%s
+%s
 		vv = append(vv, v)
 	}
 	return vv, rows.Err()
@@ -66,11 +64,10 @@ func Scan%s(rows *sql.Rows) ([]*%s, error) {
 
 const sSliceRow = `
 func Slice%s(v *%s) []interface{} {
-	%s
-	%s
-
+%s
+%s
 	return []interface{}{
-		%s
+%s
 	}
 }
 `
@@ -120,6 +117,6 @@ func Update%s(db *sql.DB, query string, v *%s) error {
 	args := Slice%s(v)[1:]
 	args = append(args, v.%s)
 	_, err := db.Exec(query, args...)
-	return err 
+	return err
 }
 `

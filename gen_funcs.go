@@ -66,13 +66,13 @@ func writeSliceFunc(w io.Writer, tree *parse.Node) {
 		// temporary variable declaration
 		switch node.Kind {
 		case parse.Map, parse.Slice:
-			fmt.Fprintf(&buf1, "var v%d %s\n", i, "[]byte")
+			fmt.Fprintf(&buf1, "\tvar v%d %s\n", i, "[]byte")
 		default:
-			fmt.Fprintf(&buf1, "var v%d %s\n", i, node.Type)
+			fmt.Fprintf(&buf1, "\tvar v%d %s\n", i, node.Type)
 		}
 
 		// variable scanning
-		fmt.Fprintf(&buf3, "v%d,\n", i)
+		fmt.Fprintf(&buf3, "\t\tv%d,\n", i)
 
 		// variable setting
 		path := node.Path()[1:]
@@ -80,30 +80,28 @@ func writeSliceFunc(w io.Writer, tree *parse.Node) {
 		// if the parent is a ptr struct we
 		// need to create a new
 		if parent != node.Parent && node.Parent.Kind == parse.Ptr {
-			// if node.Parent != nil && node.Parent.Parent != parent {
-			// 	fmt.Fprintln(&buf2, "}\n")
-			// 	depth--
-			// }
-
 			// seriously ... this works?
 			if node.Parent != nil && node.Parent.Parent != parent {
 				for _, p := range path {
 					if p == parent || depth == 0 {
 						break
 					}
-					fmt.Fprintln(&buf2, "}\n")
+					writeN(&buf2, depth, '\t')
+					fmt.Fprintln(&buf2, "}")
 					depth--
 				}
 			}
+			writeN(&buf2, depth, '\t')
+			fmt.Fprintf(&buf2, "\tif v.%s != nil {\n", join(path[:len(path)-1], "."))
 			depth++
-			fmt.Fprintf(&buf2, "if v.%s != nil {\n", join(path[:len(path)-1], "."))
 		}
 
+		writeN(&buf2, depth, '\t')
 		switch node.Kind {
 		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-			fmt.Fprintf(&buf2, "v%d, _ = json.Marshal(&v.%s)\n", i, join(path, "."))
+			fmt.Fprintf(&buf2, "\tv%d, _ = json.Marshal(&v.%s)\n", i, join(path, "."))
 		default:
-			fmt.Fprintf(&buf2, "v%d=v.%s\n", i, join(path, "."))
+			fmt.Fprintf(&buf2, "\tv%d = v.%s\n", i, join(path, "."))
 		}
 
 		parent = node.Parent
@@ -111,8 +109,9 @@ func writeSliceFunc(w io.Writer, tree *parse.Node) {
 	}
 
 	for depth != 0 {
+		writeN(&buf2, depth, '\t')
+		fmt.Fprintln(&buf2, "}")
 		depth--
-		fmt.Fprintln(&buf2, "}\n")
 	}
 
 	fmt.Fprintf(w,
@@ -139,13 +138,13 @@ func writeRowFunc(w io.Writer, tree *parse.Node) {
 		// temporary variable declaration
 		switch node.Kind {
 		case parse.Map, parse.Slice:
-			fmt.Fprintf(&buf1, "var v%d %s\n", i, "[]byte")
+			fmt.Fprintf(&buf1, "\tvar v%d %s\n", i, "[]byte")
 		default:
-			fmt.Fprintf(&buf1, "var v%d %s\n", i, node.Type)
+			fmt.Fprintf(&buf1, "\tvar v%d %s\n", i, node.Type)
 		}
 
 		// variable scanning
-		fmt.Fprintf(&buf2, "&v%d,\n", i)
+		fmt.Fprintf(&buf2, "\t\t&v%d,\n", i)
 
 		// variable setting
 		path := node.Path()[1:]
@@ -153,14 +152,14 @@ func writeRowFunc(w io.Writer, tree *parse.Node) {
 		// if the parent is a ptr struct we
 		// need to create a new
 		if parent != node.Parent && node.Parent.Kind == parse.Ptr {
-			fmt.Fprintf(&buf3, "v.%s=&%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type)
+			fmt.Fprintf(&buf3, "\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type)
 		}
 
 		switch node.Kind {
 		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-			fmt.Fprintf(&buf3, "json.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
+			fmt.Fprintf(&buf3, "\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
 		default:
-			fmt.Fprintf(&buf3, "v.%s=v%d\n", join(path, "."), i)
+			fmt.Fprintf(&buf3, "\tv.%s = v%d\n", join(path, "."), i)
 		}
 
 		parent = node.Parent
@@ -191,13 +190,13 @@ func writeRowsFunc(w io.Writer, tree *parse.Node) {
 		// temporary variable declaration
 		switch node.Kind {
 		case parse.Map, parse.Slice:
-			fmt.Fprintf(&buf1, "var v%d %s\n", i, "[]byte")
+			fmt.Fprintf(&buf1, "\tvar v%d %s\n", i, "[]byte")
 		default:
-			fmt.Fprintf(&buf1, "var v%d %s\n", i, node.Type)
+			fmt.Fprintf(&buf1, "\tvar v%d %s\n", i, node.Type)
 		}
 
 		// variable scanning
-		fmt.Fprintf(&buf2, "&v%d,\n", i)
+		fmt.Fprintf(&buf2, "\t\t\t&v%d,\n", i)
 
 		// variable setting
 		path := node.Path()[1:]
@@ -205,14 +204,14 @@ func writeRowsFunc(w io.Writer, tree *parse.Node) {
 		// if the parent is a ptr struct we
 		// need to create a new
 		if parent != node.Parent && node.Parent.Kind == parse.Ptr {
-			fmt.Fprintf(&buf3, "v.%s=&%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type)
+			fmt.Fprintf(&buf3, "\t\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type)
 		}
 
 		switch node.Kind {
 		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-			fmt.Fprintf(&buf3, "json.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
+			fmt.Fprintf(&buf3, "\t\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
 		default:
-			fmt.Fprintf(&buf3, "v.%s=v%d\n", join(path, "."), i)
+			fmt.Fprintf(&buf3, "\t\tv.%s = v%d\n", join(path, "."), i)
 		}
 
 		parent = node.Parent
@@ -262,4 +261,10 @@ func join(nodes []*parse.Node, sep string) string {
 		parts = append(parts, node.Name)
 	}
 	return strings.Join(parts, sep)
+}
+
+func writeN(w io.Writer, n int, c ...byte) {
+	for i := 0; i < n; i++ {
+		w.Write(c)
+	}
 }
