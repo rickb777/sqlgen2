@@ -36,6 +36,8 @@ func (d *posgres) Column(f *Field) (_ string) {
 			size = 512
 		}
 		return fmt.Sprintf("VARCHAR(%d)", size)
+	case JSON:
+		return "JSON"
 	default:
 		return
 	}

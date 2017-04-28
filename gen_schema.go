@@ -6,12 +6,13 @@ import (
 	"strings"
 
 	"bitbucket.org/pkg/inflect"
+	"github.com/rickb777/sqlgen/parse"
 	"github.com/rickb777/sqlgen/schema"
 )
 
 // writeSchema writes SQL statements to CREATE, INSERT,
 // UPDATE and DELETE values from Table t.
-func writeSchema(w io.Writer, d schema.Dialect, t *schema.Table) {
+func writeSchema(w io.Writer, d schema.Dialect, tree *parse.Node, t *schema.Table) {
 
 	writeConst(w,
 		d.Table(t),
@@ -38,7 +39,7 @@ func writeSchema(w io.Writer, d schema.Dialect, t *schema.Table) {
 		"select", inflect.Singularize(t.Name), "count", "stmt",
 	)
 
-	if len(t.Primary) != 0 {
+	if len(t.Primary) > 0 {
 		writeConst(w,
 			d.Select(t, t.Primary),
 			"select", inflect.Singularize(t.Name), "pkey", "stmt",
@@ -48,6 +49,20 @@ func writeSchema(w io.Writer, d schema.Dialect, t *schema.Table) {
 			d.Update(t, t.Primary),
 			"update", inflect.Singularize(t.Name), "pkey", "stmt",
 		)
+
+		//fmt.Fprintf(w, "var %s = map[string]string{\n",
+		//	inflect.Typeify(fmt.Sprintf("update_%s_json_map", inflect.Singularize(t.Name))))
+		//for i, node := range tree.Edges() {
+		//	if i < len(t.Fields) {
+		//		columnName := t.Fields[i].SqlName
+		//		//if field.Patchable
+		//		jsonAttr := strings.Split(node.Tags.JSONAttr, ",")[0]
+		//		if jsonAttr != "-" {
+		//			fmt.Fprintf(w, "\"%s\": \"%s\",\n", jsonAttr, columnName)
+		//		}
+		//	}
+		//}
+		//fmt.Fprintf(w, "}")
 
 		writeConst(w,
 			d.Delete(t, t.Primary),

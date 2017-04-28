@@ -19,6 +19,7 @@ var (
 	genSchema  = flag.Bool("schema", true, "generate sql schema and queries")
 	genFuncs   = flag.Bool("funcs", true, "generate sql helper functions")
 	extraFuncs = flag.Bool("extras", true, "generate extra sql helper functions")
+	gofmt      = flag.Bool("gofmt", false, "format and simplify the generated code nicely")
 )
 
 func main() {
@@ -56,14 +57,17 @@ func main() {
 
 	// write the sql functions
 	if *genSchema {
-		writeSchema(buf, dialect, table)
+		writeSchema(buf, dialect, tree, table)
 	}
 
 	// formats the generated file using gofmt
-	pretty, err := format(buf)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return
+	var pretty io.Reader = buf
+	if *gofmt {
+		pretty, err = format(buf)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n%v\n", string(buf.Bytes()), err)
+			return
+		}
 	}
 
 	// create output source for file. defaults to

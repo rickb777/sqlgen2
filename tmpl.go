@@ -109,7 +109,7 @@ func Insert%s(db *sql.DB, query string, v *%s) error {
 
 const sInsert = `
 func Insert%s(db *sql.DB, query string, v *%s) error {
-	_, err := db.Exec(query, Slice%s(v)[1:]...)
+	_, err := db.Exec(query, Slice%s(v)...)
 	return err
 }
 `

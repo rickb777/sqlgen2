@@ -7,6 +7,7 @@ const (
 	BOOLEAN
 	REAL
 	BLOB
+	JSON
 )
 
 // List of vendor-specific keywords

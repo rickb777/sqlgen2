@@ -43,7 +43,7 @@ func writeImports(w io.Writer, tree *parse.Node, pkgs ...string) {
 	// write the import block, including each
 	// encoder package that was specified.
 	fmt.Fprintln(w, "\nimport (")
-	for pkg := range pmap {
+	for pkg, _ := range pmap {
 		if pkg != "" {
 			fmt.Fprintf(w, "\t%q\n", pkg)
 		}
@@ -258,8 +258,8 @@ func writeUpdateFunc(w io.Writer, tree *parse.Node, table *schema.Table) {
 // together by name using the seperator.
 func join(nodes []*parse.Node, sep string) string {
 	var parts []string
-	for _, n := range nodes {
-		parts = append(parts, n.Name)
+	for _, node := range nodes {
+		parts = append(parts, node.Name)
 	}
 	return strings.Join(parts, sep)
 }

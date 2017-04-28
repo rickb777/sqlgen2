@@ -12,7 +12,7 @@ func Load(tree *parse.Node) *Table {
 
 	// local map of indexes, used for quick
 	// lookups and de-duping.
-	indexs := map[string]*Index{}
+	indices := map[string]*Index{}
 
 	// pluralizes the table name and then
 	// formats in snake case.
@@ -28,16 +28,11 @@ func Load(tree *parse.Node) *Table {
 		field.GoName = node.Name
 
 		// Lookup the SQL column type
-		// TODO: move this to a function
-		t, ok := parse.Types[node.Type]
-		if ok {
-			tt, ok := types[t]
-			if !ok {
-				tt = BLOB
+		field.Type = BLOB
+		if t, ok := parse.Types[node.Type]; ok {
+			if tt, ok := types[t]; ok {
+				field.Type = tt
 			}
-			field.Type = tt
-		} else {
-			field.Type = BLOB
 		}
 
 		// substitute tag variables
@@ -56,23 +51,23 @@ func Load(tree *parse.Node) *Table {
 			}
 
 			if node.Tags.Index != "" {
-				index, ok := indexs[node.Tags.Index]
+				index, ok := indices[node.Tags.Index]
 				if !ok {
 					index = new(Index)
 					index.Name = node.Tags.Index
-					indexs[index.Name] = index
+					indices[index.Name] = index
 					table.Index = append(table.Index, index)
 				}
 				index.Fields = append(index.Fields, field)
 			}
 
 			if node.Tags.Unique != "" {
-				index, ok := indexs[node.Tags.Index]
+				index, ok := indices[node.Tags.Index]
 				if !ok {
 					index = new(Index)
 					index.Name = node.Tags.Unique
 					index.Unique = true
-					indexs[index.Name] = index
+					indices[index.Name] = index
 					table.Index = append(table.Index, index)
 				}
 				index.Fields = append(index.Fields, field)
@@ -87,7 +82,8 @@ func Load(tree *parse.Node) *Table {
 		}
 
 		// get the full path name
-		path := node.Path()
+		// omit table name
+		path := node.Path()[1:]
 		var parts []string
 		for _, part := range path {
 			if part.Tags != nil && part.Tags.Name != "" {
@@ -139,4 +135,5 @@ var sqlTypes = map[string]int{
 	"int":      INTEGER,
 	"blob":     BLOB,
 	"bytea":    BLOB,
+	"json":     JSON,
 }
