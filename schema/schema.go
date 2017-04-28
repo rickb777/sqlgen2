@@ -21,7 +21,7 @@ type Table struct {
 
 	Fields  []*Field
 	Index   []*Index
-	Primary []*Field
+	Primary *Field
 }
 
 type Field struct {
@@ -41,12 +41,9 @@ type Index struct {
 }
 
 func (t *Table) HasLastInsertId() bool {
-	return len(t.Primary) == 1 && t.Primary[0].Type == INTEGER
+	return t.Primary != nil && t.Primary.Type == INTEGER
 }
 
-func (t *Table) PrimaryKeyFieldName() string {
-	if len(t.Primary) != 1 {
-		return ""
-	}
-	return t.Primary[0].GoName
+func (t *Table) HasPrimaryKey() bool {
+	return t.Primary != nil
 }

@@ -1,4 +1,7 @@
-**sqlgen** generates SQL statements and database helper functions from your Go structs. It can be used in place of a simple ORM or hand-written SQL. See the [demo](https://github.com/rickb777/sqlgen/tree/master/demo) directory for examples.
+**sqlgen** generates SQL statements and database helper functions from your Go structs. It can be used in
+place of a simple ORM or hand-written SQL.
+
+See the [demo](https://github.com/rickb777/sqlgen/tree/master/demo) directory for examples.
 
 ### Install
 
@@ -18,8 +21,6 @@ Usage of sqlgen:
     	input file name; required
   -o string
     	output file name
-  -pkg string
-    	output package name
   -db string
     	sql dialect; sqlite, postgres, mysql
   -schema
@@ -73,25 +74,25 @@ func ScanUser(row *sql.Row) (*User, error) {
 
 const CreateUserStmt = `
 CREATE TABLE IF NOT EXISTS users (
- user_id     INTEGER
-,user_login  TEXT
-,user_email  TEXT
+ id     INTEGER,
+ login  TEXT,
+ email  TEXT
 );
 `
 
 const SelectUserStmt = `
 SELECT 
- user_id
-,user_login
-,user_email
+ id,
+ login,
+ email
 FROM users 
 `
 
 const SelectUserRangeStmt = `
 SELECT 
- user_id
-,user_login
-,user_email
+ id,
+ login,
+ email
 FROM users 
 LIMIT ? OFFSET ?
 `
@@ -127,17 +128,17 @@ Including SQL statements to select, insert, update and delete data using the pri
 ```Go
 const SelectUserPkeyStmt = `
 SELECT 
- user_id
-,user_login
-,user_email
+ id,
+ login,
+ email
 WHERE user_id=?
 `
 
 const UpdateUserPkeyStmt = `
 UPDATE users SET 
- user_id=?
-,user_login=?
-,user_email=?
+ id=?,
+ login=?,
+ email=?
 WHERE user_id=?
 `
 
@@ -153,7 +154,7 @@ We can take this one step further and annotate indexes. In our example, we proba
 type User struct {
     ID      int64  `sql:"pk: true, auto: true"`
 -   Login   string
-+   Login   string `sql:"unique: user_login"`
++   Login   string `sql:"unique: login"`
     Email   string
 }
 ```
@@ -171,17 +172,17 @@ The tool also assumes that we probably intend to fetch data from the database us
 ```Go
 const SelectUserLoginStmt = `
 SELECT 
- user_id
-,user_login
-,user_email
+ id,
+ login,
+ email
 WHERE user_login=?
 `
 
 const UpdateUserLoginStmt = `
 UPDATE users SET 
- user_id=?
-,user_login=?
-,user_email=?
+ id=?,
+ login=?,
+ email=?
 WHERE user_login=?
 `
 
@@ -214,12 +215,12 @@ The above relationship is flattened into a single table (see below). When the da
 
 ```sql
 CREATE TALBE IF NOT EXISTS users (
- user_id         INTEGER PRIMARY KEY AUTO_INCREMENT
-,user_login      TEXT
-,user_email      TEXT
-,user_addr_city  TEXT
-,user_addr_state TEXT
-,user_addr_zip   TEXT
+ id         INTEGER PRIMARY KEY AUTO_INCREMENT,
+ login      TEXT,
+ email      TEXT,
+ addr_city  TEXT,
+ addr_state TEXT,
+ addr_zip   TEXT
 );
 ```
 

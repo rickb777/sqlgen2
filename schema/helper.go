@@ -5,6 +5,8 @@ import (
 
 	"github.com/acsellers/inflections"
 	"github.com/rickb777/sqlgen/parse"
+	"fmt"
+	"os"
 )
 
 func Load(tree *parse.Node) *Table {
@@ -47,7 +49,12 @@ func Load(tree *parse.Node) *Table {
 			field.Size = node.Tags.Size
 
 			if node.Tags.Primary {
-				table.Primary = append(table.Primary, field)
+				if table.Primary != nil {
+					fmt.Fprintf(os.Stderr, "%s, %s: compound primary keys are not supported.\n",
+						table.Primary.GoName, field.GoName)
+					os.Exit(1)
+				}
+				table.Primary = field
 			}
 
 			if node.Tags.Index != "" {

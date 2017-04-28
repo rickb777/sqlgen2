@@ -4,9 +4,20 @@ package demo
 
 import (
 	"database/sql"
+	"fmt"
 	"encoding/json"
 )
 
+// IssueTableName is the default name for this table.
+const IssueTableName = "issues"
+
+// IssueTable holds a given table name with the database reference, providing access methods below.
+type IssueTable struct {
+	Name string
+	Db   *sql.DB
+}
+
+// ScanIssue reads a database record into a single value.
 func ScanIssue(row *sql.Row) (*Issue, error) {
 	var v0 int64
 	var v1 int
@@ -43,6 +54,7 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 	return v, nil
 }
 
+// ScanIssues reads database records into a slice of values.
 func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 	var err error
 	var vv []*Issue
@@ -113,13 +125,39 @@ func SliceIssue(v *Issue) []interface{} {
 	}
 }
 
-func SelectIssue(db *sql.DB, query string, args ...interface{}) (*Issue, error) {
-	row := db.QueryRow(query, args...)
+func SliceIssueWithoutPk(v *Issue) []interface{} {
+	var v1 int
+	var v2 string
+	var v3 string
+	var v4 string
+	var v5 string
+	var v6 []byte
+
+	v1 = v.Number
+	v2 = v.Title
+	v3 = v.Body
+	v4 = v.Assignee
+	v5 = v.State
+	v6, _ = json.Marshal(&v.Labels)
+
+	return []interface{}{
+		v1,
+		v2,
+		v3,
+		v4,
+		v5,
+		v6,
+
+	}
+}
+
+func (tbl IssueTable) SelectOne(query string, args ...interface{}) (*Issue, error) {
+	row := tbl.Db.QueryRow(query, args...)
 	return ScanIssue(row)
 }
 
-func SelectIssues(db *sql.DB, query string, args ...interface{}) ([]*Issue, error) {
-	rows, err := db.Query(query, args...)
+func (tbl IssueTable) Select(query string, args ...interface{}) ([]*Issue, error) {
+	rows, err := tbl.Db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -127,8 +165,9 @@ func SelectIssues(db *sql.DB, query string, args ...interface{}) ([]*Issue, erro
 	return ScanIssues(rows)
 }
 
-func InsertIssue(db *sql.DB, query string, v *Issue) error {
-	res, err := db.Exec(query, SliceIssue(v)[1:]...)
+func (tbl IssueTable) Insert(v *Issue) error {
+	query := fmt.Sprintf(sInsertIssueStmt, tbl.Name)
+	res, err := tbl.Db.Exec(query, SliceIssueWithoutPk(v)...)
 	if err != nil {
 		return err
 	}
@@ -137,129 +176,195 @@ func InsertIssue(db *sql.DB, query string, v *Issue) error {
 	return err
 }
 
-func UpdateIssue(db *sql.DB, query string, v *Issue) error {
-	args := SliceIssue(v)[1:]
+// Update updates a record. It returns the number of rows affected.
+// Not every database or database driver may support this.
+func (tbl IssueTable) Update(v *Issue) (int64, error) {
+	query := fmt.Sprintf(sUpdateIssueByPkStmt, tbl.Name)
+	args := SliceIssueWithoutPk(v)
 	args = append(args, v.Id)
-	_, err := db.Exec(query, args...)
-	return err
+	return tbl.Exec(query, args...)
 }
 
-const CreateIssueStmt = `
-CREATE TABLE IF NOT EXISTS issues (
+// Exec executes a query without returning any rows.
+// The args are for any placeholder parameters in the query.
+// It returns the number of rows affected.
+// Not every database or database driver may support this.
+func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
+	res, err := tbl.Db.Exec(query, args...)
+	if err != nil {
+		return 0, nil
+	}
+	return res.RowsAffected()
+}
+
+//--------------------------------------------------------------------------------
+
+const sCreateIssueStmt = `
+CREATE TABLE IF NOT EXISTS %s (
  id       SERIAL PRIMARY KEY ,
  number   INTEGER,
  title    VARCHAR(512),
- body     VARCHAR(2048),
+ bigbody  VARCHAR(2048),
  assignee VARCHAR(512),
  state    VARCHAR(50),
  labels   BYTEA
 );
 `
 
-const InsertIssueStmt = `
-INSERT INTO issues (
+func CreateIssueStmt(tableName string) string {
+	return fmt.Sprintf(sCreateIssueStmt, tableName)
+}
+
+const sInsertIssueStmt = `
+INSERT INTO %s (
  number,
  title,
- body,
+ bigbody,
  assignee,
  state,
  labels
 ) VALUES ($1,$2,$3,$4,$5,$6)
 `
 
-const SelectIssueStmt = `
+func InsertIssueStmt(tableName string) string {
+	return fmt.Sprintf(sInsertIssueStmt, tableName)
+}
+
+const sSelectIssueStmt = `
 SELECT 
  id,
  number,
  title,
- body,
+ bigbody,
  assignee,
  state,
  labels
-FROM issues 
+FROM %s
 `
 
-const SelectIssueRangeStmt = `
+func SelectIssueStmt(tableName string) string {
+	return fmt.Sprintf(sSelectIssueStmt, tableName)
+}
+
+const sSelectIssueRangeStmt = `
 SELECT 
  id,
  number,
  title,
- body,
+ bigbody,
  assignee,
  state,
  labels
-FROM issues 
+FROM %s
 LIMIT $1 OFFSET $2
 `
 
-const SelectIssueCountStmt = `
+func SelectIssueRangeStmt(tableName string) string {
+	return fmt.Sprintf(sSelectIssueRangeStmt, tableName)
+}
+
+const sSelectIssueCountStmt = `
 SELECT count(1)
-FROM issues 
+FROM %s 
 `
 
-const SelectIssuePkeyStmt = `
+func SelectIssueCountStmt(tableName string) string {
+	return fmt.Sprintf(sSelectIssueCountStmt, tableName)
+}
+
+const sSelectIssueByPkStmt = `
 SELECT 
  id,
  number,
  title,
- body,
+ bigbody,
  assignee,
  state,
  labels
-FROM issues 
-WHERE id=$1
+FROM %s
+ WHERE id=$1
 `
 
-const UpdateIssuePkeyStmt = `
-UPDATE issues SET 
+func SelectIssueByPkStmt(tableName string) string {
+	return fmt.Sprintf(sSelectIssueByPkStmt, tableName)
+}
+
+const sUpdateIssueByPkStmt = `
+UPDATE %s SET 
  id=$1,
  number=$2,
  title=$3,
- body=$4,
+ bigbody=$4,
  assignee=$5,
  state=$6,
  labels=$7 
-WHERE id=$8
+ WHERE id=$8
 `
 
-const DeleteIssuePkeyStmt = `
-DELETE FROM issues 
-WHERE id=$1
+func UpdateIssueByPkStmt(tableName string) string {
+	return fmt.Sprintf(sUpdateIssueByPkStmt, tableName)
+}
+
+const sDeleteIssueByPkeyStmt = `
+DELETE FROM %s
+ WHERE id=$1
 `
 
-const CreateIssueAssigneeStmt = `
-CREATE INDEX IF NOT EXISTS issue_assignee ON issues ( assignee)
+func DeleteIssueByPkeyStmt(tableName string) string {
+	return fmt.Sprintf(sDeleteIssueByPkeyStmt, tableName)
+}
+
+//--------------------------------------------------------------------------------
+
+const sCreateIssueAssigneeStmt = `
+CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
 `
 
-const SelectIssueAssigneeStmt = `
+func CreateIssueAssigneeStmt(tableName string) string {
+	return fmt.Sprintf(sCreateIssueAssigneeStmt, tableName)
+}
+
+const sSelectIssueAssigneeStmt = `
 SELECT 
  id,
  number,
  title,
- body,
+ bigbody,
  assignee,
  state,
  labels
-FROM issues 
-WHERE assignee=$1
+FROM %s
+ WHERE assignee=$1
 `
 
-const SelectIssueAssigneeRangeStmt = `
+func SelectIssueAssigneeStmt(tableName string) string {
+	return fmt.Sprintf(sSelectIssueAssigneeStmt, tableName)
+}
+
+const sSelectIssueAssigneeRangeStmt = `
 SELECT 
  id,
  number,
  title,
- body,
+ bigbody,
  assignee,
  state,
  labels
-FROM issues 
-WHERE assignee=$1
+FROM %s
+ WHERE assignee=$1
 LIMIT $2 OFFSET $3
 `
 
-const SelectIssueAssigneeCountStmt = `
+func SelectIssueAssigneeRangeStmt(tableName string) string {
+	return fmt.Sprintf(sSelectIssueAssigneeRangeStmt, tableName)
+}
+
+const sSelectIssueAssigneeCountStmt = `
 SELECT count(1)
-FROM issues 
-WHERE assignee=$1
+FROM %s 
+ WHERE assignee=$1
 `
+
+func SelectIssueAssigneeCountStmt(tableName string) string {
+	return fmt.Sprintf(sSelectIssueAssigneeCountStmt, tableName)
+}

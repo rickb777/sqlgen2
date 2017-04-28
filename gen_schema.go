@@ -3,51 +3,54 @@ package main
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"bitbucket.org/pkg/inflect"
 	"github.com/rickb777/sqlgen/parse"
 	"github.com/rickb777/sqlgen/schema"
 )
 
+const sectionBreak = "\n//--------------------------------------------------------------------------------"
+
 // writeSchema writes SQL statements to CREATE, INSERT,
 // UPDATE and DELETE values from Table t.
 func writeSchema(w io.Writer, d schema.Dialect, tree *parse.Node, t *schema.Table) {
 
+	fmt.Fprintln(w, sectionBreak)
+
 	writeConst(w,
 		d.Table(t),
-		"create", inflect.Singularize(t.Name), "stmt",
+		identifier("Create", inflect.Singularize(t.Name), "Stmt"),
 	)
 
 	writeConst(w,
 		d.Insert(t),
-		"insert", inflect.Singularize(t.Name), "stmt",
+		identifier("Insert", inflect.Singularize(t.Name), "Stmt"),
 	)
 
 	writeConst(w,
 		d.Select(t, nil),
-		"select", inflect.Singularize(t.Name), "stmt",
+		identifier("Select", inflect.Singularize(t.Name), "Stmt"),
 	)
 
 	writeConst(w,
 		d.SelectRange(t, nil),
-		"select", inflect.Singularize(t.Name), "range", "stmt",
+		identifier("Select", inflect.Singularize(t.Name), "RangeStmt"),
 	)
 
 	writeConst(w,
 		d.SelectCount(t, nil),
-		"select", inflect.Singularize(t.Name), "count", "stmt",
+		identifier("Select", inflect.Singularize(t.Name), "CountStmt"),
 	)
 
-	if len(t.Primary) > 0 {
+	if t.HasPrimaryKey() {
 		writeConst(w,
-			d.Select(t, t.Primary),
-			"select", inflect.Singularize(t.Name), "pkey", "stmt",
+			d.Select(t, []*schema.Field{t.Primary}),
+			identifier("Select", inflect.Singularize(t.Name), "ByPkStmt"),
 		)
 
 		writeConst(w,
-			d.Update(t, t.Primary),
-			"update", inflect.Singularize(t.Name), "pkey", "stmt",
+			d.Update(t, []*schema.Field{t.Primary}),
+			identifier("Update", inflect.Singularize(t.Name), "ByPkStmt"),
 		)
 
 		//fmt.Fprintf(w, "var %s = map[string]string{\n",
@@ -65,45 +68,47 @@ func writeSchema(w io.Writer, d schema.Dialect, tree *parse.Node, t *schema.Tabl
 		//fmt.Fprintf(w, "}")
 
 		writeConst(w,
-			d.Delete(t, t.Primary),
-			"delete", inflect.Singularize(t.Name), "pkey", "stmt",
+			d.Delete(t, []*schema.Field{t.Primary}),
+			identifier("Delete", inflect.Singularize(t.Name), "ByPkeyStmt"),
 		)
 	}
+
+	fmt.Fprintln(w, sectionBreak)
 
 	for _, ix := range t.Index {
 
 		writeConst(w,
 			d.Index(t, ix),
-			"create", ix.Name, "stmt",
+			identifier("Create", ix.Name, "Stmt"),
 		)
 
 		writeConst(w,
 			d.Select(t, ix.Fields),
-			"select", ix.Name, "stmt",
+			identifier("Select", ix.Name, "Stmt"),
 		)
 
 		if !ix.Unique {
 
 			writeConst(w,
 				d.SelectRange(t, ix.Fields),
-				"select", ix.Name, "range", "stmt",
+				identifier("Select", ix.Name, "RangeStmt"),
 			)
 
 			writeConst(w,
 				d.SelectCount(t, ix.Fields),
-				"select", ix.Name, "count", "stmt",
+				identifier("Select", ix.Name, "CountStmt"),
 			)
 
 		} else {
 
 			writeConst(w,
 				d.Update(t, ix.Fields),
-				"update", ix.Name, "stmt",
+				identifier("Update", ix.Name, "Stmt"),
 			)
 
 			writeConst(w,
 				d.Delete(t, ix.Fields),
-				"delete", ix.Name, "stmt",
+				identifier("Delete", ix.Name, "Stmt"),
 			)
 		}
 	}
@@ -117,15 +122,13 @@ func writePackage(w io.Writer, name string) {
 
 // writeConst is a helper function that writes the
 // body string to a Go const.
-func writeConst(w io.Writer, body string, label ...string) {
-	// create a snake case variable name from
-	// the specified labels. Then convert the
-	// variable name to a quoted, camel case string.
-	name := strings.Join(label, "_")
-	name = inflect.Typeify(name)
-
+func writeConst(w io.Writer, body string, name string) {
 	// quote the body using multi-line quotes
-	body = fmt.Sprintf(sQuote, body)
+	body = fmt.Sprintf("`\n%s\n`", body)
 
-	fmt.Fprintf(w, sConst, name, body)
+	fmt.Fprintf(w, sConst, name, body, name, name)
+}
+
+func identifier(prefix, id, suffix string) string {
+	return prefix + inflect.Camelize(id) + suffix
 }

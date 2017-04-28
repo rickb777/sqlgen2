@@ -4,8 +4,19 @@ package demo
 
 import (
 	"database/sql"
+	"fmt"
 )
 
+// UserTableName is the default name for this table.
+const UserTableName = "users"
+
+// UserTable holds a given table name with the database reference, providing access methods below.
+type UserTable struct {
+	Name string
+	Db   *sql.DB
+}
+
+// ScanUser reads a database record into a single value.
 func ScanUser(row *sql.Row) (*User, error) {
 	var v0 int64
 	var v1 string
@@ -48,6 +59,7 @@ func ScanUser(row *sql.Row) (*User, error) {
 	return v, nil
 }
 
+// ScanUsers reads database records into a slice of values.
 func ScanUsers(rows *sql.Rows) ([]*User, error) {
 	var err error
 	var vv []*User
@@ -130,13 +142,45 @@ func SliceUser(v *User) []interface{} {
 	}
 }
 
-func SelectUser(db *sql.DB, query string, args ...interface{}) (*User, error) {
-	row := db.QueryRow(query, args...)
+func SliceUserWithoutPk(v *User) []interface{} {
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 bool
+	var v5 bool
+	var v6 string
+	var v7 string
+	var v8 string
+
+	v1 = v.Login
+	v2 = v.Email
+	v3 = v.Avatar
+	v4 = v.Active
+	v5 = v.Admin
+	v6 = v.token
+	v7 = v.secret
+	v8 = v.hash
+
+	return []interface{}{
+		v1,
+		v2,
+		v3,
+		v4,
+		v5,
+		v6,
+		v7,
+		v8,
+
+	}
+}
+
+func (tbl UserTable) SelectOne(query string, args ...interface{}) (*User, error) {
+	row := tbl.Db.QueryRow(query, args...)
 	return ScanUser(row)
 }
 
-func SelectUsers(db *sql.DB, query string, args ...interface{}) ([]*User, error) {
-	rows, err := db.Query(query, args...)
+func (tbl UserTable) Select(query string, args ...interface{}) ([]*User, error) {
+	rows, err := tbl.Db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -144,8 +188,9 @@ func SelectUsers(db *sql.DB, query string, args ...interface{}) ([]*User, error)
 	return ScanUsers(rows)
 }
 
-func InsertUser(db *sql.DB, query string, v *User) error {
-	res, err := db.Exec(query, SliceUser(v)[1:]...)
+func (tbl UserTable) Insert(v *User) error {
+	query := fmt.Sprintf(sInsertUserStmt, tbl.Name)
+	res, err := tbl.Db.Exec(query, SliceUserWithoutPk(v)...)
 	if err != nil {
 		return err
 	}
@@ -154,15 +199,31 @@ func InsertUser(db *sql.DB, query string, v *User) error {
 	return err
 }
 
-func UpdateUser(db *sql.DB, query string, v *User) error {
-	args := SliceUser(v)[1:]
+// Update updates a record. It returns the number of rows affected.
+// Not every database or database driver may support this.
+func (tbl UserTable) Update(v *User) (int64, error) {
+	query := fmt.Sprintf(sUpdateUserByPkStmt, tbl.Name)
+	args := SliceUserWithoutPk(v)
 	args = append(args, v.Id)
-	_, err := db.Exec(query, args...)
-	return err
+	return tbl.Exec(query, args...)
 }
 
-const CreateUserStmt = `
-CREATE TABLE IF NOT EXISTS users (
+// Exec executes a query without returning any rows.
+// The args are for any placeholder parameters in the query.
+// It returns the number of rows affected.
+// Not every database or database driver may support this.
+func (tbl UserTable) Exec(query string, args ...interface{}) (int64, error) {
+	res, err := tbl.Db.Exec(query, args...)
+	if err != nil {
+		return 0, nil
+	}
+	return res.RowsAffected()
+}
+
+//--------------------------------------------------------------------------------
+
+const sCreateUserStmt = `
+CREATE TABLE IF NOT EXISTS %s (
  id     INTEGER PRIMARY KEY AUTOINCREMENT,
  login  TEXT,
  email  TEXT,
@@ -175,8 +236,12 @@ CREATE TABLE IF NOT EXISTS users (
 );
 `
 
-const InsertUserStmt = `
-INSERT INTO users (
+func CreateUserStmt(tableName string) string {
+	return fmt.Sprintf(sCreateUserStmt, tableName)
+}
+
+const sInsertUserStmt = `
+INSERT INTO %s (
  login,
  email,
  avatar,
@@ -188,7 +253,11 @@ INSERT INTO users (
 ) VALUES (?,?,?,?,?,?,?,?)
 `
 
-const SelectUserStmt = `
+func InsertUserStmt(tableName string) string {
+	return fmt.Sprintf(sInsertUserStmt, tableName)
+}
+
+const sSelectUserStmt = `
 SELECT 
  id,
  login,
@@ -199,10 +268,14 @@ SELECT
  token,
  secret,
  hash
-FROM users 
+FROM %s
 `
 
-const SelectUserRangeStmt = `
+func SelectUserStmt(tableName string) string {
+	return fmt.Sprintf(sSelectUserStmt, tableName)
+}
+
+const sSelectUserRangeStmt = `
 SELECT 
  id,
  login,
@@ -213,16 +286,24 @@ SELECT
  token,
  secret,
  hash
-FROM users 
+FROM %s
 LIMIT ? OFFSET ?
 `
 
-const SelectUserCountStmt = `
+func SelectUserRangeStmt(tableName string) string {
+	return fmt.Sprintf(sSelectUserRangeStmt, tableName)
+}
+
+const sSelectUserCountStmt = `
 SELECT count(1)
-FROM users 
+FROM %s 
 `
 
-const SelectUserPkeyStmt = `
+func SelectUserCountStmt(tableName string) string {
+	return fmt.Sprintf(sSelectUserCountStmt, tableName)
+}
+
+const sSelectUserByPkStmt = `
 SELECT 
  id,
  login,
@@ -233,12 +314,16 @@ SELECT
  token,
  secret,
  hash
-FROM users 
-WHERE id=?
+FROM %s
+ WHERE id=?
 `
 
-const UpdateUserPkeyStmt = `
-UPDATE users SET 
+func SelectUserByPkStmt(tableName string) string {
+	return fmt.Sprintf(sSelectUserByPkStmt, tableName)
+}
+
+const sUpdateUserByPkStmt = `
+UPDATE %s SET 
  id=?,
  login=?,
  email=?,
@@ -248,19 +333,33 @@ UPDATE users SET
  token=?,
  secret=?,
  hash=? 
-WHERE id=?
+ WHERE id=?
 `
 
-const DeleteUserPkeyStmt = `
-DELETE FROM users 
-WHERE id=?
+func UpdateUserByPkStmt(tableName string) string {
+	return fmt.Sprintf(sUpdateUserByPkStmt, tableName)
+}
+
+const sDeleteUserByPkeyStmt = `
+DELETE FROM %s
+ WHERE id=?
 `
 
-const CreateUserLoginStmt = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_login ON users ( login)
+func DeleteUserByPkeyStmt(tableName string) string {
+	return fmt.Sprintf(sDeleteUserByPkeyStmt, tableName)
+}
+
+//--------------------------------------------------------------------------------
+
+const sCreateUserLoginStmt = `
+CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
 `
 
-const SelectUserLoginStmt = `
+func CreateUserLoginStmt(tableName string) string {
+	return fmt.Sprintf(sCreateUserLoginStmt, tableName)
+}
+
+const sSelectUserLoginStmt = `
 SELECT 
  id,
  login,
@@ -271,12 +370,16 @@ SELECT
  token,
  secret,
  hash
-FROM users 
-WHERE login=?
+FROM %s
+ WHERE login=?
 `
 
-const UpdateUserLoginStmt = `
-UPDATE users SET 
+func SelectUserLoginStmt(tableName string) string {
+	return fmt.Sprintf(sSelectUserLoginStmt, tableName)
+}
+
+const sUpdateUserLoginStmt = `
+UPDATE %s SET 
  id=?,
  login=?,
  email=?,
@@ -286,19 +389,31 @@ UPDATE users SET
  token=?,
  secret=?,
  hash=? 
-WHERE login=?
+ WHERE login=?
 `
 
-const DeleteUserLoginStmt = `
-DELETE FROM users 
-WHERE login=?
+func UpdateUserLoginStmt(tableName string) string {
+	return fmt.Sprintf(sUpdateUserLoginStmt, tableName)
+}
+
+const sDeleteUserLoginStmt = `
+DELETE FROM %s
+ WHERE login=?
 `
 
-const CreateUserEmailStmt = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_email ON users ( email)
+func DeleteUserLoginStmt(tableName string) string {
+	return fmt.Sprintf(sDeleteUserLoginStmt, tableName)
+}
+
+const sCreateUserEmailStmt = `
+CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
 `
 
-const SelectUserEmailStmt = `
+func CreateUserEmailStmt(tableName string) string {
+	return fmt.Sprintf(sCreateUserEmailStmt, tableName)
+}
+
+const sSelectUserEmailStmt = `
 SELECT 
  id,
  login,
@@ -309,12 +424,16 @@ SELECT
  token,
  secret,
  hash
-FROM users 
-WHERE email=?
+FROM %s
+ WHERE email=?
 `
 
-const UpdateUserEmailStmt = `
-UPDATE users SET 
+func SelectUserEmailStmt(tableName string) string {
+	return fmt.Sprintf(sSelectUserEmailStmt, tableName)
+}
+
+const sUpdateUserEmailStmt = `
+UPDATE %s SET 
  id=?,
  login=?,
  email=?,
@@ -324,10 +443,18 @@ UPDATE users SET
  token=?,
  secret=?,
  hash=? 
-WHERE email=?
+ WHERE email=?
 `
 
-const DeleteUserEmailStmt = `
-DELETE FROM users 
-WHERE email=?
+func UpdateUserEmailStmt(tableName string) string {
+	return fmt.Sprintf(sUpdateUserEmailStmt, tableName)
+}
+
+const sDeleteUserEmailStmt = `
+DELETE FROM %s
+ WHERE email=?
 `
+
+func DeleteUserEmailStmt(tableName string) string {
+	return fmt.Sprintf(sDeleteUserEmailStmt, tableName)
+}

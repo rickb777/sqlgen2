@@ -42,16 +42,19 @@ func main() {
 	writePackage(buf, tree.Pkg)
 
 	if *genFuncs {
-		writeImports(buf, tree, "database/sql")
+		writeImports(buf, tree, "database/sql", "fmt")
+		writeType(buf, tree)
 		writeRowFunc(buf, tree)
 		writeRowsFunc(buf, tree)
-		writeSliceFunc(buf, tree)
+		writeSliceFunc(buf, tree, false)
+		writeSliceFunc(buf, tree, true)
 
 		if *extraFuncs {
 			writeSelectRow(buf, tree)
 			writeSelectRows(buf, tree)
 			writeInsertFunc(buf, tree, table)
 			writeUpdateFunc(buf, tree, table)
+			writeExecFunc(buf, tree, table)
 		}
 	}
 

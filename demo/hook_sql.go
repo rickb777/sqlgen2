@@ -4,8 +4,19 @@ package demo
 
 import (
 	"database/sql"
+	"fmt"
 )
 
+// HookTableName is the default name for this table.
+const HookTableName = "hooks"
+
+// HookTable holds a given table name with the database reference, providing access methods below.
+type HookTable struct {
+	Name string
+	Db   *sql.DB
+}
+
+// ScanHook reads a database record into a single value.
 func ScanHook(row *sql.Row) (*Hook, error) {
 	var v0 int64
 	var v1 string
@@ -72,6 +83,7 @@ func ScanHook(row *sql.Row) (*Hook, error) {
 	return v, nil
 }
 
+// ScanHooks reads database records into a slice of values.
 func ScanHooks(rows *sql.Rows) ([]*Hook, error) {
 	var err error
 	var vv []*Hook
@@ -205,13 +217,72 @@ func SliceHook(v *Hook) []interface{} {
 	}
 }
 
-func SelectHook(db *sql.DB, query string, args ...interface{}) (*Hook, error) {
-	row := db.QueryRow(query, args...)
+func SliceHookWithoutPk(v *Hook) []interface{} {
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 bool
+	var v5 bool
+	var v6 bool
+	var v7 string
+	var v8 string
+	var v9 string
+	var v10 string
+	var v11 string
+	var v12 string
+	var v13 string
+	var v14 string
+	var v15 string
+
+	v1 = v.Sha
+	v2 = v.After
+	v3 = v.Before
+	v4 = v.Created
+	v5 = v.Deleted
+	v6 = v.Forced
+	if v.HeadCommit != nil {
+		v7 = v.HeadCommit.ID
+		v8 = v.HeadCommit.Message
+		v9 = v.HeadCommit.Timestamp
+		if v.HeadCommit.Author != nil {
+			v10 = v.HeadCommit.Author.Name
+			v11 = v.HeadCommit.Author.Email
+			v12 = v.HeadCommit.Author.Username
+		}
+	}
+	if v.HeadCommit.Committer != nil {
+		v13 = v.HeadCommit.Committer.Name
+		v14 = v.HeadCommit.Committer.Email
+		v15 = v.HeadCommit.Committer.Username
+	}
+
+	return []interface{}{
+		v1,
+		v2,
+		v3,
+		v4,
+		v5,
+		v6,
+		v7,
+		v8,
+		v9,
+		v10,
+		v11,
+		v12,
+		v13,
+		v14,
+		v15,
+
+	}
+}
+
+func (tbl HookTable) SelectOne(query string, args ...interface{}) (*Hook, error) {
+	row := tbl.Db.QueryRow(query, args...)
 	return ScanHook(row)
 }
 
-func SelectHooks(db *sql.DB, query string, args ...interface{}) ([]*Hook, error) {
-	rows, err := db.Query(query, args...)
+func (tbl HookTable) Select(query string, args ...interface{}) ([]*Hook, error) {
+	rows, err := tbl.Db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -219,8 +290,9 @@ func SelectHooks(db *sql.DB, query string, args ...interface{}) ([]*Hook, error)
 	return ScanHooks(rows)
 }
 
-func InsertHook(db *sql.DB, query string, v *Hook) error {
-	res, err := db.Exec(query, SliceHook(v)[1:]...)
+func (tbl HookTable) Insert(v *Hook) error {
+	query := fmt.Sprintf(sInsertHookStmt, tbl.Name)
+	res, err := tbl.Db.Exec(query, SliceHookWithoutPk(v)...)
 	if err != nil {
 		return err
 	}
@@ -229,15 +301,31 @@ func InsertHook(db *sql.DB, query string, v *Hook) error {
 	return err
 }
 
-func UpdateHook(db *sql.DB, query string, v *Hook) error {
-	args := SliceHook(v)[1:]
+// Update updates a record. It returns the number of rows affected.
+// Not every database or database driver may support this.
+func (tbl HookTable) Update(v *Hook) (int64, error) {
+	query := fmt.Sprintf(sUpdateHookByPkStmt, tbl.Name)
+	args := SliceHookWithoutPk(v)
 	args = append(args, v.Id)
-	_, err := db.Exec(query, args...)
-	return err
+	return tbl.Exec(query, args...)
 }
 
-const CreateHookStmt = `
-CREATE TABLE IF NOT EXISTS hooks (
+// Exec executes a query without returning any rows.
+// The args are for any placeholder parameters in the query.
+// It returns the number of rows affected.
+// Not every database or database driver may support this.
+func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
+	res, err := tbl.Db.Exec(query, args...)
+	if err != nil {
+		return 0, nil
+	}
+	return res.RowsAffected()
+}
+
+//--------------------------------------------------------------------------------
+
+const sCreateHookStmt = `
+CREATE TABLE IF NOT EXISTS %s (
  id                      INTEGER PRIMARY KEY AUTO_INCREMENT,
  sha                     VARCHAR(512),
  after                   VARCHAR(512),
@@ -257,8 +345,12 @@ CREATE TABLE IF NOT EXISTS hooks (
 );
 `
 
-const InsertHookStmt = `
-INSERT INTO hooks (
+func CreateHookStmt(tableName string) string {
+	return fmt.Sprintf(sCreateHookStmt, tableName)
+}
+
+const sInsertHookStmt = `
+INSERT INTO %s (
  sha,
  after,
  before,
@@ -277,7 +369,11 @@ INSERT INTO hooks (
 ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 `
 
-const SelectHookStmt = `
+func InsertHookStmt(tableName string) string {
+	return fmt.Sprintf(sInsertHookStmt, tableName)
+}
+
+const sSelectHookStmt = `
 SELECT 
  id,
  sha,
@@ -295,10 +391,14 @@ SELECT
  head_committer_name,
  head_committer_email,
  head_committer_username
-FROM hooks 
+FROM %s
 `
 
-const SelectHookRangeStmt = `
+func SelectHookStmt(tableName string) string {
+	return fmt.Sprintf(sSelectHookStmt, tableName)
+}
+
+const sSelectHookRangeStmt = `
 SELECT 
  id,
  sha,
@@ -316,16 +416,24 @@ SELECT
  head_committer_name,
  head_committer_email,
  head_committer_username
-FROM hooks 
+FROM %s
 LIMIT ? OFFSET ?
 `
 
-const SelectHookCountStmt = `
+func SelectHookRangeStmt(tableName string) string {
+	return fmt.Sprintf(sSelectHookRangeStmt, tableName)
+}
+
+const sSelectHookCountStmt = `
 SELECT count(1)
-FROM hooks 
+FROM %s 
 `
 
-const SelectHookPkeyStmt = `
+func SelectHookCountStmt(tableName string) string {
+	return fmt.Sprintf(sSelectHookCountStmt, tableName)
+}
+
+const sSelectHookByPkStmt = `
 SELECT 
  id,
  sha,
@@ -343,12 +451,16 @@ SELECT
  head_committer_name,
  head_committer_email,
  head_committer_username
-FROM hooks 
-WHERE id=?
+FROM %s
+ WHERE id=?
 `
 
-const UpdateHookPkeyStmt = `
-UPDATE hooks SET 
+func SelectHookByPkStmt(tableName string) string {
+	return fmt.Sprintf(sSelectHookByPkStmt, tableName)
+}
+
+const sUpdateHookByPkStmt = `
+UPDATE %s SET 
  id=?,
  sha=?,
  after=?,
@@ -365,10 +477,20 @@ UPDATE hooks SET
  head_committer_name=?,
  head_committer_email=?,
  head_committer_username=? 
-WHERE id=?
+ WHERE id=?
 `
 
-const DeleteHookPkeyStmt = `
-DELETE FROM hooks 
-WHERE id=?
+func UpdateHookByPkStmt(tableName string) string {
+	return fmt.Sprintf(sUpdateHookByPkStmt, tableName)
+}
+
+const sDeleteHookByPkeyStmt = `
+DELETE FROM %s
+ WHERE id=?
 `
+
+func DeleteHookByPkeyStmt(tableName string) string {
+	return fmt.Sprintf(sDeleteHookByPkeyStmt, tableName)
+}
+
+//--------------------------------------------------------------------------------

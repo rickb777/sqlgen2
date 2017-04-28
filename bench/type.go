@@ -1,6 +1,6 @@
 package bench
 
-//go:generate ../sqlgen -file type.go -type User -pkg bench -o type_sql.go
+//go:generate sqlgen -file type.go -type User -pkg bench -o type_sql.go
 
 type User struct {
 	ID      int64  `sql:"pk: true, auto: true"   meddler:"user_id,pk"   db:"user_id"`

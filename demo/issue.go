@@ -6,7 +6,7 @@ type Issue struct {
 	Id       int64 `sql:"pk: true, auto: true"`
 	Number   int
 	Title    string   `sql:"size: 512"`
-	Body     string   `sql:"size: 2048, name: body"`
+	Body     string   `sql:"size: 2048, name: bigbody"`
 	Assignee string   `sql:"index: issue_assignee"`
 	State    string   `sql:"size: 50"`
 	Labels   []string `sql:"encode: json"`
