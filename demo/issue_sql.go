@@ -4,8 +4,8 @@ package demo
 
 import (
 	"database/sql"
-	"fmt"
 	"encoding/json"
+	"fmt"
 )
 
 // IssueTableName is the default name for this table.
@@ -204,7 +204,6 @@ CREATE TABLE IF NOT EXISTS %s (
  id       SERIAL PRIMARY KEY ,
  number   INTEGER,
  title    VARCHAR(512),
- bigbody  VARCHAR(2048),
  assignee VARCHAR(512),
  state    VARCHAR(50),
  labels   BYTEA
@@ -219,11 +218,10 @@ const sInsertIssueStmt = `
 INSERT INTO %s (
  number,
  title,
- bigbody,
  assignee,
  state,
  labels
-) VALUES ($1,$2,$3,$4,$5,$6)
+) VALUES ($1,$2,$3,$4,$5)
 `
 
 func InsertIssueStmt(tableName string) string {
@@ -235,7 +233,6 @@ SELECT
  id,
  number,
  title,
- bigbody,
  assignee,
  state,
  labels
@@ -251,7 +248,6 @@ SELECT
  id,
  number,
  title,
- bigbody,
  assignee,
  state,
  labels
@@ -277,7 +273,6 @@ SELECT
  id,
  number,
  title,
- bigbody,
  assignee,
  state,
  labels
@@ -294,11 +289,10 @@ UPDATE %s SET
  id=$1,
  number=$2,
  title=$3,
- bigbody=$4,
- assignee=$5,
- state=$6,
- labels=$7 
- WHERE id=$8
+ assignee=$4,
+ state=$5,
+ labels=$6 
+ WHERE id=$7
 `
 
 func UpdateIssueByPkStmt(tableName string) string {
@@ -329,7 +323,6 @@ SELECT
  id,
  number,
  title,
- bigbody,
  assignee,
  state,
  labels
@@ -346,7 +339,6 @@ SELECT
  id,
  number,
  title,
- bigbody,
  assignee,
  state,
  labels

@@ -3,19 +3,19 @@ package main
 import (
 	"bytes"
 	"flag"
-	"fmt"
 	"io"
 	"os"
 
 	"github.com/rickb777/sqlgen/parse"
 	"github.com/rickb777/sqlgen/schema"
+	. "github.com/rickb777/sqlgen/output"
 )
 
 var (
-	input      = flag.String("file", "", "input file name; required")
-	output     = flag.String("o", "", "output file name; required")
+	iFile      = flag.String("file", "", "input file name; required")
+	oFile      = flag.String("o", "", "output file name (or file path); required")
 	typeName   = flag.String("type", "", "type to generate; required")
-	database   = flag.String("db", "sqlite", "sql dialect; required")
+	database   = flag.String("db", "sqlite", "sql dialect; optional")
 	genSchema  = flag.Bool("schema", true, "generate sql schema and queries")
 	genFuncs   = flag.Bool("funcs", true, "generate sql helper functions")
 	extraFuncs = flag.Bool("extras", true, "generate extra sql helper functions")
@@ -23,14 +23,27 @@ var (
 )
 
 func main() {
+	flag.BoolVar(&Verbose, "v", false, "progress messages")
+
 	flag.Parse()
+
+	Require(*iFile != "", "-file is required.")
+	Require(*oFile != "", "-o is required.")
 
 	// parses the syntax tree into something a bit
 	// easier to work with.
-	tree, err := parse.Parse(*input, *typeName)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+	tree, err := parse.Parse(*iFile, *typeName)
+	Require(err == nil, "%v\n", err)
+
+	o := NewOutput(*oFile)
+
+	// if the code is generated in a different folder
+	// that the struct we need to set the package name and import the struct
+	pkg := o.Pkg()
+	imports := tree.Pkg
+	if pkg == "" {
+		pkg = tree.Pkg
+		imports = ""
 	}
 
 	// load the Tree into a schema Object
@@ -39,10 +52,10 @@ func main() {
 
 	buf := &bytes.Buffer{}
 
-	writePackage(buf, tree.Pkg)
+	writePackage(buf, pkg)
 
 	if *genFuncs {
-		writeImports(buf, tree, "database/sql", "fmt")
+		writeImports(buf, tree, "database/sql", "fmt", imports)
 		writeType(buf, tree)
 		writeRowFunc(buf, tree)
 		writeRowsFunc(buf, tree)
@@ -67,23 +80,8 @@ func main() {
 	var pretty io.Reader = buf
 	if *gofmt {
 		pretty, err = format(buf)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n%v\n", string(buf.Bytes()), err)
-			return
-		}
+		Require(err == nil, "%s\n%v\n", string(buf.Bytes()), err)
 	}
 
-	// create output source for file. defaults to
-	// stdout but may be file.
-	var out io.WriteCloser = os.Stdout
-	if *output != "" {
-		out, err = os.Create(*output)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-			return
-		}
-		defer out.Close()
-	}
-
-	io.Copy(out, pretty)
+	o.Write(pretty, os.Stdout)
 }

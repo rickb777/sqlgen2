@@ -326,22 +326,13 @@ func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
 
 const sCreateHookStmt = `
 CREATE TABLE IF NOT EXISTS %s (
- id                      INTEGER PRIMARY KEY AUTO_INCREMENT,
- sha                     VARCHAR(512),
- after                   VARCHAR(512),
- before                  VARCHAR(512),
- created                 BOOLEAN,
- deleted                 BOOLEAN,
- forced                  BOOLEAN,
- head_id                 VARCHAR(512),
- head_message            VARCHAR(512),
- head_timestamp          VARCHAR(512),
- head_author_name        VARCHAR(512),
- head_author_email       VARCHAR(512),
- head_author_username    VARCHAR(512),
- head_committer_name     VARCHAR(512),
- head_committer_email    VARCHAR(512),
- head_committer_username VARCHAR(512)
+ id      INTEGER PRIMARY KEY AUTO_INCREMENT,
+ sha     VARCHAR(512),
+ after   VARCHAR(512),
+ before  VARCHAR(512),
+ created BOOLEAN,
+ deleted BOOLEAN,
+ forced  BOOLEAN
 );
 `
 
@@ -356,17 +347,8 @@ INSERT INTO %s (
  before,
  created,
  deleted,
- forced,
- head_id,
- head_message,
- head_timestamp,
- head_author_name,
- head_author_email,
- head_author_username,
- head_committer_name,
- head_committer_email,
- head_committer_username
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+ forced
+) VALUES (?,?,?,?,?,?)
 `
 
 func InsertHookStmt(tableName string) string {
@@ -381,16 +363,7 @@ SELECT
  before,
  created,
  deleted,
- forced,
- head_id,
- head_message,
- head_timestamp,
- head_author_name,
- head_author_email,
- head_author_username,
- head_committer_name,
- head_committer_email,
- head_committer_username
+ forced
 FROM %s
 `
 
@@ -406,16 +379,7 @@ SELECT
  before,
  created,
  deleted,
- forced,
- head_id,
- head_message,
- head_timestamp,
- head_author_name,
- head_author_email,
- head_author_username,
- head_committer_name,
- head_committer_email,
- head_committer_username
+ forced
 FROM %s
 LIMIT ? OFFSET ?
 `
@@ -441,16 +405,7 @@ SELECT
  before,
  created,
  deleted,
- forced,
- head_id,
- head_message,
- head_timestamp,
- head_author_name,
- head_author_email,
- head_author_username,
- head_committer_name,
- head_committer_email,
- head_committer_username
+ forced
 FROM %s
  WHERE id=?
 `
@@ -467,16 +422,7 @@ UPDATE %s SET
  before=?,
  created=?,
  deleted=?,
- forced=?,
- head_id=?,
- head_message=?,
- head_timestamp=?,
- head_author_name=?,
- head_author_email=?,
- head_author_username=?,
- head_committer_name=?,
- head_committer_email=?,
- head_committer_username=? 
+ forced=? 
  WHERE id=?
 `
 

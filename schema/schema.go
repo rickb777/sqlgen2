@@ -21,7 +21,7 @@ type Table struct {
 
 	Fields  []*Field
 	Index   []*Index
-	Primary *Field
+	Primary *Field // compound primaries are not supported
 }
 
 type Field struct {

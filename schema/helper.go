@@ -1,12 +1,12 @@
 package schema
 
 import (
-	"strings"
-
-	"github.com/acsellers/inflections"
-	"github.com/rickb777/sqlgen/parse"
 	"fmt"
 	"os"
+	"strings"
+
+	. "github.com/acsellers/inflections"
+	"github.com/rickb777/sqlgen/parse"
 )
 
 func Load(tree *parse.Node) *Table {
@@ -16,37 +16,43 @@ func Load(tree *parse.Node) *Table {
 	// lookups and de-duping.
 	indices := map[string]*Index{}
 
-	// pluralizes the table name and then
-	// formats in snake case.
-	table.Name = inflections.Underscore(tree.Type)
-	table.Name = inflections.Pluralize(table.Name)
+	table.Name = Pluralize(Underscore(tree.Type))
 
 	// each edge node in the tree is a column
 	// in the table. Convert each edge node to
 	// a Field structure.
 	for _, node := range tree.Edges() {
+		field, ok := loadNode(node, indices, table)
+		if ok {
+			table.Fields = append(table.Fields, field)
+		}
+	}
 
-		field := new(Field)
-		field.GoName = node.Name
+	return table
+}
 
-		// Lookup the SQL column type
-		field.Type = BLOB
-		if t, ok := parse.Types[node.Type]; ok {
-			if tt, ok := types[t]; ok {
-				field.Type = tt
-			}
+func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field, bool) {
+	field := new(Field)
+	field.GoName = node.Name
+
+	// Lookup the SQL column type
+	field.Type = BLOB
+	if t, ok := parse.Types[node.Type]; ok {
+		if tt, ok := types[t]; ok {
+			field.Type = tt
+		}
+	}
+
+	// substitute tag variables
+	if node.Tags != nil {
+
+		if node.Tags.Skip {
+			return nil, false
 		}
 
-		// substitute tag variables
-		if node.Tags != nil {
-
-			if node.Tags.Skip {
-				continue
-			}
-
-			field.Auto = node.Tags.Auto
-			field.Primary = node.Tags.Primary
-			field.Size = node.Tags.Size
+		field.Auto = node.Tags.Auto
+		field.Primary = node.Tags.Primary
+		field.Size = node.Tags.Size
 
 			if node.Tags.Primary {
 				if table.Primary != nil {
@@ -57,56 +63,53 @@ func Load(tree *parse.Node) *Table {
 				table.Primary = field
 			}
 
-			if node.Tags.Index != "" {
-				index, ok := indices[node.Tags.Index]
-				if !ok {
-					index = new(Index)
-					index.Name = node.Tags.Index
-					indices[index.Name] = index
-					table.Index = append(table.Index, index)
-				}
-				index.Fields = append(index.Fields, field)
+		if node.Tags.Index != "" {
+			index, ok := indices[node.Tags.Index]
+			if !ok {
+				index = new(Index)
+				index.Name = node.Tags.Index
+				indices[index.Name] = index
+				table.Index = append(table.Index, index)
 			}
-
-			if node.Tags.Unique != "" {
-				index, ok := indices[node.Tags.Index]
-				if !ok {
-					index = new(Index)
-					index.Name = node.Tags.Unique
-					index.Unique = true
-					indices[index.Name] = index
-					table.Index = append(table.Index, index)
-				}
-				index.Fields = append(index.Fields, field)
-			}
-
-			if node.Tags.Type != "" {
-				t, ok := sqlTypes[node.Tags.Type]
-				if ok {
-					field.Type = t
-				}
-			}
+			index.Fields = append(index.Fields, field)
 		}
 
-		// get the full path name
-		// omit table name
-		path := node.Path()[1:]
-		var parts []string
-		for _, part := range path {
-			if part.Tags != nil && part.Tags.Name != "" {
-				parts = append(parts, part.Tags.Name)
-				continue
+		if node.Tags.Unique != "" {
+			index, ok := indices[node.Tags.Index]
+			if !ok {
+				index = new(Index)
+				index.Name = node.Tags.Unique
+				index.Unique = true
+				indices[index.Name] = index
+				table.Index = append(table.Index, index)
 			}
-
-			parts = append(parts, part.Name)
+			index.Fields = append(index.Fields, field)
 		}
-		field.SqlName = strings.Join(parts, "_")
-		field.SqlName = inflections.Underscore(field.SqlName)
 
-		table.Fields = append(table.Fields, field)
+		if node.Tags.Type != "" {
+			t, ok := sqlTypes[node.Tags.Type]
+			if ok {
+				field.Type = t
+			}
+		}
 	}
 
-	return table
+	// get the full path name
+	// omit table name
+	path := node.Path()[1:]
+	var parts []string
+	for _, part := range path {
+		if part.Tags != nil && part.Tags.Name != "" {
+			parts = append(parts, part.Tags.Name)
+			return nil, false
+		}
+
+		parts = append(parts, part.Name)
+	}
+	field.SqlName = strings.Join(parts, "_")
+	field.SqlName = Underscore(field.SqlName)
+
+	return field, true
 }
 
 // convert Go types to SQL types.

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/acsellers/inflections"
@@ -44,10 +45,15 @@ func writeImports(w io.Writer, tree *parse.Node, pkgs ...string) {
 	// write the import block, including each
 	// encoder package that was specified.
 	fmt.Fprintln(w, "\nimport (")
+	sorted := make([]string, 0, len(pmap))
 	for pkg, _ := range pmap {
 		if pkg != "" {
-			fmt.Fprintf(w, "\t%q\n", pkg)
+			sorted = append(sorted, pkg)
 		}
+	}
+	sort.Strings(sorted)
+	for _, pkg := range sorted {
+		fmt.Fprintf(w, "\t%q\n", pkg)
 	}
 	fmt.Fprintln(w, ")")
 }
