@@ -9,6 +9,7 @@ import (
 	"github.com/rickb777/sqlgen/parse"
 	"github.com/rickb777/sqlgen/schema"
 	. "github.com/rickb777/sqlgen/output"
+	"fmt"
 )
 
 var (
@@ -16,6 +17,7 @@ var (
 	oFile      = flag.String("o", "", "output file name (or file path); required")
 	typeName   = flag.String("type", "", "type to generate; required")
 	database   = flag.String("db", "sqlite", "sql dialect; optional")
+	prefix     = flag.String("prefix", "", "prefix for names of generated types; optional")
 	genSchema  = flag.Bool("schema", true, "generate sql schema and queries")
 	genFuncs   = flag.Bool("funcs", true, "generate sql helper functions")
 	extraFuncs = flag.Bool("extras", true, "generate extra sql helper functions")
@@ -44,6 +46,9 @@ func main() {
 	if pkg == "" {
 		pkg = tree.Pkg
 		imports = ""
+	} else {
+		fmt.Fprintf(os.Stderr, "%s: sub-directories are not yet supported.\n", *oFile)
+		os.Exit(1)
 	}
 
 	// load the Tree into a schema Object
@@ -55,19 +60,22 @@ func main() {
 	writePackage(buf, pkg)
 
 	if *genFuncs {
+		view := newView(tree, *prefix)
+		view.Table = table
+
 		writeImports(buf, tree, "database/sql", "fmt", imports)
-		writeType(buf, tree)
+		writeType(buf, view)
 		writeRowFunc(buf, tree)
 		writeRowsFunc(buf, tree)
 		writeSliceFunc(buf, tree, false)
 		writeSliceFunc(buf, tree, true)
 
 		if *extraFuncs {
-			writeSelectRow(buf, tree)
-			writeSelectRows(buf, tree)
-			writeInsertFunc(buf, tree, table)
-			writeUpdateFunc(buf, tree, table)
-			writeExecFunc(buf, tree, table)
+			writeSelectRow(buf, view)
+			writeSelectRows(buf, view)
+			writeInsertFunc(buf, view, table)
+			writeUpdateFunc(buf, view, table)
+			writeExecFunc(buf, view, table)
 		}
 	}
 

@@ -123,10 +123,14 @@ func writePackage(w io.Writer, name string) {
 // writeConst is a helper function that writes the
 // body string to a Go const.
 func writeConst(w io.Writer, body string, name string) {
-	// quote the body using multi-line quotes
-	body = fmt.Sprintf("`\n%s\n`", body)
-
-	fmt.Fprintf(w, sConst, name, body, name, name)
+	view := struct {
+		Name string
+		Body string
+	}{
+		name,
+		body,
+	}
+	must(tConst.Execute(w, view))
 }
 
 func identifier(prefix, id, suffix string) string {

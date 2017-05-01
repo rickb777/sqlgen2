@@ -7,11 +7,11 @@ import (
 	"fmt"
 )
 
-// UserTableName is the default name for this table.
-const UserTableName = "users"
+// DbUserTableName is the default name for this table.
+const DbUserTableName = "users"
 
-// UserTable holds a given table name with the database reference, providing access methods below.
-type UserTable struct {
+// DbUserTable holds a given table name with the database reference, providing access methods below.
+type DbUserTable struct {
 	Name string
 	Db   *sql.DB
 }
@@ -174,12 +174,12 @@ func SliceUserWithoutPk(v *User) []interface{} {
 	}
 }
 
-func (tbl UserTable) SelectOne(query string, args ...interface{}) (*User, error) {
+func (tbl DbUserTable) SelectOne(query string, args ...interface{}) (*User, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return ScanUser(row)
 }
 
-func (tbl UserTable) Select(query string, args ...interface{}) ([]*User, error) {
+func (tbl DbUserTable) Select(query string, args ...interface{}) ([]*User, error) {
 	rows, err := tbl.Db.Query(query, args...)
 	if err != nil {
 		return nil, err
@@ -188,7 +188,7 @@ func (tbl UserTable) Select(query string, args ...interface{}) ([]*User, error) 
 	return ScanUsers(rows)
 }
 
-func (tbl UserTable) Insert(v *User) error {
+func (tbl DbUserTable) Insert(v *User) error {
 	query := fmt.Sprintf(sInsertUserStmt, tbl.Name)
 	res, err := tbl.Db.Exec(query, SliceUserWithoutPk(v)...)
 	if err != nil {
@@ -201,7 +201,7 @@ func (tbl UserTable) Insert(v *User) error {
 
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
-func (tbl UserTable) Update(v *User) (int64, error) {
+func (tbl DbUserTable) Update(v *User) (int64, error) {
 	query := fmt.Sprintf(sUpdateUserByPkStmt, tbl.Name)
 	args := SliceUserWithoutPk(v)
 	args = append(args, v.Id)
@@ -212,7 +212,7 @@ func (tbl UserTable) Update(v *User) (int64, error) {
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected.
 // Not every database or database driver may support this.
-func (tbl UserTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
 	res, err := tbl.Db.Exec(query, args...)
 	if err != nil {
 		return 0, nil

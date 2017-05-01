@@ -1,29 +1,41 @@
 package main
 
+import "text/template"
+
 // template to declare the package name.
 var sPackage = `// THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
 
 package %s
 `
 
-const sTable = `
-// %sTableName is the default name for this table.
-const %sTableName = %q
+//-------------------------------------------------------------------------------------------------
 
-// %sTable holds a given table name with the database reference, providing access methods below.
-type %sTable struct {
+const sTable = `
+// {{.Prefix}}{{.Type}}TableName is the default name for this table.
+const {{.Prefix}}{{.Type}}TableName = "{{.DbName}}"
+
+// {{.Prefix}}{{.Type}}Table holds a given table name with the database reference, providing access methods below.
+type {{.Prefix}}{{.Type}}Table struct {
 	Name string
 	Db   *sql.DB
 }
 `
 
-const sConst = `
-const s%s = %s
+var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
 
-func %s(tableName string) string {
-	return fmt.Sprintf(s%s, tableName)
+//-------------------------------------------------------------------------------------------------
+
+const sConst = `
+const s{{.Name}} = {{ticked .Body}}
+
+func {{.Name}}(tableName string) string {
+	return fmt.Sprintf(s{{.Name}}, tableName)
 }
 `
+
+var tConst = template.Must(template.New("Const").Funcs(funcMap).Parse(sConst))
+
+//-------------------------------------------------------------------------------------------------
 
 // function template to scan a single row.
 const sScanRow = `
@@ -43,6 +55,8 @@ func Scan%s(row *sql.Row) (*%s, error) {
 	return v, nil
 }
 `
+
+//-------------------------------------------------------------------------------------------------
 
 // function template to scan multiple rows.
 const sScanRows = `
@@ -68,6 +82,8 @@ func Scan%s(rows *sql.Rows) ([]*%s, error) {
 }
 `
 
+//-------------------------------------------------------------------------------------------------
+
 const sSliceRow = `
 func Slice%s%s(v *%s) []interface{} {
 %s
@@ -78,59 +94,81 @@ func Slice%s%s(v *%s) []interface{} {
 }
 `
 
+//-------------------------------------------------------------------------------------------------
+
 const sSelectRow = `
-func (tbl %sTable) SelectOne(query string, args ...interface{}) (*%s, error) {
+func (tbl {{.Prefix}}{{.Type}}Table) SelectOne(query string, args ...interface{}) (*{{.Type}}, error) {
 	row := tbl.Db.QueryRow(query, args...)
-	return Scan%s(row)
+	return Scan{{.Type}}(row)
 }
 `
 
+var tSelectRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sSelectRow))
+
+//-------------------------------------------------------------------------------------------------
+
 // function template to select multiple rows.
 const sSelectRows = `
-func (tbl %sTable) Select(query string, args ...interface{}) ([]*%s, error) {
+func (tbl {{.Prefix}}{{.Type}}Table) Select(query string, args ...interface{}) ([]*{{.Type}}, error) {
 	rows, err := tbl.Db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return Scan%s(rows)
+	return Scan{{.Types}}(rows)
 }
 `
 
+var tSelectRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(sSelectRows))
+
+//-------------------------------------------------------------------------------------------------
+
 // function template to insert a single row, updating the primary key in the struct.
 const sInsertAndGetLastId = `
-func (tbl %sTable) Insert(v *%s) error {
-	query := fmt.Sprintf(sInsert%sStmt, tbl.Name)
-	res, err := tbl.Db.Exec(query, Slice%sWithoutPk(v)...)
+func (tbl {{.Prefix}}{{.Type}}Table) Insert(v *{{.Type}}) error {
+	query := fmt.Sprintf(sInsert{{.Type}}Stmt, tbl.Name)
+	res, err := tbl.Db.Exec(query, Slice{{.Type}}WithoutPk(v)...)
 	if err != nil {
 		return err
 	}
 
-	v.%s, err = res.LastInsertId()
+	v.{{.Table.Primary.Name}}, err = res.LastInsertId()
 	return err
 }
 `
 
+var tInsertAndGetLastId = template.Must(template.New("InsertAndGetLastId").Funcs(funcMap).Parse(sInsertAndGetLastId))
+
+//-------------------------------------------------------------------------------------------------
+
 // function template to insert a single row.
 const sInsert = `
-func (tbl %sTable) Insert(v *%s) error {
-	query := fmt.Sprintf(sInsert%sStmt, tbl.Name)
-	_, err := tbl.Db.Exec(query, Slice%s(v)...)
+func (tbl {{.Prefix}}{{.Type}}Table) Insert(v *{{.Type}}) error {
+	query := fmt.Sprintf(sInsert{{.Type}}Stmt, tbl.Name)
+	_, err := tbl.Db.Exec(query, Slice{{.Type}}(v)...)
 	return err
 }
 `
+
+var tInsert = template.Must(template.New("Insert").Funcs(funcMap).Parse(sInsert))
+
+//-------------------------------------------------------------------------------------------------
 
 // function template to update a single row.
 const sUpdate = `
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
-func (tbl %sTable) Update(v *%s) (int64, error) {
-	query := fmt.Sprintf(sUpdate%sByPkStmt, tbl.Name)
-	args := Slice%sWithoutPk(v)
-	args = append(args, v.%s)
+func (tbl {{.Prefix}}{{.Type}}Table) Update(v *{{.Type}}) (int64, error) {
+	query := fmt.Sprintf(sUpdate{{.Type}}ByPkStmt, tbl.Name)
+	args := Slice{{.Type}}WithoutPk(v)
+	args = append(args, v.{{.Table.Primary.Name}})
 	return tbl.Exec(query, args...)
 }
 `
+
+var tUpdate = template.Must(template.New("Update").Funcs(funcMap).Parse(sUpdate))
+
+//-------------------------------------------------------------------------------------------------
 
 // function template to call sql exec
 const sExec = `
@@ -138,7 +176,7 @@ const sExec = `
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected.
 // Not every database or database driver may support this.
-func (tbl %sTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl {{.Prefix}}{{.Type}}Table) Exec(query string, args ...interface{}) (int64, error) {
 	res, err := tbl.Db.Exec(query, args...)
 	if err != nil {
 		return 0, nil
@@ -146,3 +184,4 @@ func (tbl %sTable) Exec(query string, args ...interface{}) (int64, error) {
 	return res.RowsAffected()
 }
 `
+var tExec = template.Must(template.New("Exec").Funcs(funcMap).Parse(sExec))

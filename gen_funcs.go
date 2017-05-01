@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"strings"
+	. "strings"
 
-	"github.com/acsellers/inflections"
+	. "github.com/acsellers/inflections"
 	"github.com/rickb777/sqlgen/parse"
 	"github.com/rickb777/sqlgen/schema"
-	"bitbucket.org/pkg/inflect"
+	"github.com/rickb777/sqlgen/output"
 )
 
 func writeImports(w io.Writer, tree *parse.Node, pkgs ...string) {
@@ -58,9 +58,8 @@ func writeImports(w io.Writer, tree *parse.Node, pkgs ...string) {
 	fmt.Fprintln(w, ")")
 }
 
-func writeType(w io.Writer, tree *parse.Node) {
-	name := strings.ToLower(inflect.Pluralize(tree.Type))
-	fmt.Fprintf(w, sTable, tree.Type, tree.Type, name, tree.Type, tree.Type)
+func writeType(w io.Writer, view View) {
+	must(tTable.Execute(w, view))
 }
 
 func writeSliceFunc(w io.Writer, tree *parse.Node, withoutPk bool) {
@@ -236,7 +235,7 @@ func writeRowsFunc(w io.Writer, tree *parse.Node) {
 		i++
 	}
 
-	plural := inflections.Pluralize(tree.Type)
+	plural := Pluralize(tree.Type)
 	fmt.Fprintf(w,
 		sScanRows,
 		plural,
@@ -250,32 +249,31 @@ func writeRowsFunc(w io.Writer, tree *parse.Node) {
 	)
 }
 
-func writeSelectRow(w io.Writer, tree *parse.Node) {
-	fmt.Fprintf(w, sSelectRow, tree.Type, tree.Type, tree.Type)
+func writeSelectRow(w io.Writer, view View) {
+	must(tSelectRow.Execute(w, view))
 }
 
-func writeSelectRows(w io.Writer, tree *parse.Node) {
-	plural := inflections.Pluralize(tree.Type)
-	fmt.Fprintf(w, sSelectRows, tree.Type, tree.Type, plural)
+func writeSelectRows(w io.Writer, view View) {
+	must(tSelectRows.Execute(w, view))
 }
 
-func writeInsertFunc(w io.Writer, tree *parse.Node, table *schema.Table) {
+func writeInsertFunc(w io.Writer, view View, table *schema.Table) {
 	if table.HasLastInsertId() {
-		fmt.Fprintf(w, sInsertAndGetLastId, tree.Type, tree.Type, tree.Type, tree.Type, table.Primary.GoName)
+		must(tInsertAndGetLastId.Execute(w, view))
 	} else {
-		fmt.Fprintf(w, sInsert, tree.Type, tree.Type, tree.Type, tree.Type)
+		must(tInsert.Execute(w, view))
 	}
 }
 
-func writeUpdateFunc(w io.Writer, tree *parse.Node, table *schema.Table) {
+func writeUpdateFunc(w io.Writer, view View, table *schema.Table) {
 	if table.HasPrimaryKey() {
-		fmt.Fprintf(w, sUpdate, tree.Type, tree.Type, tree.Type, tree.Type, table.Primary.GoName)
+		must(tUpdate.Execute(w, view))
 	}
 }
 
-func writeExecFunc(w io.Writer, tree *parse.Node, table *schema.Table) {
+func writeExecFunc(w io.Writer, view View, table *schema.Table) {
 	if table.HasPrimaryKey() {
-		fmt.Fprintf(w, sExec, tree.Type)
+		must(tExec.Execute(w, view))
 	}
 }
 
@@ -286,11 +284,15 @@ func join(nodes []*parse.Node, sep string) string {
 	for _, node := range nodes {
 		parts = append(parts, node.Name)
 	}
-	return strings.Join(parts, sep)
+	return Join(parts, sep)
 }
 
 func writeN(w io.Writer, n int, c ...byte) {
 	for i := 0; i < n; i++ {
 		w.Write(c)
 	}
+}
+
+func must(err error) {
+	output.Require(err == nil, "%v\n", err)
 }

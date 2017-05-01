@@ -25,7 +25,7 @@ type Table struct {
 }
 
 type Field struct {
-	GoName  string
+	Name    string
 	SqlName string
 	Type    int
 	Primary bool

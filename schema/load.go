@@ -33,7 +33,7 @@ func Load(tree *parse.Node) *Table {
 
 func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field, bool) {
 	field := new(Field)
-	field.GoName = node.Name
+	field.Name = node.Name
 
 	// Lookup the SQL column type
 	field.Type = BLOB
@@ -57,7 +57,7 @@ func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field
 			if node.Tags.Primary {
 				if table.Primary != nil {
 					fmt.Fprintf(os.Stderr, "%s, %s: compound primary keys are not supported.\n",
-						table.Primary.GoName, field.GoName)
+						table.Primary.Name, field.Name)
 					os.Exit(1)
 				}
 				table.Primary = field
