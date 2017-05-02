@@ -1,17 +1,18 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"sort"
 	. "strings"
 
-	. "github.com/acsellers/inflections"
+	//. "github.com/acsellers/inflections"
 	"github.com/rickb777/sqlgen/parse"
 	"github.com/rickb777/sqlgen/schema"
 	"github.com/rickb777/sqlgen/output"
 )
+
+const tabs = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 
 func writeImports(w io.Writer, tree *parse.Node, pkgs ...string) {
 	var pmap = map[string]struct{}{}
@@ -62,10 +63,7 @@ func writeType(w io.Writer, view View) {
 	must(tTable.Execute(w, view))
 }
 
-func writeSliceFunc(w io.Writer, tree *parse.Node, withoutPk bool) {
-
-	var buf1, buf2, buf3 bytes.Buffer
-
+func writeSliceFunc(w io.Writer, tree *parse.Node, view View, withoutPk bool) {
 	var depth int
 	var parent = tree
 
@@ -77,13 +75,16 @@ func writeSliceFunc(w io.Writer, tree *parse.Node, withoutPk bool) {
 		// temporary variable declaration
 		switch node.Kind {
 		case parse.Map, parse.Slice:
-			fmt.Fprintf(&buf1, "\tvar v%d %s\n", i, "[]byte")
+			l1 := fmt.Sprintf("\tvar v%d %s\n", i, "[]byte")
+			view.Body1 = append(view.Body1, l1)
 		default:
-			fmt.Fprintf(&buf1, "\tvar v%d %s\n", i, node.Type)
+			l1 := fmt.Sprintf("\tvar v%d %s\n", i, node.Type)
+			view.Body1 = append(view.Body1, l1)
 		}
 
 		// variable scanning
-		fmt.Fprintf(&buf3, "\t\tv%d,\n", i)
+		l3 := fmt.Sprintf("\t\tv%d,\n", i)
+		view.Body3 = append(view.Body3, l3)
 
 		// variable setting
 		path := node.Path()[1:]
@@ -97,22 +98,23 @@ func writeSliceFunc(w io.Writer, tree *parse.Node, withoutPk bool) {
 					if p == parent || depth == 0 {
 						break
 					}
-					writeN(&buf2, depth, '\t')
-					fmt.Fprintln(&buf2, "}")
+					l2 := fmt.Sprintf("%s}\n", tabs[:depth])
+					view.Body2 = append(view.Body2, l2)
 					depth--
 				}
 			}
-			writeN(&buf2, depth, '\t')
-			fmt.Fprintf(&buf2, "\tif v.%s != nil {\n", join(path[:len(path)-1], "."))
+			l2 := fmt.Sprintf("%s\tif v.%s != nil {\n", tabs[:depth], join(path[:len(path)-1], "."))
+			view.Body2 = append(view.Body2, l2)
 			depth++
 		}
 
-		writeN(&buf2, depth, '\t')
 		switch node.Kind {
 		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-			fmt.Fprintf(&buf2, "\tv%d, _ = json.Marshal(&v.%s)\n", i, join(path, "."))
+			l2 := fmt.Sprintf("%s\tv%d, _ = json.Marshal(&v.%s)\n", tabs[:depth], i, join(path, "."))
+			view.Body2 = append(view.Body2, l2)
 		default:
-			fmt.Fprintf(&buf2, "\tv%d = v.%s\n", i, join(path, "."))
+			l2 := fmt.Sprintf("%s\tv%d = v.%s\n", tabs[:depth], i, join(path, "."))
+			view.Body2 = append(view.Body2, l2)
 		}
 
 		parent = node.Parent
@@ -120,30 +122,18 @@ func writeSliceFunc(w io.Writer, tree *parse.Node, withoutPk bool) {
 	}
 
 	for depth != 0 {
-		writeN(&buf2, depth, '\t')
-		fmt.Fprintln(&buf2, "}")
+		l2 := fmt.Sprintf("%s}\n", tabs[:depth])
+		view.Body2 = append(view.Body2, l2)
 		depth--
 	}
 
-	suffix := ""
 	if withoutPk {
-		suffix = "WithoutPk"
+		view.Suffix = "WithoutPk"
 	}
-	fmt.Fprintf(w,
-		sSliceRow,
-		tree.Type,
-		suffix,
-		tree.Type,
-		buf1.String(),
-		buf2.String(),
-		buf3.String(),
-	)
+	must(tSliceRow.Execute(w, view))
 }
 
-func writeRowFunc(w io.Writer, tree *parse.Node) {
-
-	var buf1, buf2, buf3 bytes.Buffer
-
+func writeRowFunc(w io.Writer, tree *parse.Node, view View) {
 	var i int
 	var parent = tree
 	for _, node := range tree.Edges() {
@@ -154,13 +144,16 @@ func writeRowFunc(w io.Writer, tree *parse.Node) {
 		// temporary variable declaration
 		switch node.Kind {
 		case parse.Map, parse.Slice:
-			fmt.Fprintf(&buf1, "\tvar v%d %s\n", i, "[]byte")
+			l1 := fmt.Sprintf("\tvar v%d %s\n", i, "[]byte")
+			view.Body1 = append(view.Body1, l1)
 		default:
-			fmt.Fprintf(&buf1, "\tvar v%d %s\n", i, node.Type)
+			l1 := fmt.Sprintf("\tvar v%d %s\n", i, node.Type)
+			view.Body1 = append(view.Body1, l1)
 		}
 
 		// variable scanning
-		fmt.Fprintf(&buf2, "\t\t&v%d,\n", i)
+		l2 := fmt.Sprintf("\t\t&v%d,\n", i)
+		view.Body2 = append(view.Body2, l2)
 
 		// variable setting
 		path := node.Path()[1:]
@@ -168,35 +161,27 @@ func writeRowFunc(w io.Writer, tree *parse.Node) {
 		// if the parent is a ptr struct we
 		// need to create a new
 		if parent != node.Parent && node.Parent.Kind == parse.Ptr {
-			fmt.Fprintf(&buf3, "\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type)
+			l3 := fmt.Sprintf("\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type)
+			view.Body3 = append(view.Body3, l3)
 		}
 
 		switch node.Kind {
 		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-			fmt.Fprintf(&buf3, "\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
+			l3 := fmt.Sprintf("\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
+			view.Body3 = append(view.Body3, l3)
 		default:
-			fmt.Fprintf(&buf3, "\tv.%s = v%d\n", join(path, "."), i)
+			l3 := fmt.Sprintf("\tv.%s = v%d\n", join(path, "."), i)
+			view.Body3 = append(view.Body3, l3)
 		}
 
 		parent = node.Parent
 		i++
 	}
 
-	fmt.Fprintf(w,
-		sScanRow,
-		tree.Type,
-		tree.Type,
-		tree.Type,
-		buf1.String(),
-		buf2.String(),
-		tree.Type,
-		buf3.String(),
-	)
+	must(tScanRow.Execute(w, view))
 }
 
-func writeRowsFunc(w io.Writer, tree *parse.Node) {
-	var buf1, buf2, buf3 bytes.Buffer
-
+func writeRowsFunc(w io.Writer, tree *parse.Node, view View) {
 	var i int
 	var parent = tree
 	for _, node := range tree.Edges() {
@@ -207,13 +192,16 @@ func writeRowsFunc(w io.Writer, tree *parse.Node) {
 		// temporary variable declaration
 		switch node.Kind {
 		case parse.Map, parse.Slice:
-			fmt.Fprintf(&buf1, "\tvar v%d %s\n", i, "[]byte")
+			l1 := fmt.Sprintf("\tvar v%d %s\n", i, "[]byte")
+			view.Body1 = append(view.Body1, l1)
 		default:
-			fmt.Fprintf(&buf1, "\tvar v%d %s\n", i, node.Type)
+			l1 := fmt.Sprintf("\tvar v%d %s\n", i, node.Type)
+			view.Body1 = append(view.Body1, l1)
 		}
 
 		// variable scanning
-		fmt.Fprintf(&buf2, "\t\t\t&v%d,\n", i)
+		l2 := fmt.Sprintf("\t\t\t&v%d,\n", i)
+		view.Body2 = append(view.Body2, l2)
 
 		// variable setting
 		path := node.Path()[1:]
@@ -221,32 +209,24 @@ func writeRowsFunc(w io.Writer, tree *parse.Node) {
 		// if the parent is a ptr struct we
 		// need to create a new
 		if parent != node.Parent && node.Parent.Kind == parse.Ptr {
-			fmt.Fprintf(&buf3, "\t\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type)
+			l3 := fmt.Sprintf("\t\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type)
+			view.Body3 = append(view.Body3, l3)
 		}
 
 		switch node.Kind {
 		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-			fmt.Fprintf(&buf3, "\t\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
+			l3 := fmt.Sprintf("\t\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
+			view.Body3 = append(view.Body3, l3)
 		default:
-			fmt.Fprintf(&buf3, "\t\tv.%s = v%d\n", join(path, "."), i)
+			l3 := fmt.Sprintf("\t\tv.%s = v%d\n", join(path, "."), i)
+			view.Body3 = append(view.Body3, l3)
 		}
 
 		parent = node.Parent
 		i++
 	}
 
-	plural := Pluralize(tree.Type)
-	fmt.Fprintf(w,
-		sScanRows,
-		plural,
-		plural,
-		tree.Type,
-		tree.Type,
-		buf1.String(),
-		buf2.String(),
-		tree.Type,
-		buf3.String(),
-	)
+	must(tScanRows.Execute(w, view))
 }
 
 func writeSelectRow(w io.Writer, view View) {

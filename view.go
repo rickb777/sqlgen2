@@ -14,9 +14,10 @@ type View struct {
 	Prefix string
 	Type   string
 	Types  string
-	Body1  string
-	Body2  string
-	Body3  string
+	Suffix string
+	Body1  []string
+	Body2  []string
+	Body3  []string
 	Table  *schema.Table
 }
 

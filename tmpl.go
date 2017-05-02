@@ -39,60 +39,65 @@ var tConst = template.Must(template.New("Const").Funcs(funcMap).Parse(sConst))
 
 // function template to scan a single row.
 const sScanRow = `
-// Scan%s reads a database record into a single value.
-func Scan%s(row *sql.Row) (*%s, error) {
-%s
+// Scan{{.Type}} reads a database record into a single value.
+func Scan{{.Type}}(row *sql.Row) (*{{.Type}}, error) {
+{{range .Body1}}{{.}}{{end}}
 	err := row.Scan(
-%s
+{{range .Body2}}{{.}}{{end}}
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	v := &%s{}
-%s
-
+	v := &{{.Type}}{}
+{{range .Body3}}{{.}}{{end}}
 	return v, nil
 }
 `
+
+var tScanRow = template.Must(template.New("ScanRow").Funcs(funcMap).Parse(sScanRow))
 
 //-------------------------------------------------------------------------------------------------
 
 // function template to scan multiple rows.
 const sScanRows = `
-// Scan%s reads database records into a slice of values.
-func Scan%s(rows *sql.Rows) ([]*%s, error) {
+// Scan{{.Types}} reads database records into a slice of values.
+func Scan{{.Types}}(rows *sql.Rows) ([]*{{.Type}}, error) {
 	var err error
-	var vv []*%s
+	var vv []*{{.Type}}
 
-%s
+{{range .Body1}}{{.}}{{end}}
 	for rows.Next() {
 		err = rows.Scan(
-%s
+{{range .Body2}}{{.}}{{end}}
 		)
 		if err != nil {
 			return vv, err
 		}
 
-		v := &%s{}
-%s
+		v := &{{.Type}}{}
+{{range .Body3}}{{.}}{{end}}
 		vv = append(vv, v)
 	}
 	return vv, rows.Err()
 }
 `
 
+var tScanRows = template.Must(template.New("ScanRows").Funcs(funcMap).Parse(sScanRows))
+
 //-------------------------------------------------------------------------------------------------
 
 const sSliceRow = `
-func Slice%s%s(v *%s) []interface{} {
-%s
-%s
+func Slice{{.Type}}{{.Suffix}}(v *{{.Type}}) []interface{} {
+{{range .Body1}}{{.}}{{end}}
+{{range .Body2}}{{.}}{{end}}
 	return []interface{}{
-%s
+{{range .Body3}}{{.}}{{end}}
 	}
 }
 `
+
+var tSliceRow = template.Must(template.New("SliceRow").Funcs(funcMap).Parse(sSliceRow))
 
 //-------------------------------------------------------------------------------------------------
 

@@ -79,7 +79,6 @@ func ScanHook(row *sql.Row) (*Hook, error) {
 	v.HeadCommit.Committer.Email = v14
 	v.HeadCommit.Committer.Username = v15
 
-
 	return v, nil
 }
 

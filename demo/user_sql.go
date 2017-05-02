@@ -55,7 +55,6 @@ func ScanUser(row *sql.Row) (*User, error) {
 	v.secret = v7
 	v.hash = v8
 
-
 	return v, nil
 }
 

@@ -50,7 +50,6 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 	v.State = v5
 	json.Unmarshal(v6, &v.Labels)
 
-
 	return v, nil
 }
 

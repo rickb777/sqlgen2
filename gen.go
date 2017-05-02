@@ -65,10 +65,10 @@ func main() {
 
 		writeImports(buf, tree, "database/sql", "fmt", imports)
 		writeType(buf, view)
-		writeRowFunc(buf, tree)
-		writeRowsFunc(buf, tree)
-		writeSliceFunc(buf, tree, false)
-		writeSliceFunc(buf, tree, true)
+		writeRowFunc(buf, tree, view)
+		writeRowsFunc(buf, tree, view)
+		writeSliceFunc(buf, tree, view, false)
+		writeSliceFunc(buf, tree, view, true)
 
 		if *extraFuncs {
 			writeSelectRow(buf, view)

@@ -69,7 +69,7 @@ func writeSchema(w io.Writer, d schema.Dialect, tree *parse.Node, t *schema.Tabl
 
 		writeConst(w,
 			d.Delete(t, []*schema.Field{t.Primary}),
-			identifier("Delete", inflect.Singularize(t.Name), "ByPkeyStmt"),
+			identifier("Delete", inflect.Singularize(t.Name), "ByPkStmt"),
 		)
 	}
 
