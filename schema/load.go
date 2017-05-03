@@ -16,6 +16,7 @@ func Load(tree *parse.Node) *Table {
 	// lookups and de-duping.
 	indices := map[string]*Index{}
 
+	table.Type = tree.Type
 	table.Name = Pluralize(Underscore(tree.Type))
 
 	// each edge node in the tree is a column

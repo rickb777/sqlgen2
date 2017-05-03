@@ -17,6 +17,7 @@ const (
 )
 
 type Table struct {
+	Type string
 	Name string
 
 	Fields  []*Field
@@ -46,4 +47,14 @@ func (t *Table) HasLastInsertId() bool {
 
 func (t *Table) HasPrimaryKey() bool {
 	return t.Primary != nil
+}
+
+func (t *Table) ColumnNames(withAuto bool) []string {
+	names := make([]string, 0, len(t.Fields))
+	for _, f := range t.Fields {
+		if withAuto || !f.Auto {
+			names = append(names, f.SqlName)
+		}
+	}
+	return names
 }

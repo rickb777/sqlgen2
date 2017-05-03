@@ -24,7 +24,7 @@ func (b *base) Table(t *Table) string {
 	// use a tab writer to evenly space the column
 	// names and column types.
 	var tab = tabwriter.NewWriter(buf, 0, 8, 1, ' ', 0)
-	b.columnw(tab, t.Fields, false, false, true)
+	b.columnw(tab, t.Fields, true, false, false, true)
 
 	// flush the tab writer to write to the buffer
 	tab.Flush()
@@ -39,7 +39,12 @@ func (b *base) Index(table *Table, index *Index) string {
 		obj = "UNIQUE INDEX"
 	}
 	return fmt.Sprintf("CREATE %s IF NOT EXISTS %s ON %%s (%s)", obj, index.Name,
-		b.columns(index.Fields, true, false, false))
+		b.columns(index.Fields, true, true, false, false))
+}
+
+func (b *base) ColumnParams(t *Table, withAuto bool) string {
+	n := len(t.ColumnNames(withAuto))
+	return strings.Join(b.Dialect.Params(0, n), ",")
 }
 
 func (b *base) Insert(t *Table) string {
@@ -56,13 +61,13 @@ func (b *base) Insert(t *Table) string {
 	}
 
 	return fmt.Sprintf("INSERT INTO %%s (%s\n) VALUES (%s)",
-		b.columns(fields, false, false, false),
+		b.columns(fields, false, false, false, false),
 		strings.Join(params, ","))
 }
 
 func (b *base) Update(t *Table, fields []*Field) string {
 	return fmt.Sprintf("UPDATE %%s SET %s %s",
-		b.columns(t.Fields, false, true, false),
+		b.columns(t.Fields, false, false, true, false),
 		b.whereClause(fields, len(t.Fields)))
 }
 
@@ -71,28 +76,18 @@ func (b *base) Delete(t *Table, fields []*Field) string {
 		b.whereClause(fields, 0))
 }
 
-func (b *base) Select(t *Table, fields []*Field) string {
-	return fmt.Sprintf("SELECT %s\nFROM %%s%s",
-		b.columns(t.Fields, false, false, false),
-		b.whereClause(fields, 0))
-}
-
-func (b *base) SelectRange(t *Table, fields []*Field) string {
-	return fmt.Sprintf("SELECT %s\nFROM %%s%s\nLIMIT %s OFFSET %s",
-		b.columns(t.Fields, false, false, false),
-		b.whereClause(fields, 0),
-		b.Dialect.Param(len(fields)), b.Dialect.Param(len(fields)+1))
-}
-
-func (b *base) SelectCount(t *Table, fields []*Field) string {
-	return fmt.Sprintf("SELECT count(1)\nFROM %%s %s",
-		b.whereClause(fields, 0))
-}
-
-// Param returns the parameters symbol used in prepared
-// sql statements.
+// Param returns the parameters symbol used in prepared sql statements.
 func (b *base) Param(i int) string {
 	return "?"
+}
+
+// Params returns the range of parameters symbols between two indices, which are half-inclusive.
+func (b *base) Params(from, to int) []string {
+	params := make([]string, 0, to-from)
+	for i := from; i < to; i++ {
+		params = append(params, b.Dialect.Param(i))
+	}
+	return params
 }
 
 // Column returns a SQL type for the given field.
@@ -130,49 +125,49 @@ func (b *base) Token(v int) (_ string) {
 // can optionally generate in inline list of columns,
 // include an assignment operator, and include column
 // definitions.
-func (b *base) columns(fields []*Field, inline, assign, def bool) string {
+func (b *base) columns(fields []*Field, withAuto, inline, assign, ddl bool) string {
 	var buf bytes.Buffer
-	b.columnw(&buf, fields, inline, assign, def)
+	b.columnw(&buf, fields, withAuto, inline, assign, ddl)
 	return buf.String()
 }
 
 const fieldIndentation = " "
 
 // helper function to write a block of columns to w.
-func (b *base) columnw(w io.Writer, fields []*Field, inline, assign, def bool) {
+func (b *base) columnw(w io.Writer, fields []*Field, withAuto, inline, assign, ddl bool) {
 
 	comma := ""
 	for i, field := range fields {
-		io.WriteString(w, comma)
-		comma = ","
+		if withAuto || !field.Auto {
+			io.WriteString(w, comma)
+			comma = ","
 
-		if !inline {
-			io.WriteString(w, "\n")
-			io.WriteString(w, fieldIndentation)
-		}
+			if !inline {
+				io.WriteString(w, "\n")
+				io.WriteString(w, fieldIndentation)
+			}
 
-		io.WriteString(w, field.SqlName)
+			io.WriteString(w, field.SqlName)
 
-		if assign {
-			io.WriteString(w, "=")
-			io.WriteString(w, b.Dialect.Param(i))
-		}
+			if assign {
+				io.WriteString(w, "=")
+				io.WriteString(w, b.Dialect.Param(i))
+			}
 
-		if !def {
-			continue
-		}
+			if ddl {
+				io.WriteString(w, "\t")
+				io.WriteString(w, b.Dialect.Column(field))
 
-		io.WriteString(w, "\t")
-		io.WriteString(w, b.Dialect.Column(field))
+				if field.Primary {
+					io.WriteString(w, " ")
+					io.WriteString(w, b.Dialect.Token(PRIMARY_KEY))
+				}
 
-		if field.Primary {
-			io.WriteString(w, " ")
-			io.WriteString(w, b.Dialect.Token(PRIMARY_KEY))
-		}
-
-		if field.Auto {
-			io.WriteString(w, " ")
-			io.WriteString(w, b.Dialect.Token(AUTO_INCREMENT))
+				if field.Auto {
+					io.WriteString(w, " ")
+					io.WriteString(w, b.Dialect.Token(AUTO_INCREMENT))
+				}
+			}
 		}
 	}
 }

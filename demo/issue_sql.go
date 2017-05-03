@@ -150,18 +150,35 @@ func SliceIssueWithoutPk(v *Issue) []interface{} {
 	}
 }
 
-func (tbl IssueTable) SelectOne(query string, args ...interface{}) (*Issue, error) {
+func (tbl IssueTable) QueryOne(query string, args ...interface{}) (*Issue, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return ScanIssue(row)
 }
 
-func (tbl IssueTable) Select(query string, args ...interface{}) ([]*Issue, error) {
+func (tbl IssueTable) SelectOne(where string, args ...interface{}) (*Issue, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", sIssueColumnNames, tbl.Name, where)
+	return tbl.QueryOne(query, args...)
+}
+
+func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error) {
 	rows, err := tbl.Db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	return ScanIssues(rows)
+}
+
+func (tbl IssueTable) Select(where string, args ...interface{}) ([]*Issue, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s", sIssueColumnNames, tbl.Name, where)
+	return tbl.Query(query, args...)
+}
+
+func (tbl IssueTable) Count(where string, args ...interface{}) (count int64, err error) {
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
+	row := tbl.Db.QueryRow(query, args)
+	err = row.Scan(&count)
+	return count, err
 }
 
 func (tbl IssueTable) Insert(v *Issue) error {
@@ -198,6 +215,22 @@ func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
 
 //--------------------------------------------------------------------------------
 
+const sIssueColumnNames = `
+id, number, title, assignee, state, labels
+`
+
+const sIssueDataColumnNames = `
+number, title, assignee, state, labels
+`
+
+const sIssueColumnParams = `
+$1,$2,$3,$4,$5,$6
+`
+
+const sIssueDataColumnParams = `
+$1,$2,$3,$4,$5
+`
+
 const sCreateIssueStmt = `
 CREATE TABLE IF NOT EXISTS %s (
  id       SERIAL PRIMARY KEY ,
@@ -227,65 +260,8 @@ func InsertIssueStmt(tableName string) string {
 	return fmt.Sprintf(sInsertIssueStmt, tableName)
 }
 
-const sSelectIssueStmt = `
-SELECT 
- id,
- number,
- title,
- assignee,
- state,
- labels
-FROM %s
-`
-
-func SelectIssueStmt(tableName string) string {
-	return fmt.Sprintf(sSelectIssueStmt, tableName)
-}
-
-const sSelectIssueRangeStmt = `
-SELECT 
- id,
- number,
- title,
- assignee,
- state,
- labels
-FROM %s
-LIMIT $1 OFFSET $2
-`
-
-func SelectIssueRangeStmt(tableName string) string {
-	return fmt.Sprintf(sSelectIssueRangeStmt, tableName)
-}
-
-const sSelectIssueCountStmt = `
-SELECT count(1)
-FROM %s 
-`
-
-func SelectIssueCountStmt(tableName string) string {
-	return fmt.Sprintf(sSelectIssueCountStmt, tableName)
-}
-
-const sSelectIssueByPkStmt = `
-SELECT 
- id,
- number,
- title,
- assignee,
- state,
- labels
-FROM %s
- WHERE id=$1
-`
-
-func SelectIssueByPkStmt(tableName string) string {
-	return fmt.Sprintf(sSelectIssueByPkStmt, tableName)
-}
-
 const sUpdateIssueByPkStmt = `
 UPDATE %s SET 
- id=$1,
  number=$2,
  title=$3,
  assignee=$4,
@@ -298,13 +274,13 @@ func UpdateIssueByPkStmt(tableName string) string {
 	return fmt.Sprintf(sUpdateIssueByPkStmt, tableName)
 }
 
-const sDeleteIssueByPkeyStmt = `
+const sDeleteIssueByPkStmt = `
 DELETE FROM %s
  WHERE id=$1
 `
 
-func DeleteIssueByPkeyStmt(tableName string) string {
-	return fmt.Sprintf(sDeleteIssueByPkeyStmt, tableName)
+func DeleteIssueByPkStmt(tableName string) string {
+	return fmt.Sprintf(sDeleteIssueByPkStmt, tableName)
 }
 
 //--------------------------------------------------------------------------------
@@ -315,47 +291,4 @@ CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
 
 func CreateIssueAssigneeStmt(tableName string) string {
 	return fmt.Sprintf(sCreateIssueAssigneeStmt, tableName)
-}
-
-const sSelectIssueAssigneeStmt = `
-SELECT 
- id,
- number,
- title,
- assignee,
- state,
- labels
-FROM %s
- WHERE assignee=$1
-`
-
-func SelectIssueAssigneeStmt(tableName string) string {
-	return fmt.Sprintf(sSelectIssueAssigneeStmt, tableName)
-}
-
-const sSelectIssueAssigneeRangeStmt = `
-SELECT 
- id,
- number,
- title,
- assignee,
- state,
- labels
-FROM %s
- WHERE assignee=$1
-LIMIT $2 OFFSET $3
-`
-
-func SelectIssueAssigneeRangeStmt(tableName string) string {
-	return fmt.Sprintf(sSelectIssueAssigneeRangeStmt, tableName)
-}
-
-const sSelectIssueAssigneeCountStmt = `
-SELECT count(1)
-FROM %s 
- WHERE assignee=$1
-`
-
-func SelectIssueAssigneeCountStmt(tableName string) string {
-	return fmt.Sprintf(sSelectIssueAssigneeCountStmt, tableName)
 }

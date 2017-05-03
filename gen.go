@@ -73,6 +73,7 @@ func main() {
 		if *extraFuncs {
 			writeSelectRow(buf, view)
 			writeSelectRows(buf, view)
+			writeCountRows(buf, view)
 			writeInsertFunc(buf, view, table)
 			writeUpdateFunc(buf, view, table)
 			writeExecFunc(buf, view, table)

@@ -19,10 +19,9 @@ type Dialect interface {
 	Insert(*Table) string
 	Update(*Table, []*Field) string
 	Delete(*Table, []*Field) string
-	Select(*Table, []*Field) string
-	SelectCount(*Table, []*Field) string
-	SelectRange(*Table, []*Field) string
 	Param(int) string
+	Params(int, int) []string
+	ColumnParams(t *Table, withAuto bool) string
 	Token(int) string
 }
 

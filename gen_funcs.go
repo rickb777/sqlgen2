@@ -237,6 +237,10 @@ func writeSelectRows(w io.Writer, view View) {
 	must(tSelectRows.Execute(w, view))
 }
 
+func writeCountRows(w io.Writer, view View) {
+	must(tCountRows.Execute(w, view))
+}
+
 func writeInsertFunc(w io.Writer, view View, table *schema.Table) {
 	if table.HasLastInsertId() {
 		must(tInsertAndGetLastId.Execute(w, view))

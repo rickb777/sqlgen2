@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	. "strings"
 
 	"bitbucket.org/pkg/inflect"
 	"github.com/rickb777/sqlgen/parse"
@@ -11,50 +12,57 @@ import (
 
 const sectionBreak = "\n//--------------------------------------------------------------------------------"
 
+type ConstView struct {
+	Name string
+	Body string
+}
+
 // writeSchema writes SQL statements to CREATE, INSERT,
 // UPDATE and DELETE values from Table t.
 func writeSchema(w io.Writer, d schema.Dialect, tree *parse.Node, t *schema.Table) {
 
 	fmt.Fprintln(w, sectionBreak)
 
-	writeConst(w,
+	tableName := t.Type
+
+	must(tConst.Execute(w, ConstView{
+		identifier("", tableName, "ColumnNames"),
+		Join(t.ColumnNames(true), ", "),
+	}))
+
+	must(tConst.Execute(w, ConstView{
+		identifier("", tableName, "DataColumnNames"),
+		Join(t.ColumnNames(false), ", "),
+	}))
+
+	must(tConst.Execute(w, ConstView{
+		identifier("", tableName, "ColumnParams"),
+		d.ColumnParams(t, true),
+	}))
+
+	must(tConst.Execute(w, ConstView{
+		identifier("", tableName, "DataColumnParams"),
+		d.ColumnParams(t, false),
+	}))
+
+	must(tConstWithTableName.Execute(w, ConstView{
+		identifier("Create", tableName, "Stmt"),
 		d.Table(t),
-		identifier("Create", inflect.Singularize(t.Name), "Stmt"),
-	)
+	}))
 
-	writeConst(w,
+	must(tConstWithTableName.Execute(w, ConstView{
+		identifier("Insert", tableName, "Stmt"),
 		d.Insert(t),
-		identifier("Insert", inflect.Singularize(t.Name), "Stmt"),
-	)
-
-	writeConst(w,
-		d.Select(t, nil),
-		identifier("Select", inflect.Singularize(t.Name), "Stmt"),
-	)
-
-	writeConst(w,
-		d.SelectRange(t, nil),
-		identifier("Select", inflect.Singularize(t.Name), "RangeStmt"),
-	)
-
-	writeConst(w,
-		d.SelectCount(t, nil),
-		identifier("Select", inflect.Singularize(t.Name), "CountStmt"),
-	)
+	}))
 
 	if t.HasPrimaryKey() {
-		writeConst(w,
-			d.Select(t, []*schema.Field{t.Primary}),
-			identifier("Select", inflect.Singularize(t.Name), "ByPkStmt"),
-		)
-
-		writeConst(w,
+		must(tConstWithTableName.Execute(w, ConstView{
+			identifier("Update", tableName, "ByPkStmt"),
 			d.Update(t, []*schema.Field{t.Primary}),
-			identifier("Update", inflect.Singularize(t.Name), "ByPkStmt"),
-		)
+		}))
 
 		//fmt.Fprintf(w, "var %s = map[string]string{\n",
-		//	inflect.Typeify(fmt.Sprintf("update_%s_json_map", inflect.Singularize(t.Name))))
+		//	inflect.Typeify(fmt.Sprintf("update_%s_json_map", tableName)))
 		//for i, node := range tree.Edges() {
 		//	if i < len(t.Fields) {
 		//		columnName := t.Fields[i].SqlName
@@ -67,49 +75,44 @@ func writeSchema(w io.Writer, d schema.Dialect, tree *parse.Node, t *schema.Tabl
 		//}
 		//fmt.Fprintf(w, "}")
 
-		writeConst(w,
+		must(tConstWithTableName.Execute(w, ConstView{
+			identifier("Delete", tableName, "ByPkStmt"),
 			d.Delete(t, []*schema.Field{t.Primary}),
-			identifier("Delete", inflect.Singularize(t.Name), "ByPkStmt"),
-		)
+		}))
 	}
 
 	fmt.Fprintln(w, sectionBreak)
 
 	for _, ix := range t.Index {
 
-		writeConst(w,
-			d.Index(t, ix),
+		must(tConstWithTableName.Execute(w, ConstView{
 			identifier("Create", ix.Name, "Stmt"),
-		)
-
-		writeConst(w,
-			d.Select(t, ix.Fields),
-			identifier("Select", ix.Name, "Stmt"),
-		)
+			d.Index(t, ix),
+		}))
 
 		if !ix.Unique {
 
-			writeConst(w,
-				d.SelectRange(t, ix.Fields),
-				identifier("Select", ix.Name, "RangeStmt"),
-			)
-
-			writeConst(w,
-				d.SelectCount(t, ix.Fields),
-				identifier("Select", ix.Name, "CountStmt"),
-			)
+			//must(tConstWithTableName.Execute(w, ConstView{
+			//	identifier("Select", ix.Name, "RangeStmt"),
+			//	d.SelectRange(t, ix.Fields),
+			//}))
+			//
+			//must(tConstWithTableName.Execute(w, ConstView{
+			//	identifier("Select", ix.Name, "CountStmt"),
+			//	d.SelectCount(t, ix.Fields),
+			//}))
 
 		} else {
 
-			writeConst(w,
-				d.Update(t, ix.Fields),
+			must(tConstWithTableName.Execute(w, ConstView{
 				identifier("Update", ix.Name, "Stmt"),
-			)
+				d.Update(t, ix.Fields),
+			}))
 
-			writeConst(w,
-				d.Delete(t, ix.Fields),
+			must(tConstWithTableName.Execute(w, ConstView{
 				identifier("Delete", ix.Name, "Stmt"),
-			)
+				d.Delete(t, ix.Fields),
+			}))
 		}
 	}
 }
@@ -118,19 +121,6 @@ func writeSchema(w io.Writer, d schema.Dialect, tree *parse.Node, t *schema.Tabl
 // writer w with the given package name.
 func writePackage(w io.Writer, name string) {
 	fmt.Fprintf(w, sPackage, name)
-}
-
-// writeConst is a helper function that writes the
-// body string to a Go const.
-func writeConst(w io.Writer, body string, name string) {
-	view := struct {
-		Name string
-		Body string
-	}{
-		name,
-		body,
-	}
-	must(tConst.Execute(w, view))
 }
 
 func identifier(prefix, id, suffix string) string {

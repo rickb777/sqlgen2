@@ -275,18 +275,35 @@ func SliceHookWithoutPk(v *Hook) []interface{} {
 	}
 }
 
-func (tbl HookTable) SelectOne(query string, args ...interface{}) (*Hook, error) {
+func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return ScanHook(row)
 }
 
-func (tbl HookTable) Select(query string, args ...interface{}) ([]*Hook, error) {
+func (tbl HookTable) SelectOne(where string, args ...interface{}) (*Hook, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", sHookColumnNames, tbl.Name, where)
+	return tbl.QueryOne(query, args...)
+}
+
+func (tbl HookTable) Query(query string, args ...interface{}) ([]*Hook, error) {
 	rows, err := tbl.Db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	return ScanHooks(rows)
+}
+
+func (tbl HookTable) Select(where string, args ...interface{}) ([]*Hook, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s", sHookColumnNames, tbl.Name, where)
+	return tbl.Query(query, args...)
+}
+
+func (tbl HookTable) Count(where string, args ...interface{}) (count int64, err error) {
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
+	row := tbl.Db.QueryRow(query, args)
+	err = row.Scan(&count)
+	return count, err
 }
 
 func (tbl HookTable) Insert(v *Hook) error {
@@ -323,6 +340,22 @@ func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
 
 //--------------------------------------------------------------------------------
 
+const sHookColumnNames = `
+id, sha, after, before, created, deleted, forced
+`
+
+const sHookDataColumnNames = `
+sha, after, before, created, deleted, forced
+`
+
+const sHookColumnParams = `
+?,?,?,?,?,?,?
+`
+
+const sHookDataColumnParams = `
+?,?,?,?,?,?
+`
+
 const sCreateHookStmt = `
 CREATE TABLE IF NOT EXISTS %s (
  id      INTEGER PRIMARY KEY AUTO_INCREMENT,
@@ -354,68 +387,8 @@ func InsertHookStmt(tableName string) string {
 	return fmt.Sprintf(sInsertHookStmt, tableName)
 }
 
-const sSelectHookStmt = `
-SELECT 
- id,
- sha,
- after,
- before,
- created,
- deleted,
- forced
-FROM %s
-`
-
-func SelectHookStmt(tableName string) string {
-	return fmt.Sprintf(sSelectHookStmt, tableName)
-}
-
-const sSelectHookRangeStmt = `
-SELECT 
- id,
- sha,
- after,
- before,
- created,
- deleted,
- forced
-FROM %s
-LIMIT ? OFFSET ?
-`
-
-func SelectHookRangeStmt(tableName string) string {
-	return fmt.Sprintf(sSelectHookRangeStmt, tableName)
-}
-
-const sSelectHookCountStmt = `
-SELECT count(1)
-FROM %s 
-`
-
-func SelectHookCountStmt(tableName string) string {
-	return fmt.Sprintf(sSelectHookCountStmt, tableName)
-}
-
-const sSelectHookByPkStmt = `
-SELECT 
- id,
- sha,
- after,
- before,
- created,
- deleted,
- forced
-FROM %s
- WHERE id=?
-`
-
-func SelectHookByPkStmt(tableName string) string {
-	return fmt.Sprintf(sSelectHookByPkStmt, tableName)
-}
-
 const sUpdateHookByPkStmt = `
 UPDATE %s SET 
- id=?,
  sha=?,
  after=?,
  before=?,
@@ -429,13 +402,13 @@ func UpdateHookByPkStmt(tableName string) string {
 	return fmt.Sprintf(sUpdateHookByPkStmt, tableName)
 }
 
-const sDeleteHookByPkeyStmt = `
+const sDeleteHookByPkStmt = `
 DELETE FROM %s
  WHERE id=?
 `
 
-func DeleteHookByPkeyStmt(tableName string) string {
-	return fmt.Sprintf(sDeleteHookByPkeyStmt, tableName)
+func DeleteHookByPkStmt(tableName string) string {
+	return fmt.Sprintf(sDeleteHookByPkStmt, tableName)
 }
 
 //--------------------------------------------------------------------------------

@@ -27,13 +27,16 @@ var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
 
 const sConst = `
 const s{{.Name}} = {{ticked .Body}}
+`
 
+const sTableName = `
 func {{.Name}}(tableName string) string {
 	return fmt.Sprintf(s{{.Name}}, tableName)
 }
 `
 
 var tConst = template.Must(template.New("Const").Funcs(funcMap).Parse(sConst))
+var tConstWithTableName = template.Must(template.New("Const").Funcs(funcMap).Parse(sConst + sTableName))
 
 //-------------------------------------------------------------------------------------------------
 
@@ -102,9 +105,14 @@ var tSliceRow = template.Must(template.New("SliceRow").Funcs(funcMap).Parse(sSli
 //-------------------------------------------------------------------------------------------------
 
 const sSelectRow = `
-func (tbl {{.Prefix}}{{.Type}}Table) SelectOne(query string, args ...interface{}) (*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}Table) QueryOne(query string, args ...interface{}) (*{{.Type}}, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return Scan{{.Type}}(row)
+}
+
+func (tbl {{.Prefix}}{{.Type}}Table) SelectOne(where string, args ...interface{}) (*{{.Type}}, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", s{{.Type}}ColumnNames, tbl.Name, where)
+	return tbl.QueryOne(query, args...)
 }
 `
 
@@ -114,7 +122,7 @@ var tSelectRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sS
 
 // function template to select multiple rows.
 const sSelectRows = `
-func (tbl {{.Prefix}}{{.Type}}Table) Select(query string, args ...interface{}) ([]*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}Table) Query(query string, args ...interface{}) ([]*{{.Type}}, error) {
 	rows, err := tbl.Db.Query(query, args...)
 	if err != nil {
 		return nil, err
@@ -122,9 +130,27 @@ func (tbl {{.Prefix}}{{.Type}}Table) Select(query string, args ...interface{}) (
 	defer rows.Close()
 	return Scan{{.Types}}(rows)
 }
+
+func (tbl {{.Prefix}}{{.Type}}Table) Select(where string, args ...interface{}) ([]*{{.Type}}, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s", s{{.Type}}ColumnNames, tbl.Name, where)
+	return tbl.Query(query, args...)
+}
 `
 
 var tSelectRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(sSelectRows))
+
+//-------------------------------------------------------------------------------------------------
+
+const sCountRows =`
+func (tbl {{.Prefix}}{{.Type}}Table) Count(where string, args ...interface{}) (count int64, err error) {
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
+	row := tbl.Db.QueryRow(query, args)
+	err = row.Scan(&count)
+	return count, err
+}
+`
+
+var tCountRows = template.Must(template.New("CountRows").Funcs(funcMap).Parse(sCountRows))
 
 //-------------------------------------------------------------------------------------------------
 

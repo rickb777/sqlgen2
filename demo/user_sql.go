@@ -173,18 +173,35 @@ func SliceUserWithoutPk(v *User) []interface{} {
 	}
 }
 
-func (tbl DbUserTable) SelectOne(query string, args ...interface{}) (*User, error) {
+func (tbl DbUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return ScanUser(row)
 }
 
-func (tbl DbUserTable) Select(query string, args ...interface{}) ([]*User, error) {
+func (tbl DbUserTable) SelectOne(where string, args ...interface{}) (*User, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", sUserColumnNames, tbl.Name, where)
+	return tbl.QueryOne(query, args...)
+}
+
+func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error) {
 	rows, err := tbl.Db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	return ScanUsers(rows)
+}
+
+func (tbl DbUserTable) Select(where string, args ...interface{}) ([]*User, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s", sUserColumnNames, tbl.Name, where)
+	return tbl.Query(query, args...)
+}
+
+func (tbl DbUserTable) Count(where string, args ...interface{}) (count int64, err error) {
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
+	row := tbl.Db.QueryRow(query, args)
+	err = row.Scan(&count)
+	return count, err
 }
 
 func (tbl DbUserTable) Insert(v *User) error {
@@ -221,6 +238,22 @@ func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
 
 //--------------------------------------------------------------------------------
 
+const sUserColumnNames = `
+id, login, email, avatar, active, admin, token, secret, hash
+`
+
+const sUserDataColumnNames = `
+login, email, avatar, active, admin, token, secret, hash
+`
+
+const sUserColumnParams = `
+?,?,?,?,?,?,?,?,?
+`
+
+const sUserDataColumnParams = `
+?,?,?,?,?,?,?,?
+`
+
 const sCreateUserStmt = `
 CREATE TABLE IF NOT EXISTS %s (
  id     INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -256,74 +289,8 @@ func InsertUserStmt(tableName string) string {
 	return fmt.Sprintf(sInsertUserStmt, tableName)
 }
 
-const sSelectUserStmt = `
-SELECT 
- id,
- login,
- email,
- avatar,
- active,
- admin,
- token,
- secret,
- hash
-FROM %s
-`
-
-func SelectUserStmt(tableName string) string {
-	return fmt.Sprintf(sSelectUserStmt, tableName)
-}
-
-const sSelectUserRangeStmt = `
-SELECT 
- id,
- login,
- email,
- avatar,
- active,
- admin,
- token,
- secret,
- hash
-FROM %s
-LIMIT ? OFFSET ?
-`
-
-func SelectUserRangeStmt(tableName string) string {
-	return fmt.Sprintf(sSelectUserRangeStmt, tableName)
-}
-
-const sSelectUserCountStmt = `
-SELECT count(1)
-FROM %s 
-`
-
-func SelectUserCountStmt(tableName string) string {
-	return fmt.Sprintf(sSelectUserCountStmt, tableName)
-}
-
-const sSelectUserByPkStmt = `
-SELECT 
- id,
- login,
- email,
- avatar,
- active,
- admin,
- token,
- secret,
- hash
-FROM %s
- WHERE id=?
-`
-
-func SelectUserByPkStmt(tableName string) string {
-	return fmt.Sprintf(sSelectUserByPkStmt, tableName)
-}
-
 const sUpdateUserByPkStmt = `
 UPDATE %s SET 
- id=?,
  login=?,
  email=?,
  avatar=?,
@@ -339,13 +306,13 @@ func UpdateUserByPkStmt(tableName string) string {
 	return fmt.Sprintf(sUpdateUserByPkStmt, tableName)
 }
 
-const sDeleteUserByPkeyStmt = `
+const sDeleteUserByPkStmt = `
 DELETE FROM %s
  WHERE id=?
 `
 
-func DeleteUserByPkeyStmt(tableName string) string {
-	return fmt.Sprintf(sDeleteUserByPkeyStmt, tableName)
+func DeleteUserByPkStmt(tableName string) string {
+	return fmt.Sprintf(sDeleteUserByPkStmt, tableName)
 }
 
 //--------------------------------------------------------------------------------
@@ -358,28 +325,8 @@ func CreateUserLoginStmt(tableName string) string {
 	return fmt.Sprintf(sCreateUserLoginStmt, tableName)
 }
 
-const sSelectUserLoginStmt = `
-SELECT 
- id,
- login,
- email,
- avatar,
- active,
- admin,
- token,
- secret,
- hash
-FROM %s
- WHERE login=?
-`
-
-func SelectUserLoginStmt(tableName string) string {
-	return fmt.Sprintf(sSelectUserLoginStmt, tableName)
-}
-
 const sUpdateUserLoginStmt = `
 UPDATE %s SET 
- id=?,
  login=?,
  email=?,
  avatar=?,
@@ -412,28 +359,8 @@ func CreateUserEmailStmt(tableName string) string {
 	return fmt.Sprintf(sCreateUserEmailStmt, tableName)
 }
 
-const sSelectUserEmailStmt = `
-SELECT 
- id,
- login,
- email,
- avatar,
- active,
- admin,
- token,
- secret,
- hash
-FROM %s
- WHERE email=?
-`
-
-func SelectUserEmailStmt(tableName string) string {
-	return fmt.Sprintf(sSelectUserEmailStmt, tableName)
-}
-
 const sUpdateUserEmailStmt = `
 UPDATE %s SET 
- id=?,
  login=?,
  email=?,
  avatar=?,
