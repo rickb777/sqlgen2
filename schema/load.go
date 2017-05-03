@@ -19,9 +19,8 @@ func Load(tree *parse.Node) *Table {
 	table.Type = tree.Type
 	table.Name = Pluralize(Underscore(tree.Type))
 
-	// each edge node in the tree is a column
-	// in the table. Convert each edge node to
-	// a Field structure.
+	// Each leaf node in the tree is a column in the table.
+	// Convert each leaf node to a Field structure.
 	for _, node := range tree.Leaves() {
 		field, ok := loadNode(node, indices, table)
 		if ok {
@@ -33,8 +32,7 @@ func Load(tree *parse.Node) *Table {
 }
 
 func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field, bool) {
-	field := new(Field)
-	field.Name = node.Name
+	field := &Field{Name: node.Name}
 
 	// Lookup the SQL column type
 	field.Type = BLOB
@@ -67,8 +65,9 @@ func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field
 		if node.Tags.Index != "" {
 			index, ok := indices[node.Tags.Index]
 			if !ok {
-				index = new(Index)
-				index.Name = node.Tags.Index
+				index = &Index{
+					Name: node.Tags.Index,
+				}
 				indices[index.Name] = index
 				table.Index = append(table.Index, index)
 			}
@@ -78,9 +77,10 @@ func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field
 		if node.Tags.Unique != "" {
 			index, ok := indices[node.Tags.Index]
 			if !ok {
-				index = new(Index)
-				index.Name = node.Tags.Unique
-				index.Unique = true
+				index = &Index{
+					Name: node.Tags.Unique,
+					Unique: true,
+				}
 				indices[index.Name] = index
 				table.Index = append(table.Index, index)
 			}

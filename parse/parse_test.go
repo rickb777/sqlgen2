@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-var i = 1
+var i int
 
 func TestParseOK(t *testing.T) {
 	i = 1

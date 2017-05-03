@@ -7,7 +7,6 @@ const (
 	INTEGER SqlType = iota
 	VARCHAR
 	BOOLEAN
-	REAL
 	BLOB
 	JSON
 )

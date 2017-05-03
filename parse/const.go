@@ -40,11 +40,15 @@ var Types = map[string]Kind{
 	"uint16":      Uint16,
 	"uint32":      Uint32,
 	"uint64":      Uint64,
+	"string":      String,
+}
+
+// EncodableTypes lists the types that must be encoded for storage (native floats are not supported)
+var EncodableTypes = map[string]Kind{
 	"float32":     Float32,
 	"float64":     Float64,
 	"complex64":   Complex64,
 	"complex128":  Complex128,
 	"interface{}": Interface,
 	"[]byte":      Bytes,
-	"string":      String,
 }
