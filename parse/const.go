@@ -1,6 +1,6 @@
 package parse
 
-type Kind uint8
+type Kind int
 
 const (
 	Invalid Kind = iota
