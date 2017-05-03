@@ -141,7 +141,7 @@ var tSelectRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(
 
 //-------------------------------------------------------------------------------------------------
 
-const sCountRows =`
+const sCountRows = `
 func (tbl {{.Prefix}}{{.Type}}Table) Count(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
@@ -215,4 +215,5 @@ func (tbl {{.Prefix}}{{.Type}}Table) Exec(query string, args ...interface{}) (in
 	return res.RowsAffected()
 }
 `
+
 var tExec = template.Must(template.New("Exec").Funcs(funcMap).Parse(sExec))

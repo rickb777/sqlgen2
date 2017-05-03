@@ -1,8 +1,8 @@
 package output
 
 import (
-	"os"
 	"fmt"
+	"os"
 )
 
 var Verbose = false

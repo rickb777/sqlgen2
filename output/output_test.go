@@ -1,10 +1,10 @@
 package output
 
 import (
-	"testing"
 	"bytes"
-	"os"
 	"io"
+	"os"
+	"testing"
 )
 
 func TestNewOutput(t *testing.T) {

@@ -14,7 +14,7 @@ func newPostgres() Dialect {
 	return d
 }
 
-func (d *posgres) Column(f *Field) (_ string) {
+func (d *posgres) Column(f *Field) string {
 	// posgres uses a special column type
 	// to autoincrementing keys.
 	if f.Auto {
@@ -39,20 +39,20 @@ func (d *posgres) Column(f *Field) (_ string) {
 	case JSON:
 		return "JSON"
 	default:
-		return
+		return ""
 	}
 }
 
-func (d *posgres) Token(v int) (_ string) {
+func (d *posgres) Token(v int) string {
 	switch v {
 	case AUTO_INCREMENT:
 		// postgres does not support the
 		// auto-increment keyword.
-		return
+		return ""
 	case PRIMARY_KEY:
 		return "PRIMARY KEY"
 	default:
-		return
+		return ""
 	}
 }
 

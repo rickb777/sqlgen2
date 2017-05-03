@@ -55,14 +55,14 @@ func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field
 		field.Primary = node.Tags.Primary
 		field.Size = node.Tags.Size
 
-			if node.Tags.Primary {
-				if table.Primary != nil {
-					fmt.Fprintf(os.Stderr, "%s, %s: compound primary keys are not supported.\n",
-						table.Primary.Name, field.Name)
-					os.Exit(1)
-				}
-				table.Primary = field
+		if node.Tags.Primary {
+			if table.Primary != nil {
+				fmt.Fprintf(os.Stderr, "%s, %s: compound primary keys are not supported.\n",
+					table.Primary.Name, field.Name)
+				os.Exit(1)
 			}
+			table.Primary = field
+		}
 
 		if node.Tags.Index != "" {
 			index, ok := indices[node.Tags.Index]

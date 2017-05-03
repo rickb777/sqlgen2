@@ -1,10 +1,10 @@
 package output
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strings"
-	"fmt"
 )
 
 type Output struct {

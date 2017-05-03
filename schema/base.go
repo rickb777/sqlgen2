@@ -110,14 +110,14 @@ func (b *base) Column(f *Field) string {
 }
 
 // Token returns the SQL string for the requested token.
-func (b *base) Token(v int) (_ string) {
+func (b *base) Token(v int) string {
 	switch v {
 	case AUTO_INCREMENT:
 		return "AUTOINCREMENT"
 	case PRIMARY_KEY:
 		return "PRIMARY KEY"
 	default:
-		return
+		return ""
 	}
 }
 

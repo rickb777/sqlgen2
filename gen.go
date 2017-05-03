@@ -6,10 +6,10 @@ import (
 	"io"
 	"os"
 
+	"fmt"
+	. "github.com/rickb777/sqlgen/output"
 	"github.com/rickb777/sqlgen/parse"
 	"github.com/rickb777/sqlgen/schema"
-	. "github.com/rickb777/sqlgen/output"
-	"fmt"
 	"strings"
 )
 

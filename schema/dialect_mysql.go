@@ -14,7 +14,7 @@ func newMySQL() Dialect {
 	return d
 }
 
-func (d *mysql) Column(f *Field) (_ string) {
+func (d *mysql) Column(f *Field) string {
 	switch f.Type {
 	case INTEGER:
 		return "INTEGER"
@@ -31,17 +31,17 @@ func (d *mysql) Column(f *Field) (_ string) {
 		}
 		return fmt.Sprintf("VARCHAR(%d)", size)
 	default:
-		return
+		return ""
 	}
 }
 
-func (d *mysql) Token(v int) (_ string) {
+func (d *mysql) Token(v int) string {
 	switch v {
 	case AUTO_INCREMENT:
 		return "AUTO_INCREMENT"
 	case PRIMARY_KEY:
 		return "PRIMARY KEY"
 	default:
-		return
+		return ""
 	}
 }

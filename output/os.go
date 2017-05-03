@@ -1,8 +1,8 @@
 package output
 
 import (
-	"os"
 	"io"
+	"os"
 )
 
 type OsLike interface {

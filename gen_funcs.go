@@ -7,9 +7,9 @@ import (
 	. "strings"
 
 	//. "github.com/acsellers/inflections"
+	"github.com/rickb777/sqlgen/output"
 	"github.com/rickb777/sqlgen/parse"
 	"github.com/rickb777/sqlgen/schema"
-	"github.com/rickb777/sqlgen/output"
 )
 
 const tabs = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
@@ -47,7 +47,7 @@ func writeImports(w io.Writer, tree *parse.Node, pkgs ...string) {
 	// encoder package that was specified.
 	fmt.Fprintln(w, "\nimport (")
 	sorted := make([]string, 0, len(pmap))
-	for pkg, _ := range pmap {
+	for pkg := range pmap {
 		if pkg != "" {
 			sorted = append(sorted, pkg)
 		}
