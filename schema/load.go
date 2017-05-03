@@ -22,7 +22,7 @@ func Load(tree *parse.Node) *Table {
 	// each edge node in the tree is a column
 	// in the table. Convert each edge node to
 	// a Field structure.
-	for _, node := range tree.Edges() {
+	for _, node := range tree.Leaves() {
 		field, ok := loadNode(node, indices, table)
 		if ok {
 			table.Fields = append(table.Fields, field)
@@ -114,7 +114,7 @@ func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field
 }
 
 // convert Go types to SQL types.
-var types = map[uint8]int{
+var types = map[parse.Kind]SqlType{
 	parse.Bool:       BOOLEAN,
 	parse.Int:        INTEGER,
 	parse.Int8:       INTEGER,
@@ -137,7 +137,7 @@ var types = map[uint8]int{
 	parse.Slice:      BLOB,
 }
 
-var sqlTypes = map[string]int{
+var sqlTypes = map[string]SqlType{
 	"text":     VARCHAR,
 	"varchar":  VARCHAR,
 	"varchar2": VARCHAR,

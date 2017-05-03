@@ -1,7 +1,9 @@
 package parse
 
+type Kind uint8
+
 const (
-	Invalid = iota
+	Invalid Kind = iota
 	Bool
 	Int
 	Int8
@@ -26,7 +28,7 @@ const (
 	Struct
 )
 
-var Types = map[string]uint8{
+var Types = map[string]Kind{
 	"bool":        Bool,
 	"int":         Int,
 	"int8":        Int8,

@@ -10,10 +10,10 @@ import (
 	"github.com/rickb777/sqlgen/schema"
 	. "github.com/rickb777/sqlgen/output"
 	"fmt"
+	"strings"
 )
 
 var (
-	iFile      = flag.String("file", "", "input file name; required")
 	oFile      = flag.String("o", "", "output file name (or file path); required")
 	typeName   = flag.String("type", "", "type to generate; required")
 	database   = flag.String("db", "sqlite", "sql dialect; optional")
@@ -26,15 +26,18 @@ var (
 
 func main() {
 	flag.BoolVar(&Verbose, "v", false, "progress messages")
+	flag.BoolVar(&parse.Debug, "z", false, "debug messages")
 
 	flag.Parse()
 
-	Require(*iFile != "", "-file is required.")
-	Require(*oFile != "", "-o is required.")
+	Require(flag.NArg() > 0, "at least one input file is required.\n")
+	Require(*oFile != "", "-o is required.\n")
 
-	// parses the syntax tree into something a bit
-	// easier to work with.
-	tree, err := parse.Parse(*iFile, *typeName)
+	words := strings.Split(*typeName, ".")
+	Require(len(words) == 2, "type %q requires a package name prefix.\n", *typeName)
+
+	// parse the Go source code file(s) to extract the required struct and return it as an AST.
+	tree, err := parse.Parse(words[0], words[1], flag.Args())
 	Require(err == nil, "%v\n", err)
 
 	o := NewOutput(*oFile)

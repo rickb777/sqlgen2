@@ -1,17 +1,23 @@
 package parse
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+)
+
 type Node struct {
 	Pkg  string // source code package.
-	Name string // source code name.
-	Kind uint8  // source code kind.
-	Type string // source code type.
+	Name string // identifier name.
+	Kind Kind   // source code kind.
+	Type string // name of source code type.
 	Tags *Tag
 
 	Parent *Node
 	Nodes  []*Node
 }
 
-func (n *Node) append(node *Node) {
+func (n *Node) appendNode(node *Node) {
 	node.Parent = n
 	n.Nodes = append(n.Nodes, node)
 }
@@ -28,16 +34,15 @@ func (n *Node) Walk(fn func(*Node)) {
 // WalkRev traverses the tree in reverse order, invoking
 // the callback function for each parent node until
 // the root node is reached.
-func (n *Node) WalkRev(fn func(*Node)) {
+func (n *Node) walkRev(fn func(*Node)) {
 	if n.Parent != nil {
-		n.Parent.WalkRev(fn)
+		n.Parent.walkRev(fn)
 	}
 	fn(n) // this was previously inside the if block
 }
 
-// Edges returns a flattened list of all edge
-// nodes in the Tree.
-func (n *Node) Edges() []*Node {
+// Leaves returns a flattened list of all leaf nodes in the Tree.
+func (n *Node) Leaves() []*Node {
 	var nodes []*Node
 	n.Walk(func(node *Node) {
 		if len(node.Nodes) == 0 {
@@ -47,12 +52,29 @@ func (n *Node) Edges() []*Node {
 	return nodes
 }
 
-// Path returns the absolute path of the node
-// in the Tree.
+// Path returns the route from the node to the root of the Tree.
 func (n *Node) Path() []*Node {
 	var nodes []*Node
-	n.WalkRev(func(node *Node) {
+	n.walkRev(func(node *Node) {
 		nodes = append(nodes, node)
 	})
 	return nodes
+}
+
+func (n *Node) String() string {
+	buf := &bytes.Buffer{}
+	n.indented(buf, "")
+	return buf.String()
+}
+
+func (n *Node) indented(w io.Writer, indent string) {
+	if len(n.Pkg) > 0 {
+		fmt.Fprintf(w, "%s%s %s.%s %d\n", indent, n.Name, n.Pkg, n.Type, n.Kind)
+	} else {
+		fmt.Fprintf(w, "%s%s %s %d\n", indent, n.Name, n.Type, n.Kind)
+	}
+	deeper := indent + "  "
+	for _, c := range n.Nodes {
+		c.indented(w, deeper)
+	}
 }

@@ -1,8 +1,10 @@
 package schema
 
+type SqlType int
+
 // List of basic types
 const (
-	INTEGER int = iota
+	INTEGER SqlType = iota
 	VARCHAR
 	BOOLEAN
 	REAL
@@ -28,7 +30,7 @@ type Table struct {
 type Field struct {
 	Name    string
 	SqlName string
-	Type    int
+	Type    SqlType
 	Primary bool
 	Auto    bool
 	Size    int

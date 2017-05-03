@@ -1,54 +1,68 @@
 package parse
 
 import (
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
 )
 
-var (
-	ErrTypeNotFound = errors.New("Cannot find type in the source code.")
-	ErrTypeInvalid  = errors.New("Cannot convert type to a SQL type.")
-)
+var Debug = false
+var fset = token.NewFileSet()
+var files []*ast.File
 
-func Parse(path, name string) (*Node, error) {
+func Parse(pkg, name string, path []string) (*Node, error) {
+	files = make([]*ast.File, 0, len(path))
 
-	var fset = token.NewFileSet()
-	var file, err = parser.ParseFile(fset, path, nil, parser.ParseComments)
-	if err != nil {
-		return nil, err
+	for _, p := range path {
+		file, err := parser.ParseFile(fset, p, nil, parser.ParseComments)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, file)
 	}
 
-	for _, decl := range file.Decls {
-		gen, ok := decl.(*ast.GenDecl)
-		if !ok {
-			continue
-		}
-		spec, ok := gen.Specs[0].(*ast.TypeSpec)
-		if !ok {
-			continue
-		}
-		if spec.Name.String() != name {
-			continue
-		}
-
-		var node = new(Node)
-		node.Name = spec.Name.String()
-		node.Type = spec.Name.String()
-		node.Pkg = file.Name.Name
-		err = buildNodes(node, spec)
-		return node, err
+	if spec, pkg := findTypeDecl(pkg, name); spec != nil {
+		return parse(spec, pkg)
 	}
 
-	return nil, ErrTypeNotFound
+	return nil, fmt.Errorf("Cannot find '%s.%s' in the source code.", pkg, name)
 }
 
-func buildNodes(parent *Node, spec *ast.TypeSpec) error {
+func findTypeDecl(pkg, name string) (*ast.TypeSpec, string) {
+	for _, file := range files {
+		if file.Name.Name == pkg {
+			for _, decl := range file.Decls {
+				if gen, ok := decl.(*ast.GenDecl); ok {
+					if spec, ok := gen.Specs[0].(*ast.TypeSpec); ok {
+						if spec.Name.String() == name {
+							return spec, file.Name.Name
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil, ""
+}
+
+func parse(spec *ast.TypeSpec, pkg string) (*Node, error) {
+	node := &Node{
+		Name: spec.Name.String(),
+		Type: spec.Name.String(),
+		Pkg: pkg,
+	}
+	err := buildNodes(node, spec)
+	if Debug {
+		fmt.Print("parsed: ", node.String())
+	}
+	return node, err
+}
+
+func buildNodes(parent *Node, spec *ast.TypeSpec) (err error) {
 	ident, ok := spec.Type.(*ast.StructType)
 	if !ok {
-		return ErrTypeInvalid
+		return fmt.Errorf("%q is not a struct type", spec.Name.Name)
 	}
 
 	for _, field := range ident.Fields.List {
@@ -56,14 +70,44 @@ func buildNodes(parent *Node, spec *ast.TypeSpec) error {
 		if field.Tag != nil {
 			tag = field.Tag.Value
 		}
-		buildNode(parent, field.Type, field.Names[0].Name, tag)
+		if field.Names == nil {
+			err = buildEmbeddedStruct(parent, field.Type, tag)
+		} else {
+			err = buildNode(parent, field.Type, field.Names[0].Name, tag)
+		}
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
-func buildNode(parent *Node, expr ast.Expr, name, tag string) error {
-	var err error
+func buildEmbeddedStruct(parent *Node, expr ast.Expr, tag string) error {
+	pkg := parent.Pkg
+	name := ""
+	//fmt.Printf("anon %#v %q\n", expr, tag)
+	switch ident := expr.(type) {
+	case *ast.Ident:
+		//fmt.Printf("     %T %s.%s\n", ident, parent.Pkg, ident.Name)
+		name = ident.Name
+	case *ast.SelectorExpr:
+		//fmt.Printf("     %T %s.%s\n", ident, ident.X, ident.Sel.Name)
+		if p2, ok := ident.X.(*ast.Ident); ok {
+			//fmt.Printf("     %#v %s\n", p2, p2.Name)
+			pkg = p2.Name
+			name = ident.Sel.Name
+		}
+	}
 
+	t, s := findTypeDecl(pkg, name)
+	if Debug {
+		fmt.Printf("     %#v %s\n", t, s)
+	}
+	return nil // TODO
+}
+
+func buildNode(parent *Node, expr ast.Expr, name, tag string) (err error) {
 	switch ident := expr.(type) {
 	case *ast.Ident:
 		if ident.Obj == nil {
@@ -76,12 +120,12 @@ func buildNode(parent *Node, expr ast.Expr, name, tag string) error {
 			if err != nil {
 				return err
 			}
-			parent.append(node)
+			parent.appendNode(node)
 			return nil
 		}
 		spec, ok := ident.Obj.Decl.(*ast.TypeSpec)
 		if !ok {
-			goto invalidType
+			return invalidType(name)
 		}
 		node := &Node{
 			Name: name,
@@ -92,12 +136,12 @@ func buildNode(parent *Node, expr ast.Expr, name, tag string) error {
 		if err != nil {
 			return err
 		}
-		parent.append(node)
+		parent.appendNode(node)
 		return buildNodes(node, spec)
 
 	case *ast.ArrayType:
 		if ident.Len != nil {
-			goto invalidType
+			return invalidType(name)
 		}
 		node := &Node{
 			Name: name,
@@ -111,7 +155,7 @@ func buildNode(parent *Node, expr ast.Expr, name, tag string) error {
 		if node.Type == "[]byte" {
 			node.Kind = Bytes
 		}
-		parent.append(node)
+		parent.appendNode(node)
 		return nil
 
 	case *ast.MapType:
@@ -121,20 +165,20 @@ func buildNode(parent *Node, expr ast.Expr, name, tag string) error {
 		if err != nil {
 			return err
 		}
-		parent.append(node)
+		parent.appendNode(node)
 		return nil
 
 	case *ast.StarExpr:
 		innerIdent, ok := ident.X.(*ast.Ident)
 		if !ok {
-			goto invalidType
+			return invalidType(name)
 		}
 		if innerIdent.Obj == nil || innerIdent.Obj.Decl == nil {
-			goto invalidType
+			return invalidType(name)
 		}
 		spec, ok := innerIdent.Obj.Decl.(*ast.TypeSpec)
 		if !ok {
-			goto invalidType
+			return invalidType(name)
 		}
 		node := &Node{Name: name, Type: innerIdent.Name, Kind: Ptr}
 		node.Tags, err = parseTag(tag)
@@ -144,10 +188,13 @@ func buildNode(parent *Node, expr ast.Expr, name, tag string) error {
 		if node.Tags.Skip {
 			return nil
 		}
-		parent.append(node)
+		parent.appendNode(node)
 		return buildNodes(node, spec)
 	}
 
-invalidType:
+	return nil
+}
+
+func invalidType(name string) error {
 	return fmt.Errorf("%s is not a valid type", name)
 }

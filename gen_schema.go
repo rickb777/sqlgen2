@@ -63,7 +63,7 @@ func writeSchema(w io.Writer, d schema.Dialect, tree *parse.Node, t *schema.Tabl
 
 		//fmt.Fprintf(w, "var %s = map[string]string{\n",
 		//	inflect.Typeify(fmt.Sprintf("update_%s_json_map", tableName)))
-		//for i, node := range tree.Edges() {
+		//for i, node := range tree.Leaves() {
 		//	if i < len(t.Fields) {
 		//		columnName := t.Fields[i].SqlName
 		//		//if field.Patchable

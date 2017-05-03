@@ -25,7 +25,7 @@ func writeImports(w io.Writer, tree *parse.Node, pkgs ...string) {
 	// check each edge node to see if it is
 	// encoded, which might require us to import
 	// other packages
-	for _, node := range tree.Edges() {
+	for _, node := range tree.Leaves() {
 		if node.Tags == nil || len(node.Tags.Encode) == 0 {
 			continue
 		}
@@ -67,7 +67,7 @@ func writeSliceFunc(w io.Writer, tree *parse.Node, view View, withoutPk bool) {
 	var depth int
 	var parent = tree
 
-	for i, node := range tree.Edges() {
+	for i, node := range tree.Leaves() {
 		if node.Tags.Skip || (withoutPk && node.Tags.Primary) {
 			continue
 		}
@@ -136,7 +136,7 @@ func writeSliceFunc(w io.Writer, tree *parse.Node, view View, withoutPk bool) {
 func writeRowFunc(w io.Writer, tree *parse.Node, view View) {
 	var i int
 	var parent = tree
-	for _, node := range tree.Edges() {
+	for _, node := range tree.Leaves() {
 		if node.Tags.Skip {
 			continue
 		}
@@ -184,7 +184,7 @@ func writeRowFunc(w io.Writer, tree *parse.Node, view View) {
 func writeRowsFunc(w io.Writer, tree *parse.Node, view View) {
 	var i int
 	var parent = tree
-	for _, node := range tree.Edges() {
+	for _, node := range tree.Leaves() {
 		if node.Tags.Skip {
 			continue
 		}

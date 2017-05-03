@@ -1,6 +1,6 @@
 package demo
 
-//go:generate sqlgen -file user.go -type User -o user_sql.go -v -prefix Db
+//go:generate sqlgen -type demo.User -o user_sql.go -v -z -prefix Db user.go
 
 type User struct {
 	Id     int64  `sql:"pk: true, auto: true"`
