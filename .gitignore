@@ -1,4 +1,5 @@
 sqlgen
+*.out
 *.sqlite
 *.txt
 _docs

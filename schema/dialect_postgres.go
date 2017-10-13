@@ -16,7 +16,7 @@ func newPostgres() Dialect {
 
 func (d *posgres) Column(f *Field) string {
 	// posgres uses a special column type
-	// to autoincrementing keys.
+	// for autoincrementing keys.
 	if f.Auto {
 		return "SERIAL"
 	}

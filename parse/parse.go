@@ -7,9 +7,11 @@ import (
 	"go/token"
 	"io"
 	"os"
+	"strings"
 )
 
 var Debug = false
+var depth = 0
 var fset = token.NewFileSet()
 var files []*ast.File
 
@@ -28,13 +30,14 @@ func Parse(pkg, name string, path []string) (*Node, error) {
 		defer f.Close()
 		files = append(files, file{p, f})
 	}
-	return parseAll(pkg, name, files)
+	return parseAllFiles(pkg, name, files)
 }
 
-func parseAll(pkg, name string, path []file) (*Node, error) {
+func parseAllFiles(pkg, name string, path []file) (*Node, error) {
 	files = make([]*ast.File, 0, len(path))
 
 	for _, p := range path {
+		DevInfo("parsing: %s\n", p.name)
 		file, err := parser.ParseFile(fset, p.name, p.in, parser.ParseComments)
 		if err != nil {
 			return nil, err
@@ -42,8 +45,9 @@ func parseAll(pkg, name string, path []file) (*Node, error) {
 		files = append(files, file)
 	}
 
+	// find the type of interest and parse it
 	if spec, pkg := findTypeDecl(pkg, name); spec != nil {
-		return parse(spec, pkg)
+		return examineSpec(pkg, spec)
 	}
 
 	return nil, fmt.Errorf("Cannot find '%s.%s' in the source code.", pkg, name)
@@ -56,6 +60,7 @@ func findTypeDecl(pkg, name string) (*ast.TypeSpec, string) {
 				if gen, ok := decl.(*ast.GenDecl); ok {
 					if spec, ok := gen.Specs[0].(*ast.TypeSpec); ok {
 						if spec.Name.String() == name {
+							DevInfo("findTypeDecl %s.%s -> found %#v %s\n", pkg, name, spec.Type, file.Name.Name)
 							return spec, file.Name.Name
 						}
 					}
@@ -63,10 +68,15 @@ func findTypeDecl(pkg, name string) (*ast.TypeSpec, string) {
 			}
 		}
 	}
+	DevInfo("findTypeDecl %s.%s -> not found\n", pkg, name)
 	return nil, ""
 }
 
-func parse(spec *ast.TypeSpec, pkg string) (*Node, error) {
+func examineSpec(pkg string, spec *ast.TypeSpec) (*Node, error) {
+	DevInfo("examineSpec: spec %s\n", pkg)
+	depth += 1
+	defer lessDeep()
+
 	node := &Node{
 		Name: spec.Name.String(),
 		Type: spec.Name.String(),
@@ -78,24 +88,28 @@ func parse(spec *ast.TypeSpec, pkg string) (*Node, error) {
 		return nil, fmt.Errorf("%q is not a struct type", spec.Name.Name)
 	}
 
-	err := buildNodes(node, str)
-	if Debug {
-		fmt.Print("parsed: ", node.String())
-	}
+	err := buildNodesFromStructFields(node, str)
+	DevInfo("parsed1:\n%s\n", node.String())
 	return node, err
 }
 
-func buildNodes(parent *Node, ident *ast.StructType) (err error) {
-	for _, field := range ident.Fields.List {
+func buildNodesFromStructFields(parent *Node, str *ast.StructType) (err error) {
+	DevInfo("buildNodesFromStructFields: %s %s.%s\n", parent.Name, parent.Pkg, parent.Type)
+	depth += 1
+	defer lessDeep()
+
+	for _, field := range str.Fields.List {
 		var tag string
 		if field.Tag != nil {
 			tag = field.Tag.Value
 		}
+
 		if field.Names == nil {
 			err = buildEmbeddedStruct(parent, field.Type, tag)
 		} else {
 			err = buildNode(parent, field.Type, field.Names[0].Name, tag)
 		}
+
 		if err != nil {
 			return err
 		}
@@ -104,34 +118,11 @@ func buildNodes(parent *Node, ident *ast.StructType) (err error) {
 	return nil
 }
 
-func buildEmbeddedStruct(parent *Node, expr ast.Expr, tag string) error {
-	pkg := parent.Pkg
-	name := ""
-	//fmt.Printf("anon %#v %q\n", expr, tag)
-	switch ident := expr.(type) {
-	case *ast.Ident:
-		//fmt.Printf("     %T %s.%s\n", ident, parent.Pkg, ident.Name)
-		name = ident.Name
-	case *ast.SelectorExpr:
-		//fmt.Printf("     %T %s.%s\n", ident, ident.X, ident.Sel.Name)
-		if p2, ok := ident.X.(*ast.Ident); ok {
-			//fmt.Printf("     %#v %s\n", p2, p2.Name)
-			pkg = p2.Name
-			name = ident.Sel.Name
-		}
-	}
-
-	t, s := findTypeDecl(pkg, name)
-	if Debug {
-		fmt.Printf("%#v %s\n", t.Type, s)
-	}
-	if str, ok := t.Type.(*ast.StructType); ok {
-		return buildNodes(parent, str)
-	}
-	return nil // TODO
-}
-
 func buildNode(parent *Node, expr ast.Expr, name, tag string) (err error) {
+	DevInfo("buildNode: %s %s.%s expr %s %q\n", parent.Name, parent.Pkg, parent.Type, name, tag)
+	depth += 1
+	defer lessDeep()
+
 	switch ident := expr.(type) {
 	case *ast.Ident:
 		return buildIdentNode(parent, ident, name, tag)
@@ -149,6 +140,55 @@ func buildNode(parent *Node, expr ast.Expr, name, tag string) (err error) {
 	return nil
 }
 
+func buildEmbeddedStruct(parent *Node, expr ast.Expr, tag string) error {
+	DevInfo("buildEmbeddedStruct %s %s.%s %#v %q\n", parent.Name, parent.Pkg, parent.Type, expr, tag)
+	depth += 1
+	defer lessDeep()
+
+	embedded := &Node{
+		Name: "",
+		Type: "",
+		Pkg:  parent.Pkg,
+	}
+
+	switch ident := expr.(type) {
+	case *ast.Ident:
+		DevInfo("     %T %s.%s\n", ident, parent.Pkg, ident.Name)
+		embedded.Name = ident.Name
+		embedded.Type = ident.Name
+
+	case *ast.SelectorExpr:
+		DevInfo("     %T %s.%s\n", ident, ident.X, ident.Sel.Name)
+		if p2, ok := ident.X.(*ast.Ident); ok {
+			DevInfo("     %#v %s\n", p2, p2.Name)
+			embedded.Pkg = p2.Name
+			embedded.Name = ident.Sel.Name
+			embedded.Type = ident.Sel.Name
+		}
+
+	default:
+		DevInfo("     %T %#v -- unsupported\n", ident, ident)
+	}
+
+	t, _ := findTypeDecl(embedded.Pkg, embedded.Name)
+	if t == nil {
+		return fmt.Errorf("Cannot find '%s.%s' in the source code.", embedded.Pkg, embedded.Name)
+	}
+
+	str, ok := t.Type.(*ast.StructType)
+	if !ok {
+		return fmt.Errorf("Syntax error: '%s.%s' is the wrong type %T.", embedded.Pkg, embedded.Name, t.Type)
+	}
+
+	err := buildNodesFromStructFields(embedded, str)
+	DevInfo("--parsed2:\n%s\n", embedded.String())
+	for _, n := range embedded.Nodes {
+		parent.appendNode(n)
+	}
+
+	return err
+}
+
 func buildIdentNode(parent *Node, ident *ast.Ident, name, tag string) (err error) {
 	if ident.Obj == nil {
 		node := &Node{
@@ -163,39 +203,47 @@ func buildIdentNode(parent *Node, ident *ast.Ident, name, tag string) (err error
 		parent.appendNode(node)
 		return nil
 	}
+
 	spec, ok := ident.Obj.Decl.(*ast.TypeSpec)
 	if !ok {
 		return invalidType(name)
 	}
+
 	node := &Node{
 		Name: name,
 		Type: ident.Name,
 		Kind: Struct,
 	}
+
 	node.Tags, err = parseTag(tag)
 	if err != nil {
 		return err
 	}
+
 	parent.appendNode(node)
-	return buildNodes(node, spec.Type.(*ast.StructType))
+	return buildNodesFromStructFields(node, spec.Type.(*ast.StructType))
 }
 
 func buildArrayNode(parent *Node, ident *ast.ArrayType, name, tag string) (err error) {
 	if ident.Len != nil {
 		return invalidType(name)
 	}
+
 	node := &Node{
 		Name: name,
 		Kind: Slice,
 		Type: fmt.Sprintf("[]%s", ident.Elt),
 	}
+
 	node.Tags, err = parseTag(tag)
 	if err != nil {
 		return err
 	}
+
 	if node.Type == "[]byte" {
 		node.Kind = Bytes
 	}
+
 	parent.appendNode(node)
 	return nil
 }
@@ -216,25 +264,41 @@ func buildPtrNode(parent *Node, ident *ast.StarExpr, name, tag string) (err erro
 	if !ok {
 		return invalidType(name)
 	}
+
 	if innerIdent.Obj == nil || innerIdent.Obj.Decl == nil {
 		return invalidType(name)
 	}
+
 	spec, ok := innerIdent.Obj.Decl.(*ast.TypeSpec)
 	if !ok {
 		return invalidType(name)
 	}
+
 	node := &Node{Name: name, Type: innerIdent.Name, Kind: Ptr}
 	node.Tags, err = parseTag(tag)
 	if err != nil {
 		return err
 	}
+
 	if node.Tags.Skip {
 		return nil
 	}
+
 	parent.appendNode(node)
-	return buildNodes(node, spec.Type.(*ast.StructType))
+	return buildNodesFromStructFields(node, spec.Type.(*ast.StructType))
 }
 
 func invalidType(name string) error {
 	return fmt.Errorf("%s is not a valid type", name)
+}
+
+func DevInfo(format string, args ...interface{}) {
+	if Debug {
+		in := strings.Repeat(" ", depth*2)
+		fmt.Fprintf(os.Stderr, in + format, args...)
+	}
+}
+
+func lessDeep() {
+	depth -= 1
 }

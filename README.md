@@ -14,19 +14,31 @@ go get -u github.com/rickb777/sqlgen
 ### Usage
 
 ```
-Usage of sqlgen:
+sqlgen [option [arg]] file.go ...
+
+Options:
   -type string
     	type to generate; required
   -file string
     	input file name; required
   -o string
-    	output file name
+    	output file name; required
   -db string
     	sql dialect; sqlite, postgres, mysql
   -schema
     	generate sql schema and queries; default true
+  -prefix
+        prefix for names of generated types; optional
   -funcs
     	generate sql helper functions; default true
+  -extras
+    	generate extra helper functions; default true
+  -gofmt
+    	format and simplify the generated code nicely; default false
+  -v
+    	verbose progress; default false
+  -z
+    	debug info; default false
 ```
 
 ### Tutorial

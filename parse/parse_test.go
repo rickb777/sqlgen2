@@ -6,21 +6,12 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"fmt"
 )
 
-var i int
 
-func TestParseOK(t *testing.T) {
-	i = 1
-
-	doTestParseOK(t, "pkg1", "Struct",
-		`package pkg1
-
-		type Struct struct {
-			Id       int64 |sql:"pk: true, auto: true"|
-			Number   int
-			Title    string
-		}`,
+func TestStructWith3FieldsAndTags(t *testing.T) {
+	doTestParseOK(t,
 		&Node{
 			Pkg:  "pkg1",
 			Name: "Struct",
@@ -44,14 +35,19 @@ func TestParseOK(t *testing.T) {
 				},
 			},
 		},
-	)
-
-	doTestParseOK(t, "pkg2", "Struct",
-		`package pkg2
+		"pkg1", "Struct",
+		`package pkg1
 
 		type Struct struct {
-			Flag  bool     |sql:"-"|
+			Id       int64 |sql:"pk: true, auto: true"|
+			Number   int
+			Title    string
 		}`,
+	)
+}
+
+func TestStructWith1FieldAndIgnoreTag(t *testing.T) {
+	doTestParseOK(t,
 		&Node{
 			Pkg:  "pkg2",
 			Name: "Struct",
@@ -65,14 +61,17 @@ func TestParseOK(t *testing.T) {
 				},
 			},
 		},
-	)
-
-	doTestParseOK(t, "pkg3", "Struct",
-		`package pkg3
+		"pkg2", "Struct",
+		`package pkg2
 
 		type Struct struct {
-			Labels   []string  |sql:"encode: json"|
+			Flag  bool     |sql:"-"|
 		}`,
+	)
+}
+
+func TestStructWith1FieldAndJsonTag(t *testing.T) {
+	doTestParseOK(t,
 		&Node{
 			Pkg:  "pkg3",
 			Name: "Struct",
@@ -86,14 +85,17 @@ func TestParseOK(t *testing.T) {
 				},
 			},
 		},
-	)
-
-	doTestParseOK(t, "pkg4", "Struct",
-		`package pkg4
+		"pkg3", "Struct",
+		`package pkg3
 
 		type Struct struct {
-			Table    map[string]int  |sql:"encode: json"|
+			Labels   []string  |sql:"encode: json"|
 		}`,
+	)
+}
+
+func TestStructWith1MapFieldAndJsonTag(t *testing.T) {
+	doTestParseOK(t,
 		&Node{
 			Pkg:  "pkg4",
 			Name: "Struct",
@@ -107,17 +109,17 @@ func TestParseOK(t *testing.T) {
 				},
 			},
 		},
-	)
-
-	doTestParseOK(t, "pkg5", "Struct",
-		`package pkg5
+		"pkg4", "Struct",
+		`package pkg4
 
 		type Struct struct {
-			Author    *Author
-		}
-		type Author struct {
-			Name     string
+			Table    map[string]int  |sql:"encode: json"|
 		}`,
+	)
+}
+
+func TestStructWithNesting(t *testing.T) {
+	doTestParseOK(t,
 		&Node{
 			Pkg:  "pkg5",
 			Name: "Struct",
@@ -139,8 +141,20 @@ func TestParseOK(t *testing.T) {
 				},
 			},
 		},
-	)
+		"pkg5", "Struct",
+		`package pkg5
 
+		type Struct struct {
+			Author    *Author
+		}
+		type Author struct {
+			Name     string
+		}`,
+	)
+}
+
+func TestStructWithNestedSimpleType(t *testing.T) {
+	// *** known bug ***
 	//doTestParseOK(t, "pkg6", "Struct",
 	//	`package pkg6
 	//
@@ -165,7 +179,66 @@ func TestParseOK(t *testing.T) {
 	//)
 }
 
-func doTestParseOK(t *testing.T, pkg, name, isource string, want *Node) {
+func TestStructWithNestingAcrossPackages(t *testing.T) {
+	doTestParseOK(t,
+		&Node{
+			Pkg:  "pkg7a",
+			Name: "Struct",
+			Type: "Struct",
+			Nodes: []*Node{
+				{
+					Name: "Id",
+					Kind: Uint32,
+					Type: "uint32",
+					Tags: &Tag{},
+				},
+				{
+					Name: "Wibble",
+					Kind: String,
+					Type: "string",
+					Tags: &Tag{},
+				},
+				{
+					Name: "Bibble",
+					Kind: String,
+					Type: "string",
+					Tags: &Tag{},
+				},
+				{
+					Name: "Bobble",
+					Kind: String,
+					Type: "string",
+					Tags: &Tag{},
+				},
+			},
+		},
+		"pkg7a", "Struct",
+		`package pkg7b
+
+		type Inner2 struct {
+			Wibble string
+		}
+
+		type Inner1 struct {
+			Inner2
+			Bibble string
+		}
+		`,
+
+		`package pkg7a
+
+		type Struct struct {
+			Id uint32
+			pkg7b.Inner1
+			Bobble string
+		}
+		`,
+	)
+}
+
+func doTestParseOK(t *testing.T, want *Node, pkg, name string, isource ...string) {
+	t.Helper()
+
 	// fix edges missing in the literal values
 	for _, n0 := range want.Nodes {
 		n0.Parent = want
@@ -174,19 +247,21 @@ func doTestParseOK(t *testing.T, pkg, name, isource string, want *Node) {
 		}
 	}
 
-	// allow nested back-ticks
-	source := strings.Replace(isource, "|", "`", -1)
+	files := make([]file, len(isource))
 
-	f1 := file{"issue.go", bytes.NewBufferString(source)}
+	for i, s := range isource {
+		// allow nested back-ticks
+		source := strings.Replace(s, "|", "`", -1)
+		files[i] = file{fmt.Sprintf("issue%d.go", i), bytes.NewBufferString(source)}
+	}
 
-	got, err := parseAll(pkg, name, []file{f1})
+	got, err := parseAllFiles(pkg, name, files)
 
 	if err != nil {
-		t.Errorf("%d: Error parsing: %s", i, err)
+		t.Errorf("Error parsing: %s", err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("%d: Wanted %s\nGot %s", i, utter.Sdump(want), utter.Sdump(got))
+		t.Errorf("Wanted %s\nGot %s", utter.Sdump(want), utter.Sdump(got))
 	}
-	i++
 }
