@@ -7,30 +7,83 @@ import (
 	"strings"
 	"testing"
 	"fmt"
+	"github.com/rickb777/sqlgen/parse/exit"
 )
 
+func TestFindImport(t *testing.T) {
+	exit.TestableExit()
+
+	source1 := `package pkg7b
+
+		import (
+			"bytes"
+			"github.com/kortschak/utter"
+		)
+		`
+
+	source2 := `package pkg7a
+
+		import (
+			"bytes"
+			"github.com/rickb777/sqlgen/schema"
+		)
+		`
+	source3 := `package thingy
+
+		import (
+			"go/token"
+			"github.com/rickb777/sqlgen/parse"
+		)
+		`
+
+	files := make([]file, 0)
+
+	files = append(files, file{"issue1.go", bytes.NewBufferString(source1)})
+	files = append(files, file{"issue2.go", bytes.NewBufferString(source2)})
+	files = append(files, file{"issue3.go", bytes.NewBufferString(source3)})
+
+	err := parseAllFiles(files)
+	if err != nil {
+		t.Errorf("Error parsing: %s", err)
+	}
+
+	cases := []struct {
+		shortName, expected string
+	}{
+		{"bytes", "bytes"},
+		{"utter", "github.com/kortschak/utter"},
+		{"schema", "github.com/rickb777/sqlgen/schema"},
+		{"parse", "github.com/rickb777/sqlgen/parse"},
+		{"token", "go/token"},
+	}
+
+	for _, c := range cases {
+		i := FindImport(c.shortName)
+		if i != c.expected {
+			t.Errorf("%s -> expected %q but got %q", c.shortName, c.expected, i)
+		}
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
 
 func TestStructWith3FieldsAndTags(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
-			Pkg:  "pkg1",
 			Name: "Struct",
-			Type: "Struct",
+			Type: Type{"pkg1", "Struct", Struct},
 			Nodes: []*Node{
 				{
 					Name: "Id",
-					Kind: Int64,
-					Type: "int64",
+					Type: Type{"", "int64", Int64},
 					Tags: &Tag{Primary: true, Auto: true},
 				}, {
 					Name: "Number",
-					Kind: Int,
-					Type: "int",
+					Type: Type{"", "int", Int},
 					Tags: &Tag{},
 				}, {
 					Name: "Title",
-					Kind: String,
-					Type: "string",
+					Type: Type{"", "string", String},
 					Tags: &Tag{},
 				},
 			},
@@ -49,14 +102,12 @@ func TestStructWith3FieldsAndTags(t *testing.T) {
 func TestStructWith1FieldAndIgnoreTag(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
-			Pkg:  "pkg2",
 			Name: "Struct",
-			Type: "Struct",
+			Type: Type{"pkg2", "Struct", Struct},
 			Nodes: []*Node{
 				{
 					Name: "Flag",
-					Kind: Bool,
-					Type: "bool",
+					Type: Type{"", "bool", Bool},
 					Tags: &Tag{Skip: true},
 				},
 			},
@@ -73,14 +124,12 @@ func TestStructWith1FieldAndIgnoreTag(t *testing.T) {
 func TestStructWith1FieldAndJsonTag(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
-			Pkg:  "pkg3",
 			Name: "Struct",
-			Type: "Struct",
+			Type: Type{"pkg3", "Struct", Struct},
 			Nodes: []*Node{
 				{
 					Name: "Labels",
-					Kind: Slice,
-					Type: "[]string",
+					Type: Type{"", "[]string", Slice},
 					Tags: &Tag{Encode: "json"},
 				},
 			},
@@ -97,14 +146,12 @@ func TestStructWith1FieldAndJsonTag(t *testing.T) {
 func TestStructWith1MapFieldAndJsonTag(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
-			Pkg:  "pkg4",
 			Name: "Struct",
-			Type: "Struct",
+			Type: Type{"pkg4", "Struct", Struct},
 			Nodes: []*Node{
 				{
 					Name: "Table",
-					Kind: Map,
-					Type: "map[string]int",
+					Type: Type{"", "map[string]int", Map},
 					Tags: &Tag{Encode: "json"},
 				},
 			},
@@ -121,20 +168,17 @@ func TestStructWith1MapFieldAndJsonTag(t *testing.T) {
 func TestStructWithNesting(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
-			Pkg:  "pkg5",
 			Name: "Struct",
-			Type: "Struct",
+			Type: Type{"pkg5", "Struct", Struct},
 			Nodes: []*Node{
 				{
 					Name: "Author",
-					Kind: Ptr,
-					Type: "Author",
+					Type: Type{"", "Author", Ptr},
 					Tags: &Tag{},
 					Nodes: []*Node{
 						{
 							Name: "Name",
-							Kind: String,
-							Type: "string",
+							Type: Type{"", "string", String},
 							Tags: &Tag{},
 						},
 					},
@@ -154,69 +198,118 @@ func TestStructWithNesting(t *testing.T) {
 }
 
 func TestStructWithNestedSimpleType(t *testing.T) {
-	// *** known bug ***
-	//doTestParseOK(t, "pkg6", "Struct",
-	//	`package pkg6
-	//
-	//	type Category int32
-	//
-	//	type Struct struct {
-	//		Cat      Category
-	//	}`,
-	//	&Node{
-	//		Pkg:  "pkg6",
-	//		Name: "Struct",
-	//		Type: "Struct",
-	//		Nodes: []*Node{
-	//			{
-	//				Name: "Cat",
-	//				Kind: Int32,
-	//				Type: "Category",
-	//				Tags: &Tag{},
-	//			},
-	//		},
-	//	},
-	//)
+	doTestParseOK(t,
+		&Node{
+			Name: "Struct",
+			Type: Type{"pkg6", "Struct", Struct},
+			Nodes: []*Node{
+				{
+					Name: "Cat",
+					Type: Type{"pkg6", "Category", Int32},
+					Tags: &Tag{},
+				},
+			},
+		},
+		"pkg6", "Struct",
+		`package pkg6
+
+		type Category int32
+
+		type Struct struct {
+			Cat      Category
+		}`,
+	)
+}
+
+func TestStructWithNestedSimpleTypeInOtherPackageOrder1(t *testing.T) {
+	doTestParseOK(t,
+		&Node{
+			Name: "Struct",
+			Type: Type{"pkg6", "Struct", Struct},
+			Nodes: []*Node{
+				{
+					Name: "Cat",
+					Type: Type{"other", "Category", Int32},
+					Tags: &Tag{},
+				},
+			},
+		},
+		"pkg6", "Struct",
+		`package pkg6
+
+		type Struct struct {
+			Cat      other.Category
+		}`,
+		`package other
+
+		type Category int32
+		`,
+	)
+}
+
+func TestStructWithNestedSimpleTypeInOtherPackageOrder2(t *testing.T) {
+	doTestParseOK(t,
+		&Node{
+			Name: "Struct",
+			Type: Type{"pkg6", "Struct", Struct},
+			Nodes: []*Node{
+				{
+					Name: "Cat",
+					Type: Type{"other", "Category", Int32},
+					Tags: &Tag{},
+				},
+			},
+		},
+		"pkg6", "Struct",
+		`package other
+
+		type Category int32
+		`,
+		`package pkg6
+
+		type Struct struct {
+			Cat      other.Category
+		}`,
+	)
 }
 
 func TestStructWithNestingAcrossPackages(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
-			Pkg:  "pkg7a",
 			Name: "Struct",
-			Type: "Struct",
+			Type: Type{"pkg7a", "Struct", Struct},
 			Nodes: []*Node{
 				{
 					Name: "Id",
-					Kind: Uint32,
-					Type: "uint32",
+					Type: Type{"", "uint32", Uint32},
 					Tags: &Tag{},
 				},
 				{
 					Name: "Wibble",
-					Kind: String,
-					Type: "string",
+					Type: Type{"stringy", "Thingy", String},
 					Tags: &Tag{},
 				},
 				{
 					Name: "Bibble",
-					Kind: String,
-					Type: "string",
+					Type: Type{"", "string", String},
 					Tags: &Tag{},
 				},
 				{
 					Name: "Bobble",
-					Kind: String,
-					Type: "string",
+					Type: Type{"", "string", String},
 					Tags: &Tag{},
 				},
 			},
 		},
 		"pkg7a", "Struct",
+		`package stringy
+
+		type Thingy string
+		`,
 		`package pkg7b
 
 		type Inner2 struct {
-			Wibble string
+			Wibble stringy.Thingy
 		}
 
 		type Inner1 struct {
@@ -255,8 +348,12 @@ func doTestParseOK(t *testing.T, want *Node, pkg, name string, isource ...string
 		files[i] = file{fmt.Sprintf("issue%d.go", i), bytes.NewBufferString(source)}
 	}
 
-	got, err := parseAllFiles(pkg, name, files)
+	err := parseAllFiles(files)
+	if err != nil {
+		t.Errorf("Error parsing: %s", err)
+	}
 
+	got, err := findMatchingNodes(pkg, name)
 	if err != nil {
 		t.Errorf("Error parsing: %s", err)
 	}

@@ -26,16 +26,20 @@ func writeImports(w io.Writer, tree *parse.Node, pkgs ...string) {
 	// encoded, which might require us to import
 	// other packages
 	for _, node := range tree.Leaves() {
-		if node.Tags == nil || len(node.Tags.Encode) == 0 {
-			continue
+		if node.Type.Pkg != "" {
+			longName := parse.FindImport(node.Type.Pkg)
+			pmap[longName] = struct{}{}
 		}
-		switch node.Tags.Encode {
-		case "json":
-			pmap["encoding/json"] = struct{}{}
-			// case "gzip":
-			// 	pmap["compress/gzip"] = struct{}{}
-			// case "snappy":
-			// 	pmap["github.com/golang/snappy"] = struct{}{}
+
+		if node.Tags != nil && len(node.Tags.Encode) > 0 {
+			switch node.Tags.Encode {
+			case "json":
+				pmap["encoding/json"] = struct{}{}
+				// case "gzip":
+				// 	pmap["compress/gzip"] = struct{}{}
+				// case "snappy":
+				// 	pmap["github.com/golang/snappy"] = struct{}{}
+			}
 		}
 	}
 
@@ -73,12 +77,12 @@ func writeSliceFunc(w io.Writer, tree *parse.Node, view View, withoutPk bool) {
 		}
 
 		// temporary variable declaration
-		switch node.Kind {
+		switch node.Type.Base {
 		case parse.Map, parse.Slice:
 			l1 := fmt.Sprintf("\tvar v%d %s\n", i, "[]byte")
 			view.Body1 = append(view.Body1, l1)
 		default:
-			l1 := fmt.Sprintf("\tvar v%d %s\n", i, node.Type)
+			l1 := fmt.Sprintf("\tvar v%d %s\n", i, node.Type.Type())
 			view.Body1 = append(view.Body1, l1)
 		}
 
@@ -91,7 +95,7 @@ func writeSliceFunc(w io.Writer, tree *parse.Node, view View, withoutPk bool) {
 
 		// if the parent is a ptr struct we
 		// need to create a new
-		if parent != node.Parent && node.Parent.Kind == parse.Ptr {
+		if parent != node.Parent && node.Parent.Type.Base == parse.Ptr {
 			// seriously ... this works?
 			if node.Parent != nil && node.Parent.Parent != parent {
 				for _, p := range path {
@@ -108,7 +112,7 @@ func writeSliceFunc(w io.Writer, tree *parse.Node, view View, withoutPk bool) {
 			depth++
 		}
 
-		switch node.Kind {
+		switch node.Type.Base {
 		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
 			l2 := fmt.Sprintf("%s\tv%d, _ = json.Marshal(&v.%s)\n", tabs[:depth], i, join(path, "."))
 			view.Body2 = append(view.Body2, l2)
@@ -142,12 +146,12 @@ func writeRowFunc(w io.Writer, tree *parse.Node, view View) {
 		}
 
 		// temporary variable declaration
-		switch node.Kind {
+		switch node.Type.Base {
 		case parse.Map, parse.Slice:
 			l1 := fmt.Sprintf("\tvar v%d %s\n", i, "[]byte")
 			view.Body1 = append(view.Body1, l1)
 		default:
-			l1 := fmt.Sprintf("\tvar v%d %s\n", i, node.Type)
+			l1 := fmt.Sprintf("\tvar v%d %s\n", i, node.Type.Type())
 			view.Body1 = append(view.Body1, l1)
 		}
 
@@ -160,12 +164,12 @@ func writeRowFunc(w io.Writer, tree *parse.Node, view View) {
 
 		// if the parent is a ptr struct we
 		// need to create a new
-		if parent != node.Parent && node.Parent.Kind == parse.Ptr {
+		if parent != node.Parent && node.Parent.Type.Base == parse.Ptr {
 			l3 := fmt.Sprintf("\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type)
 			view.Body3 = append(view.Body3, l3)
 		}
 
-		switch node.Kind {
+		switch node.Type.Base {
 		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
 			l3 := fmt.Sprintf("\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
 			view.Body3 = append(view.Body3, l3)
@@ -190,12 +194,12 @@ func writeRowsFunc(w io.Writer, tree *parse.Node, view View) {
 		}
 
 		// temporary variable declaration
-		switch node.Kind {
+		switch node.Type.Base {
 		case parse.Map, parse.Slice:
 			l1 := fmt.Sprintf("\tvar v%d %s\n", i, "[]byte")
 			view.Body1 = append(view.Body1, l1)
 		default:
-			l1 := fmt.Sprintf("\tvar v%d %s\n", i, node.Type)
+			l1 := fmt.Sprintf("\tvar v%d %s\n", i, node.Type.Type())
 			view.Body1 = append(view.Body1, l1)
 		}
 
@@ -208,12 +212,12 @@ func writeRowsFunc(w io.Writer, tree *parse.Node, view View) {
 
 		// if the parent is a ptr struct we
 		// need to create a new
-		if parent != node.Parent && node.Parent.Kind == parse.Ptr {
+		if parent != node.Parent && node.Parent.Type.Base == parse.Ptr {
 			l3 := fmt.Sprintf("\t\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type)
 			view.Body3 = append(view.Body3, l3)
 		}
 
-		switch node.Kind {
+		switch node.Type.Base {
 		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
 			l3 := fmt.Sprintf("\t\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
 			view.Body3 = append(view.Body3, l3)

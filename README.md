@@ -307,6 +307,12 @@ BenchmarkSqlgenRows-4       2000       700673 ns/op
 ```
 
 
-#### Credits
+### Restrictions
+
+* Compound primaries are not supported
+* Imports must not use '.' or be renamed.
+
+
+### Credits
 
 This tool was inspired by [scaneo](https://github.com/variadico/scaneo).

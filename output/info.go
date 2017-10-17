@@ -3,6 +3,7 @@ package output
 import (
 	"fmt"
 	"os"
+	"github.com/rickb777/sqlgen/parse/exit"
 )
 
 var Verbose = false
@@ -15,7 +16,6 @@ func Info(format string, args ...interface{}) {
 
 func Require(predicate bool, message string, args ...interface{}) {
 	if !predicate {
-		fmt.Fprintf(os.Stderr, message, args...)
-		os.Exit(1)
+		exit.Fail(1, message, args...)
 	}
 }

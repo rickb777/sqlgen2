@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"github.com/rickb777/sqlgen/parse/exit"
 )
 
 var Debug = false
@@ -30,62 +31,109 @@ func Parse(pkg, name string, path []string) (*Node, error) {
 		defer f.Close()
 		files = append(files, file{p, f})
 	}
-	return parseAllFiles(pkg, name, files)
+
+	err := parseAllFiles(files)
+	if err != nil {
+		return nil, err
+	}
+
+	return findMatchingNodes(pkg, name)
 }
 
-func parseAllFiles(pkg, name string, path []file) (*Node, error) {
+func parseAllFiles(path []file) (error) {
 	files = make([]*ast.File, 0, len(path))
 
 	for _, p := range path {
 		DevInfo("parsing: %s\n", p.name)
 		file, err := parser.ParseFile(fset, p.name, p.in, parser.ParseComments)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		files = append(files, file)
 	}
-
-	// find the type of interest and parse it
-	if spec, pkg := findTypeDecl(pkg, name); spec != nil {
-		return examineSpec(pkg, spec)
-	}
-
-	return nil, fmt.Errorf("Cannot find '%s.%s' in the source code.", pkg, name)
+	return nil
 }
 
-func findTypeDecl(pkg, name string) (*ast.TypeSpec, string) {
+func findMatchingNodes(pkg, name string) (*Node, error) {
+	// find the type of interest and parse it
+	spec, pkg, err := findTypeDecl(pkg, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return examineSpec(pkg, spec)
+}
+
+func FindImport(shortName string) string {
+	case1 := fmt.Sprintf(`"%s"`, shortName)
+	case2 := fmt.Sprintf(`/%s"`, shortName)
+
 	for _, file := range files {
-		if file.Name.Name == pkg {
-			for _, decl := range file.Decls {
-				if gen, ok := decl.(*ast.GenDecl); ok {
-					if spec, ok := gen.Specs[0].(*ast.TypeSpec); ok {
-						if spec.Name.String() == name {
-							DevInfo("findTypeDecl %s.%s -> found %#v %s\n", pkg, name, spec.Type, file.Name.Name)
-							return spec, file.Name.Name
+		for _, decl := range file.Decls {
+			gen, ok := decl.(*ast.GenDecl)
+			if ok && gen.Tok == token.IMPORT {
+				for _, gs := range gen.Specs {
+					spec, isImportSpec := gs.(*ast.ImportSpec)
+					if isImportSpec {
+						if spec.Path.Kind == token.STRING {
+							// spec.Name must be nil because . or renamed imports are explicitly not supported
+							if spec.Name != nil {
+								exit.Fail(1,
+									"import %s: implementation limitation: renamed imports are not supported.\n",
+									spec.Path.Value)
+							}
+							if spec.Path.Value == case1 || strings.HasSuffix(spec.Path.Value, case2) {
+								DevInfo("findImport %s -> found %s\n", shortName, spec.Path.Value)
+								ln := len(spec.Path.Value) - 1
+								return spec.Path.Value[1:ln]
+							}
 						}
 					}
 				}
 			}
 		}
 	}
-	DevInfo("findTypeDecl %s.%s -> not found\n", pkg, name)
-	return nil, ""
+
+	fmt.Fprintf(os.Stderr, "Cannot find import '%s' in the source code.", shortName)
+	return ""
+}
+
+func findTypeDecl(pkg, name string) (*ast.TypeSpec, string, error) {
+	for _, file := range files {
+		if file.Name.Name == pkg {
+			for _, decl := range file.Decls {
+				gen, isGenDecl := decl.(*ast.GenDecl)
+				if isGenDecl {
+					for _, gs := range gen.Specs {
+						spec, isTypeSpec := gs.(*ast.TypeSpec)
+						if isTypeSpec {
+							if spec.Name.String() == name {
+								DevInfo("findTypeDecl %s.%s -> found %#v %s\n", pkg, name, spec.Type, file.Name.Name)
+								return spec, file.Name.Name, nil
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil, "", fmt.Errorf("Cannot find '%s.%s' in the source code.", pkg, name)
 }
 
 func examineSpec(pkg string, spec *ast.TypeSpec) (*Node, error) {
-	DevInfo("examineSpec: spec %s\n", pkg)
+	DevInfo("examineSpec: spec %q\n", pkg)
 	depth += 1
 	defer lessDeep()
-
-	node := &Node{
-		Name: spec.Name.String(),
-		Type: spec.Name.String(),
-		Pkg:  pkg,
-	}
 
 	str, ok := spec.Type.(*ast.StructType)
 	if !ok {
 		return nil, fmt.Errorf("%q is not a struct type", spec.Name.Name)
+	}
+
+	node := &Node{
+		Name: spec.Name.String(),
+		Type: Type{pkg, spec.Name.String(), Struct},
 	}
 
 	err := buildNodesFromStructFields(node, str)
@@ -94,7 +142,7 @@ func examineSpec(pkg string, spec *ast.TypeSpec) (*Node, error) {
 }
 
 func buildNodesFromStructFields(parent *Node, str *ast.StructType) (err error) {
-	DevInfo("buildNodesFromStructFields: %s %s.%s\n", parent.Name, parent.Pkg, parent.Type)
+	DevInfo("buildNodesFromStructFields: %s %s\n", parent.Name, parent.Type)
 	depth += 1
 	defer lessDeep()
 
@@ -119,13 +167,16 @@ func buildNodesFromStructFields(parent *Node, str *ast.StructType) (err error) {
 }
 
 func buildNode(parent *Node, expr ast.Expr, name, tag string) (err error) {
-	DevInfo("buildNode: %s %s.%s expr %s %q\n", parent.Name, parent.Pkg, parent.Type, name, tag)
+	DevInfo("buildNode: %s %s expr %s %q\n", parent.Name, parent.Type, name, tag)
 	depth += 1
 	defer lessDeep()
 
 	switch ident := expr.(type) {
 	case *ast.Ident:
-		return buildIdentNode(parent, ident, name, tag)
+		return buildIdentNode(parent, "", ident, name, tag)
+
+	case *ast.SelectorExpr:
+		return buildIdentNode(parent, ident.X.(*ast.Ident).Name, ident.Sel, name, tag)
 
 	case *ast.ArrayType:
 		return buildArrayNode(parent, ident, name, tag)
@@ -141,46 +192,43 @@ func buildNode(parent *Node, expr ast.Expr, name, tag string) (err error) {
 }
 
 func buildEmbeddedStruct(parent *Node, expr ast.Expr, tag string) error {
-	DevInfo("buildEmbeddedStruct %s %s.%s %#v %q\n", parent.Name, parent.Pkg, parent.Type, expr, tag)
+	DevInfo("buildEmbeddedStruct %s %s %#v %q\n", parent.Name, parent.Type, expr, tag)
 	depth += 1
 	defer lessDeep()
 
 	embedded := &Node{
-		Name: "",
-		Type: "",
-		Pkg:  parent.Pkg,
+		Type: Type{parent.Type.Pkg, "", 0},
 	}
 
 	switch ident := expr.(type) {
 	case *ast.Ident:
-		DevInfo("     %T %s.%s\n", ident, parent.Pkg, ident.Name)
+		DevInfo("     %T %s.%s\n", ident, parent.Type.Pkg, ident.Name)
 		embedded.Name = ident.Name
-		embedded.Type = ident.Name
+		embedded.Type.Name = ident.Name
 
 	case *ast.SelectorExpr:
 		DevInfo("     %T %s.%s\n", ident, ident.X, ident.Sel.Name)
 		if p2, ok := ident.X.(*ast.Ident); ok {
 			DevInfo("     %#v %s\n", p2, p2.Name)
-			embedded.Pkg = p2.Name
 			embedded.Name = ident.Sel.Name
-			embedded.Type = ident.Sel.Name
+			embedded.Type = Type{p2.Name, ident.Sel.Name, 0}
 		}
 
 	default:
 		DevInfo("     %T %#v -- unsupported\n", ident, ident)
 	}
 
-	t, _ := findTypeDecl(embedded.Pkg, embedded.Name)
-	if t == nil {
-		return fmt.Errorf("Cannot find '%s.%s' in the source code.", embedded.Pkg, embedded.Name)
+	t, _, err := findTypeDecl(embedded.Type.Pkg, embedded.Name)
+	if err != nil {
+		return err
 	}
 
 	str, ok := t.Type.(*ast.StructType)
 	if !ok {
-		return fmt.Errorf("Syntax error: '%s.%s' is the wrong type %T.", embedded.Pkg, embedded.Name, t.Type)
+		return fmt.Errorf("Syntax error: '%s.%s' is the wrong type %T.", embedded.Type.Pkg, embedded.Name, t.Type)
 	}
 
-	err := buildNodesFromStructFields(embedded, str)
+	err = buildNodesFromStructFields(embedded, str)
 	DevInfo("--parsed2:\n%s\n", embedded.String())
 	for _, n := range embedded.Nodes {
 		parent.appendNode(n)
@@ -189,39 +237,59 @@ func buildEmbeddedStruct(parent *Node, expr ast.Expr, tag string) error {
 	return err
 }
 
-func buildIdentNode(parent *Node, ident *ast.Ident, name, tag string) (err error) {
+func buildIdentNode(parent *Node, pkgqual string, ident *ast.Ident, name, tag string) (err error) {
 	if ident.Obj == nil {
-		node := &Node{
+		b, isSimple := SimpleTypes[ident.Name]
+		basic := &Node{
 			Name: name,
-			Type: ident.Name,
-			Kind: Types[ident.Name],
+			Type: Type{pkgqual, ident.Name, b},
 		}
-		node.Tags, err = parseTag(tag)
+
+		if !isSimple {
+			t, _, err := findTypeDecl(pkgqual, ident.Name)
+			if err != nil {
+				return err
+			}
+			basic.Type.Base = SimpleTypes[t.Type.(*ast.Ident).Name]
+		}
+
+		basic.Tags, err = parseTag(tag)
 		if err != nil {
 			return err
 		}
-		parent.appendNode(node)
+		parent.appendNode(basic)
 		return nil
 	}
 
+	// this case happens for an identifier with a denoted type, e.g.
+	//    Foo mypkg.MyType
 	spec, ok := ident.Obj.Decl.(*ast.TypeSpec)
 	if !ok {
 		return invalidType(name)
 	}
 
-	node := &Node{
+	structNode := &Node{
 		Name: name,
-		Type: ident.Name,
-		Kind: Struct,
+		Type: Type{parent.Type.Pkg, ident.Name, Struct},
 	}
 
-	node.Tags, err = parseTag(tag)
+	structNode.Tags, err = parseTag(tag)
 	if err != nil {
 		return err
 	}
 
-	parent.appendNode(node)
-	return buildNodesFromStructFields(node, spec.Type.(*ast.StructType))
+	parent.appendNode(structNode)
+
+	switch x := spec.Type.(type) {
+	case *ast.Ident:
+		structNode.Type.Base = SimpleTypes[x.Name]
+		return nil
+
+	case *ast.StructType:
+		return buildNodesFromStructFields(structNode, x)
+	}
+
+	return fmt.Errorf("unsupported '%#v'", spec)
 }
 
 func buildArrayNode(parent *Node, ident *ast.ArrayType, name, tag string) (err error) {
@@ -231,8 +299,7 @@ func buildArrayNode(parent *Node, ident *ast.ArrayType, name, tag string) (err e
 
 	node := &Node{
 		Name: name,
-		Kind: Slice,
-		Type: fmt.Sprintf("[]%s", ident.Elt),
+		Type: Type{"", fmt.Sprintf("[]%s", ident.Elt), Slice},
 	}
 
 	node.Tags, err = parseTag(tag)
@@ -240,8 +307,8 @@ func buildArrayNode(parent *Node, ident *ast.ArrayType, name, tag string) (err e
 		return err
 	}
 
-	if node.Type == "[]byte" {
-		node.Kind = Bytes
+	if node.Type.Name == "[]byte" {
+		node.Type.Base = Bytes
 	}
 
 	parent.appendNode(node)
@@ -250,7 +317,7 @@ func buildArrayNode(parent *Node, ident *ast.ArrayType, name, tag string) (err e
 
 func buildMapNode(parent *Node, ident *ast.MapType, name, tag string) (err error) {
 	type_ := fmt.Sprintf("map[%s]%s", ident.Key, ident.Value)
-	node := &Node{Name: name, Type: type_, Kind: Map}
+	node := &Node{Name: name, Type: Type{"", type_, Map}}
 	node.Tags, err = parseTag(tag)
 	if err != nil {
 		return err
@@ -274,7 +341,7 @@ func buildPtrNode(parent *Node, ident *ast.StarExpr, name, tag string) (err erro
 		return invalidType(name)
 	}
 
-	node := &Node{Name: name, Type: innerIdent.Name, Kind: Ptr}
+	node := &Node{Name: name, Type: Type{"", innerIdent.Name, Ptr}}
 	node.Tags, err = parseTag(tag)
 	if err != nil {
 		return err
@@ -295,7 +362,7 @@ func invalidType(name string) error {
 func DevInfo(format string, args ...interface{}) {
 	if Debug {
 		in := strings.Repeat(" ", depth*2)
-		fmt.Fprintf(os.Stderr, in + format, args...)
+		fmt.Fprintf(os.Stderr, in+format, args...)
 	}
 }
 

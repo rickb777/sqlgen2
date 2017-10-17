@@ -1,6 +1,12 @@
 #!/bin/bash -e
 PATH=$HOME/gopath/bin:$GOPATH/bin:$PATH
 
+    if [ -z "$(type -p enumeration)" ]; then
+  go get bitbucket.org/rickb777/enumeration
+fi
+
+enumeration -i parse/const.go -o parse/kind_enum.go -package parse -type Kind
+
 if ! type -p goveralls; then
   echo go get github.com/mattn/goveralls
   go get github.com/mattn/goveralls

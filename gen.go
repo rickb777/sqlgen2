@@ -50,9 +50,9 @@ func main() {
 	// if the code is generated in a different folder
 	// that the struct we need to set the package name and import the struct
 	pkg := o.Pkg()
-	imports := tree.Pkg
+	imports := tree.Type.Pkg
 	if pkg == "" {
-		pkg = tree.Pkg
+		pkg = tree.Type.Pkg
 		imports = ""
 	} else {
 		fmt.Fprintf(os.Stderr, "%s: sub-directories are not yet supported.\n", oFile)

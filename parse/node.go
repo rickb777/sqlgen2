@@ -7,10 +7,8 @@ import (
 )
 
 type Node struct {
-	Pkg  string // source code package.
 	Name string // identifier name.
-	Kind Kind   // source code kind.
-	Type string // name of source code type.
+	Type Type
 	Tags *Tag
 
 	Parent *Node
@@ -22,7 +20,7 @@ func (n *Node) appendNode(node *Node) {
 	n.Nodes = append(n.Nodes, node)
 }
 
-// Walk traverses the node tree, invoking the callback
+// Walk traverses the node tree, invoking the visitor
 // function for each node that is traversed.
 func (n *Node) Walk(fn func(*Node)) {
 	for _, node := range n.Nodes {
@@ -32,7 +30,7 @@ func (n *Node) Walk(fn func(*Node)) {
 }
 
 // WalkRev traverses the tree in reverse order, invoking
-// the callback function for each parent node until
+// the visitor function for each parent node until
 // the root node is reached.
 func (n *Node) walkRev(fn func(*Node)) {
 	if n.Parent != nil {
@@ -68,11 +66,7 @@ func (n *Node) String() string {
 }
 
 func (n *Node) indented(w io.Writer, indent string) {
-	if len(n.Pkg) > 0 {
-		fmt.Fprintf(w, "%s%s %s.%s %d\n", indent, n.Name, n.Pkg, n.Type, n.Kind)
-	} else {
-		fmt.Fprintf(w, "%s%s %s %d\n", indent, n.Name, n.Type, n.Kind)
-	}
+	fmt.Fprintf(w, "%s%s %s\n", indent, n.Name, n.Type)
 	deeper := indent + "  "
 	for _, c := range n.Nodes {
 		c.indented(w, deeper)

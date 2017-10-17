@@ -24,8 +24,8 @@ type View struct {
 func newView(tree *parse.Node, prefix string) View {
 	return View{
 		Prefix: prefix,
-		Type:   tree.Type,
-		Types:  Pluralize(tree.Type),
+		Type:   tree.Type.Name,
+		Types:  Pluralize(tree.Type.Name),
 	}
 }
 

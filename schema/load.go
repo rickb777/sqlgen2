@@ -1,12 +1,11 @@
 package schema
 
 import (
-	"fmt"
-	"os"
 	"strings"
 
 	. "github.com/acsellers/inflections"
 	"github.com/rickb777/sqlgen/parse"
+	"github.com/rickb777/sqlgen/parse/exit"
 )
 
 func Load(tree *parse.Node) *Table {
@@ -16,13 +15,13 @@ func Load(tree *parse.Node) *Table {
 	// lookups and de-duping.
 	indices := map[string]*Index{}
 
-	table.Type = tree.Type
-	table.Name = Pluralize(Underscore(tree.Type))
+	table.Type = tree.Type.Name
+	table.Name = Pluralize(Underscore(tree.Type.Name))
 
 	// Each leaf node in the tree is a column in the table.
 	// Convert each leaf node to a Field structure.
 	for _, node := range tree.Leaves() {
-		field, ok := loadNode(node, indices, table)
+		field, ok := convertLeafNodeToField(node, indices, table)
 		if ok {
 			table.Fields = append(table.Fields, field)
 		}
@@ -31,42 +30,39 @@ func Load(tree *parse.Node) *Table {
 	return table
 }
 
-func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field, bool) {
-	field := &Field{Name: node.Name}
+func convertLeafNodeToField(leaf *parse.Node, indices map[string]*Index, table *Table) (*Field, bool) {
+	field := &Field{Name: leaf.Name}
 
 	// Lookup the SQL column type
 	field.Type = BLOB
-	if t, ok := parse.Types[node.Type]; ok {
-		if tt, ok := types[t]; ok {
-			field.Type = tt
-		}
+	if leaf.Type.Base.IsSimpleType() {
+		field.Type = types[leaf.Type.Base]
 	}
 
 	// substitute tag variables
-	if node.Tags != nil {
+	if leaf.Tags != nil {
 
-		if node.Tags.Skip {
+		if leaf.Tags.Skip {
 			return nil, false
 		}
 
-		field.Auto = node.Tags.Auto
-		field.Primary = node.Tags.Primary
-		field.Size = node.Tags.Size
+		field.Auto = leaf.Tags.Auto
+		field.Primary = leaf.Tags.Primary
+		field.Size = leaf.Tags.Size
 
-		if node.Tags.Primary {
+		if leaf.Tags.Primary {
 			if table.Primary != nil {
-				fmt.Fprintf(os.Stderr, "%s, %s: compound primary keys are not supported.\n",
+				exit.Fail(1, "%s, %s: compound primary keys are not supported.\n",
 					table.Primary.Name, field.Name)
-				os.Exit(1)
 			}
 			table.Primary = field
 		}
 
-		if node.Tags.Index != "" {
-			index, ok := indices[node.Tags.Index]
+		if leaf.Tags.Index != "" {
+			index, ok := indices[leaf.Tags.Index]
 			if !ok {
 				index = &Index{
-					Name: node.Tags.Index,
+					Name: leaf.Tags.Index,
 				}
 				indices[index.Name] = index
 				table.Index = append(table.Index, index)
@@ -74,11 +70,11 @@ func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field
 			index.Fields = append(index.Fields, field)
 		}
 
-		if node.Tags.Unique != "" {
-			index, ok := indices[node.Tags.Index]
+		if leaf.Tags.Unique != "" {
+			index, ok := indices[leaf.Tags.Index]
 			if !ok {
 				index = &Index{
-					Name: node.Tags.Unique,
+					Name:   leaf.Tags.Unique,
 					Unique: true,
 				}
 				indices[index.Name] = index
@@ -87,8 +83,8 @@ func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field
 			index.Fields = append(index.Fields, field)
 		}
 
-		if node.Tags.Type != "" {
-			t, ok := sqlTypes[node.Tags.Type]
+		if leaf.Tags.Type != "" {
+			t, ok := sqlTypes[leaf.Tags.Type]
 			if ok {
 				field.Type = t
 			}
@@ -97,7 +93,7 @@ func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field
 
 	// get the full path name
 	// omit table name
-	path := node.Path()[1:]
+	path := leaf.Path()[1:]
 	var parts []string
 	for _, part := range path {
 		if part.Tags != nil && part.Tags.Name != "" {
@@ -107,8 +103,7 @@ func loadNode(node *parse.Node, indices map[string]*Index, table *Table) (*Field
 
 		parts = append(parts, part.Name)
 	}
-	field.SqlName = strings.Join(parts, "_")
-	field.SqlName = Underscore(field.SqlName)
+	field.SqlName = Underscore(strings.Join(parts, "_"))
 
 	return field, true
 }

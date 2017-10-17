@@ -28,7 +28,7 @@ const (
 	Struct
 )
 
-var Types = map[string]Kind{
+var SimpleTypes = map[string]Kind{
 	"bool":        Bool,
 	"int":         Int,
 	"int8":        Int8,
@@ -41,6 +41,25 @@ var Types = map[string]Kind{
 	"uint32":      Uint32,
 	"uint64":      Uint64,
 	"string":      String,
+}
+
+func (k Kind) IsSimpleType() bool {
+	switch k {
+	case Bool,
+		Int,
+		Int8,
+		Int16,
+		Int32,
+		Int64,
+		Uint,
+		Uint8,
+		Uint16,
+		Uint32,
+		Uint64,
+		String:
+		return true
+	}
+	return false
 }
 
 // EncodableTypes lists the types that must be encoded for storage (native floats are not supported)
