@@ -27,7 +27,7 @@ func writeImports(w io.Writer, tree *parse.Node, pkgs ...string) {
 	// other packages
 	for _, node := range tree.Leaves() {
 		if node.Type.Pkg != "" {
-			longName := parse.FindImport(node.Type.Pkg)
+			longName := parse.FindImport(node.Type)
 			pmap[longName] = struct{}{}
 		}
 
