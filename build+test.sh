@@ -15,9 +15,16 @@ if ! type -p goveralls; then
   go get github.com/mattn/goveralls
 fi
 
-for d in output parse schema; do
-  echo $d...
-  go test $1 -covermode=count -coverprofile=$d.out ./$d
-  go tool cover -func=$d.out
+for d in output parse; do
+  echo sqlgen/$d...
+  go test $1 -covermode=count -coverprofile=../$d.out ./$d
+  go tool cover -func=../$d.out
   [ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN
 done
+
+cd ..
+go install .
+
+go test $1 -covermode=count -coverprofile=schema.out ./schema
+go tool cover -func=schema.out
+[ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN

@@ -7,7 +7,7 @@ import (
 
 	. "github.com/acsellers/inflections"
 	"github.com/rickb777/sqlgen/sqlgen/parse"
-	"github.com/rickb777/sqlgen/sqlgen/schema"
+	"github.com/rickb777/sqlgen/schema"
 )
 
 type View struct {
