@@ -3,7 +3,7 @@ package parse
 import (
 	"bytes"
 	"testing"
-	"github.com/rickb777/sqlgen/parse/exit"
+	"github.com/rickb777/sqlgen/sqlgen/parse/exit"
 )
 
 func TestFindImport(t *testing.T) {

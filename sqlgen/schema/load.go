@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	. "github.com/acsellers/inflections"
-	"github.com/rickb777/sqlgen/parse"
-	"github.com/rickb777/sqlgen/parse/exit"
+	"github.com/rickb777/sqlgen/sqlgen/parse"
+	"github.com/rickb777/sqlgen/sqlgen/parse/exit"
 )
 
 func Load(tree *parse.Node) *Table {

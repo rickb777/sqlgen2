@@ -6,7 +6,7 @@ import (
 	"go/token"
 	"os"
 	"strings"
-	"github.com/rickb777/sqlgen/parse/exit"
+	"github.com/rickb777/sqlgen/sqlgen/parse/exit"
 )
 
 func FindImport(tp Type) string {

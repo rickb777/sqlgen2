@@ -1,4 +1,3 @@
-sqlgen
 *.out
 *.sqlite
 *.txt

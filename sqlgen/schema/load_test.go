@@ -2,8 +2,8 @@ package schema
 
 import (
 	"testing"
-	"github.com/rickb777/sqlgen/parse/exit"
-	. "github.com/rickb777/sqlgen/parse"
+	"github.com/rickb777/sqlgen/sqlgen/parse/exit"
+	. "github.com/rickb777/sqlgen/sqlgen/parse"
 	"reflect"
 )
 

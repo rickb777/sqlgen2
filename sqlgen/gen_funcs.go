@@ -7,9 +7,9 @@ import (
 	. "strings"
 
 	//. "github.com/acsellers/inflections"
-	"github.com/rickb777/sqlgen/output"
-	"github.com/rickb777/sqlgen/parse"
-	"github.com/rickb777/sqlgen/schema"
+	"github.com/rickb777/sqlgen/sqlgen/output"
+	"github.com/rickb777/sqlgen/sqlgen/parse"
+	"github.com/rickb777/sqlgen/sqlgen/schema"
 )
 
 const tabs = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
