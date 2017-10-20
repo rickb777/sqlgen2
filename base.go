@@ -3,10 +3,10 @@ package sqlgen
 import (
 	"bytes"
 	"fmt"
+	"github.com/rickb777/sqlgen/schema"
 	"io"
 	"strings"
 	"text/tabwriter"
-	"github.com/rickb777/sqlgen/schema"
 )
 
 type base struct {

@@ -52,7 +52,6 @@ func ScanHook(row *sql.Row) (*Hook, error) {
 		&v13,
 		&v14,
 		&v15,
-
 	)
 	if err != nil {
 		return nil, err
@@ -122,7 +121,6 @@ func ScanHooks(rows *sql.Rows) ([]*Hook, error) {
 			&v13,
 			&v14,
 			&v15,
-
 		)
 		if err != nil {
 			return vv, err
@@ -212,7 +210,6 @@ func SliceHook(v *Hook) []interface{} {
 		v13,
 		v14,
 		v15,
-
 	}
 }
 
@@ -271,7 +268,6 @@ func SliceHookWithoutPk(v *Hook) []interface{} {
 		v13,
 		v14,
 		v15,
-
 	}
 }
 

@@ -6,9 +6,9 @@ import (
 	"sort"
 	. "strings"
 
+	"github.com/rickb777/sqlgen/schema"
 	"github.com/rickb777/sqlgen/sqlgen/output"
 	"github.com/rickb777/sqlgen/sqlgen/parse"
-	"github.com/rickb777/sqlgen/schema"
 )
 
 const tabs = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"

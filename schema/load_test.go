@@ -1,10 +1,10 @@
 package schema
 
 import (
-	"testing"
-	"github.com/rickb777/sqlgen/sqlgen/parse/exit"
 	. "github.com/rickb777/sqlgen/sqlgen/parse"
+	"github.com/rickb777/sqlgen/sqlgen/parse/exit"
 	"reflect"
+	"testing"
 )
 
 func TestConvertLeafNodeToField(t *testing.T) {
@@ -33,7 +33,7 @@ func TestConvertLeafNodeToField(t *testing.T) {
 		Tags: &Tag{Index: "BibbleIdx"},
 	},
 		true, ef3,
-			&Index{Name: "BibbleIdx", Fields:[]*Field{ef3}})
+		&Index{Name: "BibbleIdx", Fields: []*Field{ef3}})
 
 	ef4 := &Field{"Bobble", "", VARCHAR, false, false, 0}
 	doCompare(t, &Node{
@@ -42,7 +42,7 @@ func TestConvertLeafNodeToField(t *testing.T) {
 		Tags: &Tag{Unique: "BobbleIdx"},
 	},
 		true, ef4,
-			&Index{Name: "BobbleIdx", Fields:[]*Field{ef4}, Unique: true})
+		&Index{Name: "BobbleIdx", Fields: []*Field{ef4}, Unique: true})
 }
 
 func doCompare(t *testing.T, leaf *Node, wantOk bool, expectedField *Field, expectedIndex *Index) {
@@ -59,7 +59,7 @@ func doCompare(t *testing.T, leaf *Node, wantOk bool, expectedField *Field, expe
 		return
 	}
 
-	if ! ok {
+	if !ok {
 		t.Errorf("NOT OK -> expected %+v", expectedField)
 	}
 

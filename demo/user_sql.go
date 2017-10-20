@@ -38,7 +38,6 @@ func ScanUser(row *sql.Row) (*User, error) {
 		&v6,
 		&v7,
 		&v8,
-
 	)
 	if err != nil {
 		return nil, err
@@ -84,7 +83,6 @@ func ScanUsers(rows *sql.Rows) ([]*User, error) {
 			&v6,
 			&v7,
 			&v8,
-
 		)
 		if err != nil {
 			return vv, err
@@ -137,7 +135,6 @@ func SliceUser(v *User) []interface{} {
 		v6,
 		v7,
 		v8,
-
 	}
 }
 
@@ -169,7 +166,6 @@ func SliceUserWithoutPk(v *User) []interface{} {
 		v6,
 		v7,
 		v8,
-
 	}
 }
 

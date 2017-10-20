@@ -35,7 +35,6 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 		&v4,
 		&v5,
 		&v6,
-
 	)
 	if err != nil {
 		return nil, err
@@ -75,7 +74,6 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 			&v4,
 			&v5,
 			&v6,
-
 		)
 		if err != nil {
 			return vv, err
@@ -120,7 +118,6 @@ func SliceIssue(v *Issue) []interface{} {
 		v4,
 		v5,
 		v6,
-
 	}
 }
 
@@ -146,7 +143,6 @@ func SliceIssueWithoutPk(v *Issue) []interface{} {
 		v4,
 		v5,
 		v6,
-
 	}
 }
 
