@@ -14,7 +14,7 @@ const sectionBreak = "\n//------------------------------------------------------
 
 type ConstView struct {
 	Name string
-	Body string
+	Body interface{}
 }
 
 // writeSchema writes SQL statements to CREATE, INSERT,
@@ -26,21 +26,26 @@ func writeSchema(w io.Writer, d schema.Dialect, tree *parse.Node, t *schema.Tabl
 	tableName := t.Type
 
 	must(tConst.Execute(w, ConstView{
+		identifier("Num", tableName, "Columns"),
+		t.NumColumnNames(true),
+	}))
+
+	must(tConstStr.Execute(w, ConstView{
 		identifier("", tableName, "ColumnNames"),
 		Join(t.ColumnNames(true), ", "),
 	}))
 
-	must(tConst.Execute(w, ConstView{
+	must(tConstStr.Execute(w, ConstView{
 		identifier("", tableName, "DataColumnNames"),
 		Join(t.ColumnNames(false), ", "),
 	}))
 
-	must(tConst.Execute(w, ConstView{
+	must(tConstStr.Execute(w, ConstView{
 		identifier("", tableName, "ColumnParams"),
 		d.ColumnParams(t, true),
 	}))
 
-	must(tConst.Execute(w, ConstView{
+	must(tConstStr.Execute(w, ConstView{
 		identifier("", tableName, "DataColumnParams"),
 		d.ColumnParams(t, false),
 	}))

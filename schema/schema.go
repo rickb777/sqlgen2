@@ -52,6 +52,16 @@ func (t *Table) HasPrimaryKey() bool {
 	return t.Primary != nil
 }
 
+func (t *Table) NumColumnNames(withAuto bool) int {
+	num := 0
+	for _, f := range t.Fields {
+		if withAuto || !f.Auto {
+			num++
+		}
+	}
+	return num
+}
+
 func (t *Table) ColumnNames(withAuto bool) []string {
 	names := make([]string, 0, len(t.Fields))
 	for _, f := range t.Fields {

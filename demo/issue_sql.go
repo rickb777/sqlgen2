@@ -229,6 +229,8 @@ func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
 
 //--------------------------------------------------------------------------------
 
+const NumIssueColumns = 6
+
 const sIssueColumnNames = `
 id, number, title, assignee, state, labels
 `

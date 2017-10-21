@@ -26,6 +26,10 @@ var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
 //-------------------------------------------------------------------------------------------------
 
 const sConst = `
+const {{.Name}} = {{.Body}}
+`
+
+const sConstStr = `
 const s{{.Name}} = {{ticked .Body}}
 `
 
@@ -36,7 +40,8 @@ func {{.Name}}(tableName string, d dialect.Dialect) string {
 `
 
 var tConst = template.Must(template.New("Const").Funcs(funcMap).Parse(sConst))
-var tConstWithTableName = template.Must(template.New("Const").Funcs(funcMap).Parse(sConst + sTableName))
+var tConstStr = template.Must(template.New("Const").Funcs(funcMap).Parse(sConstStr))
+var tConstWithTableName = template.Must(template.New("Const").Funcs(funcMap).Parse(sConstStr + sTableName))
 
 //-------------------------------------------------------------------------------------------------
 

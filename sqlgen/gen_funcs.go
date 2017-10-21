@@ -274,12 +274,6 @@ func join(nodes []*parse.Node, sep string) string {
 	return Join(parts, sep)
 }
 
-func writeN(w io.Writer, n int, c ...byte) {
-	for i := 0; i < n; i++ {
-		w.Write(c)
-	}
-}
-
 func must(err error) {
 	output.Require(err == nil, "%v\n", err)
 }

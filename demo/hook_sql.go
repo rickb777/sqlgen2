@@ -354,6 +354,8 @@ func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
 
 //--------------------------------------------------------------------------------
 
+const NumHookColumns = 7
+
 const sHookColumnNames = `
 id, sha, after, before, created, deleted, forced
 `

@@ -252,6 +252,8 @@ func (tbl UserTable) Exec(query string, args ...interface{}) (int64, error) {
 
 //--------------------------------------------------------------------------------
 
+const NumUserColumns = 9
+
 const sUserColumnNames = `
 id, login, email, avatar, active, admin, token, secret, hash
 `
