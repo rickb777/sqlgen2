@@ -35,6 +35,7 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 		&v4,
 		&v5,
 		&v6,
+
 	)
 	if err != nil {
 		return nil, err
@@ -74,6 +75,7 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 			&v4,
 			&v5,
 			&v6,
+
 		)
 		if err != nil {
 			return vv, err
@@ -118,6 +120,7 @@ func SliceIssue(v *Issue) []interface{} {
 		v4,
 		v5,
 		v6,
+
 	}
 }
 
@@ -143,6 +146,7 @@ func SliceIssueWithoutPk(v *Issue) []interface{} {
 		v4,
 		v5,
 		v6,
+
 	}
 }
 
@@ -220,21 +224,21 @@ number, title, assignee, state, labels
 `
 
 const sIssueColumnParams = `
-$1,$2,$3,$4,$5,$6
+?,?,?,?,?,?
 `
 
 const sIssueDataColumnParams = `
-$1,$2,$3,$4,$5
+?,?,?,?,?
 `
 
 const sCreateIssueStmt = `
 CREATE TABLE IF NOT EXISTS %s (
- id       SERIAL PRIMARY KEY ,
+ id       INTEGER PRIMARY KEY AUTOINCREMENT,
  number   INTEGER,
- title    VARCHAR(512),
- assignee VARCHAR(512),
- state    VARCHAR(50),
- labels   BYTEA
+ title    TEXT,
+ assignee TEXT,
+ state    TEXT,
+ labels   BLOB
 );
 `
 
@@ -249,7 +253,7 @@ INSERT INTO %s (
  assignee,
  state,
  labels
-) VALUES ($1,$2,$3,$4,$5)
+) VALUES (?,?,?,?,?)
 `
 
 func InsertIssueStmt(tableName string) string {
@@ -258,12 +262,12 @@ func InsertIssueStmt(tableName string) string {
 
 const sUpdateIssueByPkStmt = `
 UPDATE %s SET 
- number=$2,
- title=$3,
- assignee=$4,
- state=$5,
- labels=$6 
- WHERE id=$7
+ number=?,
+ title=?,
+ assignee=?,
+ state=?,
+ labels=? 
+ WHERE id=?
 `
 
 func UpdateIssueByPkStmt(tableName string) string {
@@ -272,7 +276,7 @@ func UpdateIssueByPkStmt(tableName string) string {
 
 const sDeleteIssueByPkStmt = `
 DELETE FROM %s
- WHERE id=$1
+ WHERE id=?
 `
 
 func DeleteIssueByPkStmt(tableName string) string {

@@ -164,7 +164,7 @@ func writeRowFunc(w io.Writer, tree *parse.Node, view View) {
 		// if the parent is a ptr struct we
 		// need to create a new
 		if parent != node.Parent && node.Parent.Type.Base == parse.Ptr {
-			l3 := fmt.Sprintf("\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type)
+			l3 := fmt.Sprintf("\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type.Type())
 			view.Body3 = append(view.Body3, l3)
 		}
 
@@ -212,7 +212,7 @@ func writeRowsFunc(w io.Writer, tree *parse.Node, view View) {
 		// if the parent is a ptr struct we
 		// need to create a new
 		if parent != node.Parent && node.Parent.Type.Base == parse.Ptr {
-			l3 := fmt.Sprintf("\t\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type)
+			l3 := fmt.Sprintf("\t\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type.Type())
 			view.Body3 = append(view.Body3, l3)
 		}
 

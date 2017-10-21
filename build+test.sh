@@ -31,3 +31,6 @@ for d in schema where; do
   go tool cover -func=./$d.out
   [ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN
 done
+
+cd demo
+./build.sh

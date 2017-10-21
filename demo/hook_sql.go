@@ -52,6 +52,7 @@ func ScanHook(row *sql.Row) (*Hook, error) {
 		&v13,
 		&v14,
 		&v15,
+
 	)
 	if err != nil {
 		return nil, err
@@ -121,6 +122,7 @@ func ScanHooks(rows *sql.Rows) ([]*Hook, error) {
 			&v13,
 			&v14,
 			&v15,
+
 		)
 		if err != nil {
 			return vv, err
@@ -210,6 +212,7 @@ func SliceHook(v *Hook) []interface{} {
 		v13,
 		v14,
 		v15,
+
 	}
 }
 
@@ -268,6 +271,7 @@ func SliceHookWithoutPk(v *Hook) []interface{} {
 		v13,
 		v14,
 		v15,
+
 	}
 }
 
@@ -354,10 +358,10 @@ const sHookDataColumnParams = `
 
 const sCreateHookStmt = `
 CREATE TABLE IF NOT EXISTS %s (
- id      INTEGER PRIMARY KEY AUTO_INCREMENT,
- sha     VARCHAR(512),
- after   VARCHAR(512),
- before  VARCHAR(512),
+ id      INTEGER PRIMARY KEY AUTOINCREMENT,
+ sha     TEXT,
+ after   TEXT,
+ before  TEXT,
  created BOOLEAN,
  deleted BOOLEAN,
  forced  BOOLEAN

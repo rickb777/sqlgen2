@@ -7,11 +7,11 @@ import (
 	"fmt"
 )
 
-// DbUserTableName is the default name for this table.
-const DbUserTableName = "users"
+// UserTableName is the default name for this table.
+const UserTableName = "users"
 
-// DbUserTable holds a given table name with the database reference, providing access methods below.
-type DbUserTable struct {
+// UserTable holds a given table name with the database reference, providing access methods below.
+type UserTable struct {
 	Name string
 	Db   *sql.DB
 }
@@ -38,6 +38,7 @@ func ScanUser(row *sql.Row) (*User, error) {
 		&v6,
 		&v7,
 		&v8,
+
 	)
 	if err != nil {
 		return nil, err
@@ -83,6 +84,7 @@ func ScanUsers(rows *sql.Rows) ([]*User, error) {
 			&v6,
 			&v7,
 			&v8,
+
 		)
 		if err != nil {
 			return vv, err
@@ -135,6 +137,7 @@ func SliceUser(v *User) []interface{} {
 		v6,
 		v7,
 		v8,
+
 	}
 }
 
@@ -166,20 +169,21 @@ func SliceUserWithoutPk(v *User) []interface{} {
 		v6,
 		v7,
 		v8,
+
 	}
 }
 
-func (tbl DbUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+func (tbl UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return ScanUser(row)
 }
 
-func (tbl DbUserTable) SelectOne(where string, args ...interface{}) (*User, error) {
+func (tbl UserTable) SelectOne(where string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", sUserColumnNames, tbl.Name, where)
 	return tbl.QueryOne(query, args...)
 }
 
-func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error) {
+func (tbl UserTable) Query(query string, args ...interface{}) ([]*User, error) {
 	rows, err := tbl.Db.Query(query, args...)
 	if err != nil {
 		return nil, err
@@ -188,19 +192,19 @@ func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error)
 	return ScanUsers(rows)
 }
 
-func (tbl DbUserTable) Select(where string, args ...interface{}) ([]*User, error) {
+func (tbl UserTable) Select(where string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s", sUserColumnNames, tbl.Name, where)
 	return tbl.Query(query, args...)
 }
 
-func (tbl DbUserTable) Count(where string, args ...interface{}) (count int64, err error) {
+func (tbl UserTable) Count(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
 	err = row.Scan(&count)
 	return count, err
 }
 
-func (tbl DbUserTable) Insert(v *User) error {
+func (tbl UserTable) Insert(v *User) error {
 	query := fmt.Sprintf(sInsertUserStmt, tbl.Name)
 	res, err := tbl.Db.Exec(query, SliceUserWithoutPk(v)...)
 	if err != nil {
@@ -213,7 +217,7 @@ func (tbl DbUserTable) Insert(v *User) error {
 
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
-func (tbl DbUserTable) Update(v *User) (int64, error) {
+func (tbl UserTable) Update(v *User) (int64, error) {
 	query := fmt.Sprintf(sUpdateUserByPkStmt, tbl.Name)
 	args := SliceUserWithoutPk(v)
 	args = append(args, v.Id)
@@ -224,7 +228,7 @@ func (tbl DbUserTable) Update(v *User) (int64, error) {
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected.
 // Not every database or database driver may support this.
-func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl UserTable) Exec(query string, args ...interface{}) (int64, error) {
 	res, err := tbl.Db.Exec(query, args...)
 	if err != nil {
 		return 0, nil
