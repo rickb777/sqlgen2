@@ -3,11 +3,24 @@ package dialect
 import (
 	"github.com/rickb777/sqlgen/schema"
 	"fmt"
+	"strings"
 )
+
+const mysqlPlaceholders = "?,?,?,?,?,?,?,?,?,?"
 
 type MySQLDialect struct{}
 
 var MySQL MySQLDialect // MySQL
+
+func (dialect MySQLDialect) Placeholders(n int) string {
+	if n == 0 {
+		return ""
+	} else if n <= 10 {
+		m := (n*2)-1
+		return mysqlPlaceholders[:m]
+	}
+	return strings.Repeat("?,", n-1) + "?"
+}
 
 func (dialect MySQLDialect) ReplaceNextPlaceholder(sql string, idx int) string {
 	return sql

@@ -6,9 +6,28 @@ import (
 	"bytes"
 )
 
+const postgresPlaceholders = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
+
 type PostgresDialect struct{}
 
-var Postgres PostgresDialect // Postgres
+var Postgres PostgresDialect
+
+func (dialect PostgresDialect) Placeholders(n int) string {
+	if n == 0 {
+		return ""
+	} else if n <= 9 {
+		return postgresPlaceholders[:n*3-1]
+	}
+	buf := &bytes.Buffer{}
+	for idx := 1; idx <= n; idx++ {
+		if idx > 1 {
+			buf.WriteByte(',')
+		}
+		buf.WriteByte('$')
+		buf.WriteString(strconv.Itoa(idx))
+	}
+	return buf.String()
+}
 
 func (dialect PostgresDialect) ReplaceNextPlaceholder(sql string, idx int) string {
 	p := "$" + strconv.Itoa(idx)
