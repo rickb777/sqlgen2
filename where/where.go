@@ -7,7 +7,7 @@ import (
 
 const where = "WHERE "
 
-type Element interface {
+type Expression interface {
 	Build(dialect Dialect) (string, []interface{})
 	build(args []interface{}, idx int, dialect Dialect) (string, []interface{}, int)
 }
@@ -24,13 +24,13 @@ type Clause struct {
 }
 
 type not struct {
-	element Element
+	expression Expression
 }
 
 //-------------------------------------------------------------------------------------------------
 
 func (not not) build(args []interface{}, idx int, dialect Dialect) (string, []interface{}, int) {
-	s, a, n := not.element.build(args, idx, dialect)
+	s, a, n := not.expression.build(args, idx, dialect)
 	return "NOT (" + s + ")", a, n
 }
 

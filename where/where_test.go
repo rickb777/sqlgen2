@@ -8,7 +8,7 @@ import (
 func TestBuildWhereClause_happyCases(t *testing.T) {
 	cases := []struct {
 		di     Dialect
-		wh     Element
+		wh     Expression
 		expSql string
 		args   []interface{}
 	}{

@@ -53,7 +53,7 @@ func In(column string, values ...interface{}) Condition {
 
 //-------------------------------------------------------------------------------------------------
 
-func Not(el Element) not {
+func Not(el Expression) not {
 	return not{el}
 }
 
