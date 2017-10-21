@@ -3,13 +3,14 @@ package where
 import (
 	"reflect"
 	"strings"
+	"github.com/rickb777/sqlgen/dialect"
 )
 
 const where = "WHERE "
 
 type Expression interface {
-	Build(dialect Dialect) (string, []interface{})
-	build(args []interface{}, idx int, dialect Dialect) (string, []interface{}, int)
+	Build(dialect dialect.Dialect) (string, []interface{})
+	build(args []interface{}, idx int, dialect dialect.Dialect) (string, []interface{}, int)
 }
 
 type Condition struct {
@@ -29,19 +30,19 @@ type not struct {
 
 //-------------------------------------------------------------------------------------------------
 
-func (not not) build(args []interface{}, idx int, dialect Dialect) (string, []interface{}, int) {
+func (not not) build(args []interface{}, idx int, dialect dialect.Dialect) (string, []interface{}, int) {
 	s, a, n := not.expression.build(args, idx, dialect)
 	return "NOT (" + s + ")", a, n
 }
 
-func (not not) Build(dialect Dialect) (string, []interface{}) {
+func (not not) Build(dialect dialect.Dialect) (string, []interface{}) {
 	s, a, _ := not.build(nil, 0, dialect)
 	return where + s, a
 }
 
 //-------------------------------------------------------------------------------------------------
 
-func (cl Condition) build(args []interface{}, idx int, dialect Dialect) (string, []interface{}, int) {
+func (cl Condition) build(args []interface{}, idx int, dialect dialect.Dialect) (string, []interface{}, int) {
 	sql := cl.Sql
 	for _, arg := range cl.Args {
 		value := reflect.ValueOf(arg)
@@ -62,7 +63,7 @@ func (cl Condition) build(args []interface{}, idx int, dialect Dialect) (string,
 	return sql, args, idx
 }
 
-func (cl Condition) Build(dialect Dialect) (string, []interface{}) {
+func (cl Condition) Build(dialect dialect.Dialect) (string, []interface{}) {
 	wh := Clause{[]Condition{cl}, nil, and}
 	s, a := wh.Build(dialect)
 	return s, a
@@ -70,7 +71,7 @@ func (cl Condition) Build(dialect Dialect) (string, []interface{}) {
 
 //-------------------------------------------------------------------------------------------------
 
-func (wh Clause) build(args []interface{}, idx int, dialect Dialect) (string, []interface{}, int) {
+func (wh Clause) build(args []interface{}, idx int, dialect dialect.Dialect) (string, []interface{}, int) {
 	if len(wh.wheres) == 0 {
 		return "", args, idx
 	}
@@ -87,7 +88,7 @@ func (wh Clause) build(args []interface{}, idx int, dialect Dialect) (string, []
 	return sql, args, idx
 }
 
-func (wh Clause) Build(dialect Dialect) (string, []interface{}) {
+func (wh Clause) Build(dialect dialect.Dialect) (string, []interface{}) {
 	if len(wh.wheres) == 0 {
 		return "", nil
 	}

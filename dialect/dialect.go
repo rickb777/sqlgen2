@@ -1,4 +1,4 @@
-package where
+package dialect
 
 import (
 	"strconv"

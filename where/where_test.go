@@ -3,6 +3,7 @@ package where
 import (
 	"reflect"
 	"testing"
+	. "github.com/rickb777/sqlgen/dialect"
 )
 
 func TestBuildWhereClause_happyCases(t *testing.T) {
