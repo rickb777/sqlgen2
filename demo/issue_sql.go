@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/rickb777/sqlgen/dialect"
+	"github.com/rickb777/sqlgen/where"
 )
 
 // IssueTableName is the default name for this table.
@@ -155,9 +157,13 @@ func (tbl IssueTable) QueryOne(query string, args ...interface{}) (*Issue, error
 	return ScanIssue(row)
 }
 
-func (tbl IssueTable) SelectOne(where string, args ...interface{}) (*Issue, error) {
+func (tbl IssueTable) SelectOneSA(where string, args ...interface{}) (*Issue, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", sIssueColumnNames, tbl.Name, where)
 	return tbl.QueryOne(query, args...)
+}
+
+func (tbl IssueTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*Issue, error) {
+	return tbl.SelectOneSA(where.Build(dialect))
 }
 
 func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error) {
@@ -169,16 +175,24 @@ func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error)
 	return ScanIssues(rows)
 }
 
-func (tbl IssueTable) Select(where string, args ...interface{}) ([]*Issue, error) {
+func (tbl IssueTable) SelectSA(where string, args ...interface{}) ([]*Issue, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s", sIssueColumnNames, tbl.Name, where)
 	return tbl.Query(query, args...)
 }
 
-func (tbl IssueTable) Count(where string, args ...interface{}) (count int64, err error) {
+func (tbl IssueTable) Select(where where.Expression, dialect dialect.Dialect) ([]*Issue, error) {
+	return tbl.SelectSA(where.Build(dialect))
+}
+
+func (tbl IssueTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
 	err = row.Scan(&count)
 	return count, err
+}
+
+func (tbl IssueTable) Count(where where.Expression, dialect dialect.Dialect) (count int64, err error) {
+	return tbl.CountSA(where.Build(dialect))
 }
 
 func (tbl IssueTable) Insert(v *Issue) error {
@@ -242,8 +256,8 @@ CREATE TABLE IF NOT EXISTS %s (
 );
 `
 
-func CreateIssueStmt(tableName string) string {
-	return fmt.Sprintf(sCreateIssueStmt, tableName)
+func CreateIssueStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sCreateIssueStmt, tableName))
 }
 
 const sInsertIssueStmt = `
@@ -256,8 +270,8 @@ INSERT INTO %s (
 ) VALUES (?,?,?,?,?)
 `
 
-func InsertIssueStmt(tableName string) string {
-	return fmt.Sprintf(sInsertIssueStmt, tableName)
+func InsertIssueStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sInsertIssueStmt, tableName))
 }
 
 const sUpdateIssueByPkStmt = `
@@ -270,8 +284,8 @@ UPDATE %s SET
  WHERE id=?
 `
 
-func UpdateIssueByPkStmt(tableName string) string {
-	return fmt.Sprintf(sUpdateIssueByPkStmt, tableName)
+func UpdateIssueByPkStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sUpdateIssueByPkStmt, tableName))
 }
 
 const sDeleteIssueByPkStmt = `
@@ -279,8 +293,8 @@ DELETE FROM %s
  WHERE id=?
 `
 
-func DeleteIssueByPkStmt(tableName string) string {
-	return fmt.Sprintf(sDeleteIssueByPkStmt, tableName)
+func DeleteIssueByPkStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sDeleteIssueByPkStmt, tableName))
 }
 
 //--------------------------------------------------------------------------------
@@ -289,6 +303,6 @@ const sCreateIssueAssigneeStmt = `
 CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
 `
 
-func CreateIssueAssigneeStmt(tableName string) string {
-	return fmt.Sprintf(sCreateIssueAssigneeStmt, tableName)
+func CreateIssueAssigneeStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sCreateIssueAssigneeStmt, tableName))
 }

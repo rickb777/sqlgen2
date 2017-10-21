@@ -90,18 +90,6 @@ func (b *base) Params(from, to int) []string {
 	return params
 }
 
-// Token returns the SQL string for the requested token.
-func (b *base) Token(v int) string {
-	switch v {
-	case AUTO_INCREMENT:
-		return "AUTOINCREMENT"
-	case PRIMARY_KEY:
-		return "PRIMARY KEY"
-	default:
-		return ""
-	}
-}
-
 // helper function to generate a block of columns. You
 // can optionally generate in inline list of columns,
 // include an assignment operator, and include column
@@ -137,16 +125,16 @@ func (b *base) columnw(w io.Writer, fields []*Field, withAuto, inline, assign, d
 
 			if ddl {
 				io.WriteString(w, "\t")
-				io.WriteString(w, field.Column(b.Dialect.Id()))
+				io.WriteString(w, field.AsColumn(b.Dialect.Id()))
 
 				if field.Primary {
 					io.WriteString(w, " ")
-					io.WriteString(w, b.Dialect.Token(PRIMARY_KEY))
+					io.WriteString(w, PRIMARY_KEY.AsToken(b.Dialect.Id()))
 				}
 
 				if field.Auto {
 					io.WriteString(w, " ")
-					io.WriteString(w, b.Dialect.Token(AUTO_INCREMENT))
+					io.WriteString(w, AUTO_INCREMENT.AsToken(b.Dialect.Id()))
 				}
 			}
 		}

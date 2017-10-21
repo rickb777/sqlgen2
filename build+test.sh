@@ -23,7 +23,7 @@ for d in output parse; do
 done
 
 cd ..
-go install .
+#go install .
 
 for d in schema where; do
   echo ./$d...

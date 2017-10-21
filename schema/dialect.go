@@ -24,7 +24,6 @@ type Dialect interface {
 	Param(int) string
 	Params(int, int) []string
 	ColumnParams(t *Table, withAuto bool) string
-	Token(int) string
 }
 
 func New(dialect DialectId) Dialect {
@@ -38,7 +37,7 @@ func New(dialect DialectId) Dialect {
 	}
 }
 
-func (f *Field) Column(dialect DialectId) string {
+func (f *Field) AsColumn(dialect DialectId) string {
 	switch dialect {
 	case MYSQL:
 		return mysqlColumn(f)
@@ -51,3 +50,15 @@ func (f *Field) Column(dialect DialectId) string {
 	}
 }
 
+func (st SqlToken) AsToken(dialect DialectId) string {
+	switch dialect {
+	case MYSQL:
+		return mysqlToken(st)
+	case POSTGRES:
+		return postgresToken(st)
+	case SQLITE:
+		return sqliteToken(st)
+	default:
+		return ""
+	}
+}

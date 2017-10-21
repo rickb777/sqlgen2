@@ -13,6 +13,10 @@ func (dialect MySQLDialect) ReplaceNextPlaceholder(sql string, idx int) string {
 	return sql
 }
 
+func (dialect MySQLDialect) ReplacePlaceholders(sql string) string {
+	return sql
+}
+
 func (dialect MySQLDialect) Column(f *schema.Field) string {
 	switch f.Type {
 	case schema.INTEGER:

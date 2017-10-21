@@ -28,3 +28,14 @@ func sqliteColumn(f *Field) string {
 		return "TEXT"
 	}
 }
+
+func sqliteToken(v SqlToken) string {
+	switch v {
+	case AUTO_INCREMENT:
+		return "AUTOINCREMENT"
+	case PRIMARY_KEY:
+		return "PRIMARY KEY"
+	default:
+		return ""
+	}
+}

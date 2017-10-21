@@ -62,6 +62,55 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 		{MySQL, Not(Eq("name", "Fred")), "WHERE NOT (name=?)", []interface{}{"Fred"}},
 		{MySQL, Not(Eq("name", "Fred").And(Lt("age", 10))), "WHERE NOT (name=? AND age<?)", []interface{}{"Fred", 10}},
 		{MySQL, Not(Eq("name", "Fred").Or(Lt("age", 10))), "WHERE NOT (name=? OR age<?)", []interface{}{"Fred", 10}},
+
+		//-----------------------------------------------------------------------------------------
+
+		{Postgres,
+			Condition{"name <>?", []interface{}{"Boo"}},
+			"WHERE name <>$1", []interface{}{"Boo"},
+		},
+
+		{Postgres,
+			Eq("name", "Fred"),
+			"WHERE name=$1", []interface{}{"Fred"},
+		},
+
+		{Postgres,
+			Eq("name", "Fred").And(Gt("age", 10)),
+			"WHERE name=$1 AND age>$2", []interface{}{"Fred", 10},
+		},
+
+		{Postgres,
+			Eq("name", "Fred").Or(Gt("age", 10)),
+			"WHERE name=$1 OR age>$2", []interface{}{"Fred", 10},
+		},
+
+		{Postgres,
+			Eq("name", "Fred").And(Gt("age", 10)).And(Gt("weight", 15)),
+			"WHERE name=$1 AND age>$2 AND weight>$3",
+			[]interface{}{"Fred", 10, 15},
+		},
+
+		{Postgres,
+			Eq("name", "Fred").Or(Gt("age", 10)).Or(Gt("weight", 15)),
+			"WHERE name=$1 OR age>$2 OR weight>$3",
+			[]interface{}{"Fred", 10, 15},
+		},
+
+		{Postgres,
+			Between("age", 10, 15).Or(Gt("weight", 17)),
+			"WHERE age BETWEEN $1 AND $2 OR weight>$3",
+			[]interface{}{10, 15, 17},
+		},
+
+		{Postgres, GtEq("age", 10), "WHERE age>=$1", []interface{}{10}},
+		{Postgres, LtEq("age", 10), "WHERE age<=$1", []interface{}{10}},
+		{Postgres, NotEq("age", 10), "WHERE age<>$1", []interface{}{10}},
+		{Postgres, In("age", 10, 12, 14), "WHERE age IN ($1,$2,$3)", []interface{}{10, 12, 14}},
+
+		{Postgres, Not(Eq("name", "Fred")), "WHERE NOT (name=$1)", []interface{}{"Fred"}},
+		{Postgres, Not(Eq("name", "Fred").And(Lt("age", 10))), "WHERE NOT (name=$1 AND age<$2)", []interface{}{"Fred", 10}},
+		{Postgres, Not(Eq("name", "Fred").Or(Lt("age", 10))), "WHERE NOT (name=$1 OR age<$2)", []interface{}{"Fred", 10}},
 	}
 
 	for i, c := range cases {

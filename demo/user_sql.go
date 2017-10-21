@@ -5,6 +5,8 @@ package demo
 import (
 	"database/sql"
 	"fmt"
+	"github.com/rickb777/sqlgen/dialect"
+	"github.com/rickb777/sqlgen/where"
 )
 
 // UserTableName is the default name for this table.
@@ -178,9 +180,13 @@ func (tbl UserTable) QueryOne(query string, args ...interface{}) (*User, error) 
 	return ScanUser(row)
 }
 
-func (tbl UserTable) SelectOne(where string, args ...interface{}) (*User, error) {
+func (tbl UserTable) SelectOneSA(where string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", sUserColumnNames, tbl.Name, where)
 	return tbl.QueryOne(query, args...)
+}
+
+func (tbl UserTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*User, error) {
+	return tbl.SelectOneSA(where.Build(dialect))
 }
 
 func (tbl UserTable) Query(query string, args ...interface{}) ([]*User, error) {
@@ -192,16 +198,24 @@ func (tbl UserTable) Query(query string, args ...interface{}) ([]*User, error) {
 	return ScanUsers(rows)
 }
 
-func (tbl UserTable) Select(where string, args ...interface{}) ([]*User, error) {
+func (tbl UserTable) SelectSA(where string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s", sUserColumnNames, tbl.Name, where)
 	return tbl.Query(query, args...)
 }
 
-func (tbl UserTable) Count(where string, args ...interface{}) (count int64, err error) {
+func (tbl UserTable) Select(where where.Expression, dialect dialect.Dialect) ([]*User, error) {
+	return tbl.SelectSA(where.Build(dialect))
+}
+
+func (tbl UserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
 	err = row.Scan(&count)
 	return count, err
+}
+
+func (tbl UserTable) Count(where where.Expression, dialect dialect.Dialect) (count int64, err error) {
+	return tbl.CountSA(where.Build(dialect))
 }
 
 func (tbl UserTable) Insert(v *User) error {
@@ -268,8 +282,8 @@ CREATE TABLE IF NOT EXISTS %s (
 );
 `
 
-func CreateUserStmt(tableName string) string {
-	return fmt.Sprintf(sCreateUserStmt, tableName)
+func CreateUserStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sCreateUserStmt, tableName))
 }
 
 const sInsertUserStmt = `
@@ -285,8 +299,8 @@ INSERT INTO %s (
 ) VALUES (?,?,?,?,?,?,?,?)
 `
 
-func InsertUserStmt(tableName string) string {
-	return fmt.Sprintf(sInsertUserStmt, tableName)
+func InsertUserStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sInsertUserStmt, tableName))
 }
 
 const sUpdateUserByPkStmt = `
@@ -302,8 +316,8 @@ UPDATE %s SET
  WHERE id=?
 `
 
-func UpdateUserByPkStmt(tableName string) string {
-	return fmt.Sprintf(sUpdateUserByPkStmt, tableName)
+func UpdateUserByPkStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sUpdateUserByPkStmt, tableName))
 }
 
 const sDeleteUserByPkStmt = `
@@ -311,8 +325,8 @@ DELETE FROM %s
  WHERE id=?
 `
 
-func DeleteUserByPkStmt(tableName string) string {
-	return fmt.Sprintf(sDeleteUserByPkStmt, tableName)
+func DeleteUserByPkStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sDeleteUserByPkStmt, tableName))
 }
 
 //--------------------------------------------------------------------------------
@@ -321,8 +335,8 @@ const sCreateUserLoginStmt = `
 CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
 `
 
-func CreateUserLoginStmt(tableName string) string {
-	return fmt.Sprintf(sCreateUserLoginStmt, tableName)
+func CreateUserLoginStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sCreateUserLoginStmt, tableName))
 }
 
 const sUpdateUserLoginStmt = `
@@ -338,8 +352,8 @@ UPDATE %s SET
  WHERE login=?
 `
 
-func UpdateUserLoginStmt(tableName string) string {
-	return fmt.Sprintf(sUpdateUserLoginStmt, tableName)
+func UpdateUserLoginStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sUpdateUserLoginStmt, tableName))
 }
 
 const sDeleteUserLoginStmt = `
@@ -347,16 +361,16 @@ DELETE FROM %s
  WHERE login=?
 `
 
-func DeleteUserLoginStmt(tableName string) string {
-	return fmt.Sprintf(sDeleteUserLoginStmt, tableName)
+func DeleteUserLoginStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sDeleteUserLoginStmt, tableName))
 }
 
 const sCreateUserEmailStmt = `
 CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
 `
 
-func CreateUserEmailStmt(tableName string) string {
-	return fmt.Sprintf(sCreateUserEmailStmt, tableName)
+func CreateUserEmailStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sCreateUserEmailStmt, tableName))
 }
 
 const sUpdateUserEmailStmt = `
@@ -372,8 +386,8 @@ UPDATE %s SET
  WHERE email=?
 `
 
-func UpdateUserEmailStmt(tableName string) string {
-	return fmt.Sprintf(sUpdateUserEmailStmt, tableName)
+func UpdateUserEmailStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sUpdateUserEmailStmt, tableName))
 }
 
 const sDeleteUserEmailStmt = `
@@ -381,6 +395,6 @@ DELETE FROM %s
  WHERE email=?
 `
 
-func DeleteUserEmailStmt(tableName string) string {
-	return fmt.Sprintf(sDeleteUserEmailStmt, tableName)
+func DeleteUserEmailStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sDeleteUserEmailStmt, tableName))
 }

@@ -5,6 +5,8 @@ package demo
 import (
 	"database/sql"
 	"fmt"
+	"github.com/rickb777/sqlgen/dialect"
+	"github.com/rickb777/sqlgen/where"
 )
 
 // HookTableName is the default name for this table.
@@ -280,9 +282,13 @@ func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) 
 	return ScanHook(row)
 }
 
-func (tbl HookTable) SelectOne(where string, args ...interface{}) (*Hook, error) {
+func (tbl HookTable) SelectOneSA(where string, args ...interface{}) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", sHookColumnNames, tbl.Name, where)
 	return tbl.QueryOne(query, args...)
+}
+
+func (tbl HookTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*Hook, error) {
+	return tbl.SelectOneSA(where.Build(dialect))
 }
 
 func (tbl HookTable) Query(query string, args ...interface{}) ([]*Hook, error) {
@@ -294,16 +300,24 @@ func (tbl HookTable) Query(query string, args ...interface{}) ([]*Hook, error) {
 	return ScanHooks(rows)
 }
 
-func (tbl HookTable) Select(where string, args ...interface{}) ([]*Hook, error) {
+func (tbl HookTable) SelectSA(where string, args ...interface{}) ([]*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s", sHookColumnNames, tbl.Name, where)
 	return tbl.Query(query, args...)
 }
 
-func (tbl HookTable) Count(where string, args ...interface{}) (count int64, err error) {
+func (tbl HookTable) Select(where where.Expression, dialect dialect.Dialect) ([]*Hook, error) {
+	return tbl.SelectSA(where.Build(dialect))
+}
+
+func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
 	err = row.Scan(&count)
 	return count, err
+}
+
+func (tbl HookTable) Count(where where.Expression, dialect dialect.Dialect) (count int64, err error) {
+	return tbl.CountSA(where.Build(dialect))
 }
 
 func (tbl HookTable) Insert(v *Hook) error {
@@ -368,8 +382,8 @@ CREATE TABLE IF NOT EXISTS %s (
 );
 `
 
-func CreateHookStmt(tableName string) string {
-	return fmt.Sprintf(sCreateHookStmt, tableName)
+func CreateHookStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sCreateHookStmt, tableName))
 }
 
 const sInsertHookStmt = `
@@ -383,8 +397,8 @@ INSERT INTO %s (
 ) VALUES (?,?,?,?,?,?)
 `
 
-func InsertHookStmt(tableName string) string {
-	return fmt.Sprintf(sInsertHookStmt, tableName)
+func InsertHookStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sInsertHookStmt, tableName))
 }
 
 const sUpdateHookByPkStmt = `
@@ -398,8 +412,8 @@ UPDATE %s SET
  WHERE id=?
 `
 
-func UpdateHookByPkStmt(tableName string) string {
-	return fmt.Sprintf(sUpdateHookByPkStmt, tableName)
+func UpdateHookByPkStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sUpdateHookByPkStmt, tableName))
 }
 
 const sDeleteHookByPkStmt = `
@@ -407,8 +421,8 @@ DELETE FROM %s
  WHERE id=?
 `
 
-func DeleteHookByPkStmt(tableName string) string {
-	return fmt.Sprintf(sDeleteHookByPkStmt, tableName)
+func DeleteHookByPkStmt(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(sDeleteHookByPkStmt, tableName))
 }
 
 //--------------------------------------------------------------------------------

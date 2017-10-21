@@ -41,7 +41,7 @@ func mysqlColumn(f *Field) string {
 	}
 }
 
-func (d *mysql) Token(v int) string {
+func mysqlToken(v SqlToken) string {
 	switch v {
 	case AUTO_INCREMENT:
 		return "AUTO_INCREMENT"

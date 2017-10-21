@@ -61,20 +61,6 @@ func writeSchema(w io.Writer, d schema.Dialect, tree *parse.Node, t *schema.Tabl
 			d.Update(t, []*schema.Field{t.Primary}),
 		}))
 
-		//fmt.Fprintf(w, "var %s = map[string]string{\n",
-		//	inflect.Typeify(fmt.Sprintf("update_%s_json_map", tableName)))
-		//for i, node := range tree.Leaves() {
-		//	if i < len(t.Fields) {
-		//		columnName := t.Fields[i].SqlName
-		//		//if field.Patchable
-		//		jsonAttr := strings.Split(node.Tags.JSONAttr, ",")[0]
-		//		if jsonAttr != "-" {
-		//			fmt.Fprintf(w, "\"%s\": \"%s\",\n", jsonAttr, columnName)
-		//		}
-		//	}
-		//}
-		//fmt.Fprintf(w, "}")
-
 		must(tConstWithTableName.Execute(w, ConstView{
 			identifier("Delete", tableName, "ByPkStmt"),
 			d.Delete(t, []*schema.Field{t.Primary}),

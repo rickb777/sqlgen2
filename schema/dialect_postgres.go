@@ -49,7 +49,7 @@ func postgresColumn(f *Field) string {
 	}
 }
 
-func (d *posgres) Token(v int) string {
+func postgresToken(v SqlToken) string {
 	switch v {
 	case AUTO_INCREMENT:
 		// postgres does not support the

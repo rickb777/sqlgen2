@@ -11,9 +11,11 @@ const (
 	JSON
 )
 
+type SqlToken int
+
 // List of vendor-specific keywords
 const (
-	AUTO_INCREMENT = iota
+	AUTO_INCREMENT SqlToken = iota
 	PRIMARY_KEY
 )
 

@@ -30,8 +30,8 @@ const s{{.Name}} = {{ticked .Body}}
 `
 
 const sTableName = `
-func {{.Name}}(tableName string) string {
-	return fmt.Sprintf(s{{.Name}}, tableName)
+func {{.Name}}(tableName string, d dialect.Dialect) string {
+	return d.ReplacePlaceholders(fmt.Sprintf(s{{.Name}}, tableName))
 }
 `
 
@@ -110,9 +110,13 @@ func (tbl {{.Prefix}}{{.Type}}Table) QueryOne(query string, args ...interface{})
 	return Scan{{.Type}}(row)
 }
 
-func (tbl {{.Prefix}}{{.Type}}Table) SelectOne(where string, args ...interface{}) (*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where string, args ...interface{}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", s{{.Type}}ColumnNames, tbl.Name, where)
 	return tbl.QueryOne(query, args...)
+}
+
+func (tbl {{.Prefix}}{{.Type}}Table) SelectOne(where where.Expression, dialect dialect.Dialect) (*{{.Type}}, error) {
+	return tbl.SelectOneSA(where.Build(dialect))
 }
 `
 
@@ -131,9 +135,13 @@ func (tbl {{.Prefix}}{{.Type}}Table) Query(query string, args ...interface{}) ([
 	return Scan{{.Types}}(rows)
 }
 
-func (tbl {{.Prefix}}{{.Type}}Table) Select(where string, args ...interface{}) ([]*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}Table) SelectSA(where string, args ...interface{}) ([]*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s", s{{.Type}}ColumnNames, tbl.Name, where)
 	return tbl.Query(query, args...)
+}
+
+func (tbl {{.Prefix}}{{.Type}}Table) Select(where where.Expression, dialect dialect.Dialect) ([]*{{.Type}}, error) {
+	return tbl.SelectSA(where.Build(dialect))
 }
 `
 
@@ -142,11 +150,15 @@ var tSelectRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(
 //-------------------------------------------------------------------------------------------------
 
 const sCountRows = `
-func (tbl {{.Prefix}}{{.Type}}Table) Count(where string, args ...interface{}) (count int64, err error) {
+func (tbl {{.Prefix}}{{.Type}}Table) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
 	err = row.Scan(&count)
 	return count, err
+}
+
+func (tbl {{.Prefix}}{{.Type}}Table) Count(where where.Expression, dialect dialect.Dialect) (count int64, err error) {
+	return tbl.CountSA(where.Build(dialect))
 }
 `
 

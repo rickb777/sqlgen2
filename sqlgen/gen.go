@@ -71,7 +71,8 @@ func main() {
 		view := newView(tree, prefix)
 		view.Table = table
 
-		writeImports(buf, tree, "database/sql", "fmt", imports)
+		writeImports(buf, tree, "database/sql", "fmt",
+			"github.com/rickb777/sqlgen/dialect", "github.com/rickb777/sqlgen/where", imports)
 		writeType(buf, view)
 		writeRowFunc(buf, tree, view)
 		writeRowsFunc(buf, tree, view)
