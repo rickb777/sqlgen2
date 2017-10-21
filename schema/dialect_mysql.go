@@ -14,7 +14,13 @@ func newMySQL() Dialect {
 	return d
 }
 
-func (d *mysql) Column(f *Field) string {
+func (d *mysql) Id() DialectId {
+	return MYSQL
+}
+
+// see https://github.com/eaigner/hood/blob/master/mysql.go#L35
+
+func mysqlColumn(f *Field) string {
 	switch f.Type {
 	case INTEGER:
 		return "INTEGER"

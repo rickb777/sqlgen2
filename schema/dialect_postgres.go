@@ -14,7 +14,13 @@ func newPostgres() Dialect {
 	return d
 }
 
-func (d *posgres) Column(f *Field) string {
+func (d *posgres) Id() DialectId {
+	return POSTGRES
+}
+
+// see https://github.com/eaigner/hood/blob/master/mysql.go#L35
+
+func postgresColumn(f *Field) string {
 	// posgres uses a special column type
 	// for autoincrementing keys.
 	if f.Auto {

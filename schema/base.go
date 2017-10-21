@@ -90,25 +90,6 @@ func (b *base) Params(from, to int) []string {
 	return params
 }
 
-// Column returns a SQL type for the given field.
-//
-// For Mysql and Postgres see:
-// https://github.com/eaigner/hood/blob/master/mysql.go#L35
-func (b *base) Column(f *Field) string {
-	switch f.Type {
-	case INTEGER:
-		return "INTEGER"
-	case BOOLEAN:
-		return "BOOLEAN"
-	case BLOB:
-		return "BLOB"
-	case VARCHAR:
-		return "TEXT"
-	default:
-		return "TEXT"
-	}
-}
-
 // Token returns the SQL string for the requested token.
 func (b *base) Token(v int) string {
 	switch v {
@@ -156,7 +137,7 @@ func (b *base) columnw(w io.Writer, fields []*Field, withAuto, inline, assign, d
 
 			if ddl {
 				io.WriteString(w, "\t")
-				io.WriteString(w, b.Dialect.Column(field))
+				io.WriteString(w, field.Column(b.Dialect.Id()))
 
 				if field.Primary {
 					io.WriteString(w, " ")
