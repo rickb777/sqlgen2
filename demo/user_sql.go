@@ -175,18 +175,22 @@ func SliceUserWithoutPk(v *User) []interface{} {
 	}
 }
 
+// QueryOne is the low-level access function for one User.
 func (tbl UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return ScanUser(row)
 }
 
-func (tbl UserTable) SelectOneSA(where string, args ...interface{}) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", sUserColumnNames, tbl.Name, where)
+// SelectOneSA allows a single User to be obtained from the database using supplied dialect-specific parameters.
+func (tbl UserTable) SelectOneSA(where, limitClause string, args ...interface{}) (*User, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sUserColumnNames, tbl.Name, where, limitClause)
 	return tbl.QueryOne(query, args...)
 }
 
+// SelectOne allows a single User to be obtained from the database.
 func (tbl UserTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*User, error) {
-	return tbl.SelectOneSA(where.Build(dialect))
+	wh, args := where.Build(dialect)
+	return tbl.SelectOneSA(wh, "LIMIT 1", args)
 }
 
 func (tbl UserTable) Query(query string, args ...interface{}) ([]*User, error) {
@@ -198,15 +202,18 @@ func (tbl UserTable) Query(query string, args ...interface{}) ([]*User, error) {
 	return ScanUsers(rows)
 }
 
+// SelectSA allows Users to be obtained from the database using supplied dialect-specific parameters.
 func (tbl UserTable) SelectSA(where string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s", sUserColumnNames, tbl.Name, where)
 	return tbl.Query(query, args...)
 }
 
+// Select allows Users to be obtained from the database that match a 'where' clause.
 func (tbl UserTable) Select(where where.Expression, dialect dialect.Dialect) ([]*User, error) {
 	return tbl.SelectSA(where.Build(dialect))
 }
 
+// CountSA counts Users in the database using supplied dialect-specific parameters.
 func (tbl UserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
@@ -214,10 +221,12 @@ func (tbl UserTable) CountSA(where string, args ...interface{}) (count int64, er
 	return count, err
 }
 
+// Count counts the Users in the database that match a 'where' clause.
 func (tbl UserTable) Count(where where.Expression, dialect dialect.Dialect) (count int64, err error) {
 	return tbl.CountSA(where.Build(dialect))
 }
 
+// Insert adds new records for the Users.
 func (tbl UserTable) Insert(v *User) error {
 	query := fmt.Sprintf(sInsertUserStmt, tbl.Name)
 	res, err := tbl.Db.Exec(query, SliceUserWithoutPk(v)...)

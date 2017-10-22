@@ -277,18 +277,22 @@ func SliceHookWithoutPk(v *Hook) []interface{} {
 	}
 }
 
+// QueryOne is the low-level access function for one Hook.
 func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return ScanHook(row)
 }
 
-func (tbl HookTable) SelectOneSA(where string, args ...interface{}) (*Hook, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", sHookColumnNames, tbl.Name, where)
+// SelectOneSA allows a single Hook to be obtained from the database using supplied dialect-specific parameters.
+func (tbl HookTable) SelectOneSA(where, limitClause string, args ...interface{}) (*Hook, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sHookColumnNames, tbl.Name, where, limitClause)
 	return tbl.QueryOne(query, args...)
 }
 
+// SelectOne allows a single Hook to be obtained from the database.
 func (tbl HookTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*Hook, error) {
-	return tbl.SelectOneSA(where.Build(dialect))
+	wh, args := where.Build(dialect)
+	return tbl.SelectOneSA(wh, "LIMIT 1", args)
 }
 
 func (tbl HookTable) Query(query string, args ...interface{}) ([]*Hook, error) {
@@ -300,15 +304,18 @@ func (tbl HookTable) Query(query string, args ...interface{}) ([]*Hook, error) {
 	return ScanHooks(rows)
 }
 
+// SelectSA allows Hooks to be obtained from the database using supplied dialect-specific parameters.
 func (tbl HookTable) SelectSA(where string, args ...interface{}) ([]*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s", sHookColumnNames, tbl.Name, where)
 	return tbl.Query(query, args...)
 }
 
+// Select allows Hooks to be obtained from the database that match a 'where' clause.
 func (tbl HookTable) Select(where where.Expression, dialect dialect.Dialect) ([]*Hook, error) {
 	return tbl.SelectSA(where.Build(dialect))
 }
 
+// CountSA counts Hooks in the database using supplied dialect-specific parameters.
 func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
@@ -316,10 +323,12 @@ func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, er
 	return count, err
 }
 
+// Count counts the Hooks in the database that match a 'where' clause.
 func (tbl HookTable) Count(where where.Expression, dialect dialect.Dialect) (count int64, err error) {
 	return tbl.CountSA(where.Build(dialect))
 }
 
+// Insert adds new records for the Hooks.
 func (tbl HookTable) Insert(v *Hook) error {
 	query := fmt.Sprintf(sInsertHookStmt, tbl.Name)
 	res, err := tbl.Db.Exec(query, SliceHookWithoutPk(v)...)

@@ -152,18 +152,22 @@ func SliceIssueWithoutPk(v *Issue) []interface{} {
 	}
 }
 
+// QueryOne is the low-level access function for one Issue.
 func (tbl IssueTable) QueryOne(query string, args ...interface{}) (*Issue, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return ScanIssue(row)
 }
 
-func (tbl IssueTable) SelectOneSA(where string, args ...interface{}) (*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", sIssueColumnNames, tbl.Name, where)
+// SelectOneSA allows a single Issue to be obtained from the database using supplied dialect-specific parameters.
+func (tbl IssueTable) SelectOneSA(where, limitClause string, args ...interface{}) (*Issue, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sIssueColumnNames, tbl.Name, where, limitClause)
 	return tbl.QueryOne(query, args...)
 }
 
+// SelectOne allows a single Issue to be obtained from the database.
 func (tbl IssueTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*Issue, error) {
-	return tbl.SelectOneSA(where.Build(dialect))
+	wh, args := where.Build(dialect)
+	return tbl.SelectOneSA(wh, "LIMIT 1", args)
 }
 
 func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error) {
@@ -175,15 +179,18 @@ func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error)
 	return ScanIssues(rows)
 }
 
+// SelectSA allows Issues to be obtained from the database using supplied dialect-specific parameters.
 func (tbl IssueTable) SelectSA(where string, args ...interface{}) ([]*Issue, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s", sIssueColumnNames, tbl.Name, where)
 	return tbl.Query(query, args...)
 }
 
+// Select allows Issues to be obtained from the database that match a 'where' clause.
 func (tbl IssueTable) Select(where where.Expression, dialect dialect.Dialect) ([]*Issue, error) {
 	return tbl.SelectSA(where.Build(dialect))
 }
 
+// CountSA counts Issues in the database using supplied dialect-specific parameters.
 func (tbl IssueTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
@@ -191,10 +198,12 @@ func (tbl IssueTable) CountSA(where string, args ...interface{}) (count int64, e
 	return count, err
 }
 
+// Count counts the Issues in the database that match a 'where' clause.
 func (tbl IssueTable) Count(where where.Expression, dialect dialect.Dialect) (count int64, err error) {
 	return tbl.CountSA(where.Build(dialect))
 }
 
+// Insert adds new records for the Issues.
 func (tbl IssueTable) Insert(v *Issue) error {
 	query := fmt.Sprintf(sInsertIssueStmt, tbl.Name)
 	res, err := tbl.Db.Exec(query, SliceIssueWithoutPk(v)...)

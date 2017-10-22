@@ -2,7 +2,6 @@ package dialect
 
 import (
 	"strconv"
-	"strings"
 	"bytes"
 )
 
@@ -27,11 +26,6 @@ func (dialect PostgresDialect) Placeholders(n int) string {
 		buf.WriteString(strconv.Itoa(idx))
 	}
 	return buf.String()
-}
-
-func (dialect PostgresDialect) ReplaceNextPlaceholder(sql string, idx int) string {
-	p := "$" + strconv.Itoa(idx)
-	return strings.Replace(sql, "?", p, 1)
 }
 
 func (dialect PostgresDialect) ReplacePlaceholders(sql string) string {

@@ -110,18 +110,22 @@ var tSliceRow = template.Must(template.New("SliceRow").Funcs(funcMap).Parse(sSli
 //-------------------------------------------------------------------------------------------------
 
 const sSelectRow = `
+// QueryOne is the low-level access function for one {{.Type}}.
 func (tbl {{.Prefix}}{{.Type}}Table) QueryOne(query string, args ...interface{}) (*{{.Type}}, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return Scan{{.Type}}(row)
 }
 
-func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where string, args ...interface{}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s LIMIT 1", s{{.Type}}ColumnNames, tbl.Name, where)
+// SelectOneSA allows a single {{.Type}} to be obtained from the database using supplied dialect-specific parameters.
+func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where, limitClause string, args ...interface{}) (*{{.Type}}, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", s{{.Type}}ColumnNames, tbl.Name, where, limitClause)
 	return tbl.QueryOne(query, args...)
 }
 
+// SelectOne allows a single {{.Type}} to be obtained from the database.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectOne(where where.Expression, dialect dialect.Dialect) (*{{.Type}}, error) {
-	return tbl.SelectOneSA(where.Build(dialect))
+	wh, args := where.Build(dialect)
+	return tbl.SelectOneSA(wh, "LIMIT 1", args)
 }
 `
 
@@ -140,11 +144,13 @@ func (tbl {{.Prefix}}{{.Type}}Table) Query(query string, args ...interface{}) ([
 	return Scan{{.Types}}(rows)
 }
 
+// SelectSA allows {{.Types}} to be obtained from the database using supplied dialect-specific parameters.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectSA(where string, args ...interface{}) ([]*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s", s{{.Type}}ColumnNames, tbl.Name, where)
 	return tbl.Query(query, args...)
 }
 
+// Select allows {{.Types}} to be obtained from the database that match a 'where' clause.
 func (tbl {{.Prefix}}{{.Type}}Table) Select(where where.Expression, dialect dialect.Dialect) ([]*{{.Type}}, error) {
 	return tbl.SelectSA(where.Build(dialect))
 }
@@ -155,6 +161,7 @@ var tSelectRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(
 //-------------------------------------------------------------------------------------------------
 
 const sCountRows = `
+// CountSA counts {{.Types}} in the database using supplied dialect-specific parameters.
 func (tbl {{.Prefix}}{{.Type}}Table) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
@@ -162,6 +169,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) CountSA(where string, args ...interface{}) 
 	return count, err
 }
 
+// Count counts the {{.Types}} in the database that match a 'where' clause.
 func (tbl {{.Prefix}}{{.Type}}Table) Count(where where.Expression, dialect dialect.Dialect) (count int64, err error) {
 	return tbl.CountSA(where.Build(dialect))
 }
@@ -173,6 +181,7 @@ var tCountRows = template.Must(template.New("CountRows").Funcs(funcMap).Parse(sC
 
 // function template to insert a single row, updating the primary key in the struct.
 const sInsertAndGetLastId = `
+// Insert adds new records for the {{.Types}}.
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(v *{{.Type}}) error {
 	query := fmt.Sprintf(sInsert{{.Type}}Stmt, tbl.Name)
 	res, err := tbl.Db.Exec(query, Slice{{.Type}}WithoutPk(v)...)

@@ -10,7 +10,7 @@ const where = "WHERE "
 
 type Expression interface {
 	Build(dialect dialect.Dialect) (string, []interface{})
-	build(args []interface{}, idx int, dialect dialect.Dialect) (string, []interface{}, int)
+	build(args []interface{}, dialect dialect.Dialect) (string, []interface{})
 }
 
 type Condition struct {
@@ -30,62 +30,60 @@ type not struct {
 
 //-------------------------------------------------------------------------------------------------
 
-func (not not) build(args []interface{}, idx int, dialect dialect.Dialect) (string, []interface{}, int) {
-	s, a, n := not.expression.build(args, idx, dialect)
-	return "NOT (" + s + ")", a, n
+func (not not) build(args []interface{}, dialect dialect.Dialect) (string, []interface{}) {
+	sql, args := not.expression.build(args, dialect)
+	return "NOT (" + sql + ")", args
 }
 
 func (not not) Build(dialect dialect.Dialect) (string, []interface{}) {
-	s, a, _ := not.build(nil, 0, dialect)
-	return where + s, a
+	sql, args := not.build(nil,  dialect)
+	sql = dialect.ReplacePlaceholders(sql)
+	return where + sql, args
 }
 
 //-------------------------------------------------------------------------------------------------
 
-func (cl Condition) build(args []interface{}, idx int, dialect dialect.Dialect) (string, []interface{}, int) {
+func (cl Condition) build(args []interface{}, dialect dialect.Dialect) (string, []interface{}) {
 	sql := cl.Sql
 	for _, arg := range cl.Args {
 		value := reflect.ValueOf(arg)
 		switch value.Kind() {
 		case reflect.Array, reflect.Slice:
 			for j := 0; j < value.Len(); j++ {
-				idx++
-				sql = dialect.ReplaceNextPlaceholder(sql, idx)
 				args = append(args, value.Index(j).Interface())
 			}
 
 		default:
-			idx++
-			sql = dialect.ReplaceNextPlaceholder(sql, idx)
 			args = append(args, arg)
 		}
 	}
-	return sql, args, idx
+	return sql, args
 }
 
 func (cl Condition) Build(dialect dialect.Dialect) (string, []interface{}) {
 	wh := Clause{[]Condition{cl}, nil, and}
-	s, a := wh.Build(dialect)
-	return s, a
+	sql, args := wh.Build(dialect)
+	sql = dialect.ReplacePlaceholders(sql)
+	return sql, args
 }
 
 //-------------------------------------------------------------------------------------------------
 
-func (wh Clause) build(args []interface{}, idx int, dialect dialect.Dialect) (string, []interface{}, int) {
+func (wh Clause) build(args []interface{}, dialect dialect.Dialect) (string, []interface{}) {
 	if len(wh.wheres) == 0 {
-		return "", args, idx
+		return "", args
 	}
 
 	var sqls []string
 
 	for _, where := range wh.wheres {
 		var sql string
-		sql, args, idx = where.build(args, idx, dialect)
+		sql, args = where.build(args, dialect)
 		sqls = append(sqls, sql)
 	}
 
 	sql := strings.Join(sqls, wh.conjunction)
-	return sql, args, idx
+	return sql, args
 }
 
 func (wh Clause) Build(dialect dialect.Dialect) (string, []interface{}) {
@@ -93,7 +91,7 @@ func (wh Clause) Build(dialect dialect.Dialect) (string, []interface{}) {
 		return "", nil
 	}
 
-	sql, args, _ := wh.build(nil, 0, dialect)
-
+	sql, args := wh.build(nil, dialect)
+	sql = dialect.ReplacePlaceholders(sql)
 	return where + sql, args
 }

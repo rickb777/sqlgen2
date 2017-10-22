@@ -22,10 +22,6 @@ func (dialect MySQLDialect) Placeholders(n int) string {
 	return strings.Repeat("?,", n-1) + "?"
 }
 
-func (dialect MySQLDialect) ReplaceNextPlaceholder(sql string, idx int) string {
-	return sql
-}
-
 func (dialect MySQLDialect) ReplacePlaceholders(sql string) string {
 	return sql
 }
