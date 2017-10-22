@@ -3,7 +3,9 @@ package schema
 import (
 	. "github.com/rickb777/sqlgen/sqlgen/parse"
 	"github.com/rickb777/sqlgen/sqlgen/parse/exit"
+	"bytes"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -79,4 +81,23 @@ func doCompare(t *testing.T, leaf *Node, wantOk bool, expectedField *Field, expe
 			}
 		}
 	}
+}
+
+func TestParseAndLoad(t *testing.T) {
+	code := strings.Replace(`package pkg1
+
+type Struct struct {
+	Id       int64 |sql:"pk: true, auto: true"|
+	Number   int
+	Foo      int |sql:"-"|
+	Title, Description, Owner string
+}`, "|", "`", -1)
+
+	source := Source{"issue.go", bytes.NewBufferString(code)}
+
+	_, err := DoParse("pkg1", "Struct", []Source{source})
+	if err != nil {
+		t.Errorf("Error parsing: %s", err)
+	}
+	//TODO finish
 }

@@ -351,12 +351,12 @@ func doTestParseOK(t *testing.T, want *Node, pkg, name string, isource ...string
 		}
 	}
 
-	files := make([]file, len(isource))
+	files := make([]Source, len(isource))
 
 	for i, s := range isource {
 		// allow nested back-ticks
 		source := strings.Replace(s, "|", "`", -1)
-		files[i] = file{fmt.Sprintf("issue%d.go", i), bytes.NewBufferString(source)}
+		files[i] = Source{fmt.Sprintf("issue%d.go", i), bytes.NewBufferString(source)}
 	}
 
 	err := parseAllFiles(files)

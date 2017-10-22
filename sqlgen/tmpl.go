@@ -16,8 +16,14 @@ const {{.Prefix}}{{.Type}}TableName = "{{.DbName}}"
 
 // {{.Prefix}}{{.Type}}Table holds a given table name with the database reference, providing access methods below.
 type {{.Prefix}}{{.Type}}Table struct {
-	Name string
-	Db   *sql.DB
+	Name    string
+	Db      *sql.DB
+	Dialect dialect.Dialect
+}
+
+// New{{.Prefix}}{{.Type}}Table returns a new table instance.
+func New{{.Prefix}}{{.Type}}Table(name string, db *sql.DB, dialect dialect.Dialect) {{.Prefix}}{{.Type}}Table {
+	return {{.Prefix}}{{.Type}}Table{name, db, dialect}
 }
 `
 
@@ -243,3 +249,26 @@ func (tbl {{.Prefix}}{{.Type}}Table) Exec(query string, args ...interface{}) (in
 `
 
 var tExec = template.Must(template.New("Exec").Funcs(funcMap).Parse(sExec))
+
+//-------------------------------------------------------------------------------------------------
+
+// function template to create a table
+const sCreateTable = `
+// Exec executes a query without returning any rows.
+// The args are for any placeholder parameters in the query.
+// It returns the number of rows affected.
+// Not every database or database driver may support this.
+func (tbl {{.Prefix}}{{.Type}}Table) CreateTable() (int64, error) {
+//"CREATE TABLE IF NOT EXISTS %s ("
+// id       INTEGER PRIMARY KEY AUTOINCREMENT,
+// number   INTEGER,
+// title    TEXT,
+// assignee TEXT,
+// state    TEXT,
+// labels   BLOB
+//")"
+	return 0, nil
+}
+`
+
+var tCreateTable = template.Must(template.New("CreateTable").Funcs(funcMap).Parse(sCreateTable))

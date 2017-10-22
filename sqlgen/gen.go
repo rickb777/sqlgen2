@@ -86,6 +86,7 @@ func main() {
 			writeInsertFunc(buf, view, table)
 			writeUpdateFunc(buf, view, table)
 			writeExecFunc(buf, view, table)
+			writeCreateTableFunc(buf, view, table)
 		}
 	}
 

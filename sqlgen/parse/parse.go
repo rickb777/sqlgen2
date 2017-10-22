@@ -17,22 +17,25 @@ var depth = 0
 var fset = token.NewFileSet()
 var files []*ast.File
 
-type file struct {
-	name string
-	in   io.Reader
+type Source struct {
+	Name string
+	In   io.Reader
 }
 
 func Parse(pkg, name string, path []string) (*Node, error) {
-	var files []file
+	var files []Source
 	for _, p := range path {
 		f, err := os.Open(p)
 		if err != nil {
 			return nil, err
 		}
 		defer f.Close()
-		files = append(files, file{p, f})
+		files = append(files, Source{p, f})
 	}
+	return DoParse(pkg, name, files)
+}
 
+func DoParse(pkg, name string, files []Source) (*Node, error) {
 	err := parseAllFiles(files)
 	if err != nil {
 		return nil, err
@@ -41,16 +44,16 @@ func Parse(pkg, name string, path []string) (*Node, error) {
 	return findMatchingNodes(pkg, name)
 }
 
-func parseAllFiles(path []file) (error) {
+func parseAllFiles(path []Source) (error) {
 	files = make([]*ast.File, 0, len(path))
 
 	for _, p := range path {
-		DevInfo("parsing: %s\n", p.name)
+		DevInfo("parsing: %s\n", p.Name)
 		mode := parser.ParseComments
 		if Debug && printAST {
 			mode |= parser.Trace
 		}
-		file, err := parser.ParseFile(fset, p.name, p.in, mode)
+		file, err := parser.ParseFile(fset, p.Name, p.In, mode)
 		if err != nil {
 			return err
 		}

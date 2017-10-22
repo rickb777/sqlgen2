@@ -17,8 +17,8 @@ func (dialect PostgresDialect) Placeholders(n int) string {
 	} else if n <= 9 {
 		return postgresPlaceholders[:n*3-1]
 	}
-	buf := &bytes.Buffer{}
-	for idx := 1; idx <= n; idx++ {
+	buf := bytes.NewBufferString(postgresPlaceholders)
+	for idx := 10; idx <= n; idx++ {
 		if idx > 1 {
 			buf.WriteByte(',')
 		}

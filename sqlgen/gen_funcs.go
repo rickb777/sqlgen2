@@ -264,6 +264,12 @@ func writeExecFunc(w io.Writer, view View, table *schema.Table) {
 	}
 }
 
+func writeCreateTableFunc(w io.Writer, view View, table *schema.Table) {
+	if table.HasPrimaryKey() {
+		must(tCreateTable.Execute(w, view))
+	}
+}
+
 // join is a helper function that joins nodes
 // together by name using the seperator.
 func join(nodes []*parse.Node, sep string) string {

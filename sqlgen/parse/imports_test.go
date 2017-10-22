@@ -32,11 +32,11 @@ func TestFindImport(t *testing.T) {
 		)
 		`
 
-	files := make([]file, 0)
+	files := make([]Source, 0)
 
-	files = append(files, file{"issue1.go", bytes.NewBufferString(source1)})
-	files = append(files, file{"issue2.go", bytes.NewBufferString(source2)})
-	files = append(files, file{"issue3.go", bytes.NewBufferString(source3)})
+	files = append(files, Source{"issue1.go", bytes.NewBufferString(source1)})
+	files = append(files, Source{"issue2.go", bytes.NewBufferString(source2)})
+	files = append(files, Source{"issue3.go", bytes.NewBufferString(source3)})
 
 	err := parseAllFiles(files)
 	if err != nil {

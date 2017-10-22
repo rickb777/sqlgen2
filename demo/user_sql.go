@@ -14,8 +14,14 @@ const UserTableName = "users"
 
 // UserTable holds a given table name with the database reference, providing access methods below.
 type UserTable struct {
-	Name string
-	Db   *sql.DB
+	Name    string
+	Db      *sql.DB
+	Dialect dialect.Dialect
+}
+
+// NewUserTable returns a new table instance.
+func NewUserTable(name string, db *sql.DB, dialect dialect.Dialect) UserTable {
+	return UserTable{name, db, dialect}
 }
 
 // ScanUser reads a database record into a single value.
@@ -257,6 +263,22 @@ func (tbl UserTable) Exec(query string, args ...interface{}) (int64, error) {
 		return 0, nil
 	}
 	return res.RowsAffected()
+}
+
+// Exec executes a query without returning any rows.
+// The args are for any placeholder parameters in the query.
+// It returns the number of rows affected.
+// Not every database or database driver may support this.
+func (tbl UserTable) CreateTable() (int64, error) {
+//"CREATE TABLE IF NOT EXISTS %s ("
+// id       INTEGER PRIMARY KEY AUTOINCREMENT,
+// number   INTEGER,
+// title    TEXT,
+// assignee TEXT,
+// state    TEXT,
+// labels   BLOB
+//")"
+	return 0, nil
 }
 
 //--------------------------------------------------------------------------------
