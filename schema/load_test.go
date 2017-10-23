@@ -88,11 +88,14 @@ func TestParseAndLoad(t *testing.T) {
 	code := strings.Replace(`package pkg1
 
 type Example struct {
-	Id       int64 |sql:"pk: true, auto: true"|
-	Number   int
-	Foo      int |sql:"-"|
-	Title, Hobby, TeamOwner string
-	Active   bool
+	Id         int64    |sql:"pk: true, auto: true"|
+	Number     int
+	Foo        int      |sql:"-"|
+	Title      string   |sql:"index: titleIdx"|
+	//TODO Owner      string   |sql:"name: team_owner"|
+	Hobby      string   |sql:"size: 2048"|
+	Labels     []string |sql:"encode: json"|
+	Active     bool
 }`, "|", "`", -1)
 
 	source := Source{"issue.go", bytes.NewBufferString(code)}
@@ -107,9 +110,11 @@ type Example struct {
 	id := &Field{"Id", "id", INTEGER, true, true, 0}
 	number := &Field{"Number", "number", INTEGER, false, false, 0}
 	title := &Field{"Title", "title", VARCHAR, false, false, 0}
-	hobby := &Field{"Hobby", "hobby", VARCHAR, false, false, 0}
-	owner := &Field{"TeamOwner", "team_owner", VARCHAR, false, false, 0}
+	//owner := &Field{"Owner", "team_owner", VARCHAR, false, false, 0}
+	hobby := &Field{"Hobby", "hobby", VARCHAR, false, false, 2048}
+	labels := &Field{"Labels", "labels", BLOB, false, false, 0}
 	active := &Field{"Active", "active", BOOLEAN, false, false, 0}
+	ititle := &Index{"titleIdx", false, []*Field{title}}
 
 	expected := &Table{
 		Type: "Example",
@@ -118,11 +123,14 @@ type Example struct {
 			id,
 			number,
 			title,
+			//owner,
 			hobby,
-			owner,
+			labels,
 			active,
 		},
-		Index: nil,
+		Index: []*Index{
+			ititle,
+		},
 		Primary: id,
 	}
 

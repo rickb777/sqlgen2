@@ -15,8 +15,16 @@ func TestParseTag(t *testing.T) {
 			&Tag{Skip: true},
 		},
 		{
+			TagKey + `:"pk: true"`,
+			&Tag{Primary: true, Auto: false},
+		},
+		{
 			TagKey + `:"pk: true, auto: true"`,
 			&Tag{Primary: true, Auto: true},
+		},
+		{
+			TagKey + `:"auto: true"`,
+			&Tag{Primary: false, Auto: true},
 		},
 		{
 			TagKey + `:"name: foo"`,
