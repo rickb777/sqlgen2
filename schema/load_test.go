@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"github.com/kortschak/utter"
 )
 
 func TestConvertLeafNodeToField(t *testing.T) {
@@ -86,18 +87,47 @@ func doCompare(t *testing.T, leaf *Node, wantOk bool, expectedField *Field, expe
 func TestParseAndLoad(t *testing.T) {
 	code := strings.Replace(`package pkg1
 
-type Struct struct {
+type Example struct {
 	Id       int64 |sql:"pk: true, auto: true"|
 	Number   int
 	Foo      int |sql:"-"|
-	Title, Description, Owner string
+	Title, Hobby, TeamOwner string
+	Active   bool
 }`, "|", "`", -1)
 
 	source := Source{"issue.go", bytes.NewBufferString(code)}
 
-	_, err := DoParse("pkg1", "Struct", []Source{source})
+	node, err := DoParse("pkg1", "Example", []Source{source})
 	if err != nil {
 		t.Errorf("Error parsing: %s", err)
 	}
-	//TODO finish
+
+	table := Load(node)
+
+	id := &Field{"Id", "id", INTEGER, true, true, 0}
+	number := &Field{"Number", "number", INTEGER, false, false, 0}
+	title := &Field{"Title", "title", VARCHAR, false, false, 0}
+	hobby := &Field{"Hobby", "hobby", VARCHAR, false, false, 0}
+	owner := &Field{"TeamOwner", "team_owner", VARCHAR, false, false, 0}
+	active := &Field{"Active", "active", BOOLEAN, false, false, 0}
+
+	expected := &Table{
+		Type: "Example",
+		Name: "examples",
+		Fields: []*Field{
+			id,
+			number,
+			title,
+			hobby,
+			owner,
+			active,
+		},
+		Index: nil,
+		Primary: id,
+	}
+
+	if !reflect.DeepEqual(table, expected) {
+		t.Errorf("\nexpected %s\n"+
+			"but got  %s", utter.Sdump(expected), utter.Sdump(table))
+	}
 }
