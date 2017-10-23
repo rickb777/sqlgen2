@@ -1,5 +1,7 @@
 package schema
 
+import "github.com/rickb777/sqlgen2/sqlgen/parse"
+
 type SqlType int
 
 // List of basic types
@@ -38,9 +40,10 @@ type Table struct {
 
 type Field struct {
 	Name    string
+	Type    parse.Type
 	Path    []string
 	SqlName string
-	Type    SqlType
+	SqlType SqlType
 	Encode  SqlEncode
 	Primary bool
 	Auto    bool
@@ -55,7 +58,7 @@ type Index struct {
 }
 
 func (t *Table) HasLastInsertId() bool {
-	return t.Primary != nil && t.Primary.Type == INTEGER
+	return t.Primary != nil && t.Primary.SqlType == INTEGER
 }
 
 func (t *Table) HasPrimaryKey() bool {

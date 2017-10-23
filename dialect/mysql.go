@@ -27,7 +27,7 @@ func (dialect MySQLDialect) ReplacePlaceholders(sql string) string {
 }
 
 func (dialect MySQLDialect) Column(f *schema.Field) string {
-	switch f.Type {
+	switch f.SqlType {
 	case schema.INTEGER:
 		return "INTEGER"
 	case schema.BOOLEAN:

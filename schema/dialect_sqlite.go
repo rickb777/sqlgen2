@@ -15,7 +15,7 @@ func (d *sqlite) Id() DialectId {
 }
 
 func sqliteColumn(f *Field) string {
-	switch f.Type {
+	switch f.SqlType {
 	case INTEGER:
 		return "INTEGER"
 	case BOOLEAN:

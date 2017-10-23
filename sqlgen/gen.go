@@ -8,6 +8,7 @@ import (
 
 	"fmt"
 	"github.com/rickb777/sqlgen2/schema"
+	. "github.com/rickb777/sqlgen2/sqlgen/code"
 	. "github.com/rickb777/sqlgen2/sqlgen/output"
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"strings"
@@ -65,34 +66,34 @@ func main() {
 
 	buf := &bytes.Buffer{}
 
-	writePackage(buf, pkg)
+	WritePackage(buf, pkg)
 
 	if genFuncs {
-		view := newView(tree, prefix)
+		view := NewView(tree, prefix)
 		view.Table = table
 
-		writeImports(buf, tree, "database/sql", "fmt",
+		WriteImports(buf, table, "database/sql", "fmt",
 			"github.com/rickb777/sqlgen2/dialect", "github.com/rickb777/sqlgen2/where", imports)
-		writeType(buf, view)
-		writeRowFunc(buf, tree, view)
-		writeRowsFunc(buf, tree, view)
-		writeSliceFunc(buf, tree, view, false)
-		writeSliceFunc(buf, tree, view, true)
+		WriteType(buf, view)
+		WriteRowFunc(buf, tree, view)
+		WriteRowsFunc(buf, tree, view)
+		WriteSliceFunc(buf, tree, view, false)
+		WriteSliceFunc(buf, tree, view, true)
 
 		if extraFuncs {
-			writeSelectRow(buf, view)
-			writeSelectRows(buf, view)
-			writeCountRows(buf, view)
-			writeInsertFunc(buf, view, table)
-			writeUpdateFunc(buf, view, table)
-			writeExecFunc(buf, view, table)
-			writeCreateTableFunc(buf, view, table)
+			WriteSelectRow(buf, view)
+			WriteSelectRows(buf, view)
+			WriteCountRows(buf, view)
+			WriteInsertFunc(buf, view, table)
+			WriteUpdateFunc(buf, view, table)
+			WriteExecFunc(buf, view, table)
+			WriteCreateTableFunc(buf, view, table)
 		}
 	}
 
 	// write the sql functions
 	if genSchema {
-		writeSchema(buf, dialect, tree, table)
+		WriteSchema(buf, dialect, table)
 	}
 
 	// formats the generated file using gofmt

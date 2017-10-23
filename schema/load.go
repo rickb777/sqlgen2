@@ -31,12 +31,12 @@ func Load(tree *parse.Node) *Table {
 }
 
 func convertLeafNodeToField(leaf *parse.Node, indices map[string]*Index, table *Table) (*Field, bool) {
-	field := &Field{Name: leaf.Name}
+	field := &Field{Name: leaf.Name, Type: leaf.Type}
 
 	// Lookup the SQL column type
-	field.Type = BLOB
+	field.SqlType = BLOB
 	if leaf.Type.Base.IsSimpleType() {
-		field.Type = types[leaf.Type.Base]
+		field.SqlType = types[leaf.Type.Base]
 	}
 
 	// substitute tag variables
@@ -53,7 +53,7 @@ func convertLeafNodeToField(leaf *parse.Node, indices map[string]*Index, table *
 		if leaf.Tags.Primary {
 			if table.Primary != nil {
 				exit.Fail(1, "%s, %s: compound primary keys are not supported.\n",
-					table.Primary.Name, field.Name)
+					table.Primary.Type.Name, field.Type.Name)
 			}
 			table.Primary = field
 		}
@@ -86,7 +86,7 @@ func convertLeafNodeToField(leaf *parse.Node, indices map[string]*Index, table *
 		if leaf.Tags.Type != "" {
 			t, ok := sqlTypes[leaf.Tags.Type]
 			if ok {
-				field.Type = t
+				field.SqlType = t
 			}
 		}
 

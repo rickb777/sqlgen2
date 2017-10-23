@@ -1,4 +1,4 @@
-package main
+package code
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ type View struct {
 	Table  *schema.Table
 }
 
-func newView(tree *parse.Node, prefix string) View {
+func NewView(tree *parse.Node, prefix string) View {
 	return View{
 		Prefix: prefix,
 		Type:   tree.Type.Name,

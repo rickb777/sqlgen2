@@ -1,4 +1,4 @@
-package main
+package code
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 
 	"bitbucket.org/pkg/inflect"
 	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/sqlgen/parse"
 )
 
 const sectionBreak = "\n//--------------------------------------------------------------------------------"
@@ -19,90 +18,90 @@ type ConstView struct {
 
 // writeSchema writes SQL statements to CREATE, INSERT,
 // UPDATE and DELETE values from Table t.
-func writeSchema(w io.Writer, d schema.Dialect, tree *parse.Node, t *schema.Table) {
+func WriteSchema(w io.Writer, d schema.Dialect, table *schema.Table) {
 
 	fmt.Fprintln(w, sectionBreak)
 
-	tableName := t.Type
+	tableName := table.Type
 
 	must(tConst.Execute(w, ConstView{
 		identifier("Num", tableName, "Columns"),
-		t.NumColumnNames(true),
+		table.NumColumnNames(true),
 	}))
 
 	must(tConstStr.Execute(w, ConstView{
 		identifier("", tableName, "ColumnNames"),
-		Join(t.ColumnNames(true), ", "),
+		Join(table.ColumnNames(true), ", "),
 	}))
 
 	must(tConstStr.Execute(w, ConstView{
 		identifier("", tableName, "DataColumnNames"),
-		Join(t.ColumnNames(false), ", "),
+		Join(table.ColumnNames(false), ", "),
 	}))
 
 	must(tConstStr.Execute(w, ConstView{
 		identifier("", tableName, "ColumnParams"),
-		d.ColumnParams(t, true),
+		d.ColumnParams(table, true),
 	}))
 
 	must(tConstStr.Execute(w, ConstView{
 		identifier("", tableName, "DataColumnParams"),
-		d.ColumnParams(t, false),
+		d.ColumnParams(table, false),
 	}))
 
 	must(tConstWithTableName.Execute(w, ConstView{
 		identifier("Create", tableName, "Stmt"),
-		d.Table(t),
+		d.Table(table),
 	}))
 
 	must(tConstWithTableName.Execute(w, ConstView{
 		identifier("Insert", tableName, "Stmt"),
-		d.Insert(t),
+		d.Insert(table),
 	}))
 
-	if t.HasPrimaryKey() {
+	if table.HasPrimaryKey() {
 		must(tConstWithTableName.Execute(w, ConstView{
 			identifier("Update", tableName, "ByPkStmt"),
-			d.Update(t, []*schema.Field{t.Primary}),
+			d.Update(table, []*schema.Field{table.Primary}),
 		}))
 
 		must(tConstWithTableName.Execute(w, ConstView{
 			identifier("Delete", tableName, "ByPkStmt"),
-			d.Delete(t, []*schema.Field{t.Primary}),
+			d.Delete(table, []*schema.Field{table.Primary}),
 		}))
 	}
 
 	fmt.Fprintln(w, sectionBreak)
 
-	for _, ix := range t.Index {
+	for _, ix := range table.Index {
 
 		must(tConstWithTableName.Execute(w, ConstView{
 			identifier("Create", ix.Name, "Stmt"),
-			d.Index(t, ix),
+			d.Index(table, ix),
 		}))
 
 		if !ix.Unique {
 
 			//must(tConstWithTableName.Execute(w, ConstView{
 			//	identifier("Select", ix.Name, "RangeStmt"),
-			//	d.SelectRange(t, ix.Fields),
+			//	d.SelectRange(table, ix.Fields),
 			//}))
 			//
 			//must(tConstWithTableName.Execute(w, ConstView{
 			//	identifier("Select", ix.Name, "CountStmt"),
-			//	d.SelectCount(t, ix.Fields),
+			//	d.SelectCount(table, ix.Fields),
 			//}))
 
 		} else {
 
 			must(tConstWithTableName.Execute(w, ConstView{
 				identifier("Update", ix.Name, "Stmt"),
-				d.Update(t, ix.Fields),
+				d.Update(table, ix.Fields),
 			}))
 
 			must(tConstWithTableName.Execute(w, ConstView{
 				identifier("Delete", ix.Name, "Stmt"),
-				d.Delete(t, ix.Fields),
+				d.Delete(table, ix.Fields),
 			}))
 		}
 	}
@@ -110,7 +109,7 @@ func writeSchema(w io.Writer, d schema.Dialect, tree *parse.Node, t *schema.Tabl
 
 // WritePackage writes the Go package header to
 // writer w with the given package name.
-func writePackage(w io.Writer, name string) {
+func WritePackage(w io.Writer, name string) {
 	fmt.Fprintf(w, sPackage, name)
 }
 

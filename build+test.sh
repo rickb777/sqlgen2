@@ -15,7 +15,7 @@ if ! type -p goveralls; then
   go get github.com/mattn/goveralls
 fi
 
-for d in output parse; do
+for d in code output parse; do
   echo sqlgen/$d...
   go test $1 -covermode=count -coverprofile=../$d.out ./$d
   go tool cover -func=../$d.out

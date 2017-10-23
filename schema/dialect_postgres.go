@@ -27,7 +27,7 @@ func postgresColumn(f *Field) string {
 		return "SERIAL"
 	}
 
-	switch f.Type {
+	switch f.SqlType {
 	case INTEGER:
 		return "INTEGER"
 	case BOOLEAN:

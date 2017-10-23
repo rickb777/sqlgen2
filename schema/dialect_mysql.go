@@ -21,7 +21,7 @@ func (d *mysql) Id() DialectId {
 // see https://github.com/eaigner/hood/blob/master/mysql.go#L35
 
 func mysqlColumn(f *Field) string {
-	switch f.Type {
+	switch f.SqlType {
 	case INTEGER:
 		return "INTEGER"
 	case BOOLEAN:
