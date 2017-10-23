@@ -5,8 +5,8 @@ package demo
 import (
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen/dialect"
-	"github.com/rickb777/sqlgen/where"
+	"github.com/rickb777/sqlgen2/dialect"
+	"github.com/rickb777/sqlgen2/where"
 )
 
 // UserTableName is the default name for this table.

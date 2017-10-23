@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	. "github.com/acsellers/inflections"
-	"github.com/rickb777/sqlgen/sqlgen/parse"
-	"github.com/rickb777/sqlgen/sqlgen/parse/exit"
+	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 )
 
 func Load(tree *parse.Node) *Table {
@@ -89,6 +89,13 @@ func convertLeafNodeToField(leaf *parse.Node, indices map[string]*Index, table *
 				field.Type = t
 			}
 		}
+
+		switch leaf.Tags.Encode {
+		case "json":
+			field.Encode = ENCJSON
+			// case "gzip":
+			// case "snappy":
+		}
 	}
 
 	// get the full path name
@@ -103,6 +110,8 @@ func convertLeafNodeToField(leaf *parse.Node, indices map[string]*Index, table *
 
 		parts = append(parts, part.Name)
 	}
+
+	field.Path = parts
 	field.SqlName = Underscore(strings.Join(parts, "_"))
 
 	return field, true

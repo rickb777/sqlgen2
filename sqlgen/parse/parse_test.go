@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 	"fmt"
-	"github.com/rickb777/sqlgen/sqlgen/parse/exit"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 )
 
 func TestStructWith3FieldsAndTags(t *testing.T) {

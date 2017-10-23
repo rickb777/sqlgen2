@@ -1,7 +1,7 @@
 package dialect
 
 import (
-	"github.com/rickb777/sqlgen/schema"
+	"github.com/rickb777/sqlgen2/schema"
 	"fmt"
 	"strings"
 )

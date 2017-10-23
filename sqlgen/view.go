@@ -6,8 +6,8 @@ import (
 	"text/template"
 
 	. "github.com/acsellers/inflections"
-	"github.com/rickb777/sqlgen/schema"
-	"github.com/rickb777/sqlgen/sqlgen/parse"
+	"github.com/rickb777/sqlgen2/schema"
+	"github.com/rickb777/sqlgen2/sqlgen/parse"
 )
 
 type View struct {

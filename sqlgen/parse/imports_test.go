@@ -3,7 +3,7 @@ package parse
 import (
 	"bytes"
 	"testing"
-	"github.com/rickb777/sqlgen/sqlgen/parse/exit"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 )
 
 func TestFindImport(t *testing.T) {
@@ -21,14 +21,14 @@ func TestFindImport(t *testing.T) {
 
 		import (
 			"bytes"
-			"github.com/rickb777/sqlgen/schema"
+			"github.com/rickb777/sqlgen2/schema"
 		)
 		`
 	source3 := `package thingy
 
 		import (
 			"go/token"
-			"github.com/rickb777/sqlgen/parse"
+			"github.com/rickb777/sqlgen2/parse"
 		)
 		`
 
@@ -48,8 +48,8 @@ func TestFindImport(t *testing.T) {
 	}{
 		{"bytes", "bytes"},
 		{"utter", "github.com/kortschak/utter"},
-		{"schema", "github.com/rickb777/sqlgen/schema"},
-		{"parse", "github.com/rickb777/sqlgen/parse"},
+		{"schema", "github.com/rickb777/sqlgen2/schema"},
+		{"parse", "github.com/rickb777/sqlgen2/parse"},
 		{"token", "go/token"},
 	}
 

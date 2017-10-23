@@ -7,9 +7,9 @@ import (
 	"os"
 
 	"fmt"
-	"github.com/rickb777/sqlgen/schema"
-	. "github.com/rickb777/sqlgen/sqlgen/output"
-	"github.com/rickb777/sqlgen/sqlgen/parse"
+	"github.com/rickb777/sqlgen2/schema"
+	. "github.com/rickb777/sqlgen2/sqlgen/output"
+	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"strings"
 )
 
@@ -72,7 +72,7 @@ func main() {
 		view.Table = table
 
 		writeImports(buf, tree, "database/sql", "fmt",
-			"github.com/rickb777/sqlgen/dialect", "github.com/rickb777/sqlgen/where", imports)
+			"github.com/rickb777/sqlgen2/dialect", "github.com/rickb777/sqlgen2/where", imports)
 		writeType(buf, view)
 		writeRowFunc(buf, tree, view)
 		writeRowsFunc(buf, tree, view)

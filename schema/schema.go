@@ -11,6 +11,14 @@ const (
 	JSON
 )
 
+type SqlEncode int
+
+// List of vendor-specific keywords
+const (
+	ENCNONE SqlEncode = iota
+	ENCJSON
+)
+
 type SqlToken int
 
 // List of vendor-specific keywords
@@ -30,8 +38,10 @@ type Table struct {
 
 type Field struct {
 	Name    string
+	Path    []string
 	SqlName string
 	Type    SqlType
+	Encode  SqlEncode
 	Primary bool
 	Auto    bool
 	Size    int

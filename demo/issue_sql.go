@@ -6,8 +6,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/rickb777/sqlgen/dialect"
-	"github.com/rickb777/sqlgen/where"
+	"github.com/rickb777/sqlgen2/dialect"
+	"github.com/rickb777/sqlgen2/where"
 )
 
 // IssueTableName is the default name for this table.
