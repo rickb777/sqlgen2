@@ -15,7 +15,7 @@ func newPostgres() Dialect {
 }
 
 func (d *posgres) Id() DialectId {
-	return POSTGRES
+	return Postgres
 }
 
 // see https://github.com/eaigner/hood/blob/master/mysql.go#L35

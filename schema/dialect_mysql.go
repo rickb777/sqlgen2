@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"github.com/rickb777/sqlgen2/sqlgen/parse"
 )
 
 type mysql struct {
@@ -15,17 +16,59 @@ func newMySQL() Dialect {
 }
 
 func (d *mysql) Id() DialectId {
-	return MYSQL
+	return Mysql
 }
 
-// see https://github.com/eaigner/hood/blob/master/mysql.go#L35
+func (d *mysql) CreateTableSettings() string {
+	return " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+}
+
+// see https://dev.mysql.com/doc/refman/5.7/en/integer-types.html
+
+func mysqlIntegerColumn(f *Field) string {
+	switch f.Type.Base {
+	case parse.Int, parse.Int64:
+		return "BIGINT"
+	case parse.Int8:
+		return "TINYINT"
+	case parse.Int16:
+		return "SMALLINT"
+	case parse.Int32:
+		return "INT"
+	case parse.Uint, parse.Uint64:
+		return "BIGINT UNSIGNED"
+	case parse.Uint8:
+		return "TINYINT UNSIGNED"
+	case parse.Uint16:
+		return "SMALLINT UNSIGNED"
+	case parse.Uint32:
+		return "INT UNSIGNED"
+	case parse.Float32:
+		return "FLOAT"
+	case parse.Float64:
+		return "DOUBLE"
+	}
+	return ""
+}
+
+func mysqlRealColumn(f *Field) string {
+	switch f.Type.Base {
+	case parse.Float32:
+		return "FLOAT"
+	case parse.Float64:
+		return "DOUBLE"
+	}
+	return ""
+}
 
 func mysqlColumn(f *Field) string {
 	switch f.SqlType {
 	case INTEGER:
-		return "INTEGER"
+		return mysqlIntegerColumn(f)
+	case REAL:
+		return mysqlRealColumn(f)
 	case BOOLEAN:
-		return "BOOLEAN"
+		return "TINYINT(1)"
 	case BLOB:
 		return "MEDIUMBLOB"
 	case VARCHAR:
@@ -36,9 +79,8 @@ func mysqlColumn(f *Field) string {
 			size = 512
 		}
 		return fmt.Sprintf("VARCHAR(%d)", size)
-	default:
-		return ""
 	}
+	return ""
 }
 
 func mysqlToken(v SqlToken) string {

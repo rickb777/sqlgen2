@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/rickb777/sqlgen2/dialect"
+	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 )
 
@@ -14,13 +15,16 @@ const HookTableName = "hooks"
 
 // HookTable holds a given table name with the database reference, providing access methods below.
 type HookTable struct {
-	Name    string
-	Db      *sql.DB
-	Dialect dialect.Dialect
+	Name      string
+	Db        *sql.DB
+	DialectId schema.DialectId
 }
 
 // NewHookTable returns a new table instance.
-func NewHookTable(name string, db *sql.DB, dialect dialect.Dialect) HookTable {
+func NewHookTable(name string, db *sql.DB, dialect schema.DialectId) HookTable {
+	if name == "" {
+		name = HookTableName
+	}
 	return HookTable{name, db, dialect}
 }
 
@@ -336,7 +340,13 @@ func (tbl HookTable) Count(where where.Expression, dialect dialect.Dialect) (cou
 
 // Insert adds new records for the Hooks.
 func (tbl HookTable) Insert(v *Hook) error {
-	query := fmt.Sprintf(sInsertHookStmt, tbl.Name)
+	var stmt string
+	switch tbl.DialectId {
+	case schema.Sqlite: stmt = sInsertHookStmtSqlite
+    case schema.Postgres: stmt = sInsertHookStmtPostgres
+    case schema.Mysql: stmt = sInsertHookStmtMysql
+    }
+	query := fmt.Sprintf(stmt, tbl.Name)
 	res, err := tbl.Db.Exec(query, SliceHookWithoutPk(v)...)
 	if err != nil {
 		return err
@@ -349,7 +359,13 @@ func (tbl HookTable) Insert(v *Hook) error {
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl HookTable) Update(v *Hook) (int64, error) {
-	query := fmt.Sprintf(sUpdateHookByPkStmt, tbl.Name)
+	var stmt string
+	switch tbl.DialectId {
+	case schema.Sqlite: stmt = sUpdateHookByPkStmtSqlite
+    case schema.Postgres: stmt = sUpdateHookByPkStmtPostgres
+    case schema.Mysql: stmt = sUpdateHookByPkStmtMysql
+    }
+	query := fmt.Sprintf(stmt, tbl.Name)
 	args := SliceHookWithoutPk(v)
 	args = append(args, v.Id)
 	return tbl.Exec(query, args...)
@@ -372,15 +388,14 @@ func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
 // It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl HookTable) CreateTable() (int64, error) {
-//"CREATE TABLE IF NOT EXISTS %s ("
-// id       INTEGER PRIMARY KEY AUTOINCREMENT,
-// number   INTEGER,
-// title    TEXT,
-// assignee TEXT,
-// state    TEXT,
-// labels   BLOB
-//")"
-	return 0, nil
+	var stmt string
+	switch tbl.DialectId {
+	case schema.Sqlite: stmt = sCreateHookStmtSqlite
+    case schema.Postgres: stmt = sCreateHookStmtPostgres
+    case schema.Mysql: stmt = sCreateHookStmtMysql
+    }
+	query := fmt.Sprintf(stmt, tbl.Name)
+	return tbl.Exec(query)
 }
 
 //--------------------------------------------------------------------------------
@@ -395,15 +410,15 @@ const sHookDataColumnNames = `
 sha, after, before, created, deleted, forced
 `
 
-const sHookColumnParams = `
+const sHookColumnParamsSqlite = `
 ?,?,?,?,?,?,?
 `
 
-const sHookDataColumnParams = `
+const sHookDataColumnParamsSqlite = `
 ?,?,?,?,?,?
 `
 
-const sCreateHookStmt = `
+const sCreateHookStmtSqlite = `
 CREATE TABLE IF NOT EXISTS %s (
  id      INTEGER PRIMARY KEY AUTOINCREMENT,
  sha     TEXT,
@@ -412,14 +427,10 @@ CREATE TABLE IF NOT EXISTS %s (
  created BOOLEAN,
  deleted BOOLEAN,
  forced  BOOLEAN
-);
+)
 `
 
-func CreateHookStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sCreateHookStmt, tableName))
-}
-
-const sInsertHookStmt = `
+const sInsertHookStmtSqlite = `
 INSERT INTO %s (
  sha,
  after,
@@ -430,11 +441,7 @@ INSERT INTO %s (
 ) VALUES (?,?,?,?,?,?)
 `
 
-func InsertHookStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sInsertHookStmt, tableName))
-}
-
-const sUpdateHookByPkStmt = `
+const sUpdateHookByPkStmtSqlite = `
 UPDATE %s SET 
  sha=?,
  after=?,
@@ -445,17 +452,107 @@ UPDATE %s SET
  WHERE id=?
 `
 
-func UpdateHookByPkStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sUpdateHookByPkStmt, tableName))
-}
-
-const sDeleteHookByPkStmt = `
+const sDeleteHookByPkStmtSqlite = `
 DELETE FROM %s
  WHERE id=?
 `
 
-func DeleteHookByPkStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sDeleteHookByPkStmt, tableName))
-}
+//--------------------------------------------------------------------------------
+
+const sHookColumnParamsPostgres = `
+$1,$2,$3,$4,$5,$6,$7
+`
+
+const sHookDataColumnParamsPostgres = `
+$1,$2,$3,$4,$5,$6
+`
+
+const sCreateHookStmtPostgres = `
+CREATE TABLE IF NOT EXISTS %s (
+ id      SERIAL PRIMARY KEY ,
+ sha     VARCHAR(512),
+ after   VARCHAR(512),
+ before  VARCHAR(512),
+ created BOOLEAN,
+ deleted BOOLEAN,
+ forced  BOOLEAN
+)
+`
+
+const sInsertHookStmtPostgres = `
+INSERT INTO %s (
+ sha,
+ after,
+ before,
+ created,
+ deleted,
+ forced
+) VALUES ($1,$2,$3,$4,$5,$6)
+`
+
+const sUpdateHookByPkStmtPostgres = `
+UPDATE %s SET 
+ sha=$2,
+ after=$3,
+ before=$4,
+ created=$5,
+ deleted=$6,
+ forced=$7 
+ WHERE id=$8
+`
+
+const sDeleteHookByPkStmtPostgres = `
+DELETE FROM %s
+ WHERE id=$1
+`
+
+//--------------------------------------------------------------------------------
+
+const sHookColumnParamsMysql = `
+?,?,?,?,?,?,?
+`
+
+const sHookDataColumnParamsMysql = `
+?,?,?,?,?,?
+`
+
+const sCreateHookStmtMysql = `
+CREATE TABLE IF NOT EXISTS %s (
+ id      BIGINT PRIMARY KEY AUTO_INCREMENT,
+ sha     VARCHAR(512),
+ after   VARCHAR(512),
+ before  VARCHAR(512),
+ created TINYINT(1),
+ deleted TINYINT(1),
+ forced  TINYINT(1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+`
+
+const sInsertHookStmtMysql = `
+INSERT INTO %s (
+ sha,
+ after,
+ before,
+ created,
+ deleted,
+ forced
+) VALUES (?,?,?,?,?,?)
+`
+
+const sUpdateHookByPkStmtMysql = `
+UPDATE %s SET 
+ sha=?,
+ after=?,
+ before=?,
+ created=?,
+ deleted=?,
+ forced=? 
+ WHERE id=?
+`
+
+const sDeleteHookByPkStmtMysql = `
+DELETE FROM %s
+ WHERE id=?
+`
 
 //--------------------------------------------------------------------------------

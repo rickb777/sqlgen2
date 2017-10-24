@@ -11,14 +11,15 @@ import (
 )
 
 type View struct {
-	Prefix string
-	Type   string
-	Types  string
-	Suffix string
-	Body1  []string
-	Body2  []string
-	Body3  []string
-	Table  *schema.Table
+	Prefix   string
+	Type     string
+	Types    string
+	Suffix   string
+	Body1    []string
+	Body2    []string
+	Body3    []string
+	Dialects []string
+	Table    *schema.Table
 }
 
 func NewView(tree *parse.Node, prefix string) View {

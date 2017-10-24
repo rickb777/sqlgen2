@@ -11,7 +11,7 @@ func newSQLite() Dialect {
 }
 
 func (d *sqlite) Id() DialectId {
-	return SQLITE
+	return Sqlite
 }
 
 func sqliteColumn(f *Field) string {

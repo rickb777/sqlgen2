@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/rickb777/sqlgen2/dialect"
+	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 )
 
@@ -14,13 +15,16 @@ const UserTableName = "users"
 
 // UserTable holds a given table name with the database reference, providing access methods below.
 type UserTable struct {
-	Name    string
-	Db      *sql.DB
-	Dialect dialect.Dialect
+	Name      string
+	Db        *sql.DB
+	DialectId schema.DialectId
 }
 
 // NewUserTable returns a new table instance.
-func NewUserTable(name string, db *sql.DB, dialect dialect.Dialect) UserTable {
+func NewUserTable(name string, db *sql.DB, dialect schema.DialectId) UserTable {
+	if name == "" {
+		name = UserTableName
+	}
 	return UserTable{name, db, dialect}
 }
 
@@ -234,7 +238,13 @@ func (tbl UserTable) Count(where where.Expression, dialect dialect.Dialect) (cou
 
 // Insert adds new records for the Users.
 func (tbl UserTable) Insert(v *User) error {
-	query := fmt.Sprintf(sInsertUserStmt, tbl.Name)
+	var stmt string
+	switch tbl.DialectId {
+	case schema.Sqlite: stmt = sInsertUserStmtSqlite
+    case schema.Postgres: stmt = sInsertUserStmtPostgres
+    case schema.Mysql: stmt = sInsertUserStmtMysql
+    }
+	query := fmt.Sprintf(stmt, tbl.Name)
 	res, err := tbl.Db.Exec(query, SliceUserWithoutPk(v)...)
 	if err != nil {
 		return err
@@ -247,7 +257,13 @@ func (tbl UserTable) Insert(v *User) error {
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl UserTable) Update(v *User) (int64, error) {
-	query := fmt.Sprintf(sUpdateUserByPkStmt, tbl.Name)
+	var stmt string
+	switch tbl.DialectId {
+	case schema.Sqlite: stmt = sUpdateUserByPkStmtSqlite
+    case schema.Postgres: stmt = sUpdateUserByPkStmtPostgres
+    case schema.Mysql: stmt = sUpdateUserByPkStmtMysql
+    }
+	query := fmt.Sprintf(stmt, tbl.Name)
 	args := SliceUserWithoutPk(v)
 	args = append(args, v.Id)
 	return tbl.Exec(query, args...)
@@ -270,15 +286,14 @@ func (tbl UserTable) Exec(query string, args ...interface{}) (int64, error) {
 // It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl UserTable) CreateTable() (int64, error) {
-//"CREATE TABLE IF NOT EXISTS %s ("
-// id       INTEGER PRIMARY KEY AUTOINCREMENT,
-// number   INTEGER,
-// title    TEXT,
-// assignee TEXT,
-// state    TEXT,
-// labels   BLOB
-//")"
-	return 0, nil
+	var stmt string
+	switch tbl.DialectId {
+	case schema.Sqlite: stmt = sCreateUserStmtSqlite
+    case schema.Postgres: stmt = sCreateUserStmtPostgres
+    case schema.Mysql: stmt = sCreateUserStmtMysql
+    }
+	query := fmt.Sprintf(stmt, tbl.Name)
+	return tbl.Exec(query)
 }
 
 //--------------------------------------------------------------------------------
@@ -293,15 +308,15 @@ const sUserDataColumnNames = `
 login, email, avatar, active, admin, token, secret, hash
 `
 
-const sUserColumnParams = `
+const sUserColumnParamsSqlite = `
 ?,?,?,?,?,?,?,?,?
 `
 
-const sUserDataColumnParams = `
+const sUserDataColumnParamsSqlite = `
 ?,?,?,?,?,?,?,?
 `
 
-const sCreateUserStmt = `
+const sCreateUserStmtSqlite = `
 CREATE TABLE IF NOT EXISTS %s (
  id     INTEGER PRIMARY KEY AUTOINCREMENT,
  login  TEXT,
@@ -312,14 +327,10 @@ CREATE TABLE IF NOT EXISTS %s (
  token  TEXT,
  secret TEXT,
  hash   TEXT
-);
+)
 `
 
-func CreateUserStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sCreateUserStmt, tableName))
-}
-
-const sInsertUserStmt = `
+const sInsertUserStmtSqlite = `
 INSERT INTO %s (
  login,
  email,
@@ -332,11 +343,7 @@ INSERT INTO %s (
 ) VALUES (?,?,?,?,?,?,?,?)
 `
 
-func InsertUserStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sInsertUserStmt, tableName))
-}
-
-const sUpdateUserByPkStmt = `
+const sUpdateUserByPkStmtSqlite = `
 UPDATE %s SET 
  login=?,
  email=?,
@@ -349,30 +356,18 @@ UPDATE %s SET
  WHERE id=?
 `
 
-func UpdateUserByPkStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sUpdateUserByPkStmt, tableName))
-}
-
-const sDeleteUserByPkStmt = `
+const sDeleteUserByPkStmtSqlite = `
 DELETE FROM %s
  WHERE id=?
 `
-
-func DeleteUserByPkStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sDeleteUserByPkStmt, tableName))
-}
 
 //--------------------------------------------------------------------------------
 
-const sCreateUserLoginStmt = `
+const sCreateUserLoginStmtSqlite = `
 CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
 `
 
-func CreateUserLoginStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sCreateUserLoginStmt, tableName))
-}
-
-const sUpdateUserLoginStmt = `
+const sUpdateUserLoginStmtSqlite = `
 UPDATE %s SET 
  login=?,
  email=?,
@@ -385,28 +380,16 @@ UPDATE %s SET
  WHERE login=?
 `
 
-func UpdateUserLoginStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sUpdateUserLoginStmt, tableName))
-}
-
-const sDeleteUserLoginStmt = `
+const sDeleteUserLoginStmtSqlite = `
 DELETE FROM %s
  WHERE login=?
 `
 
-func DeleteUserLoginStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sDeleteUserLoginStmt, tableName))
-}
-
-const sCreateUserEmailStmt = `
+const sCreateUserEmailStmtSqlite = `
 CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
 `
 
-func CreateUserEmailStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sCreateUserEmailStmt, tableName))
-}
-
-const sUpdateUserEmailStmt = `
+const sUpdateUserEmailStmtSqlite = `
 UPDATE %s SET 
  login=?,
  email=?,
@@ -419,15 +402,205 @@ UPDATE %s SET
  WHERE email=?
 `
 
-func UpdateUserEmailStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sUpdateUserEmailStmt, tableName))
-}
-
-const sDeleteUserEmailStmt = `
+const sDeleteUserEmailStmtSqlite = `
 DELETE FROM %s
  WHERE email=?
 `
 
-func DeleteUserEmailStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sDeleteUserEmailStmt, tableName))
-}
+const sUserColumnParamsPostgres = `
+$1,$2,$3,$4,$5,$6,$7,$8,$9
+`
+
+const sUserDataColumnParamsPostgres = `
+$1,$2,$3,$4,$5,$6,$7,$8
+`
+
+const sCreateUserStmtPostgres = `
+CREATE TABLE IF NOT EXISTS %s (
+ id     SERIAL PRIMARY KEY ,
+ login  VARCHAR(512),
+ email  VARCHAR(512),
+ avatar VARCHAR(512),
+ active BOOLEAN,
+ admin  BOOLEAN,
+ token  VARCHAR(512),
+ secret VARCHAR(512),
+ hash   VARCHAR(512)
+)
+`
+
+const sInsertUserStmtPostgres = `
+INSERT INTO %s (
+ login,
+ email,
+ avatar,
+ active,
+ admin,
+ token,
+ secret,
+ hash
+) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+`
+
+const sUpdateUserByPkStmtPostgres = `
+UPDATE %s SET 
+ login=$2,
+ email=$3,
+ avatar=$4,
+ active=$5,
+ admin=$6,
+ token=$7,
+ secret=$8,
+ hash=$9 
+ WHERE id=$10
+`
+
+const sDeleteUserByPkStmtPostgres = `
+DELETE FROM %s
+ WHERE id=$1
+`
+
+//--------------------------------------------------------------------------------
+
+const sCreateUserLoginStmtPostgres = `
+CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
+`
+
+const sUpdateUserLoginStmtPostgres = `
+UPDATE %s SET 
+ login=$2,
+ email=$3,
+ avatar=$4,
+ active=$5,
+ admin=$6,
+ token=$7,
+ secret=$8,
+ hash=$9 
+ WHERE login=$10
+`
+
+const sDeleteUserLoginStmtPostgres = `
+DELETE FROM %s
+ WHERE login=$1
+`
+
+const sCreateUserEmailStmtPostgres = `
+CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
+`
+
+const sUpdateUserEmailStmtPostgres = `
+UPDATE %s SET 
+ login=$2,
+ email=$3,
+ avatar=$4,
+ active=$5,
+ admin=$6,
+ token=$7,
+ secret=$8,
+ hash=$9 
+ WHERE email=$10
+`
+
+const sDeleteUserEmailStmtPostgres = `
+DELETE FROM %s
+ WHERE email=$1
+`
+
+const sUserColumnParamsMysql = `
+?,?,?,?,?,?,?,?,?
+`
+
+const sUserDataColumnParamsMysql = `
+?,?,?,?,?,?,?,?
+`
+
+const sCreateUserStmtMysql = `
+CREATE TABLE IF NOT EXISTS %s (
+ id     BIGINT PRIMARY KEY AUTO_INCREMENT,
+ login  VARCHAR(512),
+ email  VARCHAR(512),
+ avatar VARCHAR(512),
+ active TINYINT(1),
+ admin  TINYINT(1),
+ token  VARCHAR(512),
+ secret VARCHAR(512),
+ hash   VARCHAR(512)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+`
+
+const sInsertUserStmtMysql = `
+INSERT INTO %s (
+ login,
+ email,
+ avatar,
+ active,
+ admin,
+ token,
+ secret,
+ hash
+) VALUES (?,?,?,?,?,?,?,?)
+`
+
+const sUpdateUserByPkStmtMysql = `
+UPDATE %s SET 
+ login=?,
+ email=?,
+ avatar=?,
+ active=?,
+ admin=?,
+ token=?,
+ secret=?,
+ hash=? 
+ WHERE id=?
+`
+
+const sDeleteUserByPkStmtMysql = `
+DELETE FROM %s
+ WHERE id=?
+`
+
+//--------------------------------------------------------------------------------
+
+const sCreateUserLoginStmtMysql = `
+CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
+`
+
+const sUpdateUserLoginStmtMysql = `
+UPDATE %s SET 
+ login=?,
+ email=?,
+ avatar=?,
+ active=?,
+ admin=?,
+ token=?,
+ secret=?,
+ hash=? 
+ WHERE login=?
+`
+
+const sDeleteUserLoginStmtMysql = `
+DELETE FROM %s
+ WHERE login=?
+`
+
+const sCreateUserEmailStmtMysql = `
+CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
+`
+
+const sUpdateUserEmailStmtMysql = `
+UPDATE %s SET 
+ login=?,
+ email=?,
+ avatar=?,
+ active=?,
+ admin=?,
+ token=?,
+ secret=?,
+ hash=? 
+ WHERE email=?
+`
+
+const sDeleteUserEmailStmtMysql = `
+DELETE FROM %s
+ WHERE email=?
+`

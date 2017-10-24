@@ -18,7 +18,7 @@ type ConstView struct {
 
 // writeSchema writes SQL statements to CREATE, INSERT,
 // UPDATE and DELETE values from Table t.
-func WriteSchema(w io.Writer, d schema.Dialect, table *schema.Table) {
+func WriteSchema(w io.Writer, table *schema.Table, dids ...schema.DialectId) {
 
 	fmt.Fprintln(w, sectionBreak)
 
@@ -39,70 +39,75 @@ func WriteSchema(w io.Writer, d schema.Dialect, table *schema.Table) {
 		Join(table.ColumnNames(false), ", "),
 	}))
 
-	must(tConstStr.Execute(w, ConstView{
-		identifier("", tableName, "ColumnParams"),
-		d.ColumnParams(table, true),
-	}))
+	for _, did := range dids {
+		d := schema.New(did)
+		ds := did.String()
 
-	must(tConstStr.Execute(w, ConstView{
-		identifier("", tableName, "DataColumnParams"),
-		d.ColumnParams(table, false),
-	}))
-
-	must(tConstWithTableName.Execute(w, ConstView{
-		identifier("Create", tableName, "Stmt"),
-		d.Table(table),
-	}))
-
-	must(tConstWithTableName.Execute(w, ConstView{
-		identifier("Insert", tableName, "Stmt"),
-		d.Insert(table),
-	}))
-
-	if table.HasPrimaryKey() {
-		must(tConstWithTableName.Execute(w, ConstView{
-			identifier("Update", tableName, "ByPkStmt"),
-			d.Update(table, []*schema.Field{table.Primary}),
+		must(tConstStr.Execute(w, ConstView{
+			identifier("", tableName, "ColumnParams"+ds),
+			d.ColumnParams(table, true),
 		}))
 
-		must(tConstWithTableName.Execute(w, ConstView{
-			identifier("Delete", tableName, "ByPkStmt"),
-			d.Delete(table, []*schema.Field{table.Primary}),
-		}))
-	}
-
-	fmt.Fprintln(w, sectionBreak)
-
-	for _, ix := range table.Index {
-
-		must(tConstWithTableName.Execute(w, ConstView{
-			identifier("Create", ix.Name, "Stmt"),
-			d.Index(table, ix),
+		must(tConstStr.Execute(w, ConstView{
+			identifier("", tableName, "DataColumnParams"+ds),
+			d.ColumnParams(table, false),
 		}))
 
-		if !ix.Unique {
+		must(tConstStr.Execute(w, ConstView{
+			identifier("Create", tableName, "Stmt"+ds),
+			d.Table(table) + d.CreateTableSettings(),
+		}))
 
-			//must(tConstWithTableName.Execute(w, ConstView{
-			//	identifier("Select", ix.Name, "RangeStmt"),
-			//	d.SelectRange(table, ix.Fields),
-			//}))
-			//
-			//must(tConstWithTableName.Execute(w, ConstView{
-			//	identifier("Select", ix.Name, "CountStmt"),
-			//	d.SelectCount(table, ix.Fields),
-			//}))
+		must(tConstStr.Execute(w, ConstView{
+			identifier("Insert", tableName, "Stmt"+ds),
+			d.Insert(table),
+		}))
 
-		} else {
-
-			must(tConstWithTableName.Execute(w, ConstView{
-				identifier("Update", ix.Name, "Stmt"),
-				d.Update(table, ix.Fields),
+		if table.HasPrimaryKey() {
+			must(tConstStr.Execute(w, ConstView{
+				identifier("Update", tableName, "ByPkStmt"+ds),
+				d.Update(table, []*schema.Field{table.Primary}),
 			}))
 
-			must(tConstWithTableName.Execute(w, ConstView{
-				identifier("Delete", ix.Name, "Stmt"),
-				d.Delete(table, ix.Fields),
+			must(tConstStr.Execute(w, ConstView{
+				identifier("Delete", tableName, "ByPkStmt"+ds),
+				d.Delete(table, []*schema.Field{table.Primary}),
 			}))
+		}
+
+		fmt.Fprintln(w, sectionBreak)
+
+		for _, ix := range table.Index {
+
+			must(tConstStr.Execute(w, ConstView{
+				identifier("Create", ix.Name, "Stmt"+ds),
+				d.Index(table, ix),
+			}))
+
+			if !ix.Unique {
+
+				//must(tConstWithTableName.Execute(w, ConstView{
+				//	identifier("Select", ix.Name, "RangeStmt"),
+				//	d.SelectRange(table, ix.Fields),
+				//}))
+				//
+				//must(tConstWithTableName.Execute(w, ConstView{
+				//	identifier("Select", ix.Name, "CountStmt"),
+				//	d.SelectCount(table, ix.Fields),
+				//}))
+
+			} else {
+
+				must(tConstStr.Execute(w, ConstView{
+					identifier("Update", ix.Name, "Stmt"+ds),
+					d.Update(table, ix.Fields),
+				}))
+
+				must(tConstStr.Execute(w, ConstView{
+					identifier("Delete", ix.Name, "Stmt"+ds),
+					d.Delete(table, ix.Fields),
+				}))
+			}
 		}
 	}
 }

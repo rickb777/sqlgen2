@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2/dialect"
+	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 )
 
@@ -15,13 +16,16 @@ const IssueTableName = "issues"
 
 // IssueTable holds a given table name with the database reference, providing access methods below.
 type IssueTable struct {
-	Name    string
-	Db      *sql.DB
-	Dialect dialect.Dialect
+	Name      string
+	Db        *sql.DB
+	DialectId schema.DialectId
 }
 
 // NewIssueTable returns a new table instance.
-func NewIssueTable(name string, db *sql.DB, dialect dialect.Dialect) IssueTable {
+func NewIssueTable(name string, db *sql.DB, dialect schema.DialectId) IssueTable {
+	if name == "" {
+		name = IssueTableName
+	}
 	return IssueTable{name, db, dialect}
 }
 
@@ -211,7 +215,13 @@ func (tbl IssueTable) Count(where where.Expression, dialect dialect.Dialect) (co
 
 // Insert adds new records for the Issues.
 func (tbl IssueTable) Insert(v *Issue) error {
-	query := fmt.Sprintf(sInsertIssueStmt, tbl.Name)
+	var stmt string
+	switch tbl.DialectId {
+	case schema.Sqlite: stmt = sInsertIssueStmtSqlite
+    case schema.Postgres: stmt = sInsertIssueStmtPostgres
+    case schema.Mysql: stmt = sInsertIssueStmtMysql
+    }
+	query := fmt.Sprintf(stmt, tbl.Name)
 	res, err := tbl.Db.Exec(query, SliceIssueWithoutPk(v)...)
 	if err != nil {
 		return err
@@ -224,7 +234,13 @@ func (tbl IssueTable) Insert(v *Issue) error {
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl IssueTable) Update(v *Issue) (int64, error) {
-	query := fmt.Sprintf(sUpdateIssueByPkStmt, tbl.Name)
+	var stmt string
+	switch tbl.DialectId {
+	case schema.Sqlite: stmt = sUpdateIssueByPkStmtSqlite
+    case schema.Postgres: stmt = sUpdateIssueByPkStmtPostgres
+    case schema.Mysql: stmt = sUpdateIssueByPkStmtMysql
+    }
+	query := fmt.Sprintf(stmt, tbl.Name)
 	args := SliceIssueWithoutPk(v)
 	args = append(args, v.Id)
 	return tbl.Exec(query, args...)
@@ -247,15 +263,14 @@ func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
 // It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl IssueTable) CreateTable() (int64, error) {
-//"CREATE TABLE IF NOT EXISTS %s ("
-// id       INTEGER PRIMARY KEY AUTOINCREMENT,
-// number   INTEGER,
-// title    TEXT,
-// assignee TEXT,
-// state    TEXT,
-// labels   BLOB
-//")"
-	return 0, nil
+	var stmt string
+	switch tbl.DialectId {
+	case schema.Sqlite: stmt = sCreateIssueStmtSqlite
+    case schema.Postgres: stmt = sCreateIssueStmtPostgres
+    case schema.Mysql: stmt = sCreateIssueStmtMysql
+    }
+	query := fmt.Sprintf(stmt, tbl.Name)
+	return tbl.Exec(query)
 }
 
 //--------------------------------------------------------------------------------
@@ -270,15 +285,15 @@ const sIssueDataColumnNames = `
 number, title, assignee, state, labels
 `
 
-const sIssueColumnParams = `
+const sIssueColumnParamsSqlite = `
 ?,?,?,?,?,?
 `
 
-const sIssueDataColumnParams = `
+const sIssueDataColumnParamsSqlite = `
 ?,?,?,?,?
 `
 
-const sCreateIssueStmt = `
+const sCreateIssueStmtSqlite = `
 CREATE TABLE IF NOT EXISTS %s (
  id       INTEGER PRIMARY KEY AUTOINCREMENT,
  number   INTEGER,
@@ -286,14 +301,10 @@ CREATE TABLE IF NOT EXISTS %s (
  assignee TEXT,
  state    TEXT,
  labels   BLOB
-);
+)
 `
 
-func CreateIssueStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sCreateIssueStmt, tableName))
-}
-
-const sInsertIssueStmt = `
+const sInsertIssueStmtSqlite = `
 INSERT INTO %s (
  number,
  title,
@@ -303,11 +314,7 @@ INSERT INTO %s (
 ) VALUES (?,?,?,?,?)
 `
 
-func InsertIssueStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sInsertIssueStmt, tableName))
-}
-
-const sUpdateIssueByPkStmt = `
+const sUpdateIssueByPkStmtSqlite = `
 UPDATE %s SET 
  number=?,
  title=?,
@@ -317,25 +324,113 @@ UPDATE %s SET
  WHERE id=?
 `
 
-func UpdateIssueByPkStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sUpdateIssueByPkStmt, tableName))
-}
-
-const sDeleteIssueByPkStmt = `
+const sDeleteIssueByPkStmtSqlite = `
 DELETE FROM %s
  WHERE id=?
 `
 
-func DeleteIssueByPkStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sDeleteIssueByPkStmt, tableName))
-}
-
 //--------------------------------------------------------------------------------
 
-const sCreateIssueAssigneeStmt = `
+const sCreateIssueAssigneeStmtSqlite = `
 CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
 `
 
-func CreateIssueAssigneeStmt(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(sCreateIssueAssigneeStmt, tableName))
-}
+const sIssueColumnParamsPostgres = `
+$1,$2,$3,$4,$5,$6
+`
+
+const sIssueDataColumnParamsPostgres = `
+$1,$2,$3,$4,$5
+`
+
+const sCreateIssueStmtPostgres = `
+CREATE TABLE IF NOT EXISTS %s (
+ id       SERIAL PRIMARY KEY ,
+ number   INTEGER,
+ title    VARCHAR(512),
+ assignee VARCHAR(512),
+ state    VARCHAR(50),
+ labels   BYTEA
+)
+`
+
+const sInsertIssueStmtPostgres = `
+INSERT INTO %s (
+ number,
+ title,
+ assignee,
+ state,
+ labels
+) VALUES ($1,$2,$3,$4,$5)
+`
+
+const sUpdateIssueByPkStmtPostgres = `
+UPDATE %s SET 
+ number=$2,
+ title=$3,
+ assignee=$4,
+ state=$5,
+ labels=$6 
+ WHERE id=$7
+`
+
+const sDeleteIssueByPkStmtPostgres = `
+DELETE FROM %s
+ WHERE id=$1
+`
+
+//--------------------------------------------------------------------------------
+
+const sCreateIssueAssigneeStmtPostgres = `
+CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
+`
+
+const sIssueColumnParamsMysql = `
+?,?,?,?,?,?
+`
+
+const sIssueDataColumnParamsMysql = `
+?,?,?,?,?
+`
+
+const sCreateIssueStmtMysql = `
+CREATE TABLE IF NOT EXISTS %s (
+ id       BIGINT PRIMARY KEY AUTO_INCREMENT,
+ number   BIGINT,
+ title    VARCHAR(512),
+ assignee VARCHAR(512),
+ state    VARCHAR(50),
+ labels   MEDIUMBLOB
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+`
+
+const sInsertIssueStmtMysql = `
+INSERT INTO %s (
+ number,
+ title,
+ assignee,
+ state,
+ labels
+) VALUES (?,?,?,?,?)
+`
+
+const sUpdateIssueByPkStmtMysql = `
+UPDATE %s SET 
+ number=?,
+ title=?,
+ assignee=?,
+ state=?,
+ labels=? 
+ WHERE id=?
+`
+
+const sDeleteIssueByPkStmtMysql = `
+DELETE FROM %s
+ WHERE id=?
+`
+
+//--------------------------------------------------------------------------------
+
+const sCreateIssueAssigneeStmtMysql = `
+CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
+`

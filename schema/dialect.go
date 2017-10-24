@@ -3,34 +3,25 @@ package schema
 type DialectId int
 
 const (
-	SQLITE DialectId = iota
-	POSTGRES
-	MYSQL
+	Sqlite   DialectId = iota
+	Postgres
+	Mysql
 )
 
-var Dialects = map[string]DialectId{
-	"sqlite":   SQLITE,
-	"postgres": POSTGRES,
-	"mysql":    MYSQL,
-}
+var Dialects []string
 
-type Dialect interface {
-	Id() DialectId
-	Table(*Table) string
-	Index(*Table, *Index) string
-	Insert(*Table) string
-	Update(*Table, []*Field) string
-	Delete(*Table, []*Field) string
-	Param(int) string
-	Params(int, int) []string
-	ColumnParams(t *Table, withAuto bool) string
+func init() {
+	Dialects = make([]string, len(AllDialectIds))
+	for i, d := range AllDialectIds {
+		Dialects[i] = d.String()
+	}
 }
 
 func New(dialect DialectId) Dialect {
 	switch dialect {
-	case POSTGRES:
+	case Postgres:
 		return newPostgres()
-	case MYSQL:
+	case Mysql:
 		return newMySQL()
 	default:
 		return newSQLite()
@@ -39,11 +30,11 @@ func New(dialect DialectId) Dialect {
 
 func (f *Field) AsColumn(dialect DialectId) string {
 	switch dialect {
-	case MYSQL:
+	case Mysql:
 		return mysqlColumn(f)
-	case POSTGRES:
+	case Postgres:
 		return postgresColumn(f)
-	case SQLITE:
+	case Sqlite:
 		return sqliteColumn(f)
 	default:
 		return ""
@@ -52,11 +43,11 @@ func (f *Field) AsColumn(dialect DialectId) string {
 
 func (st SqlToken) AsToken(dialect DialectId) string {
 	switch dialect {
-	case MYSQL:
+	case Mysql:
 		return mysqlToken(st)
-	case POSTGRES:
+	case Postgres:
 		return postgresToken(st)
-	case SQLITE:
+	case Sqlite:
 		return sqliteToken(st)
 	default:
 		return ""

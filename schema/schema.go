@@ -7,6 +7,7 @@ type SqlType int
 // List of basic types
 const (
 	INTEGER SqlType = iota
+	REAL
 	VARCHAR
 	BOOLEAN
 	BLOB

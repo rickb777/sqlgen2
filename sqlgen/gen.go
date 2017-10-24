@@ -15,12 +15,11 @@ import (
 )
 
 func main() {
-	var oFile, typeName, database, prefix string
+	var oFile, typeName, prefix string
 	var genSchema, genFuncs, extraFuncs, gofmt bool
 
 	flag.StringVar(&oFile, "o", "", "output file name (or file path); if omitted, the first input filename is used with _sql.go suffix")
 	flag.StringVar(&typeName, "type", "", "type to generate; required")
-	flag.StringVar(&database, "db", "sqlite", "sql dialect; optional")
 	flag.StringVar(&prefix, "prefix", "", "prefix for names of generated types; optional")
 	flag.BoolVar(&Verbose, "v", false, "progress messages")
 	flag.BoolVar(&parse.Debug, "z", false, "debug messages")
@@ -62,7 +61,6 @@ func main() {
 
 	// load the Tree into a schema Object
 	table := schema.Load(tree)
-	dialect := schema.New(schema.Dialects[database])
 
 	buf := &bytes.Buffer{}
 
@@ -71,9 +69,13 @@ func main() {
 	if genFuncs {
 		view := NewView(tree, prefix)
 		view.Table = table
+		view.Dialects = schema.Dialects
 
 		WriteImports(buf, table, "database/sql", "fmt",
-			"github.com/rickb777/sqlgen2/dialect", "github.com/rickb777/sqlgen2/where", imports)
+			"github.com/rickb777/sqlgen2/dialect",
+			"github.com/rickb777/sqlgen2/schema",
+			"github.com/rickb777/sqlgen2/where",
+			imports)
 		WriteType(buf, view)
 		WriteRowFunc(buf, tree, view)
 		WriteRowsFunc(buf, tree, view)
@@ -93,7 +95,7 @@ func main() {
 
 	// write the sql functions
 	if genSchema {
-		WriteSchema(buf, dialect, table)
+		WriteSchema(buf, table, schema.AllDialectIds...)
 	}
 
 	// formats the generated file using gofmt

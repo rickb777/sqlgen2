@@ -16,13 +16,16 @@ const {{.Prefix}}{{.Type}}TableName = "{{.DbName}}"
 
 // {{.Prefix}}{{.Type}}Table holds a given table name with the database reference, providing access methods below.
 type {{.Prefix}}{{.Type}}Table struct {
-	Name    string
-	Db      *sql.DB
-	Dialect dialect.Dialect
+	Name      string
+	Db        *sql.DB
+	DialectId schema.DialectId
 }
 
 // New{{.Prefix}}{{.Type}}Table returns a new table instance.
-func New{{.Prefix}}{{.Type}}Table(name string, db *sql.DB, dialect dialect.Dialect) {{.Prefix}}{{.Type}}Table {
+func New{{.Prefix}}{{.Type}}Table(name string, db *sql.DB, dialect schema.DialectId) {{.Prefix}}{{.Type}}Table {
+	if name == "" {
+		name = {{.Prefix}}{{.Type}}TableName
+	}
 	return {{.Prefix}}{{.Type}}Table{name, db, dialect}
 }
 `
@@ -40,8 +43,8 @@ const s{{.Name}} = {{ticked .Body}}
 `
 
 const sTableName = `
-func {{.Name}}(tableName string, d dialect.Dialect) string {
-	return d.ReplacePlaceholders(fmt.Sprintf(s{{.Name}}, tableName))
+func {{.Name}}(tableName string) string {
+	return fmt.Sprintf(s{{.Name}}, tableName)
 }
 `
 
@@ -189,7 +192,13 @@ var tCountRows = template.Must(template.New("CountRows").Funcs(funcMap).Parse(sC
 const sInsertAndGetLastId = `
 // Insert adds new records for the {{.Types}}.
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(v *{{.Type}}) error {
-	query := fmt.Sprintf(sInsert{{.Type}}Stmt, tbl.Name)
+	var stmt string
+	switch tbl.DialectId {
+	{{range .Dialects -}}
+	case schema.{{.}}: stmt = sInsert{{$.Type}}Stmt{{.}}
+    {{end -}}
+	}
+	query := fmt.Sprintf(stmt, tbl.Name)
 	res, err := tbl.Db.Exec(query, Slice{{.Type}}WithoutPk(v)...)
 	if err != nil {
 		return err
@@ -207,7 +216,13 @@ var tInsertAndGetLastId = template.Must(template.New("InsertAndGetLastId").Funcs
 // function template to insert a single row.
 const sInsert = `
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(v *{{.Type}}) error {
-	query := fmt.Sprintf(sInsert{{.Type}}Stmt, tbl.Name)
+	var stmt string
+	switch tbl.DialectId {
+	{{range .Dialects -}}
+	case schema.{{.}}: stmt = sInsert{{$.Type}}Stmt{{.}}
+    {{end -}}
+	}
+	query := fmt.Sprintf(stmt, tbl.Name)
 	_, err := tbl.Db.Exec(query, Slice{{.Type}}(v)...)
 	return err
 }
@@ -222,7 +237,13 @@ const sUpdate = `
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl {{.Prefix}}{{.Type}}Table) Update(v *{{.Type}}) (int64, error) {
-	query := fmt.Sprintf(sUpdate{{.Type}}ByPkStmt, tbl.Name)
+	var stmt string
+	switch tbl.DialectId {
+	{{range .Dialects -}}
+	case schema.{{.}}: stmt = sUpdate{{$.Type}}ByPkStmt{{.}}
+    {{end -}}
+	}
+	query := fmt.Sprintf(stmt, tbl.Name)
 	args := Slice{{.Type}}WithoutPk(v)
 	args = append(args, v.{{.Table.Primary.Name}})
 	return tbl.Exec(query, args...)
@@ -259,15 +280,14 @@ const sCreateTable = `
 // It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl {{.Prefix}}{{.Type}}Table) CreateTable() (int64, error) {
-//"CREATE TABLE IF NOT EXISTS %s ("
-// id       INTEGER PRIMARY KEY AUTOINCREMENT,
-// number   INTEGER,
-// title    TEXT,
-// assignee TEXT,
-// state    TEXT,
-// labels   BLOB
-//")"
-	return 0, nil
+	var stmt string
+	switch tbl.DialectId {
+	{{range .Dialects -}}
+	case schema.{{.}}: stmt = sCreate{{$.Type}}Stmt{{.}}
+    {{end -}}
+	}
+	query := fmt.Sprintf(stmt, tbl.Name)
+	return tbl.Exec(query)
 }
 `
 

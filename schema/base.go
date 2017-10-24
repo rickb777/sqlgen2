@@ -8,6 +8,19 @@ import (
 	"text/tabwriter"
 )
 
+type Dialect interface {
+	Id() DialectId
+	Table(*Table) string
+	Index(*Table, *Index) string
+	Insert(*Table) string
+	Update(*Table, []*Field) string
+	Delete(*Table, []*Field) string
+	Param(int) string
+	Params(int, int) []string
+	ColumnParams(t *Table, withAuto bool) string
+	CreateTableSettings() string
+}
+
 type base struct {
 	Dialect Dialect
 }
@@ -29,7 +42,7 @@ func (b *base) Table(t *Table) string {
 	// flush the tab writer to write to the buffer
 	tab.Flush()
 
-	return fmt.Sprintf("CREATE TABLE IF NOT EXISTS %%s (%s\n);", buf.String())
+	return fmt.Sprintf("CREATE TABLE IF NOT EXISTS %%s (%s\n)", buf.String())
 }
 
 // Index returns a SQL statement to create the index.
@@ -164,4 +177,8 @@ func (b *base) whereClause(fields []*Field, pos int) string {
 		i++
 	}
 	return buf.String()
+}
+
+func (b *base) CreateTableSettings() string {
+	return ""
 }
