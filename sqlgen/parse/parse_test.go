@@ -8,6 +8,7 @@ import (
 	"testing"
 	"fmt"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
+	"os"
 )
 
 func TestStructWith3FieldsAndTags(t *testing.T) {
@@ -176,7 +177,7 @@ func TestStructWithNestedSimpleTypeInOtherPackageOrder1(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg6", "Struct", Struct},
+			Type: Type{"pkg7", "Struct", Struct},
 			Nodes: []*Node{
 				{
 					Name: "Cat",
@@ -185,8 +186,8 @@ func TestStructWithNestedSimpleTypeInOtherPackageOrder1(t *testing.T) {
 				},
 			},
 		},
-		"pkg6", "Struct",
-		`package pkg6
+		"pkg7", "Struct",
+		`package pkg7
 
 		type Struct struct {
 			Cat      other.Category
@@ -202,7 +203,7 @@ func TestStructWithNestedSimpleTypeInOtherPackageOrder2(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg6", "Struct", Struct},
+			Type: Type{"pkg8", "Struct", Struct},
 			Nodes: []*Node{
 				{
 					Name: "Cat",
@@ -211,12 +212,12 @@ func TestStructWithNestedSimpleTypeInOtherPackageOrder2(t *testing.T) {
 				},
 			},
 		},
-		"pkg6", "Struct",
+		"pkg8", "Struct",
 		`package other
 
 		type Category int32
 		`,
-		`package pkg6
+		`package pkg8
 
 		type Struct struct {
 			Cat      other.Category
@@ -227,8 +228,8 @@ func TestStructWithNestedSimpleTypeInOtherPackageOrder2(t *testing.T) {
 func TestStructWithNestingAcross2Packages(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
-			Name: "Struct7",
-			Type: Type{"pkg7a", "Struct7", Struct},
+			Name: "Struct",
+			Type: Type{"pkg9", "Struct", Struct},
 			Nodes: []*Node{
 				{
 					Name: "Id",
@@ -247,24 +248,83 @@ func TestStructWithNestingAcross2Packages(t *testing.T) {
 				},
 			},
 		},
-		"pkg7a", "Struct7",
+		"pkg9", "Struct",
 		`package stringy
 
 		type Thingy string
 		`,
-		`package pkg7b
+		`package froob
 
 		type Inner1 struct {
 			Wibble stringy.Thingy
 		}
 		`,
 
-		`package pkg7a
+		`package pkg9
 
-		type Struct7 struct {
+		type Struct struct {
 			Id uint32
-			pkg7b.Inner1
+			froob.Inner1
 			Bobble string
+		}
+		`,
+	)
+}
+
+func TestStructWithNestingInTheSamePackage(t *testing.T) {
+	doTestParseOK(t,
+		&Node{
+			Name: "Struct",
+			Type: Type{"pkg10", "Struct", Struct},
+			Nodes: []*Node{
+				{
+					Name: "Id",
+					Type: Type{"", "uint32", Uint32},
+					Tags: &Tag{},
+				},
+				{
+					Name: "Uid",
+					Type: Type{"", "uint32", Uint32},
+					Tags: &Tag{},
+				},
+				{
+					Name: "Name",
+					Type: Type{"pkg10", "Username", String},
+					Tags: &Tag{},
+				},
+				{
+					Name: "Wibble",
+					Type: Type{"pkg10", "Thingy", String},
+					Tags: &Tag{},
+				},
+				{
+					Name: "Bobble",
+					Type: Type{"pkg10", "Username", String},
+					Tags: &Tag{},
+				},
+			},
+		},
+		"pkg10", "Struct",
+		`package pkg10
+
+		type Thingy string
+
+		type Username string
+
+		type User struct {
+			Uid  uint32
+			Name Username
+		}
+
+		type UserWithThingy struct {
+			User
+			Wibble Thingy
+		}
+
+		type Struct struct {
+			Id uint32
+			UserWithThingy
+			Bobble Username
 		}
 		`,
 	)
@@ -273,8 +333,8 @@ func TestStructWithNestingAcross2Packages(t *testing.T) {
 func TestStructWithNestingAcross3Packages(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
-			Name: "Struct7",
-			Type: Type{"pkg7a", "Struct7", Struct},
+			Name: "Struct",
+			Type: Type{"pkg11", "Struct", Struct},
 			Nodes: []*Node{
 				{
 					Name: "Id",
@@ -303,7 +363,7 @@ func TestStructWithNestingAcross3Packages(t *testing.T) {
 				},
 			},
 		},
-		"pkg7a", "Struct7",
+		"pkg11", "Struct",
 		`package stringy
 
 		type Thingy string
@@ -327,9 +387,9 @@ func TestStructWithNestingAcross3Packages(t *testing.T) {
 		}
 		`,
 
-		`package pkg7a
+		`package pkg11
 
-		type Struct7 struct {
+		type Struct struct {
 			Id uint32
 			userindex.UserWithThingy
 			Bobble userindex.Username
@@ -370,6 +430,25 @@ func doTestParseOK(t *testing.T, want *Node, pkg, name string, isource ...string
 	}
 
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Wanted %s\nGot %s", utter.Sdump(want), utter.Sdump(got))
+		ex := utter.Sdump(want)
+		ac := utter.Sdump(got)
+		outputDiff(ex, pkg+"-expected.txt")
+		outputDiff(ac, pkg+"-got.txt")
+		t.Errorf("Wanted %s\nGot %s", ex, ac)
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
+func outputDiff(a, name string) {
+	f, err := os.Create(name)
+	if err != nil {
+		panic(err)
+	}
+	f.WriteString(a)
+	f.WriteString("\n")
+	err = f.Close()
+	if err != nil {
+		panic(err)
 	}
 }
