@@ -1,6 +1,9 @@
 package demo
 
-//go:generate sqlgen -type demo.Issue -o issue_sql.go -db postgres -v -z issue.go
+// This example demonstrates
+//   * `sql` tags
+
+//go:generate sqlgen -type demo.Issue -o issue_sql.go -v issue.go
 
 type Issue struct {
 	Id       int64 `sql:"pk: true, auto: true"`

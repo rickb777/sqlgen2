@@ -4,6 +4,7 @@ import (
 	"io"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/sqlgen/output"
+	"bitbucket.org/pkg/inflect"
 )
 
 func WriteType(w io.Writer, view View) {
@@ -26,7 +27,7 @@ func WriteInsertFunc(w io.Writer, view View, table *schema.Table) {
 	if table.HasLastInsertId() {
 		must(tInsertAndGetLastId.Execute(w, view))
 	} else {
-		must(tInsert.Execute(w, view))
+		must(tInsertSimple.Execute(w, view))
 	}
 }
 
@@ -37,15 +38,18 @@ func WriteUpdateFunc(w io.Writer, view View, table *schema.Table) {
 }
 
 func WriteExecFunc(w io.Writer, view View, table *schema.Table) {
-	if table.HasPrimaryKey() {
-		must(tExec.Execute(w, view))
-	}
+	must(tExec.Execute(w, view))
 }
 
 func WriteCreateTableFunc(w io.Writer, view View, table *schema.Table) {
-	if table.HasPrimaryKey() {
-		must(tCreateTable.Execute(w, view))
+	must(tCreateTable.Execute(w, view))
+}
+
+func WriteCreateIndexFunc(w io.Writer, view View, table *schema.Table) {
+	for _, ix := range table.Index {
+		view.Body1 = append(view.Body1, inflect.Camelize(ix.Name))
 	}
+	must(tCreateIndex.Execute(w, view))
 }
 
 // join is a helper function that joins nodes

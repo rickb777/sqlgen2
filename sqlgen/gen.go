@@ -90,6 +90,7 @@ func main() {
 			WriteUpdateFunc(buf, view, table)
 			WriteExecFunc(buf, view, table)
 			WriteCreateTableFunc(buf, view, table)
+			WriteCreateIndexFunc(buf, view, table)
 		}
 	}
 

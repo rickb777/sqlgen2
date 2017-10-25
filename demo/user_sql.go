@@ -10,26 +10,28 @@ import (
 	"github.com/rickb777/sqlgen2/where"
 )
 
-// UserTableName is the default name for this table.
-const UserTableName = "users"
+// DbUserTableName is the default name for this table.
+const DbUserTableName = "users"
 
-// UserTable holds a given table name with the database reference, providing access methods below.
-type UserTable struct {
-	Name      string
-	Db        *sql.DB
-	DialectId schema.DialectId
+// DbUserTable holds a given table name with the database reference, providing access methods below.
+// The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
+// specify the name of the schema, in which case it should have a trailing '.'.
+type DbUserTable struct {
+	Prefix, Name string
+	Db           *sql.DB
+	DialectId    schema.DialectId
 }
 
-// NewUserTable returns a new table instance.
-func NewUserTable(name string, db *sql.DB, dialect schema.DialectId) UserTable {
+// NewDbUserTable returns a new table instance.
+func NewDbUserTable(prefix, name string, db *sql.DB, dialect schema.DialectId) DbUserTable {
 	if name == "" {
-		name = UserTableName
+		name = DbUserTableName
 	}
-	return UserTable{name, db, dialect}
+	return DbUserTable{prefix, name, db, dialect}
 }
 
-// ScanUser reads a database record into a single value.
-func ScanUser(row *sql.Row) (*User, error) {
+// ScanDbUser reads a database record into a single value.
+func ScanDbUser(row *sql.Row) (*User, error) {
 	var v0 int64
 	var v1 string
 	var v2 string
@@ -57,7 +59,7 @@ func ScanUser(row *sql.Row) (*User, error) {
 	}
 
 	v := &User{}
-	v.Id = v0
+	v.Uid = v0
 	v.Login = v1
 	v.Email = v2
 	v.Avatar = v3
@@ -70,8 +72,8 @@ func ScanUser(row *sql.Row) (*User, error) {
 	return v, nil
 }
 
-// ScanUsers reads database records into a slice of values.
-func ScanUsers(rows *sql.Rows) ([]*User, error) {
+// ScanDbUsers reads database records into a slice of values.
+func ScanDbUsers(rows *sql.Rows) ([]*User, error) {
 	var err error
 	var vv []*User
 
@@ -103,7 +105,7 @@ func ScanUsers(rows *sql.Rows) ([]*User, error) {
 		}
 
 		v := &User{}
-		v.Id = v0
+		v.Uid = v0
 		v.Login = v1
 		v.Email = v2
 		v.Avatar = v3
@@ -129,7 +131,7 @@ func SliceUser(v *User) []interface{} {
 	var v7 string
 	var v8 string
 
-	v0 = v.Id
+	v0 = v.Uid
 	v1 = v.Login
 	v2 = v.Email
 	v3 = v.Avatar
@@ -186,86 +188,98 @@ func SliceUserWithoutPk(v *User) []interface{} {
 }
 
 // QueryOne is the low-level access function for one User.
-func (tbl UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+func (tbl DbUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	row := tbl.Db.QueryRow(query, args...)
-	return ScanUser(row)
+	return ScanDbUser(row)
 }
 
 // SelectOneSA allows a single User to be obtained from the database using supplied dialect-specific parameters.
-func (tbl UserTable) SelectOneSA(where, limitClause string, args ...interface{}) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sUserColumnNames, tbl.Name, where, limitClause)
+func (tbl DbUserTable) SelectOneSA(where, limitClause string, args ...interface{}) (*User, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", UserColumnNames, tbl.Prefix, tbl.Name, where, limitClause)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single User to be obtained from the database.
-func (tbl UserTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*User, error) {
+func (tbl DbUserTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*User, error) {
 	wh, args := where.Build(dialect)
 	return tbl.SelectOneSA(wh, "LIMIT 1", args)
 }
 
-func (tbl UserTable) Query(query string, args ...interface{}) ([]*User, error) {
+func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error) {
 	rows, err := tbl.Db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return ScanUsers(rows)
+	return ScanDbUsers(rows)
 }
 
 // SelectSA allows Users to be obtained from the database using supplied dialect-specific parameters.
-func (tbl UserTable) SelectSA(where string, args ...interface{}) ([]*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s", sUserColumnNames, tbl.Name, where)
+func (tbl DbUserTable) SelectSA(where string, args ...interface{}) ([]*User, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s", UserColumnNames, tbl.Prefix, tbl.Name, where)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Users to be obtained from the database that match a 'where' clause.
-func (tbl UserTable) Select(where where.Expression, dialect dialect.Dialect) ([]*User, error) {
+func (tbl DbUserTable) Select(where where.Expression, dialect dialect.Dialect) ([]*User, error) {
 	return tbl.SelectSA(where.Build(dialect))
 }
 
 // CountSA counts Users in the database using supplied dialect-specific parameters.
-func (tbl UserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
+func (tbl DbUserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
 	err = row.Scan(&count)
 	return count, err
 }
 
 // Count counts the Users in the database that match a 'where' clause.
-func (tbl UserTable) Count(where where.Expression, dialect dialect.Dialect) (count int64, err error) {
+func (tbl DbUserTable) Count(where where.Expression, dialect dialect.Dialect) (count int64, err error) {
 	return tbl.CountSA(where.Build(dialect))
 }
 
-// Insert adds new records for the Users.
-func (tbl UserTable) Insert(v *User) error {
+// Insert adds new records for the Users. The Users have their primary key fields
+// set to the new record identifiers.
+func (tbl DbUserTable) Insert(vv ...*User) error {
 	var stmt string
 	switch tbl.DialectId {
-	case schema.Sqlite: stmt = sInsertUserStmtSqlite
-    case schema.Postgres: stmt = sInsertUserStmtPostgres
-    case schema.Mysql: stmt = sInsertUserStmtMysql
+	case schema.Sqlite: stmt = sqlInsertUserSqlite
+    case schema.Postgres: stmt = sqlInsertUserPostgres
+    case schema.Mysql: stmt = sqlInsertUserMysql
     }
-	query := fmt.Sprintf(stmt, tbl.Name)
-	res, err := tbl.Db.Exec(query, SliceUserWithoutPk(v)...)
+	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name))
 	if err != nil {
 		return err
 	}
+	defer st.Close()
 
-	v.Id, err = res.LastInsertId()
-	return err
+	for _, v := range vv {
+		res, err := st.Exec(SliceUserWithoutPk(v)...)
+		if err != nil {
+			return err
+		}
+
+		v.Uid, err = res.LastInsertId()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
-func (tbl UserTable) Update(v *User) (int64, error) {
+func (tbl DbUserTable) Update(v *User) (int64, error) {
 	var stmt string
 	switch tbl.DialectId {
-	case schema.Sqlite: stmt = sUpdateUserByPkStmtSqlite
-    case schema.Postgres: stmt = sUpdateUserByPkStmtPostgres
-    case schema.Mysql: stmt = sUpdateUserByPkStmtMysql
+	case schema.Sqlite: stmt = sqlUpdateUserByPkSqlite
+    case schema.Postgres: stmt = sqlUpdateUserByPkPostgres
+    case schema.Mysql: stmt = sqlUpdateUserByPkMysql
     }
-	query := fmt.Sprintf(stmt, tbl.Name)
+	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 	args := SliceUserWithoutPk(v)
-	args = append(args, v.Id)
+	args = append(args, v.Uid)
 	return tbl.Exec(query, args...)
 }
 
@@ -273,7 +287,7 @@ func (tbl UserTable) Update(v *User) (int64, error) {
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected.
 // Not every database or database driver may support this.
-func (tbl UserTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
 	res, err := tbl.Db.Exec(query, args...)
 	if err != nil {
 		return 0, nil
@@ -285,32 +299,74 @@ func (tbl UserTable) Exec(query string, args ...interface{}) (int64, error) {
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected.
 // Not every database or database driver may support this.
-func (tbl UserTable) CreateTable() (int64, error) {
+func (tbl DbUserTable) CreateTable(ifNotExist bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExist))
+}
+
+func (tbl DbUserTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.DialectId {
-	case schema.Sqlite: stmt = sCreateUserStmtSqlite
-    case schema.Postgres: stmt = sCreateUserStmtPostgres
-    case schema.Mysql: stmt = sCreateUserStmtMysql
+	case schema.Sqlite: stmt = sqlCreateUserTableSqlite
+    case schema.Postgres: stmt = sqlCreateUserTablePostgres
+    case schema.Mysql: stmt = sqlCreateUserTableMysql
     }
-	query := fmt.Sprintf(stmt, tbl.Name)
-	return tbl.Exec(query)
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	return query
 }
+
+func (tbl DbUserTable) ternary(flag bool, a, b string) string {
+	if flag {
+		return a
+	}
+	return b
+}
+
+// CreateIndexes executes queries that create the indexes needed by the User table.
+func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+    
+	_, err = tbl.Exec(tbl.createUserLoginIndexSql(extra))
+	if err != nil {
+		return err
+	}
+    
+	_, err = tbl.Exec(tbl.createUserEmailIndexSql(extra))
+	if err != nil {
+		return err
+	}
+    
+	return nil
+}
+
+
+func (tbl DbUserTable) createUserLoginIndexSql(ifNotExist string) string {
+	var stmt string
+	switch tbl.DialectId {
+	case schema.Sqlite: stmt = sqlCreateUserLoginIndexSqlite
+    case schema.Postgres: stmt = sqlCreateUserLoginIndexPostgres
+    case schema.Mysql: stmt = sqlCreateUserLoginIndexMysql
+    }
+	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
+}
+
+func (tbl DbUserTable) createUserEmailIndexSql(ifNotExist string) string {
+	var stmt string
+	switch tbl.DialectId {
+	case schema.Sqlite: stmt = sqlCreateUserEmailIndexSqlite
+    case schema.Postgres: stmt = sqlCreateUserEmailIndexPostgres
+    case schema.Mysql: stmt = sqlCreateUserEmailIndexMysql
+    }
+	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
+}
+
+
 
 //--------------------------------------------------------------------------------
 
-const NumUserColumns = 9
-
-const sUserColumnNames = `
-id, login, email, avatar, active, admin, token, secret, hash
-`
-
-const sUserDataColumnNames = `
-login, email, avatar, active, admin, token, secret, hash
-`
-
-const sCreateUserStmtSqlite = `
-CREATE TABLE IF NOT EXISTS %s (
- id     integer primary key autoincrement,
+const sqlCreateUserTableSqlite = `
+CREATE TABLE %s%s%s (
+ uid    integer primary key autoincrement,
  login  text,
  email  text,
  avatar text,
@@ -322,9 +378,9 @@ CREATE TABLE IF NOT EXISTS %s (
 )
 `
 
-const sCreateUserStmtPostgres = `
-CREATE TABLE IF NOT EXISTS %s (
- id     serial PRIMARY KEY ,
+const sqlCreateUserTablePostgres = `
+CREATE TABLE %s%s%s (
+ uid    serial primary key ,
  login  varchar(512),
  email  varchar(512),
  avatar varchar(512),
@@ -336,9 +392,9 @@ CREATE TABLE IF NOT EXISTS %s (
 )
 `
 
-const sCreateUserStmtMysql = `
-CREATE TABLE IF NOT EXISTS %s (
- id     bigint PRIMARY KEY AUTO_INCREMENT,
+const sqlCreateUserTableMysql = `
+CREATE TABLE %s%s%s (
+ uid    bigint PRIMARY KEY AUTO_INCREMENT,
  login  VARCHAR(512),
  email  VARCHAR(512),
  avatar VARCHAR(512),
@@ -352,220 +408,230 @@ CREATE TABLE IF NOT EXISTS %s (
 
 //--------------------------------------------------------------------------------
 
-const sInsertUserStmtSqlite = sInsertUserStmtMysql
+const sqlInsertUserSqlite = sqlInsertUserMysql
 
-const sUpdateUserByPkStmtSqlite = sUpdateUserByPkStmtMysql
+const sqlUpdateUserByPkSqlite = sqlUpdateUserByPkMysql
 
-const sDeleteUserByPkStmtSqlite = sDeleteUserByPkStmtMysql
+const sqlDeleteUserByPkSqlite = sqlDeleteUserByPkMysql
 
 //--------------------------------------------------------------------------------
 
-const sInsertUserStmtPostgres = `
-INSERT INTO %s (
- login,
- email,
- avatar,
- active,
- admin,
- token,
- secret,
- hash
+const sqlInsertUserPostgres = `
+INSERT INTO %s%s (
+	login,
+	email,
+	avatar,
+	active,
+	admin,
+	token,
+	secret,
+	hash
 ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 `
 
-const sUpdateUserByPkStmtPostgres = `
-UPDATE %s SET 
- login=$2,
- email=$3,
- avatar=$4,
- active=$5,
- admin=$6,
- token=$7,
- secret=$8,
- hash=$9 
- WHERE id=$10
+const sqlUpdateUserByPkPostgres = `
+UPDATE %s%s SET 
+	login=$2,
+	email=$3,
+	avatar=$4,
+	active=$5,
+	admin=$6,
+	token=$7,
+	secret=$8,
+	hash=$9 
+ WHERE uid=$10
 `
 
-const sDeleteUserByPkStmtPostgres = `
-DELETE FROM %s
- WHERE id=$1
+const sqlDeleteUserByPkPostgres = `
+DELETE FROM %s%s
+ WHERE uid=$1
 `
 
 //--------------------------------------------------------------------------------
 
-const sInsertUserStmtMysql = `
-INSERT INTO %s (
- login,
- email,
- avatar,
- active,
- admin,
- token,
- secret,
- hash
+const sqlInsertUserMysql = `
+INSERT INTO %s%s (
+	login,
+	email,
+	avatar,
+	active,
+	admin,
+	token,
+	secret,
+	hash
 ) VALUES (?,?,?,?,?,?,?,?)
 `
 
-const sUpdateUserByPkStmtMysql = `
-UPDATE %s SET 
- login=?,
- email=?,
- avatar=?,
- active=?,
- admin=?,
- token=?,
- secret=?,
- hash=? 
- WHERE id=?
+const sqlUpdateUserByPkMysql = `
+UPDATE %s%s SET 
+	login=?,
+	email=?,
+	avatar=?,
+	active=?,
+	admin=?,
+	token=?,
+	secret=?,
+	hash=? 
+ WHERE uid=?
 `
 
-const sDeleteUserByPkStmtMysql = `
-DELETE FROM %s
- WHERE id=?
+const sqlDeleteUserByPkMysql = `
+DELETE FROM %s%s
+ WHERE uid=?
 `
 
 //--------------------------------------------------------------------------------
 
-const sCreateUserLoginStmtSqlite = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
+const sqlCreateUserLoginIndexSqlite = `
+CREATE UNIQUE INDEX %suser_login ON %s%s (login)
 `
 
-const sUpdateUserLoginStmtSqlite = `
-UPDATE %s SET 
- login=?,
- email=?,
- avatar=?,
- active=?,
- admin=?,
- token=?,
- secret=?,
- hash=? 
+const sqlUpdateUserLoginSqlite = `
+UPDATE %s%s SET 
+	login=?,
+	email=?,
+	avatar=?,
+	active=?,
+	admin=?,
+	token=?,
+	secret=?,
+	hash=? 
  WHERE login=?
 `
 
-const sDeleteUserLoginStmtSqlite = `
-DELETE FROM %s
+const sqlDeleteUserLoginSqlite = `
+DELETE FROM %s%s
  WHERE login=?
 `
 
 //--------------------------------------------------------------------------------
 
-const sCreateUserEmailStmtSqlite = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
+const sqlCreateUserEmailIndexSqlite = `
+CREATE UNIQUE INDEX %suser_email ON %s%s (email)
 `
 
-const sUpdateUserEmailStmtSqlite = `
-UPDATE %s SET 
- login=?,
- email=?,
- avatar=?,
- active=?,
- admin=?,
- token=?,
- secret=?,
- hash=? 
+const sqlUpdateUserEmailSqlite = `
+UPDATE %s%s SET 
+	login=?,
+	email=?,
+	avatar=?,
+	active=?,
+	admin=?,
+	token=?,
+	secret=?,
+	hash=? 
  WHERE email=?
 `
 
-const sDeleteUserEmailStmtSqlite = `
-DELETE FROM %s
+const sqlDeleteUserEmailSqlite = `
+DELETE FROM %s%s
  WHERE email=?
 `
 
 //--------------------------------------------------------------------------------
 
-const sCreateUserLoginStmtPostgres = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
+const sqlCreateUserLoginIndexPostgres = `
+CREATE UNIQUE INDEX %suser_login ON %s%s (login)
 `
 
-const sUpdateUserLoginStmtPostgres = `
-UPDATE %s SET 
- login=$2,
- email=$3,
- avatar=$4,
- active=$5,
- admin=$6,
- token=$7,
- secret=$8,
- hash=$9 
+const sqlUpdateUserLoginPostgres = `
+UPDATE %s%s SET 
+	login=$2,
+	email=$3,
+	avatar=$4,
+	active=$5,
+	admin=$6,
+	token=$7,
+	secret=$8,
+	hash=$9 
  WHERE login=$10
 `
 
-const sDeleteUserLoginStmtPostgres = `
-DELETE FROM %s
+const sqlDeleteUserLoginPostgres = `
+DELETE FROM %s%s
  WHERE login=$1
 `
 
 //--------------------------------------------------------------------------------
 
-const sCreateUserEmailStmtPostgres = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
+const sqlCreateUserEmailIndexPostgres = `
+CREATE UNIQUE INDEX %suser_email ON %s%s (email)
 `
 
-const sUpdateUserEmailStmtPostgres = `
-UPDATE %s SET 
- login=$2,
- email=$3,
- avatar=$4,
- active=$5,
- admin=$6,
- token=$7,
- secret=$8,
- hash=$9 
+const sqlUpdateUserEmailPostgres = `
+UPDATE %s%s SET 
+	login=$2,
+	email=$3,
+	avatar=$4,
+	active=$5,
+	admin=$6,
+	token=$7,
+	secret=$8,
+	hash=$9 
  WHERE email=$10
 `
 
-const sDeleteUserEmailStmtPostgres = `
-DELETE FROM %s
+const sqlDeleteUserEmailPostgres = `
+DELETE FROM %s%s
  WHERE email=$1
 `
 
 //--------------------------------------------------------------------------------
 
-const sCreateUserLoginStmtMysql = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
+const sqlCreateUserLoginIndexMysql = `
+CREATE UNIQUE INDEX %suser_login ON %s%s (login)
 `
 
-const sUpdateUserLoginStmtMysql = `
-UPDATE %s SET 
- login=?,
- email=?,
- avatar=?,
- active=?,
- admin=?,
- token=?,
- secret=?,
- hash=? 
+const sqlUpdateUserLoginMysql = `
+UPDATE %s%s SET 
+	login=?,
+	email=?,
+	avatar=?,
+	active=?,
+	admin=?,
+	token=?,
+	secret=?,
+	hash=? 
  WHERE login=?
 `
 
-const sDeleteUserLoginStmtMysql = `
-DELETE FROM %s
+const sqlDeleteUserLoginMysql = `
+DELETE FROM %s%s
  WHERE login=?
 `
 
 //--------------------------------------------------------------------------------
 
-const sCreateUserEmailStmtMysql = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
+const sqlCreateUserEmailIndexMysql = `
+CREATE UNIQUE INDEX %suser_email ON %s%s (email)
 `
 
-const sUpdateUserEmailStmtMysql = `
-UPDATE %s SET 
- login=?,
- email=?,
- avatar=?,
- active=?,
- admin=?,
- token=?,
- secret=?,
- hash=? 
+const sqlUpdateUserEmailMysql = `
+UPDATE %s%s SET 
+	login=?,
+	email=?,
+	avatar=?,
+	active=?,
+	admin=?,
+	token=?,
+	secret=?,
+	hash=? 
  WHERE email=?
 `
 
-const sDeleteUserEmailStmtMysql = `
-DELETE FROM %s
+const sqlDeleteUserEmailMysql = `
+DELETE FROM %s%s
  WHERE email=?
 `
+
+//--------------------------------------------------------------------------------
+
+const NumUserColumns = 9
+
+const UserPk = "Uid"
+
+const UserColumnNames = "uid, login, email, avatar, active, admin, token, secret, hash"
+
+const UserDataColumnNames = "login, email, avatar, active, admin, token, secret, hash"
 
 //--------------------------------------------------------------------------------

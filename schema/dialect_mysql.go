@@ -9,14 +9,10 @@ type mysql struct {
 	base
 }
 
-func newMySQL() Dialect {
+func newMySQL() SDialect {
 	d := &mysql{}
-	d.base.Dialect = d
+	d.base.SDialect = d
 	return d
-}
-
-func (d *mysql) Id() DialectId {
-	return Mysql
 }
 
 func (d *mysql) CreateTableSettings() string {

@@ -59,8 +59,8 @@ func TestWriteRowFunc(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-// ScanParty reads a database record into a single value.
-func ScanParty(row *sql.Row) (*Party, error) {
+// ScanXParty reads a database record into a single value.
+func ScanXParty(row *sql.Row) (*Party, error) {
 	var v0 int64
 	var v1 int
 	var v2 pkg1.Category
@@ -137,8 +137,8 @@ func TestWriteRowsFunc(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-// ScanPartys reads database records into a slice of values.
-func ScanPartys(rows *sql.Rows) ([]*Party, error) {
+// ScanXPartys reads database records into a slice of values.
+func ScanXPartys(rows *sql.Rows) ([]*Party, error) {
 	var err error
 	var vv []*Party
 

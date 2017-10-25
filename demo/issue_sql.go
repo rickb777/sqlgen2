@@ -15,18 +15,20 @@ import (
 const IssueTableName = "issues"
 
 // IssueTable holds a given table name with the database reference, providing access methods below.
+// The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
+// specify the name of the schema, in which case it should have a trailing '.'.
 type IssueTable struct {
-	Name      string
-	Db        *sql.DB
-	DialectId schema.DialectId
+	Prefix, Name string
+	Db           *sql.DB
+	DialectId    schema.DialectId
 }
 
 // NewIssueTable returns a new table instance.
-func NewIssueTable(name string, db *sql.DB, dialect schema.DialectId) IssueTable {
+func NewIssueTable(prefix, name string, db *sql.DB, dialect schema.DialectId) IssueTable {
 	if name == "" {
 		name = IssueTableName
 	}
-	return IssueTable{name, db, dialect}
+	return IssueTable{prefix, name, db, dialect}
 }
 
 // ScanIssue reads a database record into a single value.
@@ -170,7 +172,7 @@ func (tbl IssueTable) QueryOne(query string, args ...interface{}) (*Issue, error
 
 // SelectOneSA allows a single Issue to be obtained from the database using supplied dialect-specific parameters.
 func (tbl IssueTable) SelectOneSA(where, limitClause string, args ...interface{}) (*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sIssueColumnNames, tbl.Name, where, limitClause)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", IssueColumnNames, tbl.Prefix, tbl.Name, where, limitClause)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -191,7 +193,7 @@ func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error)
 
 // SelectSA allows Issues to be obtained from the database using supplied dialect-specific parameters.
 func (tbl IssueTable) SelectSA(where string, args ...interface{}) ([]*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s", sIssueColumnNames, tbl.Name, where)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s", IssueColumnNames, tbl.Prefix, tbl.Name, where)
 	return tbl.Query(query, args...)
 }
 
@@ -202,7 +204,7 @@ func (tbl IssueTable) Select(where where.Expression, dialect dialect.Dialect) ([
 
 // CountSA counts Issues in the database using supplied dialect-specific parameters.
 func (tbl IssueTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
 	err = row.Scan(&count)
 	return count, err
@@ -213,22 +215,34 @@ func (tbl IssueTable) Count(where where.Expression, dialect dialect.Dialect) (co
 	return tbl.CountSA(where.Build(dialect))
 }
 
-// Insert adds new records for the Issues.
-func (tbl IssueTable) Insert(v *Issue) error {
+// Insert adds new records for the Issues. The Issues have their primary key fields
+// set to the new record identifiers.
+func (tbl IssueTable) Insert(vv ...*Issue) error {
 	var stmt string
 	switch tbl.DialectId {
-	case schema.Sqlite: stmt = sInsertIssueStmtSqlite
-    case schema.Postgres: stmt = sInsertIssueStmtPostgres
-    case schema.Mysql: stmt = sInsertIssueStmtMysql
+	case schema.Sqlite: stmt = sqlInsertIssueSqlite
+    case schema.Postgres: stmt = sqlInsertIssuePostgres
+    case schema.Mysql: stmt = sqlInsertIssueMysql
     }
-	query := fmt.Sprintf(stmt, tbl.Name)
-	res, err := tbl.Db.Exec(query, SliceIssueWithoutPk(v)...)
+	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name))
 	if err != nil {
 		return err
 	}
+	defer st.Close()
 
-	v.Id, err = res.LastInsertId()
-	return err
+	for _, v := range vv {
+		res, err := st.Exec(SliceIssueWithoutPk(v)...)
+		if err != nil {
+			return err
+		}
+
+		v.Id, err = res.LastInsertId()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Update updates a record. It returns the number of rows affected.
@@ -236,11 +250,11 @@ func (tbl IssueTable) Insert(v *Issue) error {
 func (tbl IssueTable) Update(v *Issue) (int64, error) {
 	var stmt string
 	switch tbl.DialectId {
-	case schema.Sqlite: stmt = sUpdateIssueByPkStmtSqlite
-    case schema.Postgres: stmt = sUpdateIssueByPkStmtPostgres
-    case schema.Mysql: stmt = sUpdateIssueByPkStmtMysql
+	case schema.Sqlite: stmt = sqlUpdateIssueByPkSqlite
+    case schema.Postgres: stmt = sqlUpdateIssueByPkPostgres
+    case schema.Mysql: stmt = sqlUpdateIssueByPkMysql
     }
-	query := fmt.Sprintf(stmt, tbl.Name)
+	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 	args := SliceIssueWithoutPk(v)
 	args = append(args, v.Id)
 	return tbl.Exec(query, args...)
@@ -262,31 +276,58 @@ func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected.
 // Not every database or database driver may support this.
-func (tbl IssueTable) CreateTable() (int64, error) {
+func (tbl IssueTable) CreateTable(ifNotExist bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExist))
+}
+
+func (tbl IssueTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.DialectId {
-	case schema.Sqlite: stmt = sCreateIssueStmtSqlite
-    case schema.Postgres: stmt = sCreateIssueStmtPostgres
-    case schema.Mysql: stmt = sCreateIssueStmtMysql
+	case schema.Sqlite: stmt = sqlCreateIssueTableSqlite
+    case schema.Postgres: stmt = sqlCreateIssueTablePostgres
+    case schema.Mysql: stmt = sqlCreateIssueTableMysql
     }
-	query := fmt.Sprintf(stmt, tbl.Name)
-	return tbl.Exec(query)
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	return query
 }
+
+func (tbl IssueTable) ternary(flag bool, a, b string) string {
+	if flag {
+		return a
+	}
+	return b
+}
+
+// CreateIndexes executes queries that create the indexes needed by the Issue table.
+func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+    
+	_, err = tbl.Exec(tbl.createIssueAssigneeIndexSql(extra))
+	if err != nil {
+		return err
+	}
+    
+	return nil
+}
+
+
+func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExist string) string {
+	var stmt string
+	switch tbl.DialectId {
+	case schema.Sqlite: stmt = sqlCreateIssueAssigneeIndexSqlite
+    case schema.Postgres: stmt = sqlCreateIssueAssigneeIndexPostgres
+    case schema.Mysql: stmt = sqlCreateIssueAssigneeIndexMysql
+    }
+	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
+}
+
+
 
 //--------------------------------------------------------------------------------
 
-const NumIssueColumns = 6
-
-const sIssueColumnNames = `
-id, number, title, assignee, state, labels
-`
-
-const sIssueDataColumnNames = `
-number, title, assignee, state, labels
-`
-
-const sCreateIssueStmtSqlite = `
-CREATE TABLE IF NOT EXISTS %s (
+const sqlCreateIssueTableSqlite = `
+CREATE TABLE %s%s%s (
  id       integer primary key autoincrement,
  number   integer,
  title    text,
@@ -296,9 +337,9 @@ CREATE TABLE IF NOT EXISTS %s (
 )
 `
 
-const sCreateIssueStmtPostgres = `
-CREATE TABLE IF NOT EXISTS %s (
- id       serial PRIMARY KEY ,
+const sqlCreateIssueTablePostgres = `
+CREATE TABLE %s%s%s (
+ id       serial primary key ,
  number   integer,
  title    varchar(512),
  assignee varchar(512),
@@ -307,8 +348,8 @@ CREATE TABLE IF NOT EXISTS %s (
 )
 `
 
-const sCreateIssueStmtMysql = `
-CREATE TABLE IF NOT EXISTS %s (
+const sqlCreateIssueTableMysql = `
+CREATE TABLE %s%s%s (
  id       bigint PRIMARY KEY AUTO_INCREMENT,
  number   bigint,
  title    VARCHAR(512),
@@ -320,82 +361,92 @@ CREATE TABLE IF NOT EXISTS %s (
 
 //--------------------------------------------------------------------------------
 
-const sInsertIssueStmtSqlite = sInsertIssueStmtMysql
+const sqlInsertIssueSqlite = sqlInsertIssueMysql
 
-const sUpdateIssueByPkStmtSqlite = sUpdateIssueByPkStmtMysql
+const sqlUpdateIssueByPkSqlite = sqlUpdateIssueByPkMysql
 
-const sDeleteIssueByPkStmtSqlite = sDeleteIssueByPkStmtMysql
+const sqlDeleteIssueByPkSqlite = sqlDeleteIssueByPkMysql
 
 //--------------------------------------------------------------------------------
 
-const sInsertIssueStmtPostgres = `
-INSERT INTO %s (
- number,
- title,
- assignee,
- state,
- labels
+const sqlInsertIssuePostgres = `
+INSERT INTO %s%s (
+	number,
+	title,
+	assignee,
+	state,
+	labels
 ) VALUES ($1,$2,$3,$4,$5)
 `
 
-const sUpdateIssueByPkStmtPostgres = `
-UPDATE %s SET 
- number=$2,
- title=$3,
- assignee=$4,
- state=$5,
- labels=$6 
+const sqlUpdateIssueByPkPostgres = `
+UPDATE %s%s SET 
+	number=$2,
+	title=$3,
+	assignee=$4,
+	state=$5,
+	labels=$6 
  WHERE id=$7
 `
 
-const sDeleteIssueByPkStmtPostgres = `
-DELETE FROM %s
+const sqlDeleteIssueByPkPostgres = `
+DELETE FROM %s%s
  WHERE id=$1
 `
 
 //--------------------------------------------------------------------------------
 
-const sInsertIssueStmtMysql = `
-INSERT INTO %s (
- number,
- title,
- assignee,
- state,
- labels
+const sqlInsertIssueMysql = `
+INSERT INTO %s%s (
+	number,
+	title,
+	assignee,
+	state,
+	labels
 ) VALUES (?,?,?,?,?)
 `
 
-const sUpdateIssueByPkStmtMysql = `
-UPDATE %s SET 
- number=?,
- title=?,
- assignee=?,
- state=?,
- labels=? 
+const sqlUpdateIssueByPkMysql = `
+UPDATE %s%s SET 
+	number=?,
+	title=?,
+	assignee=?,
+	state=?,
+	labels=? 
  WHERE id=?
 `
 
-const sDeleteIssueByPkStmtMysql = `
-DELETE FROM %s
+const sqlDeleteIssueByPkMysql = `
+DELETE FROM %s%s
  WHERE id=?
 `
 
 //--------------------------------------------------------------------------------
 
-const sCreateIssueAssigneeStmtSqlite = `
-CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
+const sqlCreateIssueAssigneeIndexSqlite = `
+CREATE INDEX %sissue_assignee ON %s%s (assignee)
 `
 
 //--------------------------------------------------------------------------------
 
-const sCreateIssueAssigneeStmtPostgres = `
-CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
+const sqlCreateIssueAssigneeIndexPostgres = `
+CREATE INDEX %sissue_assignee ON %s%s (assignee)
 `
 
 //--------------------------------------------------------------------------------
 
-const sCreateIssueAssigneeStmtMysql = `
-CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
+const sqlCreateIssueAssigneeIndexMysql = `
+CREATE INDEX %sissue_assignee ON %s%s (assignee)
 `
+
+//--------------------------------------------------------------------------------
+
+const NumIssueColumns = 6
+
+const IssuePk = "Id"
+
+const IssueColumnNames = "id, number, title, assignee, state, labels"
+
+const IssueDataColumnNames = "number, title, assignee, state, labels"
 
 //--------------------------------------------------------------------------------

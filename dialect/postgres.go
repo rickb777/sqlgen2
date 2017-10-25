@@ -3,6 +3,7 @@ package dialect
 import (
 	"strconv"
 	"bytes"
+	"fmt"
 )
 
 const postgresPlaceholders = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
@@ -41,4 +42,8 @@ func (dialect PostgresDialect) ReplacePlaceholders(sql string) string {
 		}
 	}
 	return buf.String()
+}
+
+func (dialect PostgresDialect) Param(i int) string {
+	return fmt.Sprintf("$%d", i+1)
 }

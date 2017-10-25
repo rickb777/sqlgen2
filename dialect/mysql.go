@@ -47,3 +47,6 @@ func (dialect MySQLDialect) Column(f *schema.Field) string {
 	}
 }
 
+func (dialect MySQLDialect) Param(i int) string {
+	return "?"
+}

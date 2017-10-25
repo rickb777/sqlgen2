@@ -4,14 +4,10 @@ type sqlite struct {
 	base
 }
 
-func newSQLite() Dialect {
+func newSQLite() SDialect {
 	d := &sqlite{}
-	d.base.Dialect = d
+	d.base.SDialect = d
 	return d
-}
-
-func (d *sqlite) Id() DialectId {
-	return Sqlite
 }
 
 func sqliteColumn(f *Field) string {

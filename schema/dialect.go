@@ -17,7 +17,7 @@ func init() {
 	}
 }
 
-func New(dialect DialectId) Dialect {
+func New(dialect DialectId) SDialect {
 	switch dialect {
 	case Postgres:
 		return newPostgres()

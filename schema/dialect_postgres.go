@@ -8,14 +8,10 @@ type posgres struct {
 	base
 }
 
-func newPostgres() Dialect {
+func newPostgres() SDialect {
 	d := &posgres{}
-	d.base.Dialect = d
+	d.base.SDialect = d
 	return d
-}
-
-func (d *posgres) Id() DialectId {
-	return Postgres
 }
 
 // see https://github.com/eaigner/hood/blob/master/mysql.go#L35
@@ -56,7 +52,7 @@ func postgresToken(v SqlToken) string {
 		// auto-increment keyword.
 		return ""
 	case PRIMARY_KEY:
-		return "PRIMARY KEY"
+		return "primary key"
 	default:
 		return ""
 	}

@@ -24,18 +24,6 @@ func WriteSchema(w io.Writer, table *schema.Table) {
 
 	tableName := table.Type
 
-	must(tConst.Execute(w, ConstView{
-		identifier("Num", tableName, "Columns"), table.NumColumnNames(true),
-	}))
-
-	must(tConstStr.Execute(w, ConstView{
-		identifier("s", tableName, "ColumnNames"), Join(table.ColumnNames(true), ", "),
-	}))
-
-	must(tConstStr.Execute(w, ConstView{
-		identifier("s", tableName, "DataColumnNames"), Join(table.ColumnNames(false), ", "),
-	}))
-
 	for _, did := range schema.AllDialectIds {
 		d := schema.New(did)
 		ds := did.String()
@@ -45,7 +33,8 @@ func WriteSchema(w io.Writer, table *schema.Table) {
 		//must(tConstStr.Execute(w, ConstView{identifier("", tableName, "DataColumnParams"+ds), d.ColumnParams(table, false)}))
 
 		must(tConstStr.Execute(w, ConstView{
-			identifier("sCreate", tableName, "Stmt"+ds), d.Table(table) + d.CreateTableSettings(),
+			identifier("sqlCreate", tableName, "Table"+ds),
+			"CREATE TABLE %s%s%s (" + d.Table(table, did) + "\n)" + d.CreateTableSettings(),
 		}))
 	}
 
@@ -61,31 +50,31 @@ func WriteSchema(w io.Writer, table *schema.Table) {
 			ds2 := did2.String()
 
 			must(tConst.Execute(w, ConstView{
-				identifier("sInsert", tableName, "Stmt"+ds), identifier("sInsert", tableName, "Stmt"+ds2),
+				identifier("sqlInsert", tableName, ds), identifier("sqlInsert", tableName, ds2),
 			}))
 
 			if table.HasPrimaryKey() {
 				must(tConst.Execute(w, ConstView{
-					identifier("sUpdate", tableName, "ByPkStmt"+ds), identifier("sUpdate", tableName, "ByPkStmt"+ds2),
+					identifier("sqlUpdate", tableName, "ByPk"+ds), identifier("sqlUpdate", tableName, "ByPk"+ds2),
 				}))
 
 				must(tConst.Execute(w, ConstView{
-					identifier("sDelete", tableName, "ByPkStmt"+ds), identifier("sDelete", tableName, "ByPkStmt"+ds2),
+					identifier("sqlDelete", tableName, "ByPk"+ds), identifier("sqlDelete", tableName, "ByPk"+ds2),
 				}))
 			}
 
 		} else {
 			must(tConstStr.Execute(w, ConstView{
-				identifier("sInsert", tableName, "Stmt"+ds), d.Insert(table),
+				identifier("sqlInsert", tableName, ds), d.Insert(table),
 			}))
 
 			if table.HasPrimaryKey() {
 				must(tConstStr.Execute(w, ConstView{
-					identifier("sUpdate", tableName, "ByPkStmt"+ds), d.Update(table, []*schema.Field{table.Primary}),
+					identifier("sqlUpdate", tableName, "ByPk"+ds), d.Update(table, []*schema.Field{table.Primary}),
 				}))
 
 				must(tConstStr.Execute(w, ConstView{
-					identifier("sDelete", tableName, "ByPkStmt"+ds), d.Delete(table, []*schema.Field{table.Primary}),
+					identifier("sqlDelete", tableName, "ByPk"+ds), d.Delete(table, []*schema.Field{table.Primary}),
 				}))
 			}
 		}
@@ -100,7 +89,7 @@ func WriteSchema(w io.Writer, table *schema.Table) {
 			fmt.Fprintln(w, sectionBreak)
 
 			must(tConstStr.Execute(w, ConstView{
-				identifier("sCreate", ix.Name, "Stmt"+ds), d.Index(table, ix),
+				identifier("sqlCreate", ix.Name, "Index"+ds), d.Index(table, ix),
 			}))
 
 			if !ix.Unique {
@@ -116,15 +105,35 @@ func WriteSchema(w io.Writer, table *schema.Table) {
 			} else {
 
 				must(tConstStr.Execute(w, ConstView{
-					identifier("sUpdate", ix.Name, "Stmt"+ds), d.Update(table, ix.Fields),
+					identifier("sqlUpdate", ix.Name, ds), d.Update(table, ix.Fields),
 				}))
 
 				must(tConstStr.Execute(w, ConstView{
-					identifier("sDelete", ix.Name, "Stmt"+ds), d.Delete(table, ix.Fields),
+					identifier("sqlDelete", ix.Name, ds), d.Delete(table, ix.Fields),
 				}))
 			}
 		}
 	}
+
+	fmt.Fprintln(w, sectionBreak)
+
+	must(tConst.Execute(w, ConstView{
+		identifier("Num", tableName, "Columns"), table.NumColumnNames(true),
+	}))
+
+	if table.HasPrimaryKey() {
+		must(tConstQ.Execute(w, ConstView{
+			identifier("", tableName, "Pk"), table.Primary.Name,
+		}))
+
+		must(tConstQ.Execute(w, ConstView{
+			identifier("", tableName, "ColumnNames"), Join(table.ColumnNames(true), ", "),
+		}))
+	}
+
+	must(tConstQ.Execute(w, ConstView{
+		identifier("", tableName, "DataColumnNames"), Join(table.ColumnNames(false), ", "),
+	}))
 
 	fmt.Fprintln(w, sectionBreak)
 }

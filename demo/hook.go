@@ -1,6 +1,10 @@
 package demo
 
-//go:generate sqlgen -type demo.Hook -o hook_sql.go -db mysql -v -z hook.go
+// This example demonstrates
+//   * embedded structs
+//   * the use of pointers for optional items
+
+//go:generate sqlgen -type demo.Hook -o hook_sql.go -v hook.go
 
 type Hook struct {
 	Id  int64 `sql:"pk: true, auto: true"`
@@ -32,7 +36,7 @@ type Author struct {
 	Username string
 }
 
-type Category int
+type Category uint8
 
 const (
 	Alpha Category = iota

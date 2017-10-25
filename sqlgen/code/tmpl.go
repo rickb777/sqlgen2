@@ -15,18 +15,20 @@ const sTable = `
 const {{.Prefix}}{{.Type}}TableName = "{{.DbName}}"
 
 // {{.Prefix}}{{.Type}}Table holds a given table name with the database reference, providing access methods below.
+// The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
+// specify the name of the schema, in which case it should have a trailing '.'.
 type {{.Prefix}}{{.Type}}Table struct {
-	Name      string
-	Db        *sql.DB
-	DialectId schema.DialectId
+	Prefix, Name string
+	Db           *sql.DB
+	DialectId    schema.DialectId
 }
 
 // New{{.Prefix}}{{.Type}}Table returns a new table instance.
-func New{{.Prefix}}{{.Type}}Table(name string, db *sql.DB, dialect schema.DialectId) {{.Prefix}}{{.Type}}Table {
+func New{{.Prefix}}{{.Type}}Table(prefix, name string, db *sql.DB, dialect schema.DialectId) {{.Prefix}}{{.Type}}Table {
 	if name == "" {
 		name = {{.Prefix}}{{.Type}}TableName
 	}
-	return {{.Prefix}}{{.Type}}Table{name, db, dialect}
+	return {{.Prefix}}{{.Type}}Table{prefix, name, db, dialect}
 }
 `
 
@@ -38,26 +40,24 @@ const sConst = `
 const {{.Name}} = {{.Body}}
 `
 
+const sConstQ = `
+const {{.Name}} = "{{.Body}}"
+`
+
 const sConstStr = `
 const {{.Name}} = {{ticked .Body}}
 `
 
-const sTableName = `
-func {{.Name}}(tableName string) string {
-	return fmt.Sprintf(s{{.Name}}, tableName)
-}
-`
-
 var tConst = template.Must(template.New("Const").Funcs(funcMap).Parse(sConst))
+var tConstQ = template.Must(template.New("ConstQ").Funcs(funcMap).Parse(sConstQ))
 var tConstStr = template.Must(template.New("Const").Funcs(funcMap).Parse(sConstStr))
-var tConstWithTableName = template.Must(template.New("Const").Funcs(funcMap).Parse(sConstStr + sTableName))
 
 //-------------------------------------------------------------------------------------------------
 
 // function template to scan a single row.
 const sScanRow = `
-// Scan{{.Type}} reads a database record into a single value.
-func Scan{{.Type}}(row *sql.Row) (*{{.Type}}, error) {
+// Scan{{.Prefix}}{{.Type}} reads a database record into a single value.
+func Scan{{.Prefix}}{{.Type}}(row *sql.Row) (*{{.Type}}, error) {
 {{range .Body1}}{{.}}{{end}}
 	err := row.Scan(
 {{range .Body2}}{{.}}{{end}}
@@ -78,8 +78,8 @@ var tScanRow = template.Must(template.New("ScanRow").Funcs(funcMap).Parse(sScanR
 
 // function template to scan multiple rows.
 const sScanRows = `
-// Scan{{.Types}} reads database records into a slice of values.
-func Scan{{.Types}}(rows *sql.Rows) ([]*{{.Type}}, error) {
+// Scan{{.Prefix}}{{.Types}} reads database records into a slice of values.
+func Scan{{.Prefix}}{{.Types}}(rows *sql.Rows) ([]*{{.Type}}, error) {
 	var err error
 	var vv []*{{.Type}}
 
@@ -122,12 +122,12 @@ const sSelectRow = `
 // QueryOne is the low-level access function for one {{.Type}}.
 func (tbl {{.Prefix}}{{.Type}}Table) QueryOne(query string, args ...interface{}) (*{{.Type}}, error) {
 	row := tbl.Db.QueryRow(query, args...)
-	return Scan{{.Type}}(row)
+	return Scan{{.Prefix}}{{.Type}}(row)
 }
 
 // SelectOneSA allows a single {{.Type}} to be obtained from the database using supplied dialect-specific parameters.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where, limitClause string, args ...interface{}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", s{{.Type}}ColumnNames, tbl.Name, where, limitClause)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", {{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where, limitClause)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -150,12 +150,12 @@ func (tbl {{.Prefix}}{{.Type}}Table) Query(query string, args ...interface{}) ([
 		return nil, err
 	}
 	defer rows.Close()
-	return Scan{{.Types}}(rows)
+	return Scan{{.Prefix}}{{.Types}}(rows)
 }
 
 // SelectSA allows {{.Types}} to be obtained from the database using supplied dialect-specific parameters.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectSA(where string, args ...interface{}) ([]*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s", s{{.Type}}ColumnNames, tbl.Name, where)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s", {{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where)
 	return tbl.Query(query, args...)
 }
 
@@ -172,7 +172,7 @@ var tSelectRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(
 const sCountRows = `
 // CountSA counts {{.Types}} in the database using supplied dialect-specific parameters.
 func (tbl {{.Prefix}}{{.Type}}Table) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.Name, where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
 	row := tbl.Db.QueryRow(query, args)
 	err = row.Scan(&count)
 	return count, err
@@ -190,22 +190,34 @@ var tCountRows = template.Must(template.New("CountRows").Funcs(funcMap).Parse(sC
 
 // function template to insert a single row, updating the primary key in the struct.
 const sInsertAndGetLastId = `
-// Insert adds new records for the {{.Types}}.
-func (tbl {{.Prefix}}{{.Type}}Table) Insert(v *{{.Type}}) error {
+// Insert adds new records for the {{.Types}}. The {{.Types}} have their primary key fields
+// set to the new record identifiers.
+func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	var stmt string
 	switch tbl.DialectId {
 	{{range .Dialects -}}
-	case schema.{{.}}: stmt = sInsert{{$.Type}}Stmt{{.}}
+	case schema.{{.}}: stmt = sqlInsert{{$.Type}}{{.}}
     {{end -}}
 	}
-	query := fmt.Sprintf(stmt, tbl.Name)
-	res, err := tbl.Db.Exec(query, Slice{{.Type}}WithoutPk(v)...)
+	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name))
 	if err != nil {
 		return err
 	}
+	defer st.Close()
 
-	v.{{.Table.Primary.Name}}, err = res.LastInsertId()
-	return err
+	for _, v := range vv {
+		res, err := st.Exec(Slice{{.Type}}WithoutPk(v)...)
+		if err != nil {
+			return err
+		}
+
+		v.{{.Table.Primary.Name}}, err = res.LastInsertId()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 `
 
@@ -214,21 +226,33 @@ var tInsertAndGetLastId = template.Must(template.New("InsertAndGetLastId").Funcs
 //-------------------------------------------------------------------------------------------------
 
 // function template to insert a single row.
-const sInsert = `
-func (tbl {{.Prefix}}{{.Type}}Table) Insert(v *{{.Type}}) error {
+const sInsertSimple = `
+// Insert adds new records for the {{.Types}}.
+func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	var stmt string
 	switch tbl.DialectId {
 	{{range .Dialects -}}
-	case schema.{{.}}: stmt = sInsert{{$.Type}}Stmt{{.}}
+	case schema.{{.}}: stmt = sqlInsert{{$.Type}}{{.}}
     {{end -}}
 	}
-	query := fmt.Sprintf(stmt, tbl.Name)
-	_, err := tbl.Db.Exec(query, Slice{{.Type}}(v)...)
-	return err
+	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name))
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+
+	for _, v := range vv {
+		res, err := st.Exec(Slice{{.Type}}Stmt(v)...)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 `
 
-var tInsert = template.Must(template.New("Insert").Funcs(funcMap).Parse(sInsert))
+var tInsertSimple = template.Must(template.New("Insert").Funcs(funcMap).Parse(sInsertSimple))
 
 //-------------------------------------------------------------------------------------------------
 
@@ -240,10 +264,10 @@ func (tbl {{.Prefix}}{{.Type}}Table) Update(v *{{.Type}}) (int64, error) {
 	var stmt string
 	switch tbl.DialectId {
 	{{range .Dialects -}}
-	case schema.{{.}}: stmt = sUpdate{{$.Type}}ByPkStmt{{.}}
+	case schema.{{.}}: stmt = sqlUpdate{{$.Type}}ByPk{{.}}
     {{end -}}
 	}
-	query := fmt.Sprintf(stmt, tbl.Name)
+	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 	args := Slice{{.Type}}WithoutPk(v)
 	args = append(args, v.{{.Table.Primary.Name}})
 	return tbl.Exec(query, args...)
@@ -279,16 +303,62 @@ const sCreateTable = `
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected.
 // Not every database or database driver may support this.
-func (tbl {{.Prefix}}{{.Type}}Table) CreateTable() (int64, error) {
+func (tbl {{.Prefix}}{{.Type}}Table) CreateTable(ifNotExist bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExist))
+}
+
+func (tbl {{.Prefix}}{{.Type}}Table) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.DialectId {
 	{{range .Dialects -}}
-	case schema.{{.}}: stmt = sCreate{{$.Type}}Stmt{{.}}
+	case schema.{{.}}: stmt = sqlCreate{{$.Type}}Table{{.}}
     {{end -}}
 	}
-	query := fmt.Sprintf(stmt, tbl.Name)
-	return tbl.Exec(query)
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	return query
+}
+
+func (tbl {{.Prefix}}{{.Type}}Table) ternary(flag bool, a, b string) string {
+	if flag {
+		return a
+	}
+	return b
 }
 `
 
 var tCreateTable = template.Must(template.New("CreateTable").Funcs(funcMap).Parse(sCreateTable))
+
+//-------------------------------------------------------------------------------------------------
+
+// function template to create an index
+const sCreateIndex = `
+// CreateIndexes executes queries that create the indexes needed by the {{.Type}} table.
+func (tbl {{.Prefix}}{{.Type}}Table) CreateIndexes(ifNotExist bool) (err error) {
+	{{if gt (len .Body1) 0 -}}
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+    {{end -}}
+	{{range .Body1}}{{$n := .}}
+	_, err = tbl.Exec(tbl.create{{$n}}IndexSql(extra))
+	if err != nil {
+		return err
+	}
+    {{end}}
+	return nil
+}
+
+{{range .Body1}}{{$n := .}}
+func (tbl {{$.Prefix}}{{$.Type}}Table) create{{$n}}IndexSql(ifNotExist string) string {
+	var stmt string
+	switch tbl.DialectId {
+	{{range $.Dialects -}}
+	case schema.{{.}}: stmt = sqlCreate{{$n}}Index{{.}}
+    {{end -}}
+	}
+	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
+}
+{{end}}
+
+`
+
+var tCreateIndex = template.Must(template.New("CreateIndex").Funcs(funcMap).Parse(sCreateIndex))
