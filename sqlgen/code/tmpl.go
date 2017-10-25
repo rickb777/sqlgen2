@@ -39,7 +39,7 @@ const {{.Name}} = {{.Body}}
 `
 
 const sConstStr = `
-const s{{.Name}} = {{ticked .Body}}
+const {{.Name}} = {{ticked .Body}}
 `
 
 const sTableName = `

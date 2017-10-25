@@ -410,74 +410,51 @@ const sHookDataColumnNames = `
 sha, after, before, created, deleted, forced
 `
 
-const sHookColumnParamsSqlite = `
-?,?,?,?,?,?,?
-`
-
-const sHookDataColumnParamsSqlite = `
-?,?,?,?,?,?
-`
-
 const sCreateHookStmtSqlite = `
 CREATE TABLE IF NOT EXISTS %s (
- id      INTEGER PRIMARY KEY AUTOINCREMENT,
- sha     TEXT,
- after   TEXT,
- before  TEXT,
- created BOOLEAN,
- deleted BOOLEAN,
- forced  BOOLEAN
+ id      integer primary key autoincrement,
+ sha     text,
+ after   text,
+ before  text,
+ created boolean,
+ deleted boolean,
+ forced  boolean
 )
-`
-
-const sInsertHookStmtSqlite = `
-INSERT INTO %s (
- sha,
- after,
- before,
- created,
- deleted,
- forced
-) VALUES (?,?,?,?,?,?)
-`
-
-const sUpdateHookByPkStmtSqlite = `
-UPDATE %s SET 
- sha=?,
- after=?,
- before=?,
- created=?,
- deleted=?,
- forced=? 
- WHERE id=?
-`
-
-const sDeleteHookByPkStmtSqlite = `
-DELETE FROM %s
- WHERE id=?
-`
-
-//--------------------------------------------------------------------------------
-
-const sHookColumnParamsPostgres = `
-$1,$2,$3,$4,$5,$6,$7
-`
-
-const sHookDataColumnParamsPostgres = `
-$1,$2,$3,$4,$5,$6
 `
 
 const sCreateHookStmtPostgres = `
 CREATE TABLE IF NOT EXISTS %s (
- id      SERIAL PRIMARY KEY ,
+ id      serial PRIMARY KEY ,
+ sha     varchar(512),
+ after   varchar(512),
+ before  varchar(512),
+ created boolean,
+ deleted boolean,
+ forced  boolean
+)
+`
+
+const sCreateHookStmtMysql = `
+CREATE TABLE IF NOT EXISTS %s (
+ id      bigint PRIMARY KEY AUTO_INCREMENT,
  sha     VARCHAR(512),
  after   VARCHAR(512),
  before  VARCHAR(512),
- created BOOLEAN,
- deleted BOOLEAN,
- forced  BOOLEAN
-)
+ created TINYINT(1),
+ deleted TINYINT(1),
+ forced  TINYINT(1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
+
+//--------------------------------------------------------------------------------
+
+const sInsertHookStmtSqlite = sInsertHookStmtMysql
+
+const sUpdateHookByPkStmtSqlite = sUpdateHookByPkStmtMysql
+
+const sDeleteHookByPkStmtSqlite = sDeleteHookByPkStmtMysql
+
+//--------------------------------------------------------------------------------
 
 const sInsertHookStmtPostgres = `
 INSERT INTO %s (
@@ -507,26 +484,6 @@ DELETE FROM %s
 `
 
 //--------------------------------------------------------------------------------
-
-const sHookColumnParamsMysql = `
-?,?,?,?,?,?,?
-`
-
-const sHookDataColumnParamsMysql = `
-?,?,?,?,?,?
-`
-
-const sCreateHookStmtMysql = `
-CREATE TABLE IF NOT EXISTS %s (
- id      BIGINT PRIMARY KEY AUTO_INCREMENT,
- sha     VARCHAR(512),
- after   VARCHAR(512),
- before  VARCHAR(512),
- created TINYINT(1),
- deleted TINYINT(1),
- forced  TINYINT(1)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-`
 
 const sInsertHookStmtMysql = `
 INSERT INTO %s (

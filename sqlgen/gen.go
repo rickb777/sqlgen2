@@ -95,7 +95,7 @@ func main() {
 
 	// write the sql functions
 	if genSchema {
-		WriteSchema(buf, table, schema.AllDialectIds...)
+		WriteSchema(buf, table)
 	}
 
 	// formats the generated file using gofmt

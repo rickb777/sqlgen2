@@ -24,16 +24,16 @@ func postgresColumn(f *Field) string {
 	// posgres uses a special column type
 	// for autoincrementing keys.
 	if f.Auto {
-		return "SERIAL"
+		return "serial"
 	}
 
 	switch f.SqlType {
 	case INTEGER:
-		return "INTEGER"
+		return "integer"
 	case BOOLEAN:
-		return "BOOLEAN"
+		return "boolean"
 	case BLOB:
-		return "BYTEA"
+		return "byteaa"
 	case VARCHAR:
 		// assigns an arbitrary size if
 		// none is provided.
@@ -41,9 +41,9 @@ func postgresColumn(f *Field) string {
 		if size == 0 {
 			size = 512
 		}
-		return fmt.Sprintf("VARCHAR(%d)", size)
+		return fmt.Sprintf("varchar(%d)", size)
 	case JSON:
-		return "JSON"
+		return "json"
 	default:
 		return ""
 	}

@@ -308,126 +308,57 @@ const sUserDataColumnNames = `
 login, email, avatar, active, admin, token, secret, hash
 `
 
-const sUserColumnParamsSqlite = `
-?,?,?,?,?,?,?,?,?
-`
-
-const sUserDataColumnParamsSqlite = `
-?,?,?,?,?,?,?,?
-`
-
 const sCreateUserStmtSqlite = `
 CREATE TABLE IF NOT EXISTS %s (
- id     INTEGER PRIMARY KEY AUTOINCREMENT,
- login  TEXT,
- email  TEXT,
- avatar TEXT,
- active BOOLEAN,
- admin  BOOLEAN,
- token  TEXT,
- secret TEXT,
- hash   TEXT
+ id     integer primary key autoincrement,
+ login  text,
+ email  text,
+ avatar text,
+ active boolean,
+ admin  boolean,
+ token  text,
+ secret text,
+ hash   text
 )
-`
-
-const sInsertUserStmtSqlite = `
-INSERT INTO %s (
- login,
- email,
- avatar,
- active,
- admin,
- token,
- secret,
- hash
-) VALUES (?,?,?,?,?,?,?,?)
-`
-
-const sUpdateUserByPkStmtSqlite = `
-UPDATE %s SET 
- login=?,
- email=?,
- avatar=?,
- active=?,
- admin=?,
- token=?,
- secret=?,
- hash=? 
- WHERE id=?
-`
-
-const sDeleteUserByPkStmtSqlite = `
-DELETE FROM %s
- WHERE id=?
-`
-
-//--------------------------------------------------------------------------------
-
-const sCreateUserLoginStmtSqlite = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
-`
-
-const sUpdateUserLoginStmtSqlite = `
-UPDATE %s SET 
- login=?,
- email=?,
- avatar=?,
- active=?,
- admin=?,
- token=?,
- secret=?,
- hash=? 
- WHERE login=?
-`
-
-const sDeleteUserLoginStmtSqlite = `
-DELETE FROM %s
- WHERE login=?
-`
-
-const sCreateUserEmailStmtSqlite = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
-`
-
-const sUpdateUserEmailStmtSqlite = `
-UPDATE %s SET 
- login=?,
- email=?,
- avatar=?,
- active=?,
- admin=?,
- token=?,
- secret=?,
- hash=? 
- WHERE email=?
-`
-
-const sDeleteUserEmailStmtSqlite = `
-DELETE FROM %s
- WHERE email=?
-`
-
-const sUserColumnParamsPostgres = `
-$1,$2,$3,$4,$5,$6,$7,$8,$9
-`
-
-const sUserDataColumnParamsPostgres = `
-$1,$2,$3,$4,$5,$6,$7,$8
 `
 
 const sCreateUserStmtPostgres = `
 CREATE TABLE IF NOT EXISTS %s (
- id     SERIAL PRIMARY KEY ,
+ id     serial PRIMARY KEY ,
+ login  varchar(512),
+ email  varchar(512),
+ avatar varchar(512),
+ active boolean,
+ admin  boolean,
+ token  varchar(512),
+ secret varchar(512),
+ hash   varchar(512)
+)
+`
+
+const sCreateUserStmtMysql = `
+CREATE TABLE IF NOT EXISTS %s (
+ id     bigint PRIMARY KEY AUTO_INCREMENT,
  login  VARCHAR(512),
  email  VARCHAR(512),
  avatar VARCHAR(512),
- active BOOLEAN,
- admin  BOOLEAN,
+ active TINYINT(1),
+ admin  TINYINT(1),
  token  VARCHAR(512),
  secret VARCHAR(512),
  hash   VARCHAR(512)
-)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
+
+//--------------------------------------------------------------------------------
+
+const sInsertUserStmtSqlite = sInsertUserStmtMysql
+
+const sUpdateUserByPkStmtSqlite = sUpdateUserByPkStmtMysql
+
+const sDeleteUserByPkStmtSqlite = sDeleteUserByPkStmtMysql
+
+//--------------------------------------------------------------------------------
 
 const sInsertUserStmtPostgres = `
 INSERT INTO %s (
@@ -462,72 +393,6 @@ DELETE FROM %s
 
 //--------------------------------------------------------------------------------
 
-const sCreateUserLoginStmtPostgres = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
-`
-
-const sUpdateUserLoginStmtPostgres = `
-UPDATE %s SET 
- login=$2,
- email=$3,
- avatar=$4,
- active=$5,
- admin=$6,
- token=$7,
- secret=$8,
- hash=$9 
- WHERE login=$10
-`
-
-const sDeleteUserLoginStmtPostgres = `
-DELETE FROM %s
- WHERE login=$1
-`
-
-const sCreateUserEmailStmtPostgres = `
-CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
-`
-
-const sUpdateUserEmailStmtPostgres = `
-UPDATE %s SET 
- login=$2,
- email=$3,
- avatar=$4,
- active=$5,
- admin=$6,
- token=$7,
- secret=$8,
- hash=$9 
- WHERE email=$10
-`
-
-const sDeleteUserEmailStmtPostgres = `
-DELETE FROM %s
- WHERE email=$1
-`
-
-const sUserColumnParamsMysql = `
-?,?,?,?,?,?,?,?,?
-`
-
-const sUserDataColumnParamsMysql = `
-?,?,?,?,?,?,?,?
-`
-
-const sCreateUserStmtMysql = `
-CREATE TABLE IF NOT EXISTS %s (
- id     BIGINT PRIMARY KEY AUTO_INCREMENT,
- login  VARCHAR(512),
- email  VARCHAR(512),
- avatar VARCHAR(512),
- active TINYINT(1),
- admin  TINYINT(1),
- token  VARCHAR(512),
- secret VARCHAR(512),
- hash   VARCHAR(512)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-`
-
 const sInsertUserStmtMysql = `
 INSERT INTO %s (
  login,
@@ -561,6 +426,102 @@ DELETE FROM %s
 
 //--------------------------------------------------------------------------------
 
+const sCreateUserLoginStmtSqlite = `
+CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
+`
+
+const sUpdateUserLoginStmtSqlite = `
+UPDATE %s SET 
+ login=?,
+ email=?,
+ avatar=?,
+ active=?,
+ admin=?,
+ token=?,
+ secret=?,
+ hash=? 
+ WHERE login=?
+`
+
+const sDeleteUserLoginStmtSqlite = `
+DELETE FROM %s
+ WHERE login=?
+`
+
+//--------------------------------------------------------------------------------
+
+const sCreateUserEmailStmtSqlite = `
+CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
+`
+
+const sUpdateUserEmailStmtSqlite = `
+UPDATE %s SET 
+ login=?,
+ email=?,
+ avatar=?,
+ active=?,
+ admin=?,
+ token=?,
+ secret=?,
+ hash=? 
+ WHERE email=?
+`
+
+const sDeleteUserEmailStmtSqlite = `
+DELETE FROM %s
+ WHERE email=?
+`
+
+//--------------------------------------------------------------------------------
+
+const sCreateUserLoginStmtPostgres = `
+CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
+`
+
+const sUpdateUserLoginStmtPostgres = `
+UPDATE %s SET 
+ login=$2,
+ email=$3,
+ avatar=$4,
+ active=$5,
+ admin=$6,
+ token=$7,
+ secret=$8,
+ hash=$9 
+ WHERE login=$10
+`
+
+const sDeleteUserLoginStmtPostgres = `
+DELETE FROM %s
+ WHERE login=$1
+`
+
+//--------------------------------------------------------------------------------
+
+const sCreateUserEmailStmtPostgres = `
+CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
+`
+
+const sUpdateUserEmailStmtPostgres = `
+UPDATE %s SET 
+ login=$2,
+ email=$3,
+ avatar=$4,
+ active=$5,
+ admin=$6,
+ token=$7,
+ secret=$8,
+ hash=$9 
+ WHERE email=$10
+`
+
+const sDeleteUserEmailStmtPostgres = `
+DELETE FROM %s
+ WHERE email=$1
+`
+
+//--------------------------------------------------------------------------------
+
 const sCreateUserLoginStmtMysql = `
 CREATE UNIQUE INDEX IF NOT EXISTS user_login ON %s (login)
 `
@@ -583,6 +544,8 @@ DELETE FROM %s
  WHERE login=?
 `
 
+//--------------------------------------------------------------------------------
+
 const sCreateUserEmailStmtMysql = `
 CREATE UNIQUE INDEX IF NOT EXISTS user_email ON %s (email)
 `
@@ -604,3 +567,5 @@ const sDeleteUserEmailStmtMysql = `
 DELETE FROM %s
  WHERE email=?
 `
+
+//--------------------------------------------------------------------------------

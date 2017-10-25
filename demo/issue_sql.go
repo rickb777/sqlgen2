@@ -285,74 +285,48 @@ const sIssueDataColumnNames = `
 number, title, assignee, state, labels
 `
 
-const sIssueColumnParamsSqlite = `
-?,?,?,?,?,?
-`
-
-const sIssueDataColumnParamsSqlite = `
-?,?,?,?,?
-`
-
 const sCreateIssueStmtSqlite = `
 CREATE TABLE IF NOT EXISTS %s (
- id       INTEGER PRIMARY KEY AUTOINCREMENT,
- number   INTEGER,
- title    TEXT,
- assignee TEXT,
- state    TEXT,
- labels   BLOB
+ id       integer primary key autoincrement,
+ number   integer,
+ title    text,
+ assignee text,
+ state    text,
+ labels   blob
 )
-`
-
-const sInsertIssueStmtSqlite = `
-INSERT INTO %s (
- number,
- title,
- assignee,
- state,
- labels
-) VALUES (?,?,?,?,?)
-`
-
-const sUpdateIssueByPkStmtSqlite = `
-UPDATE %s SET 
- number=?,
- title=?,
- assignee=?,
- state=?,
- labels=? 
- WHERE id=?
-`
-
-const sDeleteIssueByPkStmtSqlite = `
-DELETE FROM %s
- WHERE id=?
-`
-
-//--------------------------------------------------------------------------------
-
-const sCreateIssueAssigneeStmtSqlite = `
-CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
-`
-
-const sIssueColumnParamsPostgres = `
-$1,$2,$3,$4,$5,$6
-`
-
-const sIssueDataColumnParamsPostgres = `
-$1,$2,$3,$4,$5
 `
 
 const sCreateIssueStmtPostgres = `
 CREATE TABLE IF NOT EXISTS %s (
- id       SERIAL PRIMARY KEY ,
- number   INTEGER,
+ id       serial PRIMARY KEY ,
+ number   integer,
+ title    varchar(512),
+ assignee varchar(512),
+ state    varchar(50),
+ labels   byteaa
+)
+`
+
+const sCreateIssueStmtMysql = `
+CREATE TABLE IF NOT EXISTS %s (
+ id       bigint PRIMARY KEY AUTO_INCREMENT,
+ number   bigint,
  title    VARCHAR(512),
  assignee VARCHAR(512),
  state    VARCHAR(50),
- labels   BYTEA
-)
+ labels   MEDIUMBLOB
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
+
+//--------------------------------------------------------------------------------
+
+const sInsertIssueStmtSqlite = sInsertIssueStmtMysql
+
+const sUpdateIssueByPkStmtSqlite = sUpdateIssueByPkStmtMysql
+
+const sDeleteIssueByPkStmtSqlite = sDeleteIssueByPkStmtMysql
+
+//--------------------------------------------------------------------------------
 
 const sInsertIssueStmtPostgres = `
 INSERT INTO %s (
@@ -381,29 +355,6 @@ DELETE FROM %s
 
 //--------------------------------------------------------------------------------
 
-const sCreateIssueAssigneeStmtPostgres = `
-CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
-`
-
-const sIssueColumnParamsMysql = `
-?,?,?,?,?,?
-`
-
-const sIssueDataColumnParamsMysql = `
-?,?,?,?,?
-`
-
-const sCreateIssueStmtMysql = `
-CREATE TABLE IF NOT EXISTS %s (
- id       BIGINT PRIMARY KEY AUTO_INCREMENT,
- number   BIGINT,
- title    VARCHAR(512),
- assignee VARCHAR(512),
- state    VARCHAR(50),
- labels   MEDIUMBLOB
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-`
-
 const sInsertIssueStmtMysql = `
 INSERT INTO %s (
  number,
@@ -431,6 +382,20 @@ DELETE FROM %s
 
 //--------------------------------------------------------------------------------
 
+const sCreateIssueAssigneeStmtSqlite = `
+CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
+`
+
+//--------------------------------------------------------------------------------
+
+const sCreateIssueAssigneeStmtPostgres = `
+CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
+`
+
+//--------------------------------------------------------------------------------
+
 const sCreateIssueAssigneeStmtMysql = `
 CREATE INDEX IF NOT EXISTS issue_assignee ON %s (assignee)
 `
+
+//--------------------------------------------------------------------------------

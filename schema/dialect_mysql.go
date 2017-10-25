@@ -28,25 +28,25 @@ func (d *mysql) CreateTableSettings() string {
 func mysqlIntegerColumn(f *Field) string {
 	switch f.Type.Base {
 	case parse.Int, parse.Int64:
-		return "BIGINT"
+		return "bigint"
 	case parse.Int8:
-		return "TINYINT"
+		return "tinyint"
 	case parse.Int16:
-		return "SMALLINT"
+		return "smallint"
 	case parse.Int32:
-		return "INT"
+		return "int"
 	case parse.Uint, parse.Uint64:
-		return "BIGINT UNSIGNED"
+		return "bigint unsigned"
 	case parse.Uint8:
-		return "TINYINT UNSIGNED"
+		return "tinyint unsigned"
 	case parse.Uint16:
-		return "SMALLINT UNSIGNED"
+		return "smallint unsigned"
 	case parse.Uint32:
-		return "INT UNSIGNED"
+		return "int unsigned"
 	case parse.Float32:
-		return "FLOAT"
+		return "float"
 	case parse.Float64:
-		return "DOUBLE"
+		return "double"
 	}
 	return ""
 }

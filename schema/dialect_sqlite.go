@@ -17,24 +17,24 @@ func (d *sqlite) Id() DialectId {
 func sqliteColumn(f *Field) string {
 	switch f.SqlType {
 	case INTEGER:
-		return "INTEGER"
+		return "integer"
 	case BOOLEAN:
-		return "BOOLEAN"
+		return "boolean"
 	case BLOB:
-		return "BLOB"
+		return "blob"
 	case VARCHAR:
-		return "TEXT"
+		return "text"
 	default:
-		return "TEXT"
+		return "text"
 	}
 }
 
 func sqliteToken(v SqlToken) string {
 	switch v {
 	case AUTO_INCREMENT:
-		return "AUTOINCREMENT"
+		return "autoincrement"
 	case PRIMARY_KEY:
-		return "PRIMARY KEY"
+		return "primary key"
 	default:
 		return ""
 	}
