@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strings"
 	"text/tabwriter"
 )
 
@@ -87,9 +86,8 @@ func (b *base) Insert(t *Table) string {
 		}
 	}
 
-	return fmt.Sprintf("INSERT INTO %%s%%s (%s\n) VALUES (%s)",
-		b.columns(fields, false, false, false),
-		strings.Join(params, ","))
+	return fmt.Sprintf("INSERT INTO %%s%%s (%s\n) VALUES (%%s)",
+		b.columns(fields, false, false, false))
 }
 
 func (b *base) Update(t *Table, fields []*Field) string {

@@ -16,68 +16,42 @@ type ConstView struct {
 	Body interface{}
 }
 
+//const constString = "\nconst %s = %s\n"
+const constStringQ = "\nconst %s = %q\n"
+const constStringWithTicks = "\nconst %s = `\n%s\n`\n"
+
+// WritePackage writes the Go package header to
+// writer w with the given package name.
+func WritePackage(w io.Writer, name string) {
+	fmt.Fprintf(w, sPackage, name)
+}
+
 // writeSchema writes SQL statements to CREATE, INSERT,
 // UPDATE and DELETE values from Table t.
-func WriteSchema(w io.Writer, table *schema.Table) {
+func WriteSchema(w io.Writer, view View, table *schema.Table) {
 
 	fmt.Fprintln(w, sectionBreak)
 
-	tableName := table.Type
+	tableName := view.Prefix + table.Type
 
 	for _, did := range schema.AllDialectIds {
 		d := schema.New(did)
 		ds := did.String()
 
-		//must(tConstStr.Execute(w, ConstView{identifier("", tableName, "ColumnParams"+ds), d.ColumnParams(table, true)}))
-
-		//must(tConstStr.Execute(w, ConstView{identifier("", tableName, "DataColumnParams"+ds), d.ColumnParams(table, false)}))
-
-		must(tConstStr.Execute(w, ConstView{
+		fmt.Fprintf(w, constStringWithTicks,
 			identifier("sqlCreate", tableName, "Table"+ds),
-			"CREATE TABLE %s%s%s (" + d.Table(table, did) + "\n)" + d.CreateTableSettings(),
-		}))
+			"CREATE TABLE %s%s%s ("+d.Table(table, did)+"\n)"+d.CreateTableSettings())
 	}
 
-	for _, did := range schema.AllDialectIds {
-		d := schema.New(did)
-		ds := did.String()
-
+	if table.HasPrimaryKey() {
 		fmt.Fprintln(w, sectionBreak)
 
-		if did == schema.Sqlite {
-			did2 := schema.Mysql
-			//d2 := schema.New(did2)
-			ds2 := did2.String()
+		fmt.Fprintf(w, constStringWithTicks,
+			identifier("sqlDelete", tableName, "ByPkPostgres"), schema.New(schema.Postgres).Delete(table, []*schema.Field{table.Primary}))
 
-			must(tConst.Execute(w, ConstView{
-				identifier("sqlInsert", tableName, ds), identifier("sqlInsert", tableName, ds2),
-			}))
+		fmt.Fprintf(w, constStringWithTicks,
+			identifier("sqlDelete", tableName, "ByPkSimple"), schema.New(schema.Sqlite).Delete(table, []*schema.Field{table.Primary}))
 
-			if table.HasPrimaryKey() {
-				must(tConst.Execute(w, ConstView{
-					identifier("sqlUpdate", tableName, "ByPk"+ds), identifier("sqlUpdate", tableName, "ByPk"+ds2),
-				}))
-
-				must(tConst.Execute(w, ConstView{
-					identifier("sqlDelete", tableName, "ByPk"+ds), identifier("sqlDelete", tableName, "ByPk"+ds2),
-				}))
-			}
-
-		} else {
-			must(tConstStr.Execute(w, ConstView{
-				identifier("sqlInsert", tableName, ds), d.Insert(table),
-			}))
-
-			if table.HasPrimaryKey() {
-				must(tConstStr.Execute(w, ConstView{
-					identifier("sqlUpdate", tableName, "ByPk"+ds), d.Update(table, []*schema.Field{table.Primary}),
-				}))
-
-				must(tConstStr.Execute(w, ConstView{
-					identifier("sqlDelete", tableName, "ByPk"+ds), d.Delete(table, []*schema.Field{table.Primary}),
-				}))
-			}
-		}
 	}
 
 	for _, did := range schema.AllDialectIds {
@@ -88,60 +62,47 @@ func WriteSchema(w io.Writer, table *schema.Table) {
 
 			fmt.Fprintln(w, sectionBreak)
 
-			must(tConstStr.Execute(w, ConstView{
-				identifier("sqlCreate", ix.Name, "Index"+ds), d.Index(table, ix),
-			}))
+			fmt.Fprintf(w, constStringWithTicks,
+				identifier("sqlCreate"+view.Prefix, ix.Name, "Index"+ds), d.Index(table, ix))
 
-			if !ix.Unique {
+			if ix.Unique {
+				fmt.Fprintf(w, constStringWithTicks,
+					identifier("sqlUpdate"+view.Prefix, ix.Name, ds), d.Update(table, ix.Fields))
 
-				//must(tConstWithTableName.Execute(w, ConstView{
-				//	identifier("sSelect", ix.Name, "RangeStmt"), d.SelectRange(table, ix.Fields),
-				//}))
-				//
-				//must(tConstWithTableName.Execute(w, ConstView{
-				//	identifier("sSelect", ix.Name, "CountStmt"), d.SelectCount(table, ix.Fields),
-				//}))
-
-			} else {
-
-				must(tConstStr.Execute(w, ConstView{
-					identifier("sqlUpdate", ix.Name, ds), d.Update(table, ix.Fields),
-				}))
-
-				must(tConstStr.Execute(w, ConstView{
-					identifier("sqlDelete", ix.Name, ds), d.Delete(table, ix.Fields),
-				}))
+				fmt.Fprintf(w, constStringWithTicks,
+					identifier("sqlDelete"+view.Prefix, ix.Name, ds), d.Delete(table, ix.Fields))
 			}
 		}
 	}
 
 	fmt.Fprintln(w, sectionBreak)
 
-	must(tConst.Execute(w, ConstView{
-		identifier("Num", tableName, "Columns"), table.NumColumnNames(true),
-	}))
+	fmt.Fprintf(w, "\nconst %s = %d\n",
+		identifier("Num", tableName, "Columns"), table.NumColumnNames(true))
+
+	fmt.Fprintf(w, "\nconst %s = %d\n",
+		identifier("Num", tableName, "DataColumns"), table.NumColumnNames(false))
 
 	if table.HasPrimaryKey() {
-		must(tConstQ.Execute(w, ConstView{
-			identifier("", tableName, "Pk"), table.Primary.Name,
-		}))
-
-		must(tConstQ.Execute(w, ConstView{
-			identifier("", tableName, "ColumnNames"), Join(table.ColumnNames(true), ", "),
-		}))
+		fmt.Fprintf(w, constStringQ,
+			identifier("", tableName, "Pk"), table.Primary.Name)
 	}
 
-	must(tConstQ.Execute(w, ConstView{
-		identifier("", tableName, "DataColumnNames"), Join(table.ColumnNames(false), ", "),
-	}))
+	fmt.Fprintf(w, constStringQ,
+		identifier("", tableName, "DataColumnNames"), Join(table.ColumnNames(false), ", "))
 
 	fmt.Fprintln(w, sectionBreak)
 }
 
-// WritePackage writes the Go package header to
-// writer w with the given package name.
-func WritePackage(w io.Writer, name string) {
-	fmt.Fprintf(w, sPackage, name)
+func WriteCreateTableFunc(w io.Writer, view View, table *schema.Table) {
+	must(tCreateTable.Execute(w, view))
+}
+
+func WriteCreateIndexFunc(w io.Writer, view View, table *schema.Table) {
+	for _, ix := range table.Index {
+		view.Body1 = append(view.Body1, inflect.Camelize(ix.Name))
+	}
+	must(tCreateIndex.Execute(w, view))
 }
 
 func identifier(prefix, id, suffix string) string {

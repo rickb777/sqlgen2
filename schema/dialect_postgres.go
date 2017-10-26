@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"github.com/rickb777/sqlgen2/sqlgen/parse"
 )
 
 type posgres struct {
@@ -20,6 +21,10 @@ func postgresColumn(f *Field) string {
 	// posgres uses a special column type
 	// for autoincrementing keys.
 	if f.Auto {
+		switch f.Type.Base {
+		case parse.Int64, parse.Uint64:
+			return "bigserial"
+		}
 		return "serial"
 	}
 

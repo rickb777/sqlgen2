@@ -16,7 +16,7 @@ import (
 
 func main() {
 	var oFile, typeName, prefix string
-	var genSchema, genFuncs, extraFuncs, gofmt bool
+	var genSchema, genFuncs, gofmt bool
 
 	flag.StringVar(&oFile, "o", "", "output file name (or file path); if omitted, the first input filename is used with _sql.go suffix")
 	flag.StringVar(&typeName, "type", "", "type to generate; required")
@@ -24,8 +24,7 @@ func main() {
 	flag.BoolVar(&Verbose, "v", false, "progress messages")
 	flag.BoolVar(&parse.Debug, "z", false, "debug messages")
 	flag.BoolVar(&genSchema, "schema", true, "generate sql schema and queries")
-	flag.BoolVar(&genFuncs, "funcs", true, "generate sql helper functions")
-	flag.BoolVar(&extraFuncs, "extras", true, "generate extra sql helper functions")
+	flag.BoolVar(&genFuncs, "funcs", true, "generate sql crud functions")
 	flag.BoolVar(&gofmt, "gofmt", false, "format and simplify the generated code nicely")
 
 	flag.Parse()
@@ -66,37 +65,32 @@ func main() {
 
 	WritePackage(buf, pkg)
 
+	view := NewView(tree, prefix)
+	view.Table = table
+	view.Dialects = schema.Dialects
+
+	WriteImports(buf, table, "database/sql", "fmt",
+		"github.com/rickb777/sqlgen2/dialect",
+		"github.com/rickb777/sqlgen2/where",
+		imports)
+
+	WriteType(buf, view)
+	WriteRowFunc(buf, tree, view)
+	WriteRowsFunc(buf, tree, view)
+	WriteSliceFunc(buf, tree, view, false)
+	WriteSliceFunc(buf, tree, view, true)
+
 	if genFuncs {
-		view := NewView(tree, prefix)
-		view.Table = table
-		view.Dialects = schema.Dialects
-
-		WriteImports(buf, table, "database/sql", "fmt",
-			"github.com/rickb777/sqlgen2/dialect",
-			"github.com/rickb777/sqlgen2/schema",
-			"github.com/rickb777/sqlgen2/where",
-			imports)
-		WriteType(buf, view)
-		WriteRowFunc(buf, tree, view)
-		WriteRowsFunc(buf, tree, view)
-		WriteSliceFunc(buf, tree, view, false)
-		WriteSliceFunc(buf, tree, view, true)
-
-		if extraFuncs {
-			WriteSelectRow(buf, view)
-			WriteSelectRows(buf, view)
-			WriteCountRows(buf, view)
-			WriteInsertFunc(buf, view, table)
-			WriteUpdateFunc(buf, view, table)
-			WriteExecFunc(buf, view, table)
-			WriteCreateTableFunc(buf, view, table)
-			WriteCreateIndexFunc(buf, view, table)
-		}
+		WriteSelectRow(buf, view, table)
+		WriteInsertFunc(buf, view, table)
+		WriteUpdateFunc(buf, view, table)
+		WriteExecFunc(buf, view, table)
 	}
 
-	// write the sql functions
 	if genSchema {
-		WriteSchema(buf, table)
+		WriteCreateTableFunc(buf, view, table)
+		WriteCreateIndexFunc(buf, view, table)
+		WriteSchema(buf, view, table)
 	}
 
 	// formats the generated file using gofmt

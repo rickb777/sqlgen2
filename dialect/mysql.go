@@ -10,7 +10,11 @@ const mysqlPlaceholders = "?,?,?,?,?,?,?,?,?,?"
 
 type MySQLDialect struct{}
 
-var MySQL MySQLDialect // MySQL
+var Mysql MySQLDialect
+
+func (dialect MySQLDialect) SDialect() schema.SDialect {
+	return schema.New(schema.Mysql)
+}
 
 func (dialect MySQLDialect) Placeholders(n int) string {
 	if n == 0 {
@@ -29,11 +33,11 @@ func (dialect MySQLDialect) ReplacePlaceholders(sql string) string {
 func (dialect MySQLDialect) Column(f *schema.Field) string {
 	switch f.SqlType {
 	case schema.INTEGER:
-		return "INTEGER"
+		return "integer"
 	case schema.BOOLEAN:
-		return "BOOLEAN"
+		return "boolean"
 	case schema.BLOB:
-		return "MEDIUMBLOB"
+		return "mediumblob"
 	case schema.VARCHAR:
 		// assigns an arbitrary size if
 		// none is provided.
@@ -41,7 +45,7 @@ func (dialect MySQLDialect) Column(f *schema.Field) string {
 		if size == 0 {
 			size = 512
 		}
-		return fmt.Sprintf("VARCHAR(%d)", size)
+		return fmt.Sprintf("varchar(%d)", size)
 	default:
 		return ""
 	}

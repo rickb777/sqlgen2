@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"bytes"
 	"fmt"
+	"github.com/rickb777/sqlgen2/schema"
 )
 
 const postgresPlaceholders = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
@@ -11,6 +12,10 @@ const postgresPlaceholders = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 type PostgresDialect struct{}
 
 var Postgres PostgresDialect
+
+func (dialect PostgresDialect) SDialect() schema.SDialect {
+	return schema.New(schema.Postgres)
+}
 
 func (dialect PostgresDialect) Placeholders(n int) string {
 	if n == 0 {

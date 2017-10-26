@@ -20,11 +20,11 @@ const {{.Prefix}}{{.Type}}TableName = "{{.DbName}}"
 type {{.Prefix}}{{.Type}}Table struct {
 	Prefix, Name string
 	Db           *sql.DB
-	DialectId    schema.DialectId
+	Dialect      dialect.Dialect
 }
 
 // New{{.Prefix}}{{.Type}}Table returns a new table instance.
-func New{{.Prefix}}{{.Type}}Table(prefix, name string, db *sql.DB, dialect schema.DialectId) {{.Prefix}}{{.Type}}Table {
+func New{{.Prefix}}{{.Type}}Table(prefix, name string, db *sql.DB, dialect dialect.Dialect) {{.Prefix}}{{.Type}}Table {
 	if name == "" {
 		name = {{.Prefix}}{{.Type}}TableName
 	}
@@ -33,24 +33,6 @@ func New{{.Prefix}}{{.Type}}Table(prefix, name string, db *sql.DB, dialect schem
 `
 
 var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
-
-//-------------------------------------------------------------------------------------------------
-
-const sConst = `
-const {{.Name}} = {{.Body}}
-`
-
-const sConstQ = `
-const {{.Name}} = "{{.Body}}"
-`
-
-const sConstStr = `
-const {{.Name}} = {{ticked .Body}}
-`
-
-var tConst = template.Must(template.New("Const").Funcs(funcMap).Parse(sConst))
-var tConstQ = template.Must(template.New("ConstQ").Funcs(funcMap).Parse(sConstQ))
-var tConstStr = template.Must(template.New("Const").Funcs(funcMap).Parse(sConstStr))
 
 //-------------------------------------------------------------------------------------------------
 
@@ -105,7 +87,7 @@ var tScanRows = template.Must(template.New("ScanRows").Funcs(funcMap).Parse(sSca
 //-------------------------------------------------------------------------------------------------
 
 const sSliceRow = `
-func Slice{{.Type}}{{.Suffix}}(v *{{.Type}}) []interface{} {
+func Slice{{.Prefix}}{{.Type}}{{.Suffix}}(v *{{.Type}}) []interface{} {
 {{range .Body1}}{{.}}{{end}}
 {{range .Body2}}{{.}}{{end}}
 	return []interface{}{
@@ -127,7 +109,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) QueryOne(query string, args ...interface{})
 
 // SelectOneSA allows a single {{.Type}} to be obtained from the database using supplied dialect-specific parameters.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where, limitClause string, args ...interface{}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", {{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where, limitClause)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where, limitClause)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -155,7 +137,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Query(query string, args ...interface{}) ([
 
 // SelectSA allows {{.Types}} to be obtained from the database using supplied dialect-specific parameters.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectSA(where string, args ...interface{}) ([]*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s", {{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where)
 	return tbl.Query(query, args...)
 }
 
@@ -193,20 +175,23 @@ const sInsertAndGetLastId = `
 // Insert adds new records for the {{.Types}}. The {{.Types}} have their primary key fields
 // set to the new record identifiers.
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
-	var stmt string
-	switch tbl.DialectId {
-	{{range .Dialects -}}
-	case schema.{{.}}: stmt = sqlInsert{{$.Type}}{{.}}
-    {{end -}}
+	var stmt, params string
+	switch tbl.Dialect {
+	case dialect.Postgres:
+		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
+		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsPostgres
+	default:
+		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Simple
+		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsSimple
 	}
-	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name))
+	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
 	if err != nil {
 		return err
 	}
 	defer st.Close()
 
 	for _, v := range vv {
-		res, err := st.Exec(Slice{{.Type}}WithoutPk(v)...)
+		res, err := st.Exec(Slice{{.Prefix}}{{.Type}}WithoutPk(v)...)
 		if err != nil {
 			return err
 		}
@@ -229,20 +214,23 @@ var tInsertAndGetLastId = template.Must(template.New("InsertAndGetLastId").Funcs
 const sInsertSimple = `
 // Insert adds new records for the {{.Types}}.
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
-	var stmt string
-	switch tbl.DialectId {
-	{{range .Dialects -}}
-	case schema.{{.}}: stmt = sqlInsert{{$.Type}}{{.}}
-    {{end -}}
+	var stmt, params string
+	switch tbl.Dialect {
+	case dialect.Postgres:
+		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
+		params = ""
+	default:
+		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Simple
+		params = ""
 	}
-	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name))
+	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
 	if err != nil {
 		return err
 	}
 	defer st.Close()
 
 	for _, v := range vv {
-		res, err := st.Exec(Slice{{.Type}}Stmt(v)...)
+		res, err := st.Exec(Slice{{.Prefix}}{{.Type}}Stmt(v)...)
 		if err != nil {
 			return err
 		}
@@ -262,13 +250,14 @@ const sUpdate = `
 // Not every database or database driver may support this.
 func (tbl {{.Prefix}}{{.Type}}Table) Update(v *{{.Type}}) (int64, error) {
 	var stmt string
-	switch tbl.DialectId {
-	{{range .Dialects -}}
-	case schema.{{.}}: stmt = sqlUpdate{{$.Type}}ByPk{{.}}
-    {{end -}}
+	switch tbl.Dialect {
+	case dialect.Postgres:
+		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkPostgres
+	default:
+		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkSimple
 	}
 	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
-	args := Slice{{.Type}}WithoutPk(v)
+	args := Slice{{.Prefix}}{{.Type}}WithoutPk(v)
 	args = append(args, v.{{.Table.Primary.Name}})
 	return tbl.Exec(query, args...)
 }
@@ -309,9 +298,9 @@ func (tbl {{.Prefix}}{{.Type}}Table) CreateTable(ifNotExist bool) (int64, error)
 
 func (tbl {{.Prefix}}{{.Type}}Table) createTableSql(ifNotExist bool) string {
 	var stmt string
-	switch tbl.DialectId {
+	switch tbl.Dialect {
 	{{range .Dialects -}}
-	case schema.{{.}}: stmt = sqlCreate{{$.Type}}Table{{.}}
+	case dialect.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$.Type}}Table{{.}}
     {{end -}}
 	}
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
@@ -339,7 +328,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) CreateIndexes(ifNotExist bool) (err error) 
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
     {{end -}}
 	{{range .Body1}}{{$n := .}}
-	_, err = tbl.Exec(tbl.create{{$n}}IndexSql(extra))
+	_, err = tbl.Exec(tbl.create{{$.Prefix}}{{$n}}IndexSql(extra))
 	if err != nil {
 		return err
 	}
@@ -348,11 +337,11 @@ func (tbl {{.Prefix}}{{.Type}}Table) CreateIndexes(ifNotExist bool) (err error) 
 }
 
 {{range .Body1}}{{$n := .}}
-func (tbl {{$.Prefix}}{{$.Type}}Table) create{{$n}}IndexSql(ifNotExist string) string {
+func (tbl {{$.Prefix}}{{$.Type}}Table) create{{$.Prefix}}{{$n}}IndexSql(ifNotExist string) string {
 	var stmt string
-	switch tbl.DialectId {
+	switch tbl.Dialect {
 	{{range $.Dialects -}}
-	case schema.{{.}}: stmt = sqlCreate{{$n}}Index{{.}}
+	case dialect.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$n}}Index{{.}}
     {{end -}}
 	}
 	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)

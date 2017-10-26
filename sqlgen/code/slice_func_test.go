@@ -27,7 +27,7 @@ func TestWriteRowFunc_withoutPK(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-func SliceParty(v *Party) []interface{} {
+func SliceXParty(v *Party) []interface{} {
 	var v0 int64
 	var v1 int
 	var v2 pkg1.Category

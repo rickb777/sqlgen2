@@ -13,55 +13,55 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 		expSql string
 		args   []interface{}
 	}{
-		{dialect.MySQL, Clause{}, "", nil},
-		{dialect.MySQL, Condition{"name not nil", nil}, "WHERE name not nil", nil},
+		{dialect.Mysql, Clause{}, "", nil},
+		{dialect.Mysql, Condition{"name not nil", nil}, "WHERE name not nil", nil},
 
-		{dialect.MySQL,
+		{dialect.Mysql,
 			Condition{"name <>?", []interface{}{"Boo"}},
 			"WHERE name <>?", []interface{}{"Boo"},
 		},
 
-		{dialect.MySQL,
+		{dialect.Mysql,
 			Eq("name", "Fred"),
 			"WHERE name=?", []interface{}{"Fred"},
 		},
 
-		{dialect.MySQL,
+		{dialect.Mysql,
 			Eq("name", "Fred").And(Gt("age", 10)),
 			"WHERE name=? AND age>?", []interface{}{"Fred", 10},
 		},
 
-		{dialect.MySQL,
+		{dialect.Mysql,
 			Eq("name", "Fred").Or(Gt("age", 10)),
 			"WHERE name=? OR age>?", []interface{}{"Fred", 10},
 		},
 
-		{dialect.MySQL,
+		{dialect.Mysql,
 			Eq("name", "Fred").And(Gt("age", 10)).And(Gt("weight", 15)),
 			"WHERE name=? AND age>? AND weight>?",
 			[]interface{}{"Fred", 10, 15},
 		},
 
-		{dialect.MySQL,
+		{dialect.Mysql,
 			Eq("name", "Fred").Or(Gt("age", 10)).Or(Gt("weight", 15)),
 			"WHERE name=? OR age>? OR weight>?",
 			[]interface{}{"Fred", 10, 15},
 		},
 
-		{dialect.MySQL,
+		{dialect.Mysql,
 			Between("age", 10, 15).Or(Gt("weight", 17)),
 			"WHERE age BETWEEN ? AND ? OR weight>?",
 			[]interface{}{10, 15, 17},
 		},
 
-		{dialect.MySQL, GtEq("age", 10), "WHERE age>=?", []interface{}{10}},
-		{dialect.MySQL, LtEq("age", 10), "WHERE age<=?", []interface{}{10}},
-		{dialect.MySQL, NotEq("age", 10), "WHERE age<>?", []interface{}{10}},
-		{dialect.MySQL, In("age", 10, 12, 14), "WHERE age IN (?,?,?)", []interface{}{10, 12, 14}},
+		{dialect.Mysql, GtEq("age", 10), "WHERE age>=?", []interface{}{10}},
+		{dialect.Mysql, LtEq("age", 10), "WHERE age<=?", []interface{}{10}},
+		{dialect.Mysql, NotEq("age", 10), "WHERE age<>?", []interface{}{10}},
+		{dialect.Mysql, In("age", 10, 12, 14), "WHERE age IN (?,?,?)", []interface{}{10, 12, 14}},
 
-		{dialect.MySQL, Not(Eq("name", "Fred")), "WHERE NOT (name=?)", []interface{}{"Fred"}},
-		{dialect.MySQL, Not(Eq("name", "Fred").And(Lt("age", 10))), "WHERE NOT (name=? AND age<?)", []interface{}{"Fred", 10}},
-		{dialect.MySQL, Not(Eq("name", "Fred").Or(Lt("age", 10))), "WHERE NOT (name=? OR age<?)", []interface{}{"Fred", 10}},
+		{dialect.Mysql, Not(Eq("name", "Fred")), "WHERE NOT (name=?)", []interface{}{"Fred"}},
+		{dialect.Mysql, Not(Eq("name", "Fred").And(Lt("age", 10))), "WHERE NOT (name=? AND age<?)", []interface{}{"Fred", 10}},
+		{dialect.Mysql, Not(Eq("name", "Fred").Or(Lt("age", 10))), "WHERE NOT (name=? OR age<?)", []interface{}{"Fred", 10}},
 
 		//-----------------------------------------------------------------------------------------
 

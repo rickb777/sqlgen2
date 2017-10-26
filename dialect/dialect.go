@@ -1,11 +1,14 @@
 package dialect
 
+import "github.com/rickb777/sqlgen2/schema"
+
 // Dialect represents a SQL dialect.
 type Dialect interface {
 	ReplacePlaceholders(sql string) string
 	Placeholders(n int) string
+	SDialect() schema.SDialect
 }
 
-var SQLite MySQLDialect // SQLite (same as MySQL)
+var Sqlite MySQLDialect
 
-var DefaultDialect = MySQL
+var DefaultDialect = Mysql

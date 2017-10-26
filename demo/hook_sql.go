@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/rickb777/sqlgen2/dialect"
-	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 )
 
@@ -19,11 +18,11 @@ const HookTableName = "hooks"
 type HookTable struct {
 	Prefix, Name string
 	Db           *sql.DB
-	DialectId    schema.DialectId
+	Dialect      dialect.Dialect
 }
 
 // NewHookTable returns a new table instance.
-func NewHookTable(prefix, name string, db *sql.DB, dialect schema.DialectId) HookTable {
+func NewHookTable(prefix, name string, db *sql.DB, dialect dialect.Dialect) HookTable {
 	if name == "" {
 		name = HookTableName
 	}
@@ -340,16 +339,21 @@ func (tbl HookTable) Count(where where.Expression, dialect dialect.Dialect) (cou
 	return tbl.CountSA(where.Build(dialect))
 }
 
+const HookColumnNames = "id, sha, after, before, created, deleted, forced"
+
 // Insert adds new records for the Hooks. The Hooks have their primary key fields
 // set to the new record identifiers.
 func (tbl HookTable) Insert(vv ...*Hook) error {
-	var stmt string
-	switch tbl.DialectId {
-	case schema.Sqlite: stmt = sqlInsertHookSqlite
-    case schema.Postgres: stmt = sqlInsertHookPostgres
-    case schema.Mysql: stmt = sqlInsertHookMysql
-    }
-	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name))
+	var stmt, params string
+	switch tbl.Dialect {
+	case dialect.Postgres:
+		stmt = sqlInsertHookPostgres
+		params = sHookDataColumnParamsPostgres
+	default:
+		stmt = sqlInsertHookSimple
+		params = sHookDataColumnParamsSimple
+	}
+	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
 	if err != nil {
 		return err
 	}
@@ -370,20 +374,69 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 	return nil
 }
 
+const sqlInsertHookSimple = `
+INSERT INTO %s%s (
+	sha,
+	after,
+	before,
+	created,
+	deleted,
+	forced
+) VALUES (%s)
+`
+
+const sqlInsertHookPostgres = `
+INSERT INTO %s%s (
+	sha,
+	after,
+	before,
+	created,
+	deleted,
+	forced
+) VALUES (%s)
+`
+
+const sHookDataColumnParamsSimple = "?,?,?,?,?,?"
+
+const sHookDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6"
+
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl HookTable) Update(v *Hook) (int64, error) {
 	var stmt string
-	switch tbl.DialectId {
-	case schema.Sqlite: stmt = sqlUpdateHookByPkSqlite
-    case schema.Postgres: stmt = sqlUpdateHookByPkPostgres
-    case schema.Mysql: stmt = sqlUpdateHookByPkMysql
-    }
+	switch tbl.Dialect {
+	case dialect.Postgres:
+		stmt = sqlUpdateHookByPkPostgres
+	default:
+		stmt = sqlUpdateHookByPkSimple
+	}
 	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 	args := SliceHookWithoutPk(v)
 	args = append(args, v.Id)
 	return tbl.Exec(query, args...)
 }
+
+const sqlUpdateHookByPkSimple = `
+UPDATE %s%s SET 
+	sha=?,
+	after=?,
+	before=?,
+	created=?,
+	deleted=?,
+	forced=? 
+ WHERE id=?
+`
+
+const sqlUpdateHookByPkPostgres = `
+UPDATE %s%s SET 
+	sha=$2,
+	after=$3,
+	before=$4,
+	created=$5,
+	deleted=$6,
+	forced=$7 
+ WHERE id=$8
+`
 
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
@@ -407,10 +460,10 @@ func (tbl HookTable) CreateTable(ifNotExist bool) (int64, error) {
 
 func (tbl HookTable) createTableSql(ifNotExist bool) string {
 	var stmt string
-	switch tbl.DialectId {
-	case schema.Sqlite: stmt = sqlCreateHookTableSqlite
-    case schema.Postgres: stmt = sqlCreateHookTablePostgres
-    case schema.Mysql: stmt = sqlCreateHookTableMysql
+	switch tbl.Dialect {
+	case dialect.Sqlite: stmt = sqlCreateHookTableSqlite
+    case dialect.Postgres: stmt = sqlCreateHookTablePostgres
+    case dialect.Mysql: stmt = sqlCreateHookTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
@@ -449,7 +502,7 @@ CREATE TABLE %s%s%s (
 
 const sqlCreateHookTablePostgres = `
 CREATE TABLE %s%s%s (
- id      serial primary key ,
+ id      bigserial primary key ,
  sha     varchar(512),
  after   varchar(512),
  before  varchar(512),
@@ -461,78 +514,24 @@ CREATE TABLE %s%s%s (
 
 const sqlCreateHookTableMysql = `
 CREATE TABLE %s%s%s (
- id      bigint PRIMARY KEY AUTO_INCREMENT,
- sha     VARCHAR(512),
- after   VARCHAR(512),
- before  VARCHAR(512),
- created TINYINT(1),
- deleted TINYINT(1),
- forced  TINYINT(1)
+ id      bigint primary key auto_increment,
+ sha     varchar(512),
+ after   varchar(512),
+ before  varchar(512),
+ created tinyint(1),
+ deleted tinyint(1),
+ forced  tinyint(1)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 
 //--------------------------------------------------------------------------------
-
-const sqlInsertHookSqlite = sqlInsertHookMysql
-
-const sqlUpdateHookByPkSqlite = sqlUpdateHookByPkMysql
-
-const sqlDeleteHookByPkSqlite = sqlDeleteHookByPkMysql
-
-//--------------------------------------------------------------------------------
-
-const sqlInsertHookPostgres = `
-INSERT INTO %s%s (
-	sha,
-	after,
-	before,
-	created,
-	deleted,
-	forced
-) VALUES ($1,$2,$3,$4,$5,$6)
-`
-
-const sqlUpdateHookByPkPostgres = `
-UPDATE %s%s SET 
-	sha=$2,
-	after=$3,
-	before=$4,
-	created=$5,
-	deleted=$6,
-	forced=$7 
- WHERE id=$8
-`
 
 const sqlDeleteHookByPkPostgres = `
 DELETE FROM %s%s
  WHERE id=$1
 `
 
-//--------------------------------------------------------------------------------
-
-const sqlInsertHookMysql = `
-INSERT INTO %s%s (
-	sha,
-	after,
-	before,
-	created,
-	deleted,
-	forced
-) VALUES (?,?,?,?,?,?)
-`
-
-const sqlUpdateHookByPkMysql = `
-UPDATE %s%s SET 
-	sha=?,
-	after=?,
-	before=?,
-	created=?,
-	deleted=?,
-	forced=? 
- WHERE id=?
-`
-
-const sqlDeleteHookByPkMysql = `
+const sqlDeleteHookByPkSimple = `
 DELETE FROM %s%s
  WHERE id=?
 `
@@ -541,9 +540,9 @@ DELETE FROM %s%s
 
 const NumHookColumns = 7
 
-const HookPk = "Id"
+const NumHookDataColumns = 6
 
-const HookColumnNames = "id, sha, after, before, created, deleted, forced"
+const HookPk = "Id"
 
 const HookDataColumnNames = "sha, after, before, created, deleted, forced"
 

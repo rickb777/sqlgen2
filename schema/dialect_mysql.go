@@ -50,9 +50,9 @@ func mysqlIntegerColumn(f *Field) string {
 func mysqlRealColumn(f *Field) string {
 	switch f.Type.Base {
 	case parse.Float32:
-		return "FLOAT"
+		return "float"
 	case parse.Float64:
-		return "DOUBLE"
+		return "double"
 	}
 	return ""
 }
@@ -64,9 +64,9 @@ func mysqlColumn(f *Field) string {
 	case REAL:
 		return mysqlRealColumn(f)
 	case BOOLEAN:
-		return "TINYINT(1)"
+		return "tinyint(1)"
 	case BLOB:
-		return "MEDIUMBLOB"
+		return "mediumblob"
 	case VARCHAR:
 		// assigns an arbitrary size if
 		// none is provided.
@@ -74,7 +74,7 @@ func mysqlColumn(f *Field) string {
 		if size == 0 {
 			size = 512
 		}
-		return fmt.Sprintf("VARCHAR(%d)", size)
+		return fmt.Sprintf("varchar(%d)", size)
 	}
 	return ""
 }
@@ -82,9 +82,9 @@ func mysqlColumn(f *Field) string {
 func mysqlToken(v SqlToken) string {
 	switch v {
 	case AUTO_INCREMENT:
-		return "AUTO_INCREMENT"
+		return "auto_increment"
 	case PRIMARY_KEY:
-		return "PRIMARY KEY"
+		return "primary key"
 	default:
 		return ""
 	}
