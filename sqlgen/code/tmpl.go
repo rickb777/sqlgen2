@@ -19,13 +19,13 @@ const {{.Prefix}}{{.Type}}TableName = "{{.DbName}}"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type {{.Prefix}}{{.Type}}Table struct {
 	Prefix, Name string
-	Db           database.Execer
+	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      database.Dialect
+	Dialect      sqlgen2.Dialect
 }
 
 // New{{.Prefix}}{{.Type}}Table returns a new table instance.
-func New{{.Prefix}}{{.Type}}Table(prefix, name string, d *sql.DB, dialect database.Dialect) {{.Prefix}}{{.Type}}Table {
+func New{{.Prefix}}{{.Type}}Table(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) {{.Prefix}}{{.Type}}Table {
 	if name == "" {
 		name = {{.Prefix}}{{.Type}}TableName
 	}
@@ -170,7 +170,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where, orderBy string, args ...
 	return tbl.QueryOne(query, args...)
 }
 
-// SelectOne allows a single {{.Type}} to be obtained from the database.
+// SelectOne allows a single {{.Type}} to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectOne(where where.Expression, orderBy string) (*{{.Type}}, error) {
 	wh, args := where.Build(tbl.Dialect)
@@ -230,7 +230,7 @@ const sInsertAndGetLastId = `
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case database.Postgres:
+	case sqlgen2.Postgres:
 		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsPostgres
 	default:
@@ -246,7 +246,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreInsert(database.Execer)}); ok {
+		if hook, ok := iv.(interface{PreInsert(sqlgen2.Execer)}); ok {
 			hook.PreInsert(tbl.Db)
 		}
 
@@ -276,7 +276,7 @@ const sInsertSimple = `
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case database.Postgres:
+	case sqlgen2.Postgres:
 		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsPostgres
 	default:
@@ -292,7 +292,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreInsert(database.Execer)}); ok {
+		if hook, ok := iv.(interface{PreInsert(sqlgen2.Execer)}); ok {
 			hook.PreInsert(tbl.Db)
 		}
 
@@ -318,7 +318,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) UpdateFields(where where.Expression, fields
 }
 
 func (tbl {{.Prefix}}{{.Type}}Table) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := database.NamedArgList(fields)
+	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
 	whereClause, wargs := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
@@ -331,7 +331,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) updateFields(where where.Expression, fields
 func (tbl {{.Prefix}}{{.Type}}Table) Update(vv ...*{{.Type}}) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case database.Postgres:
+	case sqlgen2.Postgres:
 		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkPostgres
 	default:
 		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkSimple
@@ -340,7 +340,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Update(vv ...*{{.Type}}) (int64, error) {
 	var count int64
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreUpdate(database.Execer)}); ok {
+		if hook, ok := iv.(interface{PreUpdate(sqlgen2.Execer)}); ok {
 			hook.PreUpdate(tbl.Db)
 		}
 
@@ -410,7 +410,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
 	{{range .Dialects -}}
-	case database.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$.Type}}Table{{.}}
+	case sqlgen2.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$.Type}}Table{{.}}
     {{end -}}
 	}
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")

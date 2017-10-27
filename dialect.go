@@ -1,4 +1,4 @@
-package database
+package sqlgen2
 
 import "github.com/rickb777/sqlgen2/schema"
 

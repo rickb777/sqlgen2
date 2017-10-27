@@ -2,14 +2,14 @@ package demo
 
 import (
 	"testing"
-	"github.com/rickb777/sqlgen2/database"
+	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
 	"reflect"
 	"context"
 )
 
 func TestCreateTable_postgres(t *testing.T) {
-	tbl := DbUserTable{"prefix_", "users", nil, context.Background(), database.Postgres}
+	tbl := DbUserTable{"prefix_", "users", nil, context.Background(), sqlgen2.Postgres}
 	sql := tbl.createTableSql(true)
 	expected := `
 CREATE TABLE IF NOT EXISTS prefix_users (
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS prefix_users (
 }
 
 func TestCreateIndex_postgres(t *testing.T) {
-	tbl := DbUserTable{"prefix_", "users", nil, context.Background(), database.Postgres}
+	tbl := DbUserTable{"prefix_", "users", nil, context.Background(), sqlgen2.Postgres}
 	sql := tbl.createDbUserEmailIndexSql("IF NOT EXISTS ")
 	expected := `
 CREATE UNIQUE INDEX IF NOT EXISTS user_email ON prefix_users (email)
@@ -42,18 +42,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS user_email ON prefix_users (email)
 
 func TestUpdateFields_postgres(t *testing.T) {
 	cases := []struct{
-		d database.Dialect
+		d sqlgen2.Dialect
 		expected string
 	}{
-		{database.Mysql, `UPDATE prefix_users SET Email=?, Hash=? WHERE Email ISNULL`},
-		{database.Postgres, `UPDATE prefix_users SET Email=$1, Hash=$2 WHERE Email ISNULL`},
+		{sqlgen2.Mysql, `UPDATE prefix_users SET Email=?, Hash=? WHERE Email ISNULL`},
+		{sqlgen2.Postgres, `UPDATE prefix_users SET Email=$1, Hash=$2 WHERE Email ISNULL`},
 	}
 
 	for _, c := range cases {
 		tbl := DbUserTable{"prefix_", "users", nil, context.Background(), c.d}
 
 		sql, args := tbl.updateFields(where.Null("Email"),
-			database.Named("Email", "foo@x.com"), database.Named("Hash", "abc123"))
+			sqlgen2.Named("Email", "foo@x.com"), sqlgen2.Named("Hash", "abc123"))
 
 		if sql != c.expected {
 			t.Errorf("expected %s\ngot %s", c.expected, sql)

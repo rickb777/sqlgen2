@@ -6,7 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen2/database"
+	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
 	"strings"
 )
@@ -19,13 +19,13 @@ const HookTableName = "hooks"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type HookTable struct {
 	Prefix, Name string
-	Db           database.Execer
+	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      database.Dialect
+	Dialect      sqlgen2.Dialect
 }
 
 // NewHookTable returns a new table instance.
-func NewHookTable(prefix, name string, d *sql.DB, dialect database.Dialect) HookTable {
+func NewHookTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) HookTable {
 	if name == "" {
 		name = HookTableName
 	}
@@ -364,7 +364,7 @@ func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*H
 	return tbl.QueryOne(query, args...)
 }
 
-// SelectOne allows a single Hook to be obtained from the database.
+// SelectOne allows a single Hook to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl HookTable) SelectOne(where where.Expression, orderBy string) (*Hook, error) {
 	wh, args := where.Build(tbl.Dialect)
@@ -408,7 +408,7 @@ const HookColumnNames = "id, sha, after, before, created, deleted, forced"
 func (tbl HookTable) Insert(vv ...*Hook) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case database.Postgres:
+	case sqlgen2.Postgres:
 		stmt = sqlInsertHookPostgres
 		params = sHookDataColumnParamsPostgres
 	default:
@@ -424,7 +424,7 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreInsert(database.Execer)}); ok {
+		if hook, ok := iv.(interface{PreInsert(sqlgen2.Execer)}); ok {
 			hook.PreInsert(tbl.Db)
 		}
 
@@ -476,7 +476,7 @@ func (tbl HookTable) UpdateFields(where where.Expression, fields ...sql.NamedArg
 }
 
 func (tbl HookTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := database.NamedArgList(fields)
+	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
 	whereClause, wargs := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
@@ -489,7 +489,7 @@ func (tbl HookTable) updateFields(where where.Expression, fields ...sql.NamedArg
 func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case database.Postgres:
+	case sqlgen2.Postgres:
 		stmt = sqlUpdateHookByPkPostgres
 	default:
 		stmt = sqlUpdateHookByPkSimple
@@ -498,7 +498,7 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 	var count int64
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreUpdate(database.Execer)}); ok {
+		if hook, ok := iv.(interface{PreUpdate(sqlgen2.Execer)}); ok {
 			hook.PreUpdate(tbl.Db)
 		}
 
@@ -562,9 +562,9 @@ func (tbl HookTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl HookTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case database.Sqlite: stmt = sqlCreateHookTableSqlite
-    case database.Postgres: stmt = sqlCreateHookTablePostgres
-    case database.Mysql: stmt = sqlCreateHookTableMysql
+	case sqlgen2.Sqlite: stmt = sqlCreateHookTableSqlite
+    case sqlgen2.Postgres: stmt = sqlCreateHookTablePostgres
+    case sqlgen2.Mysql: stmt = sqlCreateHookTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)

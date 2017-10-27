@@ -6,7 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen2/database"
+	"github.com/rickb777/sqlgen2"
 )
 
 // V3UserTableName is the default name for this table.
@@ -17,13 +17,13 @@ const V3UserTableName = "users"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type V3UserTable struct {
 	Prefix, Name string
-	Db           database.Execer
+	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      database.Dialect
+	Dialect      sqlgen2.Dialect
 }
 
 // NewV3UserTable returns a new table instance.
-func NewV3UserTable(prefix, name string, d *sql.DB, dialect database.Dialect) V3UserTable {
+func NewV3UserTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) V3UserTable {
 	if name == "" {
 		name = V3UserTableName
 	}
@@ -264,9 +264,9 @@ func (tbl V3UserTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl V3UserTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case database.Sqlite: stmt = sqlCreateV3UserTableSqlite
-    case database.Postgres: stmt = sqlCreateV3UserTablePostgres
-    case database.Mysql: stmt = sqlCreateV3UserTableMysql
+	case sqlgen2.Sqlite: stmt = sqlCreateV3UserTableSqlite
+    case sqlgen2.Postgres: stmt = sqlCreateV3UserTablePostgres
+    case sqlgen2.Mysql: stmt = sqlCreateV3UserTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)

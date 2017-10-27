@@ -1,4 +1,4 @@
-package database
+package sqlgen2
 
 import (
 	"database/sql"

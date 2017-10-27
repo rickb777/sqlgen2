@@ -7,7 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/rickb777/sqlgen2/database"
+	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
 	"strings"
 )
@@ -20,13 +20,13 @@ const IssueTableName = "issues"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type IssueTable struct {
 	Prefix, Name string
-	Db           database.Execer
+	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      database.Dialect
+	Dialect      sqlgen2.Dialect
 }
 
 // NewIssueTable returns a new table instance.
-func NewIssueTable(prefix, name string, d *sql.DB, dialect database.Dialect) IssueTable {
+func NewIssueTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) IssueTable {
 	if name == "" {
 		name = IssueTableName
 	}
@@ -239,7 +239,7 @@ func (tbl IssueTable) SelectOneSA(where, orderBy string, args ...interface{}) (*
 	return tbl.QueryOne(query, args...)
 }
 
-// SelectOne allows a single Issue to be obtained from the database.
+// SelectOne allows a single Issue to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl IssueTable) SelectOne(where where.Expression, orderBy string) (*Issue, error) {
 	wh, args := where.Build(tbl.Dialect)
@@ -283,7 +283,7 @@ const IssueColumnNames = "id, number, title, assignee, state, labels"
 func (tbl IssueTable) Insert(vv ...*Issue) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case database.Postgres:
+	case sqlgen2.Postgres:
 		stmt = sqlInsertIssuePostgres
 		params = sIssueDataColumnParamsPostgres
 	default:
@@ -299,7 +299,7 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreInsert(database.Execer)}); ok {
+		if hook, ok := iv.(interface{PreInsert(sqlgen2.Execer)}); ok {
 			hook.PreInsert(tbl.Db)
 		}
 
@@ -349,7 +349,7 @@ func (tbl IssueTable) UpdateFields(where where.Expression, fields ...sql.NamedAr
 }
 
 func (tbl IssueTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := database.NamedArgList(fields)
+	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
 	whereClause, wargs := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
@@ -362,7 +362,7 @@ func (tbl IssueTable) updateFields(where where.Expression, fields ...sql.NamedAr
 func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case database.Postgres:
+	case sqlgen2.Postgres:
 		stmt = sqlUpdateIssueByPkPostgres
 	default:
 		stmt = sqlUpdateIssueByPkSimple
@@ -371,7 +371,7 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 	var count int64
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreUpdate(database.Execer)}); ok {
+		if hook, ok := iv.(interface{PreUpdate(sqlgen2.Execer)}); ok {
 			hook.PreUpdate(tbl.Db)
 		}
 
@@ -433,9 +433,9 @@ func (tbl IssueTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl IssueTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case database.Sqlite: stmt = sqlCreateIssueTableSqlite
-    case database.Postgres: stmt = sqlCreateIssueTablePostgres
-    case database.Mysql: stmt = sqlCreateIssueTableMysql
+	case sqlgen2.Sqlite: stmt = sqlCreateIssueTableSqlite
+    case sqlgen2.Postgres: stmt = sqlCreateIssueTablePostgres
+    case sqlgen2.Mysql: stmt = sqlCreateIssueTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)

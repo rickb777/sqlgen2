@@ -6,7 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen2/database"
+	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
 	"strings"
 )
@@ -19,13 +19,13 @@ const V2UserTableName = "users"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type V2UserTable struct {
 	Prefix, Name string
-	Db           database.Execer
+	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      database.Dialect
+	Dialect      sqlgen2.Dialect
 }
 
 // NewV2UserTable returns a new table instance.
-func NewV2UserTable(prefix, name string, d *sql.DB, dialect database.Dialect) V2UserTable {
+func NewV2UserTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) V2UserTable {
 	if name == "" {
 		name = V2UserTableName
 	}
@@ -262,7 +262,7 @@ func (tbl V2UserTable) SelectOneSA(where, orderBy string, args ...interface{}) (
 	return tbl.QueryOne(query, args...)
 }
 
-// SelectOne allows a single User to be obtained from the database.
+// SelectOne allows a single User to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl V2UserTable) SelectOne(where where.Expression, orderBy string) (*User, error) {
 	wh, args := where.Build(tbl.Dialect)
@@ -306,7 +306,7 @@ const V2UserColumnNames = "uid, login, email, avatar, active, admin, token, secr
 func (tbl V2UserTable) Insert(vv ...*User) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case database.Postgres:
+	case sqlgen2.Postgres:
 		stmt = sqlInsertV2UserPostgres
 		params = sV2UserDataColumnParamsPostgres
 	default:
@@ -322,7 +322,7 @@ func (tbl V2UserTable) Insert(vv ...*User) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreInsert(database.Execer)}); ok {
+		if hook, ok := iv.(interface{PreInsert(sqlgen2.Execer)}); ok {
 			hook.PreInsert(tbl.Db)
 		}
 
@@ -378,7 +378,7 @@ func (tbl V2UserTable) UpdateFields(where where.Expression, fields ...sql.NamedA
 }
 
 func (tbl V2UserTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := database.NamedArgList(fields)
+	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
 	whereClause, wargs := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
@@ -391,7 +391,7 @@ func (tbl V2UserTable) updateFields(where where.Expression, fields ...sql.NamedA
 func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case database.Postgres:
+	case sqlgen2.Postgres:
 		stmt = sqlUpdateV2UserByPkPostgres
 	default:
 		stmt = sqlUpdateV2UserByPkSimple
@@ -400,7 +400,7 @@ func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 	var count int64
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreUpdate(database.Execer)}); ok {
+		if hook, ok := iv.(interface{PreUpdate(sqlgen2.Execer)}); ok {
 			hook.PreUpdate(tbl.Db)
 		}
 

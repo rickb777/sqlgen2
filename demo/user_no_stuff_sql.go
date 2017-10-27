@@ -5,7 +5,7 @@ package demo
 import (
 	"context"
 	"database/sql"
-	"github.com/rickb777/sqlgen2/database"
+	"github.com/rickb777/sqlgen2"
 )
 
 // V4UserTableName is the default name for this table.
@@ -16,13 +16,13 @@ const V4UserTableName = "users"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type V4UserTable struct {
 	Prefix, Name string
-	Db           database.Execer
+	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      database.Dialect
+	Dialect      sqlgen2.Dialect
 }
 
 // NewV4UserTable returns a new table instance.
-func NewV4UserTable(prefix, name string, d *sql.DB, dialect database.Dialect) V4UserTable {
+func NewV4UserTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) V4UserTable {
 	if name == "" {
 		name = V4UserTableName
 	}
