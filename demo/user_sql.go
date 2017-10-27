@@ -255,30 +255,35 @@ func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error)
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single User to be obtained from the database using supplied dialect-specific parameters.
-func (tbl DbUserTable) SelectOneSA(where, limitClause string, args ...interface{}) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", DbUserColumnNames, tbl.Prefix, tbl.Name, where, limitClause)
+// SelectOneSA allows a single User to be obtained from the database that match a 'where' clause and some limit.
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+func (tbl DbUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", DbUserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single User to be obtained from the database.
-func (tbl DbUserTable) SelectOne(where where.Expression, dialect db.Dialect) (*User, error) {
-	wh, args := where.Build(dialect)
-	return tbl.SelectOneSA(wh, "LIMIT 1", args)
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+func (tbl DbUserTable) SelectOne(where where.Expression, orderBy string) (*User, error) {
+	wh, args := where.Build(tbl.Dialect)
+	return tbl.SelectOneSA(wh, orderBy, args)
 }
 
-// SelectSA allows Users to be obtained from the database using supplied dialect-specific parameters.
-func (tbl DbUserTable) SelectSA(where string, args ...interface{}) ([]*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s", DbUserColumnNames, tbl.Prefix, tbl.Name, where)
+// SelectSA allows Users to be obtained from the database that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+func (tbl DbUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", DbUserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Users to be obtained from the database that match a 'where' clause.
-func (tbl DbUserTable) Select(where where.Expression, dialect db.Dialect) ([]*User, error) {
-	return tbl.SelectSA(where.Build(dialect))
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+func (tbl DbUserTable) Select(where where.Expression, orderBy string) ([]*User, error) {
+	wh, args := where.Build(tbl.Dialect)
+	return tbl.SelectSA(wh, orderBy, args)
 }
 
-// CountSA counts Users in the database using supplied dialect-specific parameters.
+// CountSA counts Users in the database that match a 'where' clause.
 func (tbl DbUserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args)
@@ -287,8 +292,8 @@ func (tbl DbUserTable) CountSA(where string, args ...interface{}) (count int64, 
 }
 
 // Count counts the Users in the database that match a 'where' clause.
-func (tbl DbUserTable) Count(where where.Expression, dialect db.Dialect) (count int64, err error) {
-	return tbl.CountSA(where.Build(dialect))
+func (tbl DbUserTable) Count(where where.Expression) (count int64, err error) {
+	return tbl.CountSA(where.Build(tbl.Dialect))
 }
 
 const DbUserColumnNames = "uid, login, email, avatar, active, admin, token, secret, hash"

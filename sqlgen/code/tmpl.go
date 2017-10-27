@@ -163,16 +163,18 @@ var tQueryRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(s
 //-------------------------------------------------------------------------------------------------
 
 const sSelectRow = `
-// SelectOneSA allows a single {{.Type}} to be obtained from the database using supplied dialect-specific parameters.
-func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where, limitClause string, args ...interface{}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where, limitClause)
+// SelectOneSA allows a single {{.Type}} to be obtained from the database that match a 'where' clause and some limit.
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single {{.Type}} to be obtained from the database.
-func (tbl {{.Prefix}}{{.Type}}Table) SelectOne(where where.Expression, dialect db.Dialect) (*{{.Type}}, error) {
-	wh, args := where.Build(dialect)
-	return tbl.SelectOneSA(wh, "LIMIT 1", args)
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+func (tbl {{.Prefix}}{{.Type}}Table) SelectOne(where where.Expression, orderBy string) (*{{.Type}}, error) {
+	wh, args := where.Build(tbl.Dialect)
+	return tbl.SelectOneSA(wh, orderBy, args)
 }
 `
 
@@ -182,15 +184,18 @@ var tSelectRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sS
 
 // function template to select multiple rows.
 const sSelectRows = `
-// SelectSA allows {{.Types}} to be obtained from the database using supplied dialect-specific parameters.
-func (tbl {{.Prefix}}{{.Type}}Table) SelectSA(where string, args ...interface{}) ([]*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where)
+// SelectSA allows {{.Types}} to be obtained from the database that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+func (tbl {{.Prefix}}{{.Type}}Table) SelectSA(where, orderBy string, args ...interface{}) ([]*{{.Type}}, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows {{.Types}} to be obtained from the database that match a 'where' clause.
-func (tbl {{.Prefix}}{{.Type}}Table) Select(where where.Expression, dialect db.Dialect) ([]*{{.Type}}, error) {
-	return tbl.SelectSA(where.Build(dialect))
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+func (tbl {{.Prefix}}{{.Type}}Table) Select(where where.Expression, orderBy string) ([]*{{.Type}}, error) {
+	wh, args := where.Build(tbl.Dialect)
+	return tbl.SelectSA(wh, orderBy, args)
 }
 `
 
@@ -199,7 +204,7 @@ var tSelectRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(
 //-------------------------------------------------------------------------------------------------
 
 const sCountRows = `
-// CountSA counts {{.Types}} in the database using supplied dialect-specific parameters.
+// CountSA counts {{.Types}} in the database that match a 'where' clause.
 func (tbl {{.Prefix}}{{.Type}}Table) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args)
@@ -208,8 +213,8 @@ func (tbl {{.Prefix}}{{.Type}}Table) CountSA(where string, args ...interface{}) 
 }
 
 // Count counts the {{.Types}} in the database that match a 'where' clause.
-func (tbl {{.Prefix}}{{.Type}}Table) Count(where where.Expression, dialect db.Dialect) (count int64, err error) {
-	return tbl.CountSA(where.Build(dialect))
+func (tbl {{.Prefix}}{{.Type}}Table) Count(where where.Expression) (count int64, err error) {
+	return tbl.CountSA(where.Build(tbl.Dialect))
 }
 `
 

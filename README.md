@@ -8,7 +8,7 @@ See the [demo](https://github.com/rickb777/sqlgen2/tree/master/demo) directory f
 Install or upgrade with this command:
 
 ```
-go get -u github.com/rickb777/sqlgen
+go get -u github.com/rickb777/sqlgen2
 ```
 
 ### Usage
@@ -38,6 +38,12 @@ Options:
 ```
 
 ### Tutorial
+
+`sqlgen` gives you a table-focussed view of your database. It generates code that maps each `struct`
+you specify onto a database table (or view, or join result).
+
+`sqlgen` is *not* an ORM: it does not automatically handle 'object' - relational mapping. It's simpler -
+but just as comprehensive. 
 
 First, let's start with a simple `User` struct in `user.go`:
 
@@ -247,10 +253,33 @@ type User struct {
 
 ### Dialects
 
-You may specify one of the following SQL dialects when generating your code: `postgres`, `mysql` and `sqlite`. The default value is `sqlite`.
+The generated code supports the following SQL dialects: `postgres`, `mysql` and `sqlite`. You decide at runtime which you need to use.
 
+
+### Indexes
+
+If your columns are indexes, `sqlgen` includes extra code for CRUD operations based on the indexed columns as well
+as on the primary key. This example shows a primary key column `Id`, a uniquely-indexed column `Login`, and an
+ordinary indexed column `Email`.
+
+```Go
+type User struct {
+    Id     int64  `sql:"pk: true, auto: true"`
+    Login  string `sql:"unique: user_login_idx"`
+    Email  string `sql:"index: email_idx"`
+    ...  other fields
+}
 ```
-sqlgen -file user.go -type User -pkg demo -db postgres
+
+### Where-expressions
+
+Select, count amd update methods accept where-expressions as parameters. Example:
+
+```Go
+    ...  set up tbl
+    wh := where.Eq("name", "Andy").And(where.Gt("age", 18))
+    value, err := tbl.SelectOne(wh)
+    ...
 ```
 
 
@@ -261,7 +290,7 @@ Example use with `go:generate`:
 ```Go
 package demo
 
-//go:generate sqlgen -file user.go -type User -pkg demo -o user_sql.go
+//go:generate sqlgen -type User -pkg demo -o user_sql.go user.go
 
 type User struct {
     ID     int64  `sql:"pk: true, auto: true"`
@@ -270,6 +299,10 @@ type User struct {
     Avatar string
 }
 ```
+
+The current version is not smart enough to find the whole tree of source code containing dependent types. So you need
+to list all the Go source files you want it to parse. This is an implementation limitation in the current version.
+
 
 ### Benchmarks
 
@@ -311,4 +344,5 @@ BenchmarkSqlgenRows-4       2000       700673 ns/op
 
 ### Credits
 
-This tool was inspired by [scaneo](https://github.com/variadico/scaneo).
+This tool was derived from [sqlgen](https://github.com/drone/sqlgen) by drone.io, which was itself
+inspired by [scaneo](https://github.com/variadico/scaneo).

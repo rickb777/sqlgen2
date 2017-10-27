@@ -7,20 +7,25 @@ import (
 
 const where = "WHERE "
 
+// Dialect provides a method to convert named argument placeholders to the dialect needed
+// for the database in use.
 type Dialect interface {
 	ReplacePlaceholders(sql string) string
 }
 
+// Expression is an element in a WHERE clause. Expressions may be nested in certain ways.
 type Expression interface {
 	Build(dialect Dialect) (string, []interface{})
 	build(args []interface{}, dialect Dialect) (string, []interface{})
 }
 
+// Condition is a simple condition such as an equality test.
 type Condition struct {
 	Sql  string
 	Args []interface{}
 }
 
+// Clause is a compound expression.
 type Clause struct {
 	wheres      []Condition
 	subclause   *Clause
@@ -38,6 +43,7 @@ func (not not) build(args []interface{}, dialect Dialect) (string, []interface{}
 	return "NOT (" + sql + ")", args
 }
 
+// Build builds the SQL WHERE clause.
 func (not not) Build(dialect Dialect) (string, []interface{}) {
 	sql, args := not.build(nil,  dialect)
 	sql = dialect.ReplacePlaceholders(sql)
@@ -63,6 +69,7 @@ func (cl Condition) build(args []interface{}, dialect Dialect) (string, []interf
 	return sql, args
 }
 
+// Build builds the SQL WHERE clause on a condition.
 func (cl Condition) Build(dialect Dialect) (string, []interface{}) {
 	wh := Clause{[]Condition{cl}, nil, and}
 	sql, args := wh.Build(dialect)
@@ -89,6 +96,7 @@ func (wh Clause) build(args []interface{}, dialect Dialect) (string, []interface
 	return sql, args
 }
 
+// Build builds the SQL WHERE clause on the conditions it contains.
 func (wh Clause) Build(dialect Dialect) (string, []interface{}) {
 	if len(wh.wheres) == 0 {
 		return "", nil
