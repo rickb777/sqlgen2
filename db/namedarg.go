@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// Named creates NamedArg values; it is synonymous with sql.Named().
 func Named(name string, value interface{}) sql.NamedArg {
 	// This method exists because the go1compat promise
 	// doesn't guarantee that structs don't grow more fields,
@@ -56,6 +57,8 @@ func (list NamedArgList) FindByName(name string) (sql.NamedArg, bool) {
 		return f.Name == name
 	})
 }
+
+//-------------------------------------------------------------------------------------------------
 
 func (list NamedArgList) MkString(sep string) string {
 	ss := make([]string, len(list))

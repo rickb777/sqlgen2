@@ -482,9 +482,9 @@ func (tbl HookTable) UpdateFields(where where.Expression, fields ...sql.NamedArg
 func (tbl HookTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := db.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
-	whereClause, extra := where.Build(tbl.Dialect)
+	whereClause, wargs := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
-	args := append(list.Values(), extra...)
+	args := append(list.Values(), wargs...)
 	return query, args
 }
 
