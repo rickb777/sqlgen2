@@ -251,6 +251,8 @@ func (tbl V3UserTable) Query(query string, args ...interface{}) ([]*User, error)
 	return ScanV3Users(rows)
 }
 
+//--------------------------------------------------------------------------------
+
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected.
@@ -278,6 +280,8 @@ func (tbl V3UserTable) ternary(flag bool, a, b string) string {
 	return b
 }
 
+//--------------------------------------------------------------------------------
+
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
@@ -297,25 +301,12 @@ func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 
 
 func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
-	var stmt string
-	switch tbl.Dialect {
-	case database.Sqlite: stmt = sqlCreateV3UserLoginIndexSqlite
-    case database.Postgres: stmt = sqlCreateV3UserLoginIndexPostgres
-    case database.Mysql: stmt = sqlCreateV3UserLoginIndexMysql
-    }
-	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
+	return fmt.Sprintf(sqlCreateV3UserLoginIndex, ifNotExist, tbl.Prefix, tbl.Name)
 }
 
 func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
-	var stmt string
-	switch tbl.Dialect {
-	case database.Sqlite: stmt = sqlCreateV3UserEmailIndexSqlite
-    case database.Postgres: stmt = sqlCreateV3UserEmailIndexPostgres
-    case database.Mysql: stmt = sqlCreateV3UserEmailIndexMysql
-    }
-	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
+	return fmt.Sprintf(sqlCreateV3UserEmailIndex, ifNotExist, tbl.Prefix, tbl.Name)
 }
-
 
 
 //--------------------------------------------------------------------------------
@@ -364,158 +355,12 @@ CREATE TABLE %s%s%s (
 
 //--------------------------------------------------------------------------------
 
-const sqlDeleteV3UserByPkPostgres = `
-DELETE FROM %s%s
- WHERE uid=$1
-`
-
-const sqlDeleteV3UserByPkSimple = `
-DELETE FROM %s%s
- WHERE uid=?
-`
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateV3UserLoginIndexSqlite = `
+const sqlCreateV3UserLoginIndex = `
 CREATE UNIQUE INDEX %suser_login ON %s%s (login)
 `
 
-const sqlUpdateV3UserLoginSqlite = `
-UPDATE %s%s SET 
-	login=?,
-	email=?,
-	avatar=?,
-	active=?,
-	admin=?,
-	token=?,
-	secret=?,
-	hash=? 
- WHERE login=?
-`
-
-const sqlDeleteV3UserLoginSqlite = `
-DELETE FROM %s%s
- WHERE login=?
-`
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateV3UserEmailIndexSqlite = `
+const sqlCreateV3UserEmailIndex = `
 CREATE UNIQUE INDEX %suser_email ON %s%s (email)
-`
-
-const sqlUpdateV3UserEmailSqlite = `
-UPDATE %s%s SET 
-	login=?,
-	email=?,
-	avatar=?,
-	active=?,
-	admin=?,
-	token=?,
-	secret=?,
-	hash=? 
- WHERE email=?
-`
-
-const sqlDeleteV3UserEmailSqlite = `
-DELETE FROM %s%s
- WHERE email=?
-`
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateV3UserLoginIndexPostgres = `
-CREATE UNIQUE INDEX %suser_login ON %s%s (login)
-`
-
-const sqlUpdateV3UserLoginPostgres = `
-UPDATE %s%s SET 
-	login=$2,
-	email=$3,
-	avatar=$4,
-	active=$5,
-	admin=$6,
-	token=$7,
-	secret=$8,
-	hash=$9 
- WHERE login=$10
-`
-
-const sqlDeleteV3UserLoginPostgres = `
-DELETE FROM %s%s
- WHERE login=$1
-`
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateV3UserEmailIndexPostgres = `
-CREATE UNIQUE INDEX %suser_email ON %s%s (email)
-`
-
-const sqlUpdateV3UserEmailPostgres = `
-UPDATE %s%s SET 
-	login=$2,
-	email=$3,
-	avatar=$4,
-	active=$5,
-	admin=$6,
-	token=$7,
-	secret=$8,
-	hash=$9 
- WHERE email=$10
-`
-
-const sqlDeleteV3UserEmailPostgres = `
-DELETE FROM %s%s
- WHERE email=$1
-`
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateV3UserLoginIndexMysql = `
-CREATE UNIQUE INDEX %suser_login ON %s%s (login)
-`
-
-const sqlUpdateV3UserLoginMysql = `
-UPDATE %s%s SET 
-	login=?,
-	email=?,
-	avatar=?,
-	active=?,
-	admin=?,
-	token=?,
-	secret=?,
-	hash=? 
- WHERE login=?
-`
-
-const sqlDeleteV3UserLoginMysql = `
-DELETE FROM %s%s
- WHERE login=?
-`
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateV3UserEmailIndexMysql = `
-CREATE UNIQUE INDEX %suser_email ON %s%s (email)
-`
-
-const sqlUpdateV3UserEmailMysql = `
-UPDATE %s%s SET 
-	login=?,
-	email=?,
-	avatar=?,
-	active=?,
-	admin=?,
-	token=?,
-	secret=?,
-	hash=? 
- WHERE email=?
-`
-
-const sqlDeleteV3UserEmailMysql = `
-DELETE FROM %s%s
- WHERE email=?
 `
 
 //--------------------------------------------------------------------------------

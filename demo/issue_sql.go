@@ -279,6 +279,7 @@ const IssueColumnNames = "id, number, title, assignee, state, labels"
 
 // Insert adds new records for the Issues. The Issues have their primary key fields
 // set to the new record identifiers.
+// The Issue.PreInsert(Execer) method will be called, if it exists.
 func (tbl IssueTable) Insert(vv ...*Issue) error {
 	var stmt, params string
 	switch tbl.Dialect {
@@ -289,6 +290,7 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 		stmt = sqlInsertIssueSimple
 		params = sIssueDataColumnParamsSimple
 	}
+
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
 	if err != nil {
 		return err
@@ -296,6 +298,11 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 	defer st.Close()
 
 	for _, v := range vv {
+		var iv interface{} = v
+		if hook, ok := iv.(interface{PreInsert(database.Execer)}); ok {
+			hook.PreInsert(tbl.Db)
+		}
+
 		res, err := st.Exec(SliceIssueWithoutPk(v)...)
 		if err != nil {
 			return err
@@ -336,22 +343,6 @@ const sIssueDataColumnParamsPostgres = "$1,$2,$3,$4,$5"
 
 //--------------------------------------------------------------------------------
 
-// Update updates a record. It returns the number of rows affected.
-// Not every database or database driver may support this.
-func (tbl IssueTable) Update(v *Issue) (int64, error) {
-	var stmt string
-	switch tbl.Dialect {
-	case database.Postgres:
-		stmt = sqlUpdateIssueByPkPostgres
-	default:
-		stmt = sqlUpdateIssueByPkSimple
-	}
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
-	args := SliceIssueWithoutPk(v)
-	args = append(args, v.Id)
-	return tbl.Exec(query, args...)
-}
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 func (tbl IssueTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return tbl.Exec(tbl.updateFields(where, fields...))
@@ -364,6 +355,36 @@ func (tbl IssueTable) updateFields(where where.Expression, fields ...sql.NamedAr
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
 	args := append(list.Values(), wargs...)
 	return query, args
+}
+
+// Update updates records, matching them by primary key. It returns the number of rows affected.
+// The Issue.PreUpdate(Execer) method will be called, if it exists.
+func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
+	var stmt string
+	switch tbl.Dialect {
+	case database.Postgres:
+		stmt = sqlUpdateIssueByPkPostgres
+	default:
+		stmt = sqlUpdateIssueByPkSimple
+	}
+
+	var count int64
+	for _, v := range vv {
+		var iv interface{} = v
+		if hook, ok := iv.(interface{PreUpdate(database.Execer)}); ok {
+			hook.PreUpdate(tbl.Db)
+		}
+
+		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+		args := SliceIssueWithoutPk(v)
+		args = append(args, v.Id)
+		n, err := tbl.Exec(query, args...)
+		if err != nil {
+			return count, err
+		}
+		count += n
+	}
+	return count, nil
 }
 
 const sqlUpdateIssueByPkSimple = `
@@ -385,6 +406,21 @@ UPDATE %s%s SET
 	labels=$6 
  WHERE id=$7
 `
+
+//--------------------------------------------------------------------------------
+
+// DeleteFields deleted one or more rows, given a 'where' clause.
+func (tbl IssueTable) Delete(where where.Expression) (int64, error) {
+	return tbl.Exec(tbl.deleteRows(where))
+}
+
+func (tbl IssueTable) deleteRows(where where.Expression) (string, []interface{}) {
+	whereClause, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
+	return query, args
+}
+
+//--------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
@@ -413,6 +449,8 @@ func (tbl IssueTable) ternary(flag bool, a, b string) string {
 	return b
 }
 
+//--------------------------------------------------------------------------------
+
 // CreateIndexes executes queries that create the indexes needed by the Issue table.
 func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
@@ -427,15 +465,8 @@ func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
 
 
 func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExist string) string {
-	var stmt string
-	switch tbl.Dialect {
-	case database.Sqlite: stmt = sqlCreateIssueAssigneeIndexSqlite
-    case database.Postgres: stmt = sqlCreateIssueAssigneeIndexPostgres
-    case database.Mysql: stmt = sqlCreateIssueAssigneeIndexMysql
-    }
-	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
+	return fmt.Sprintf(sqlCreateIssueAssigneeIndex, ifNotExist, tbl.Prefix, tbl.Name)
 }
-
 
 
 //--------------------------------------------------------------------------------
@@ -475,31 +506,7 @@ CREATE TABLE %s%s%s (
 
 //--------------------------------------------------------------------------------
 
-const sqlDeleteIssueByPkPostgres = `
-DELETE FROM %s%s
- WHERE id=$1
-`
-
-const sqlDeleteIssueByPkSimple = `
-DELETE FROM %s%s
- WHERE id=?
-`
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateIssueAssigneeIndexSqlite = `
-CREATE INDEX %sissue_assignee ON %s%s (assignee)
-`
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateIssueAssigneeIndexPostgres = `
-CREATE INDEX %sissue_assignee ON %s%s (assignee)
-`
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateIssueAssigneeIndexMysql = `
+const sqlCreateIssueAssigneeIndex = `
 CREATE INDEX %sissue_assignee ON %s%s (assignee)
 `
 

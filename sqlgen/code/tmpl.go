@@ -226,6 +226,7 @@ var tCountRows = template.Must(template.New("CountRows").Funcs(funcMap).Parse(sC
 const sInsertAndGetLastId = `
 // Insert adds new records for the {{.Types}}. The {{.Types}} have their primary key fields
 // set to the new record identifiers.
+// The {{.Type}}.PreInsert(Execer) method will be called, if it exists.
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	var stmt, params string
 	switch tbl.Dialect {
@@ -236,6 +237,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Simple
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsSimple
 	}
+
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
 	if err != nil {
 		return err
@@ -243,6 +245,11 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	defer st.Close()
 
 	for _, v := range vv {
+		var iv interface{} = v
+		if hook, ok := iv.(interface{PreInsert(database.Execer)}); ok {
+			hook.PreInsert(tbl.Db)
+		}
+
 		res, err := st.Exec(Slice{{.Prefix}}{{.Type}}WithoutPk(v)...)
 		if err != nil {
 			return err
@@ -265,6 +272,7 @@ var tInsertAndGetLastId = template.Must(template.New("InsertAndGetLastId").Funcs
 // function template to insert a single row.
 const sInsertSimple = `
 // Insert adds new records for the {{.Types}}.
+// The {{.Type}}.PreInsert(Execer) method will be called, if it exists.
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	var stmt, params string
 	switch tbl.Dialect {
@@ -275,6 +283,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Simple
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsSimple
 	}
+
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
 	if err != nil {
 		return err
@@ -282,6 +291,11 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	defer st.Close()
 
 	for _, v := range vv {
+		var iv interface{} = v
+		if hook, ok := iv.(interface{PreInsert(database.Execer)}); ok {
+			hook.PreInsert(tbl.Db)
+		}
+
 		res, err := st.Exec(Slice{{.Prefix}}{{.Type}}Stmt(v)...)
 		if err != nil {
 			return err
@@ -298,22 +312,6 @@ var tInsertSimple = template.Must(template.New("Insert").Funcs(funcMap).Parse(sI
 
 // function template to update a single row.
 const sUpdate = `
-// Update updates a record. It returns the number of rows affected.
-// Not every database or database driver may support this.
-func (tbl {{.Prefix}}{{.Type}}Table) Update(v *{{.Type}}) (int64, error) {
-	var stmt string
-	switch tbl.Dialect {
-	case database.Postgres:
-		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkPostgres
-	default:
-		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkSimple
-	}
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
-	args := Slice{{.Prefix}}{{.Type}}WithoutPk(v)
-	args = append(args, v.{{.Table.Primary.Name}})
-	return tbl.Exec(query, args...)
-}
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 func (tbl {{.Prefix}}{{.Type}}Table) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return tbl.Exec(tbl.updateFields(where, fields...))
@@ -327,9 +325,56 @@ func (tbl {{.Prefix}}{{.Type}}Table) updateFields(where where.Expression, fields
 	args := append(list.Values(), wargs...)
 	return query, args
 }
+
+// Update updates records, matching them by primary key. It returns the number of rows affected.
+// The {{.Type}}.PreUpdate(Execer) method will be called, if it exists.
+func (tbl {{.Prefix}}{{.Type}}Table) Update(vv ...*{{.Type}}) (int64, error) {
+	var stmt string
+	switch tbl.Dialect {
+	case database.Postgres:
+		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkPostgres
+	default:
+		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkSimple
+	}
+
+	var count int64
+	for _, v := range vv {
+		var iv interface{} = v
+		if hook, ok := iv.(interface{PreUpdate(database.Execer)}); ok {
+			hook.PreUpdate(tbl.Db)
+		}
+
+		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+		args := Slice{{.Prefix}}{{.Type}}WithoutPk(v)
+		args = append(args, v.{{.Table.Primary.Name}})
+		n, err := tbl.Exec(query, args...)
+		if err != nil {
+			return count, err
+		}
+		count += n
+	}
+	return count, nil
+}
 `
 
 var tUpdate = template.Must(template.New("Update").Funcs(funcMap).Parse(sUpdate))
+
+//-------------------------------------------------------------------------------------------------
+
+const sDelete = `
+// DeleteFields deleted one or more rows, given a 'where' clause.
+func (tbl {{.Prefix}}{{.Type}}Table) Delete(where where.Expression) (int64, error) {
+	return tbl.Exec(tbl.deleteRows(where))
+}
+
+func (tbl {{.Prefix}}{{.Type}}Table) deleteRows(where where.Expression) (string, []interface{}) {
+	whereClause, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
+	return query, args
+}
+`
+
+var tDelete = template.Must(template.New("Delete").Funcs(funcMap).Parse(sDelete))
 
 //-------------------------------------------------------------------------------------------------
 
@@ -403,16 +448,9 @@ func (tbl {{.Prefix}}{{.Type}}Table) CreateIndexes(ifNotExist bool) (err error) 
 
 {{range .Body1}}{{$n := .}}
 func (tbl {{$.Prefix}}{{$.Type}}Table) create{{$.Prefix}}{{$n}}IndexSql(ifNotExist string) string {
-	var stmt string
-	switch tbl.Dialect {
-	{{range $.Dialects -}}
-	case database.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$n}}Index{{.}}
-    {{end -}}
-	}
-	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
+	return fmt.Sprintf(sqlCreate{{$.Prefix}}{{$n}}Index, ifNotExist, tbl.Prefix, tbl.Name)
 }
 {{end}}
-
 `
 
 var tCreateIndex = template.Must(template.New("CreateIndex").Funcs(funcMap).Parse(sCreateIndex))

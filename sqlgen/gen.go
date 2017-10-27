@@ -90,6 +90,7 @@ func main() {
 		WriteSelectRow(buf, view, table)
 		WriteInsertFunc(buf, view, table)
 		WriteUpdateFunc(buf, view, table)
+		WriteDeleteFunc(buf, view, table)
 	}
 
 	if genSchema {

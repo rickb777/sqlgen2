@@ -77,6 +77,11 @@ func WriteUpdateFunc(w io.Writer, view View, table *schema.Table) {
 	}
 }
 
+func WriteDeleteFunc(w io.Writer, view View, table *schema.Table) {
+	fmt.Fprintln(w, sectionBreak)
+	must(tDelete.Execute(w, view))
+}
+
 func WriteExecFunc(w io.Writer, view View, table *schema.Table) {
 	fmt.Fprintln(w, sectionBreak)
 	must(tExec.Execute(w, view))

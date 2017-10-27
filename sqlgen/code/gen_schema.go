@@ -29,6 +29,7 @@ func WritePackage(w io.Writer, name string) {
 // writeSchema writes SQL statements to CREATE, INSERT,
 // UPDATE and DELETE values from Table t.
 func WriteSchema(w io.Writer, view View, table *schema.Table) {
+	sqlite := schema.New(schema.Sqlite)
 
 	fmt.Fprintln(w, sectionBreak)
 
@@ -43,37 +44,27 @@ func WriteSchema(w io.Writer, view View, table *schema.Table) {
 			"CREATE TABLE %s%s%s ("+d.Table(table, did)+"\n)"+d.CreateTableSettings())
 	}
 
-	if table.HasPrimaryKey() {
-		fmt.Fprintln(w, sectionBreak)
+	fmt.Fprintln(w, sectionBreak)
 
+	for _, ix := range table.Index {
 		fmt.Fprintf(w, constStringWithTicks,
-			identifier("sqlDelete", tableName, "ByPkPostgres"), schema.New(schema.Postgres).Delete(table, []*schema.Field{table.Primary}))
-
-		fmt.Fprintf(w, constStringWithTicks,
-			identifier("sqlDelete", tableName, "ByPkSimple"), schema.New(schema.Sqlite).Delete(table, []*schema.Field{table.Primary}))
-
+			identifier("sqlCreate"+view.Prefix, ix.Name, "Index"), sqlite.Index(table, ix))
 	}
 
-	for _, did := range schema.AllDialectIds {
-		d := schema.New(did)
-		ds := did.String()
-
-		for _, ix := range table.Index {
-
-			fmt.Fprintln(w, sectionBreak)
-
-			fmt.Fprintf(w, constStringWithTicks,
-				identifier("sqlCreate"+view.Prefix, ix.Name, "Index"+ds), d.Index(table, ix))
-
-			if ix.Unique {
-				fmt.Fprintf(w, constStringWithTicks,
-					identifier("sqlUpdate"+view.Prefix, ix.Name, ds), d.Update(table, ix.Fields))
-
-				fmt.Fprintf(w, constStringWithTicks,
-					identifier("sqlDelete"+view.Prefix, ix.Name, ds), d.Delete(table, ix.Fields))
-			}
-		}
-	}
+	//for _, did := range schema.AllDialectIds {
+	//	d := schema.New(did)
+	//	ds := did.String()
+	//
+	//	for _, ix := range table.Index {
+	//
+	//		fmt.Fprintln(w, sectionBreak)
+	//
+	//		if ix.Unique {
+	//			fmt.Fprintf(w, constStringWithTicks,
+	//				identifier("sqlUpdate"+view.Prefix, ix.Name, ds), d.Update(table, ix.Fields))
+	//		}
+	//	}
+	//}
 
 	fmt.Fprintln(w, sectionBreak)
 
@@ -95,10 +86,12 @@ func WriteSchema(w io.Writer, view View, table *schema.Table) {
 }
 
 func WriteCreateTableFunc(w io.Writer, view View, table *schema.Table) {
+	fmt.Fprintln(w, sectionBreak)
 	must(tCreateTable.Execute(w, view))
 }
 
 func WriteCreateIndexFunc(w io.Writer, view View, table *schema.Table) {
+	fmt.Fprintln(w, sectionBreak)
 	for _, ix := range table.Index {
 		view.Body1 = append(view.Body1, inflect.Camelize(ix.Name))
 	}

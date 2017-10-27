@@ -404,6 +404,7 @@ const HookColumnNames = "id, sha, after, before, created, deleted, forced"
 
 // Insert adds new records for the Hooks. The Hooks have their primary key fields
 // set to the new record identifiers.
+// The Hook.PreInsert(Execer) method will be called, if it exists.
 func (tbl HookTable) Insert(vv ...*Hook) error {
 	var stmt, params string
 	switch tbl.Dialect {
@@ -414,6 +415,7 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 		stmt = sqlInsertHookSimple
 		params = sHookDataColumnParamsSimple
 	}
+
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
 	if err != nil {
 		return err
@@ -421,6 +423,11 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 	defer st.Close()
 
 	for _, v := range vv {
+		var iv interface{} = v
+		if hook, ok := iv.(interface{PreInsert(database.Execer)}); ok {
+			hook.PreInsert(tbl.Db)
+		}
+
 		res, err := st.Exec(SliceHookWithoutPk(v)...)
 		if err != nil {
 			return err
@@ -463,22 +470,6 @@ const sHookDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6"
 
 //--------------------------------------------------------------------------------
 
-// Update updates a record. It returns the number of rows affected.
-// Not every database or database driver may support this.
-func (tbl HookTable) Update(v *Hook) (int64, error) {
-	var stmt string
-	switch tbl.Dialect {
-	case database.Postgres:
-		stmt = sqlUpdateHookByPkPostgres
-	default:
-		stmt = sqlUpdateHookByPkSimple
-	}
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
-	args := SliceHookWithoutPk(v)
-	args = append(args, v.Id)
-	return tbl.Exec(query, args...)
-}
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 func (tbl HookTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return tbl.Exec(tbl.updateFields(where, fields...))
@@ -491,6 +482,36 @@ func (tbl HookTable) updateFields(where where.Expression, fields ...sql.NamedArg
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
 	args := append(list.Values(), wargs...)
 	return query, args
+}
+
+// Update updates records, matching them by primary key. It returns the number of rows affected.
+// The Hook.PreUpdate(Execer) method will be called, if it exists.
+func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
+	var stmt string
+	switch tbl.Dialect {
+	case database.Postgres:
+		stmt = sqlUpdateHookByPkPostgres
+	default:
+		stmt = sqlUpdateHookByPkSimple
+	}
+
+	var count int64
+	for _, v := range vv {
+		var iv interface{} = v
+		if hook, ok := iv.(interface{PreUpdate(database.Execer)}); ok {
+			hook.PreUpdate(tbl.Db)
+		}
+
+		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+		args := SliceHookWithoutPk(v)
+		args = append(args, v.Id)
+		n, err := tbl.Exec(query, args...)
+		if err != nil {
+			return count, err
+		}
+		count += n
+	}
+	return count, nil
 }
 
 const sqlUpdateHookByPkSimple = `
@@ -514,6 +535,21 @@ UPDATE %s%s SET
 	forced=$7 
  WHERE id=$8
 `
+
+//--------------------------------------------------------------------------------
+
+// DeleteFields deleted one or more rows, given a 'where' clause.
+func (tbl HookTable) Delete(where where.Expression) (int64, error) {
+	return tbl.Exec(tbl.deleteRows(where))
+}
+
+func (tbl HookTable) deleteRows(where where.Expression) (string, []interface{}) {
+	whereClause, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
+	return query, args
+}
+
+//--------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
@@ -542,12 +578,13 @@ func (tbl HookTable) ternary(flag bool, a, b string) string {
 	return b
 }
 
+//--------------------------------------------------------------------------------
+
 // CreateIndexes executes queries that create the indexes needed by the Hook table.
 func (tbl HookTable) CreateIndexes(ifNotExist bool) (err error) {
 	
 	return nil
 }
-
 
 
 
@@ -590,16 +627,6 @@ CREATE TABLE %s%s%s (
 `
 
 //--------------------------------------------------------------------------------
-
-const sqlDeleteHookByPkPostgres = `
-DELETE FROM %s%s
- WHERE id=$1
-`
-
-const sqlDeleteHookByPkSimple = `
-DELETE FROM %s%s
- WHERE id=?
-`
 
 //--------------------------------------------------------------------------------
 

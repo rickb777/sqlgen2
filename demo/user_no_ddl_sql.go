@@ -302,6 +302,7 @@ const V2UserColumnNames = "uid, login, email, avatar, active, admin, token, secr
 
 // Insert adds new records for the Users. The Users have their primary key fields
 // set to the new record identifiers.
+// The User.PreInsert(Execer) method will be called, if it exists.
 func (tbl V2UserTable) Insert(vv ...*User) error {
 	var stmt, params string
 	switch tbl.Dialect {
@@ -312,6 +313,7 @@ func (tbl V2UserTable) Insert(vv ...*User) error {
 		stmt = sqlInsertV2UserSimple
 		params = sV2UserDataColumnParamsSimple
 	}
+
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
 	if err != nil {
 		return err
@@ -319,6 +321,11 @@ func (tbl V2UserTable) Insert(vv ...*User) error {
 	defer st.Close()
 
 	for _, v := range vv {
+		var iv interface{} = v
+		if hook, ok := iv.(interface{PreInsert(database.Execer)}); ok {
+			hook.PreInsert(tbl.Db)
+		}
+
 		res, err := st.Exec(SliceV2UserWithoutPk(v)...)
 		if err != nil {
 			return err
@@ -365,22 +372,6 @@ const sV2UserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8"
 
 //--------------------------------------------------------------------------------
 
-// Update updates a record. It returns the number of rows affected.
-// Not every database or database driver may support this.
-func (tbl V2UserTable) Update(v *User) (int64, error) {
-	var stmt string
-	switch tbl.Dialect {
-	case database.Postgres:
-		stmt = sqlUpdateV2UserByPkPostgres
-	default:
-		stmt = sqlUpdateV2UserByPkSimple
-	}
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
-	args := SliceV2UserWithoutPk(v)
-	args = append(args, v.Uid)
-	return tbl.Exec(query, args...)
-}
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 func (tbl V2UserTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return tbl.Exec(tbl.updateFields(where, fields...))
@@ -393,6 +384,36 @@ func (tbl V2UserTable) updateFields(where where.Expression, fields ...sql.NamedA
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
 	args := append(list.Values(), wargs...)
 	return query, args
+}
+
+// Update updates records, matching them by primary key. It returns the number of rows affected.
+// The User.PreUpdate(Execer) method will be called, if it exists.
+func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
+	var stmt string
+	switch tbl.Dialect {
+	case database.Postgres:
+		stmt = sqlUpdateV2UserByPkPostgres
+	default:
+		stmt = sqlUpdateV2UserByPkSimple
+	}
+
+	var count int64
+	for _, v := range vv {
+		var iv interface{} = v
+		if hook, ok := iv.(interface{PreUpdate(database.Execer)}); ok {
+			hook.PreUpdate(tbl.Db)
+		}
+
+		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+		args := SliceV2UserWithoutPk(v)
+		args = append(args, v.Uid)
+		n, err := tbl.Exec(query, args...)
+		if err != nil {
+			return count, err
+		}
+		count += n
+	}
+	return count, nil
 }
 
 const sqlUpdateV2UserByPkSimple = `
@@ -420,3 +441,16 @@ UPDATE %s%s SET
 	hash=$9 
  WHERE uid=$10
 `
+
+//--------------------------------------------------------------------------------
+
+// DeleteFields deleted one or more rows, given a 'where' clause.
+func (tbl V2UserTable) Delete(where where.Expression) (int64, error) {
+	return tbl.Exec(tbl.deleteRows(where))
+}
+
+func (tbl V2UserTable) deleteRows(where where.Expression) (string, []interface{}) {
+	whereClause, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
+	return query, args
+}
