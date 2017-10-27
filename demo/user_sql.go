@@ -6,7 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen2/db"
+	"github.com/rickb777/sqlgen2/database"
 	"github.com/rickb777/sqlgen2/where"
 	"strings"
 )
@@ -19,13 +19,13 @@ const DbUserTableName = "users"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DbUserTable struct {
 	Prefix, Name string
-	Db           db.Execer
+	Db           database.Execer
 	Ctx          context.Context
-	Dialect      db.Dialect
+	Dialect      database.Dialect
 }
 
 // NewDbUserTable returns a new table instance.
-func NewDbUserTable(prefix, name string, d *sql.DB, dialect db.Dialect) DbUserTable {
+func NewDbUserTable(prefix, name string, d *sql.DB, dialect database.Dialect) DbUserTable {
 	if name == "" {
 		name = DbUserTableName
 	}
@@ -305,7 +305,7 @@ const DbUserColumnNames = "uid, login, email, avatar, active, admin, token, secr
 func (tbl DbUserTable) Insert(vv ...*User) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case db.Postgres:
+	case database.Postgres:
 		stmt = sqlInsertDbUserPostgres
 		params = sDbUserDataColumnParamsPostgres
 	default:
@@ -370,7 +370,7 @@ const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8"
 func (tbl DbUserTable) Update(v *User) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Postgres:
+	case database.Postgres:
 		stmt = sqlUpdateDbUserByPkPostgres
 	default:
 		stmt = sqlUpdateDbUserByPkSimple
@@ -387,7 +387,7 @@ func (tbl DbUserTable) UpdateFields(where where.Expression, fields ...sql.NamedA
 }
 
 func (tbl DbUserTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := db.NamedArgList(fields)
+	list := database.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
 	whereClause, wargs := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
@@ -432,9 +432,9 @@ func (tbl DbUserTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl DbUserTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Sqlite: stmt = sqlCreateDbUserTableSqlite
-    case db.Postgres: stmt = sqlCreateDbUserTablePostgres
-    case db.Mysql: stmt = sqlCreateDbUserTableMysql
+	case database.Sqlite: stmt = sqlCreateDbUserTableSqlite
+    case database.Postgres: stmt = sqlCreateDbUserTablePostgres
+    case database.Mysql: stmt = sqlCreateDbUserTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
@@ -469,9 +469,9 @@ func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExist string) string {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Sqlite: stmt = sqlCreateDbUserLoginIndexSqlite
-    case db.Postgres: stmt = sqlCreateDbUserLoginIndexPostgres
-    case db.Mysql: stmt = sqlCreateDbUserLoginIndexMysql
+	case database.Sqlite: stmt = sqlCreateDbUserLoginIndexSqlite
+    case database.Postgres: stmt = sqlCreateDbUserLoginIndexPostgres
+    case database.Mysql: stmt = sqlCreateDbUserLoginIndexMysql
     }
 	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
 }
@@ -479,9 +479,9 @@ func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExist string) string {
 func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExist string) string {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Sqlite: stmt = sqlCreateDbUserEmailIndexSqlite
-    case db.Postgres: stmt = sqlCreateDbUserEmailIndexPostgres
-    case db.Mysql: stmt = sqlCreateDbUserEmailIndexMysql
+	case database.Sqlite: stmt = sqlCreateDbUserEmailIndexSqlite
+    case database.Postgres: stmt = sqlCreateDbUserEmailIndexPostgres
+    case database.Mysql: stmt = sqlCreateDbUserEmailIndexMysql
     }
 	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
 }

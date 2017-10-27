@@ -19,13 +19,13 @@ const {{.Prefix}}{{.Type}}TableName = "{{.DbName}}"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type {{.Prefix}}{{.Type}}Table struct {
 	Prefix, Name string
-	Db           db.Execer
+	Db           database.Execer
 	Ctx          context.Context
-	Dialect      db.Dialect
+	Dialect      database.Dialect
 }
 
 // New{{.Prefix}}{{.Type}}Table returns a new table instance.
-func New{{.Prefix}}{{.Type}}Table(prefix, name string, d *sql.DB, dialect db.Dialect) {{.Prefix}}{{.Type}}Table {
+func New{{.Prefix}}{{.Type}}Table(prefix, name string, d *sql.DB, dialect database.Dialect) {{.Prefix}}{{.Type}}Table {
 	if name == "" {
 		name = {{.Prefix}}{{.Type}}TableName
 	}
@@ -229,7 +229,7 @@ const sInsertAndGetLastId = `
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case db.Postgres:
+	case database.Postgres:
 		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsPostgres
 	default:
@@ -268,7 +268,7 @@ const sInsertSimple = `
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case db.Postgres:
+	case database.Postgres:
 		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsPostgres
 	default:
@@ -303,7 +303,7 @@ const sUpdate = `
 func (tbl {{.Prefix}}{{.Type}}Table) Update(v *{{.Type}}) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Postgres:
+	case database.Postgres:
 		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkPostgres
 	default:
 		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkSimple
@@ -320,7 +320,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) UpdateFields(where where.Expression, fields
 }
 
 func (tbl {{.Prefix}}{{.Type}}Table) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := db.NamedArgList(fields)
+	list := database.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
 	whereClause, wargs := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
@@ -365,7 +365,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
 	{{range .Dialects -}}
-	case db.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$.Type}}Table{{.}}
+	case database.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$.Type}}Table{{.}}
     {{end -}}
 	}
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
@@ -406,7 +406,7 @@ func (tbl {{$.Prefix}}{{$.Type}}Table) create{{$.Prefix}}{{$n}}IndexSql(ifNotExi
 	var stmt string
 	switch tbl.Dialect {
 	{{range $.Dialects -}}
-	case db.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$n}}Index{{.}}
+	case database.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$n}}Index{{.}}
     {{end -}}
 	}
 	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)

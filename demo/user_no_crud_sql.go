@@ -6,7 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen2/db"
+	"github.com/rickb777/sqlgen2/database"
 )
 
 // V3UserTableName is the default name for this table.
@@ -17,13 +17,13 @@ const V3UserTableName = "users"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type V3UserTable struct {
 	Prefix, Name string
-	Db           db.Execer
+	Db           database.Execer
 	Ctx          context.Context
-	Dialect      db.Dialect
+	Dialect      database.Dialect
 }
 
 // NewV3UserTable returns a new table instance.
-func NewV3UserTable(prefix, name string, d *sql.DB, dialect db.Dialect) V3UserTable {
+func NewV3UserTable(prefix, name string, d *sql.DB, dialect database.Dialect) V3UserTable {
 	if name == "" {
 		name = V3UserTableName
 	}
@@ -262,9 +262,9 @@ func (tbl V3UserTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl V3UserTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Sqlite: stmt = sqlCreateV3UserTableSqlite
-    case db.Postgres: stmt = sqlCreateV3UserTablePostgres
-    case db.Mysql: stmt = sqlCreateV3UserTableMysql
+	case database.Sqlite: stmt = sqlCreateV3UserTableSqlite
+    case database.Postgres: stmt = sqlCreateV3UserTablePostgres
+    case database.Mysql: stmt = sqlCreateV3UserTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
@@ -299,9 +299,9 @@ func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Sqlite: stmt = sqlCreateV3UserLoginIndexSqlite
-    case db.Postgres: stmt = sqlCreateV3UserLoginIndexPostgres
-    case db.Mysql: stmt = sqlCreateV3UserLoginIndexMysql
+	case database.Sqlite: stmt = sqlCreateV3UserLoginIndexSqlite
+    case database.Postgres: stmt = sqlCreateV3UserLoginIndexPostgres
+    case database.Mysql: stmt = sqlCreateV3UserLoginIndexMysql
     }
 	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
 }
@@ -309,9 +309,9 @@ func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
 func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Sqlite: stmt = sqlCreateV3UserEmailIndexSqlite
-    case db.Postgres: stmt = sqlCreateV3UserEmailIndexPostgres
-    case db.Mysql: stmt = sqlCreateV3UserEmailIndexMysql
+	case database.Sqlite: stmt = sqlCreateV3UserEmailIndexSqlite
+    case database.Postgres: stmt = sqlCreateV3UserEmailIndexPostgres
+    case database.Mysql: stmt = sqlCreateV3UserEmailIndexMysql
     }
 	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
 }

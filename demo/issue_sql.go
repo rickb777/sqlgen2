@@ -7,7 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/rickb777/sqlgen2/db"
+	"github.com/rickb777/sqlgen2/database"
 	"github.com/rickb777/sqlgen2/where"
 	"strings"
 )
@@ -20,13 +20,13 @@ const IssueTableName = "issues"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type IssueTable struct {
 	Prefix, Name string
-	Db           db.Execer
+	Db           database.Execer
 	Ctx          context.Context
-	Dialect      db.Dialect
+	Dialect      database.Dialect
 }
 
 // NewIssueTable returns a new table instance.
-func NewIssueTable(prefix, name string, d *sql.DB, dialect db.Dialect) IssueTable {
+func NewIssueTable(prefix, name string, d *sql.DB, dialect database.Dialect) IssueTable {
 	if name == "" {
 		name = IssueTableName
 	}
@@ -282,7 +282,7 @@ const IssueColumnNames = "id, number, title, assignee, state, labels"
 func (tbl IssueTable) Insert(vv ...*Issue) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case db.Postgres:
+	case database.Postgres:
 		stmt = sqlInsertIssuePostgres
 		params = sIssueDataColumnParamsPostgres
 	default:
@@ -341,7 +341,7 @@ const sIssueDataColumnParamsPostgres = "$1,$2,$3,$4,$5"
 func (tbl IssueTable) Update(v *Issue) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Postgres:
+	case database.Postgres:
 		stmt = sqlUpdateIssueByPkPostgres
 	default:
 		stmt = sqlUpdateIssueByPkSimple
@@ -358,7 +358,7 @@ func (tbl IssueTable) UpdateFields(where where.Expression, fields ...sql.NamedAr
 }
 
 func (tbl IssueTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := db.NamedArgList(fields)
+	list := database.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
 	whereClause, wargs := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
@@ -397,9 +397,9 @@ func (tbl IssueTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl IssueTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Sqlite: stmt = sqlCreateIssueTableSqlite
-    case db.Postgres: stmt = sqlCreateIssueTablePostgres
-    case db.Mysql: stmt = sqlCreateIssueTableMysql
+	case database.Sqlite: stmt = sqlCreateIssueTableSqlite
+    case database.Postgres: stmt = sqlCreateIssueTablePostgres
+    case database.Mysql: stmt = sqlCreateIssueTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
@@ -429,9 +429,9 @@ func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
 func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExist string) string {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Sqlite: stmt = sqlCreateIssueAssigneeIndexSqlite
-    case db.Postgres: stmt = sqlCreateIssueAssigneeIndexPostgres
-    case db.Mysql: stmt = sqlCreateIssueAssigneeIndexMysql
+	case database.Sqlite: stmt = sqlCreateIssueAssigneeIndexSqlite
+    case database.Postgres: stmt = sqlCreateIssueAssigneeIndexPostgres
+    case database.Mysql: stmt = sqlCreateIssueAssigneeIndexMysql
     }
 	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
 }

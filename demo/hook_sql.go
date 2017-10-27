@@ -6,7 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen2/db"
+	"github.com/rickb777/sqlgen2/database"
 	"github.com/rickb777/sqlgen2/where"
 	"strings"
 )
@@ -19,13 +19,13 @@ const HookTableName = "hooks"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type HookTable struct {
 	Prefix, Name string
-	Db           db.Execer
+	Db           database.Execer
 	Ctx          context.Context
-	Dialect      db.Dialect
+	Dialect      database.Dialect
 }
 
 // NewHookTable returns a new table instance.
-func NewHookTable(prefix, name string, d *sql.DB, dialect db.Dialect) HookTable {
+func NewHookTable(prefix, name string, d *sql.DB, dialect database.Dialect) HookTable {
 	if name == "" {
 		name = HookTableName
 	}
@@ -407,7 +407,7 @@ const HookColumnNames = "id, sha, after, before, created, deleted, forced"
 func (tbl HookTable) Insert(vv ...*Hook) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case db.Postgres:
+	case database.Postgres:
 		stmt = sqlInsertHookPostgres
 		params = sHookDataColumnParamsPostgres
 	default:
@@ -468,7 +468,7 @@ const sHookDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6"
 func (tbl HookTable) Update(v *Hook) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Postgres:
+	case database.Postgres:
 		stmt = sqlUpdateHookByPkPostgres
 	default:
 		stmt = sqlUpdateHookByPkSimple
@@ -485,7 +485,7 @@ func (tbl HookTable) UpdateFields(where where.Expression, fields ...sql.NamedArg
 }
 
 func (tbl HookTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := db.NamedArgList(fields)
+	list := database.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
 	whereClause, wargs := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
@@ -526,9 +526,9 @@ func (tbl HookTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl HookTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Sqlite: stmt = sqlCreateHookTableSqlite
-    case db.Postgres: stmt = sqlCreateHookTablePostgres
-    case db.Mysql: stmt = sqlCreateHookTableMysql
+	case database.Sqlite: stmt = sqlCreateHookTableSqlite
+    case database.Postgres: stmt = sqlCreateHookTablePostgres
+    case database.Mysql: stmt = sqlCreateHookTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)

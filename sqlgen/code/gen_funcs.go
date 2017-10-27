@@ -2,7 +2,7 @@ package code
 
 import (
 	"io"
-	"github.com/rickb777/sqlgen2/db"
+	"github.com/rickb777/sqlgen2/database"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/sqlgen/output"
 	"fmt"
@@ -49,16 +49,16 @@ func WriteInsertFunc(w io.Writer, view View, table *schema.Table) {
 		identifier("sqlInsert", tableName, "Postgres"), schema.New(schema.Postgres).Insert(table))
 
 	//fmt.Fprintf(w, constStringQ,
-	//	identifier("s", tableName, "ColumnParamsSimple"), db.Sqlite.Placeholders(table.NumColumnNames(true)))
+	//	identifier("s", tableName, "ColumnParamsSimple"), database.Sqlite.Placeholders(table.NumColumnNames(true)))
 
 	fmt.Fprintf(w, constStringQ,
-		identifier("s", tableName, "DataColumnParamsSimple"), db.Sqlite.Placeholders(table.NumColumnNames(false)))
+		identifier("s", tableName, "DataColumnParamsSimple"), database.Sqlite.Placeholders(table.NumColumnNames(false)))
 
 	//fmt.Fprintf(w, constStringQ,
-	//	identifier("s", tableName, "ColumnParamsPostgres"), db.Postgres.Placeholders(table.NumColumnNames(true)))
+	//	identifier("s", tableName, "ColumnParamsPostgres"), database.Postgres.Placeholders(table.NumColumnNames(true)))
 
 	fmt.Fprintf(w, constStringQ,
-		identifier("s", tableName, "DataColumnParamsPostgres"), db.Postgres.Placeholders(table.NumColumnNames(false)))
+		identifier("s", tableName, "DataColumnParamsPostgres"), database.Postgres.Placeholders(table.NumColumnNames(false)))
 
 }
 

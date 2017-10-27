@@ -46,7 +46,7 @@ func main() {
 
 	o := NewOutput(oFile)
 
-	packagesToImport := NewStringSet("context", "database/sql", "github.com/rickb777/sqlgen2/db")
+	packagesToImport := NewStringSet("context", "database/sql", "github.com/rickb777/sqlgen2/database")
 
 	if genFuncs || genSchema {
 		packagesToImport.Add("fmt")

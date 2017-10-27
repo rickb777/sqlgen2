@@ -6,7 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen2/db"
+	"github.com/rickb777/sqlgen2/database"
 	"github.com/rickb777/sqlgen2/where"
 	"strings"
 )
@@ -19,13 +19,13 @@ const V2UserTableName = "users"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type V2UserTable struct {
 	Prefix, Name string
-	Db           db.Execer
+	Db           database.Execer
 	Ctx          context.Context
-	Dialect      db.Dialect
+	Dialect      database.Dialect
 }
 
 // NewV2UserTable returns a new table instance.
-func NewV2UserTable(prefix, name string, d *sql.DB, dialect db.Dialect) V2UserTable {
+func NewV2UserTable(prefix, name string, d *sql.DB, dialect database.Dialect) V2UserTable {
 	if name == "" {
 		name = V2UserTableName
 	}
@@ -305,7 +305,7 @@ const V2UserColumnNames = "uid, login, email, avatar, active, admin, token, secr
 func (tbl V2UserTable) Insert(vv ...*User) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case db.Postgres:
+	case database.Postgres:
 		stmt = sqlInsertV2UserPostgres
 		params = sV2UserDataColumnParamsPostgres
 	default:
@@ -370,7 +370,7 @@ const sV2UserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8"
 func (tbl V2UserTable) Update(v *User) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case db.Postgres:
+	case database.Postgres:
 		stmt = sqlUpdateV2UserByPkPostgres
 	default:
 		stmt = sqlUpdateV2UserByPkSimple
@@ -387,7 +387,7 @@ func (tbl V2UserTable) UpdateFields(where where.Expression, fields ...sql.NamedA
 }
 
 func (tbl V2UserTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := db.NamedArgList(fields)
+	list := database.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
 	whereClause, wargs := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
