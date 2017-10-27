@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2/dialect"
 	"github.com/rickb777/sqlgen2/where"
+	"strings"
 )
 
 // DbUserTableName is the default name for this table.
@@ -186,11 +187,39 @@ func SliceDbUserWithoutPk(v *User) []interface{} {
 	}
 }
 
+//--------------------------------------------------------------------------------
+
+// Exec executes a query without returning any rows.
+// The args are for any placeholder parameters in the query.
+// It returns the number of rows affected.
+// Not every database or database driver may support this.
+func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
+	res, err := tbl.Db.Exec(query, args...)
+	if err != nil {
+		return 0, nil
+	}
+	return res.RowsAffected()
+}
+
+//--------------------------------------------------------------------------------
+
 // QueryOne is the low-level access function for one User.
 func (tbl DbUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return ScanDbUser(row)
 }
+
+// Query is the low-level access function for Users.
+func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error) {
+	rows, err := tbl.Db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return ScanDbUsers(rows)
+}
+
+//--------------------------------------------------------------------------------
 
 // SelectOneSA allows a single User to be obtained from the database using supplied dialect-specific parameters.
 func (tbl DbUserTable) SelectOneSA(where, limitClause string, args ...interface{}) (*User, error) {
@@ -202,15 +231,6 @@ func (tbl DbUserTable) SelectOneSA(where, limitClause string, args ...interface{
 func (tbl DbUserTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*User, error) {
 	wh, args := where.Build(dialect)
 	return tbl.SelectOneSA(wh, "LIMIT 1", args)
-}
-
-func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error) {
-	rows, err := tbl.Db.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return ScanDbUsers(rows)
 }
 
 // SelectSA allows Users to be obtained from the database using supplied dialect-specific parameters.
@@ -238,6 +258,8 @@ func (tbl DbUserTable) Count(where where.Expression, dialect dialect.Dialect) (c
 }
 
 const DbUserColumnNames = "uid, login, email, avatar, active, admin, token, secret, hash"
+
+//--------------------------------------------------------------------------------
 
 // Insert adds new records for the Users. The Users have their primary key fields
 // set to the new record identifiers.
@@ -302,6 +324,8 @@ const sDbUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?"
 
 const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8"
 
+//--------------------------------------------------------------------------------
+
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl DbUserTable) Update(v *User) (int64, error) {
@@ -316,6 +340,20 @@ func (tbl DbUserTable) Update(v *User) (int64, error) {
 	args := SliceDbUserWithoutPk(v)
 	args = append(args, v.Uid)
 	return tbl.Exec(query, args...)
+}
+
+// UpdateFields updates one or more columns, given a 'where' clause.
+func (tbl DbUserTable) UpdateFields(wh where.Expression, fields ...where.Field) (int64, error) {
+	return tbl.Exec(tbl.updateFields(wh, fields...))
+}
+
+func (tbl DbUserTable) updateFields(wh where.Expression, fields ...where.Field) (string, []interface{}) {
+	list := where.FieldList(fields)
+	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
+	whereClause, extra := wh.Build(tbl.Dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	args := append(list.Values(), extra...)
+	return query, args
 }
 
 const sqlUpdateDbUserByPkSimple = `
@@ -343,18 +381,6 @@ UPDATE %s%s SET
 	hash=$9 
  WHERE uid=$10
 `
-
-// Exec executes a query without returning any rows.
-// The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
-// Not every database or database driver may support this.
-func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
-	res, err := tbl.Db.Exec(query, args...)
-	if err != nil {
-		return 0, nil
-	}
-	return res.RowsAffected()
-}
 
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.

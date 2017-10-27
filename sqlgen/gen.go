@@ -46,13 +46,20 @@ func main() {
 
 	o := NewOutput(oFile)
 
+	packagesToImport := NewStringSet("database/sql", "github.com/rickb777/sqlgen2/dialect")
+
+	if genFuncs || genSchema {
+		packagesToImport.Add("fmt")
+	}
+	if genFuncs {
+		packagesToImport.Add("github.com/rickb777/sqlgen2/where", "strings")
+	}
+
 	// if the code is generated in a different folder
 	// that the struct we need to set the package name and import the struct
 	pkg := o.Pkg()
-	imports := tree.Type.Pkg
 	if pkg == "" {
 		pkg = tree.Type.Pkg
-		imports = ""
 	} else {
 		fmt.Fprintf(os.Stderr, "%s: sub-directories are not yet supported.\n", oFile)
 		os.Exit(1)
@@ -69,22 +76,20 @@ func main() {
 	view.Table = table
 	view.Dialects = schema.Dialects
 
-	WriteImports(buf, table, "database/sql", "fmt",
-		"github.com/rickb777/sqlgen2/dialect",
-		"github.com/rickb777/sqlgen2/where",
-		imports)
+	WriteImports(buf, table, packagesToImport)
 
 	WriteType(buf, view)
 	WriteRowFunc(buf, tree, view)
 	WriteRowsFunc(buf, tree, view)
 	WriteSliceFunc(buf, tree, view, false)
 	WriteSliceFunc(buf, tree, view, true)
+	WriteExecFunc(buf, view, table)
+	WriteQueryFuncs(buf, view, table)
 
 	if genFuncs {
 		WriteSelectRow(buf, view, table)
 		WriteInsertFunc(buf, view, table)
 		WriteUpdateFunc(buf, view, table)
-		WriteExecFunc(buf, view, table)
 	}
 
 	if genSchema {

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2/dialect"
 	"github.com/rickb777/sqlgen2/where"
+	"strings"
 )
 
 // IssueTableName is the default name for this table.
@@ -163,11 +164,39 @@ func SliceIssueWithoutPk(v *Issue) []interface{} {
 	}
 }
 
+//--------------------------------------------------------------------------------
+
+// Exec executes a query without returning any rows.
+// The args are for any placeholder parameters in the query.
+// It returns the number of rows affected.
+// Not every database or database driver may support this.
+func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
+	res, err := tbl.Db.Exec(query, args...)
+	if err != nil {
+		return 0, nil
+	}
+	return res.RowsAffected()
+}
+
+//--------------------------------------------------------------------------------
+
 // QueryOne is the low-level access function for one Issue.
 func (tbl IssueTable) QueryOne(query string, args ...interface{}) (*Issue, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return ScanIssue(row)
 }
+
+// Query is the low-level access function for Issues.
+func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error) {
+	rows, err := tbl.Db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return ScanIssues(rows)
+}
+
+//--------------------------------------------------------------------------------
 
 // SelectOneSA allows a single Issue to be obtained from the database using supplied dialect-specific parameters.
 func (tbl IssueTable) SelectOneSA(where, limitClause string, args ...interface{}) (*Issue, error) {
@@ -179,15 +208,6 @@ func (tbl IssueTable) SelectOneSA(where, limitClause string, args ...interface{}
 func (tbl IssueTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*Issue, error) {
 	wh, args := where.Build(dialect)
 	return tbl.SelectOneSA(wh, "LIMIT 1", args)
-}
-
-func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error) {
-	rows, err := tbl.Db.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return ScanIssues(rows)
 }
 
 // SelectSA allows Issues to be obtained from the database using supplied dialect-specific parameters.
@@ -215,6 +235,8 @@ func (tbl IssueTable) Count(where where.Expression, dialect dialect.Dialect) (co
 }
 
 const IssueColumnNames = "id, number, title, assignee, state, labels"
+
+//--------------------------------------------------------------------------------
 
 // Insert adds new records for the Issues. The Issues have their primary key fields
 // set to the new record identifiers.
@@ -273,6 +295,8 @@ const sIssueDataColumnParamsSimple = "?,?,?,?,?"
 
 const sIssueDataColumnParamsPostgres = "$1,$2,$3,$4,$5"
 
+//--------------------------------------------------------------------------------
+
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl IssueTable) Update(v *Issue) (int64, error) {
@@ -287,6 +311,20 @@ func (tbl IssueTable) Update(v *Issue) (int64, error) {
 	args := SliceIssueWithoutPk(v)
 	args = append(args, v.Id)
 	return tbl.Exec(query, args...)
+}
+
+// UpdateFields updates one or more columns, given a 'where' clause.
+func (tbl IssueTable) UpdateFields(wh where.Expression, fields ...where.Field) (int64, error) {
+	return tbl.Exec(tbl.updateFields(wh, fields...))
+}
+
+func (tbl IssueTable) updateFields(wh where.Expression, fields ...where.Field) (string, []interface{}) {
+	list := where.FieldList(fields)
+	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
+	whereClause, extra := wh.Build(tbl.Dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	args := append(list.Values(), extra...)
+	return query, args
 }
 
 const sqlUpdateIssueByPkSimple = `
@@ -308,18 +346,6 @@ UPDATE %s%s SET
 	labels=$6 
  WHERE id=$7
 `
-
-// Exec executes a query without returning any rows.
-// The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
-// Not every database or database driver may support this.
-func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
-	res, err := tbl.Db.Exec(query, args...)
-	if err != nil {
-		return 0, nil
-	}
-	return res.RowsAffected()
-}
 
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.

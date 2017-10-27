@@ -12,7 +12,7 @@ import (
 func TestWriteImports_withoutAny(t *testing.T) {
 	buf := &bytes.Buffer{}
 
-	WriteImports(buf, &schema.Table{})
+	WriteImports(buf, &schema.Table{}, NewStringSet())
 
 	code := buf.String()
 	if code != `` {
@@ -23,7 +23,7 @@ func TestWriteImports_withoutAny(t *testing.T) {
 func TestWriteImports_withoutExtras(t *testing.T) {
 	buf := &bytes.Buffer{}
 
-	WriteImports(buf, &schema.Table{}, "foo", "bar")
+	WriteImports(buf, &schema.Table{}, NewStringSet("foo", "bar"))
 
 	code := buf.String()
 	expected := `
@@ -59,7 +59,7 @@ type Example struct {
 
 	buf := &bytes.Buffer{}
 
-	WriteImports(buf, table, "foo", "bar")
+	WriteImports(buf, table, NewStringSet("foo", "bar"))
 
 	code := buf.String()
 	expected := `

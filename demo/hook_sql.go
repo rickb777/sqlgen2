@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2/dialect"
 	"github.com/rickb777/sqlgen2/where"
+	"strings"
 )
 
 // HookTableName is the default name for this table.
@@ -288,11 +289,39 @@ func SliceHookWithoutPk(v *Hook) []interface{} {
 	}
 }
 
+//--------------------------------------------------------------------------------
+
+// Exec executes a query without returning any rows.
+// The args are for any placeholder parameters in the query.
+// It returns the number of rows affected.
+// Not every database or database driver may support this.
+func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
+	res, err := tbl.Db.Exec(query, args...)
+	if err != nil {
+		return 0, nil
+	}
+	return res.RowsAffected()
+}
+
+//--------------------------------------------------------------------------------
+
 // QueryOne is the low-level access function for one Hook.
 func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return ScanHook(row)
 }
+
+// Query is the low-level access function for Hooks.
+func (tbl HookTable) Query(query string, args ...interface{}) ([]*Hook, error) {
+	rows, err := tbl.Db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return ScanHooks(rows)
+}
+
+//--------------------------------------------------------------------------------
 
 // SelectOneSA allows a single Hook to be obtained from the database using supplied dialect-specific parameters.
 func (tbl HookTable) SelectOneSA(where, limitClause string, args ...interface{}) (*Hook, error) {
@@ -304,15 +333,6 @@ func (tbl HookTable) SelectOneSA(where, limitClause string, args ...interface{})
 func (tbl HookTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*Hook, error) {
 	wh, args := where.Build(dialect)
 	return tbl.SelectOneSA(wh, "LIMIT 1", args)
-}
-
-func (tbl HookTable) Query(query string, args ...interface{}) ([]*Hook, error) {
-	rows, err := tbl.Db.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return ScanHooks(rows)
 }
 
 // SelectSA allows Hooks to be obtained from the database using supplied dialect-specific parameters.
@@ -340,6 +360,8 @@ func (tbl HookTable) Count(where where.Expression, dialect dialect.Dialect) (cou
 }
 
 const HookColumnNames = "id, sha, after, before, created, deleted, forced"
+
+//--------------------------------------------------------------------------------
 
 // Insert adds new records for the Hooks. The Hooks have their primary key fields
 // set to the new record identifiers.
@@ -400,6 +422,8 @@ const sHookDataColumnParamsSimple = "?,?,?,?,?,?"
 
 const sHookDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6"
 
+//--------------------------------------------------------------------------------
+
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl HookTable) Update(v *Hook) (int64, error) {
@@ -414,6 +438,20 @@ func (tbl HookTable) Update(v *Hook) (int64, error) {
 	args := SliceHookWithoutPk(v)
 	args = append(args, v.Id)
 	return tbl.Exec(query, args...)
+}
+
+// UpdateFields updates one or more columns, given a 'where' clause.
+func (tbl HookTable) UpdateFields(wh where.Expression, fields ...where.Field) (int64, error) {
+	return tbl.Exec(tbl.updateFields(wh, fields...))
+}
+
+func (tbl HookTable) updateFields(wh where.Expression, fields ...where.Field) (string, []interface{}) {
+	list := where.FieldList(fields)
+	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
+	whereClause, extra := wh.Build(tbl.Dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	args := append(list.Values(), extra...)
+	return query, args
 }
 
 const sqlUpdateHookByPkSimple = `
@@ -437,18 +475,6 @@ UPDATE %s%s SET
 	forced=$7 
  WHERE id=$8
 `
-
-// Exec executes a query without returning any rows.
-// The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
-// Not every database or database driver may support this.
-func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
-	res, err := tbl.Db.Exec(query, args...)
-	if err != nil {
-		return 0, nil
-	}
-	return res.RowsAffected()
-}
 
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.

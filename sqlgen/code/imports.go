@@ -10,13 +10,7 @@ import (
 
 const tabs = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 
-func WriteImports(w io.Writer, table *schema.Table, pkgs ...string) {
-	var pmap = map[string]struct{}{}
-
-	// add default packages
-	for _, pkg := range pkgs {
-		pmap[pkg] = struct{}{}
-	}
+func WriteImports(w io.Writer, table *schema.Table, packages StringSet) {
 
 	// check each edge field to see if it is
 	// encoded, which might require us to import
@@ -24,36 +18,31 @@ func WriteImports(w io.Writer, table *schema.Table, pkgs ...string) {
 	for _, field := range table.Fields {
 		if field.Type.Pkg != "" {
 			longName := parse.FindImport(field.Type)
-			pmap[longName] = struct{}{}
+			packages[longName] = struct{}{}
 		}
 
 		switch field.Encode {
 		case schema.ENCJSON:
-			pmap["encoding/json"] = struct{}{}
+			packages["encoding/json"] = struct{}{}
 			// case "gzip":
-			// 	pmap["compress/gzip"] = struct{}{}
+			// 	packages["compress/gzip"] = struct{}{}
 			// case "snappy":
-			// 	pmap["github.com/golang/snappy"] = struct{}{}
+			// 	packages["github.com/golang/snappy"] = struct{}{}
 		}
 	}
 
-	if len(pmap) > 0 {
-		doWriteImports(w, pmap)
+	if packages.NonEmpty() {
+		doWriteImports(w, packages)
 	}
 }
 
-func sortImports(pmap map[string]struct{}) []string {
-	sorted := make([]string, 0, len(pmap))
-	for pkg := range pmap {
-		if pkg != "" {
-			sorted = append(sorted, pkg)
-		}
-	}
+func sortImports(pmap StringSet) []string {
+	sorted := pmap.ToSlice()
 	sort.Strings(sorted)
 	return sorted
 }
 
-func doWriteImports(w io.Writer, pmap map[string]struct{}) {
+func doWriteImports(w io.Writer, pmap StringSet) {
 	// write the import block, including each
 	// encoder package that was specified.
 	fmt.Fprintln(w, "\nimport (")

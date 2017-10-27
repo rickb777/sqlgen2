@@ -100,13 +100,35 @@ var tSliceRow = template.Must(template.New("SliceRow").Funcs(funcMap).Parse(sSli
 
 //-------------------------------------------------------------------------------------------------
 
-const sSelectRow = `
+const sQueryRow = `
 // QueryOne is the low-level access function for one {{.Type}}.
 func (tbl {{.Prefix}}{{.Type}}Table) QueryOne(query string, args ...interface{}) (*{{.Type}}, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return Scan{{.Prefix}}{{.Type}}(row)
 }
+`
 
+var tQueryRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sQueryRow))
+
+//-------------------------------------------------------------------------------------------------
+
+const sQueryRows = `
+// Query is the low-level access function for {{.Types}}.
+func (tbl {{.Prefix}}{{.Type}}Table) Query(query string, args ...interface{}) ([]*{{.Type}}, error) {
+	rows, err := tbl.Db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return Scan{{.Prefix}}{{.Types}}(rows)
+}
+`
+
+var tQueryRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(sQueryRows))
+
+//-------------------------------------------------------------------------------------------------
+
+const sSelectRow = `
 // SelectOneSA allows a single {{.Type}} to be obtained from the database using supplied dialect-specific parameters.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where, limitClause string, args ...interface{}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where, limitClause)
@@ -126,15 +148,6 @@ var tSelectRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sS
 
 // function template to select multiple rows.
 const sSelectRows = `
-func (tbl {{.Prefix}}{{.Type}}Table) Query(query string, args ...interface{}) ([]*{{.Type}}, error) {
-	rows, err := tbl.Db.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return Scan{{.Prefix}}{{.Types}}(rows)
-}
-
 // SelectSA allows {{.Types}} to be obtained from the database using supplied dialect-specific parameters.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectSA(where string, args ...interface{}) ([]*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where)
@@ -218,10 +231,10 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	switch tbl.Dialect {
 	case dialect.Postgres:
 		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
-		params = ""
+		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsPostgres
 	default:
 		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Simple
-		params = ""
+		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsSimple
 	}
 	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
 	if err != nil {
@@ -260,6 +273,20 @@ func (tbl {{.Prefix}}{{.Type}}Table) Update(v *{{.Type}}) (int64, error) {
 	args := Slice{{.Prefix}}{{.Type}}WithoutPk(v)
 	args = append(args, v.{{.Table.Primary.Name}})
 	return tbl.Exec(query, args...)
+}
+
+// UpdateFields updates one or more columns, given a 'where' clause.
+func (tbl {{.Prefix}}{{.Type}}Table) UpdateFields(wh where.Expression, fields ...where.Field) (int64, error) {
+	return tbl.Exec(tbl.updateFields(wh, fields...))
+}
+
+func (tbl {{.Prefix}}{{.Type}}Table) updateFields(wh where.Expression, fields ...where.Field) (string, []interface{}) {
+	list := where.FieldList(fields)
+	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
+	whereClause, extra := wh.Build(tbl.Dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	args := append(list.Values(), extra...)
+	return query, args
 }
 `
 
@@ -351,3 +378,22 @@ func (tbl {{$.Prefix}}{{$.Type}}Table) create{{$.Prefix}}{{$n}}IndexSql(ifNotExi
 `
 
 var tCreateIndex = template.Must(template.New("CreateIndex").Funcs(funcMap).Parse(sCreateIndex))
+
+//-------------------------------------------------------------------------------------------------
+//TODO
+//func (builder UpdateBuilder) SetFields(fields FieldList) UpdateBuilder {
+//	for i := 0; i < len(fields); i++ {
+//		builder.Upd = builder.Upd.Set(fields[i].Name, fields[i].Value)
+//	}
+//	return builder
+//}
+//
+//func (builder UpdateBuilder) Set(what string, v interface{}) UpdateBuilder {
+//	builder.Upd = builder.Upd.Set(what, v)
+//	return builder
+//}
+//
+//func (builder UpdateBuilder) Unset(what string) UpdateBuilder {
+//	builder.Upd = builder.Upd.SetSQL(what, "null")
+//	return builder
+//}

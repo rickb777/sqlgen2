@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2/dialect"
 	"github.com/rickb777/sqlgen2/where"
+	"strings"
 )
 
 // V2UserTableName is the default name for this table.
@@ -186,11 +187,39 @@ func SliceV2UserWithoutPk(v *User) []interface{} {
 	}
 }
 
+//--------------------------------------------------------------------------------
+
+// Exec executes a query without returning any rows.
+// The args are for any placeholder parameters in the query.
+// It returns the number of rows affected.
+// Not every database or database driver may support this.
+func (tbl V2UserTable) Exec(query string, args ...interface{}) (int64, error) {
+	res, err := tbl.Db.Exec(query, args...)
+	if err != nil {
+		return 0, nil
+	}
+	return res.RowsAffected()
+}
+
+//--------------------------------------------------------------------------------
+
 // QueryOne is the low-level access function for one User.
 func (tbl V2UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	row := tbl.Db.QueryRow(query, args...)
 	return ScanV2User(row)
 }
+
+// Query is the low-level access function for Users.
+func (tbl V2UserTable) Query(query string, args ...interface{}) ([]*User, error) {
+	rows, err := tbl.Db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return ScanV2Users(rows)
+}
+
+//--------------------------------------------------------------------------------
 
 // SelectOneSA allows a single User to be obtained from the database using supplied dialect-specific parameters.
 func (tbl V2UserTable) SelectOneSA(where, limitClause string, args ...interface{}) (*User, error) {
@@ -202,15 +231,6 @@ func (tbl V2UserTable) SelectOneSA(where, limitClause string, args ...interface{
 func (tbl V2UserTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*User, error) {
 	wh, args := where.Build(dialect)
 	return tbl.SelectOneSA(wh, "LIMIT 1", args)
-}
-
-func (tbl V2UserTable) Query(query string, args ...interface{}) ([]*User, error) {
-	rows, err := tbl.Db.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return ScanV2Users(rows)
 }
 
 // SelectSA allows Users to be obtained from the database using supplied dialect-specific parameters.
@@ -238,6 +258,8 @@ func (tbl V2UserTable) Count(where where.Expression, dialect dialect.Dialect) (c
 }
 
 const V2UserColumnNames = "uid, login, email, avatar, active, admin, token, secret, hash"
+
+//--------------------------------------------------------------------------------
 
 // Insert adds new records for the Users. The Users have their primary key fields
 // set to the new record identifiers.
@@ -302,6 +324,8 @@ const sV2UserDataColumnParamsSimple = "?,?,?,?,?,?,?,?"
 
 const sV2UserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8"
 
+//--------------------------------------------------------------------------------
+
 // Update updates a record. It returns the number of rows affected.
 // Not every database or database driver may support this.
 func (tbl V2UserTable) Update(v *User) (int64, error) {
@@ -316,6 +340,20 @@ func (tbl V2UserTable) Update(v *User) (int64, error) {
 	args := SliceV2UserWithoutPk(v)
 	args = append(args, v.Uid)
 	return tbl.Exec(query, args...)
+}
+
+// UpdateFields updates one or more columns, given a 'where' clause.
+func (tbl V2UserTable) UpdateFields(wh where.Expression, fields ...where.Field) (int64, error) {
+	return tbl.Exec(tbl.updateFields(wh, fields...))
+}
+
+func (tbl V2UserTable) updateFields(wh where.Expression, fields ...where.Field) (string, []interface{}) {
+	list := where.FieldList(fields)
+	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
+	whereClause, extra := wh.Build(tbl.Dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	args := append(list.Values(), extra...)
+	return query, args
 }
 
 const sqlUpdateV2UserByPkSimple = `
@@ -343,15 +381,3 @@ UPDATE %s%s SET
 	hash=$9 
  WHERE uid=$10
 `
-
-// Exec executes a query without returning any rows.
-// The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
-// Not every database or database driver may support this.
-func (tbl V2UserTable) Exec(query string, args ...interface{}) (int64, error) {
-	res, err := tbl.Db.Exec(query, args...)
-	if err != nil {
-		return 0, nil
-	}
-	return res.RowsAffected()
-}
