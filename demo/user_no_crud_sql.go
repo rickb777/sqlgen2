@@ -3,9 +3,10 @@
 package demo
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen2/dialect"
+	"github.com/rickb777/sqlgen2/db"
 )
 
 // V3UserTableName is the default name for this table.
@@ -16,17 +17,51 @@ const V3UserTableName = "users"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type V3UserTable struct {
 	Prefix, Name string
-	Db           *sql.DB
-	Dialect      dialect.Dialect
+	Db           db.Execer
+	Ctx          context.Context
+	Dialect      db.Dialect
 }
 
 // NewV3UserTable returns a new table instance.
-func NewV3UserTable(prefix, name string, db *sql.DB, dialect dialect.Dialect) V3UserTable {
+func NewV3UserTable(prefix, name string, d *sql.DB, dialect db.Dialect) V3UserTable {
 	if name == "" {
 		name = V3UserTableName
 	}
-	return V3UserTable{prefix, name, db, dialect}
+	return V3UserTable{prefix, name, d, context.Background(), dialect}
 }
+
+// WithContext sets the context for subsequent queries.
+func (tbl V3UserTable) WithContext(ctx context.Context) V3UserTable {
+	tbl.Ctx = ctx
+	return tbl
+}
+
+// DB gets the wrapped database handle, provided this is not within a transaction.
+// Panics if it is in the wrong state - use IsTx() if necessary.
+func (tbl V3UserTable) DB() *sql.DB {
+	return tbl.Db.(*sql.DB)
+}
+
+// Tx gets the wrapped transaction handle, provided this is within a transaction.
+// Panics if it is in the wrong state - use IsTx() if necessary.
+func (tbl V3UserTable) Tx() *sql.Tx {
+	return tbl.Db.(*sql.Tx)
+}
+
+// IsTx tests whether this is within a transaction.
+func (tbl V3UserTable) IsTx() bool {
+	_, ok := tbl.Db.(*sql.Tx)
+	return ok
+}
+
+// Begin starts a transaction. The default isolation level is dependent on the driver.
+func (tbl V3UserTable) BeginTx(opts *sql.TxOptions) (V3UserTable, error) {
+	d := tbl.Db.(*sql.DB)
+	var err error
+	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
+	return tbl, err
+}
+
 
 // ScanV3User reads a database record into a single value.
 func ScanV3User(row *sql.Row) (*User, error) {
@@ -190,9 +225,8 @@ func SliceV3UserWithoutPk(v *User) []interface{} {
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected.
-// Not every database or database driver may support this.
 func (tbl V3UserTable) Exec(query string, args ...interface{}) (int64, error) {
-	res, err := tbl.Db.Exec(query, args...)
+	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return 0, nil
 	}
@@ -203,13 +237,13 @@ func (tbl V3UserTable) Exec(query string, args ...interface{}) (int64, error) {
 
 // QueryOne is the low-level access function for one User.
 func (tbl V3UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
-	row := tbl.Db.QueryRow(query, args...)
+	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
 	return ScanV3User(row)
 }
 
 // Query is the low-level access function for Users.
 func (tbl V3UserTable) Query(query string, args ...interface{}) ([]*User, error) {
-	rows, err := tbl.Db.Query(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -228,9 +262,9 @@ func (tbl V3UserTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl V3UserTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case dialect.Sqlite: stmt = sqlCreateV3UserTableSqlite
-    case dialect.Postgres: stmt = sqlCreateV3UserTablePostgres
-    case dialect.Mysql: stmt = sqlCreateV3UserTableMysql
+	case db.Sqlite: stmt = sqlCreateV3UserTableSqlite
+    case db.Postgres: stmt = sqlCreateV3UserTablePostgres
+    case db.Mysql: stmt = sqlCreateV3UserTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
@@ -265,9 +299,9 @@ func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
 	var stmt string
 	switch tbl.Dialect {
-	case dialect.Sqlite: stmt = sqlCreateV3UserLoginIndexSqlite
-    case dialect.Postgres: stmt = sqlCreateV3UserLoginIndexPostgres
-    case dialect.Mysql: stmt = sqlCreateV3UserLoginIndexMysql
+	case db.Sqlite: stmt = sqlCreateV3UserLoginIndexSqlite
+    case db.Postgres: stmt = sqlCreateV3UserLoginIndexPostgres
+    case db.Mysql: stmt = sqlCreateV3UserLoginIndexMysql
     }
 	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
 }
@@ -275,9 +309,9 @@ func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
 func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
 	var stmt string
 	switch tbl.Dialect {
-	case dialect.Sqlite: stmt = sqlCreateV3UserEmailIndexSqlite
-    case dialect.Postgres: stmt = sqlCreateV3UserEmailIndexPostgres
-    case dialect.Mysql: stmt = sqlCreateV3UserEmailIndexMysql
+	case db.Sqlite: stmt = sqlCreateV3UserEmailIndexSqlite
+    case db.Postgres: stmt = sqlCreateV3UserEmailIndexPostgres
+    case db.Mysql: stmt = sqlCreateV3UserEmailIndexMysql
     }
 	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
 }

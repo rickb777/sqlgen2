@@ -3,8 +3,9 @@
 package demo
 
 import (
+	"context"
 	"database/sql"
-	"github.com/rickb777/sqlgen2/dialect"
+	"github.com/rickb777/sqlgen2/db"
 )
 
 // V4UserTableName is the default name for this table.
@@ -15,17 +16,51 @@ const V4UserTableName = "users"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type V4UserTable struct {
 	Prefix, Name string
-	Db           *sql.DB
-	Dialect      dialect.Dialect
+	Db           db.Execer
+	Ctx          context.Context
+	Dialect      db.Dialect
 }
 
 // NewV4UserTable returns a new table instance.
-func NewV4UserTable(prefix, name string, db *sql.DB, dialect dialect.Dialect) V4UserTable {
+func NewV4UserTable(prefix, name string, d *sql.DB, dialect db.Dialect) V4UserTable {
 	if name == "" {
 		name = V4UserTableName
 	}
-	return V4UserTable{prefix, name, db, dialect}
+	return V4UserTable{prefix, name, d, context.Background(), dialect}
 }
+
+// WithContext sets the context for subsequent queries.
+func (tbl V4UserTable) WithContext(ctx context.Context) V4UserTable {
+	tbl.Ctx = ctx
+	return tbl
+}
+
+// DB gets the wrapped database handle, provided this is not within a transaction.
+// Panics if it is in the wrong state - use IsTx() if necessary.
+func (tbl V4UserTable) DB() *sql.DB {
+	return tbl.Db.(*sql.DB)
+}
+
+// Tx gets the wrapped transaction handle, provided this is within a transaction.
+// Panics if it is in the wrong state - use IsTx() if necessary.
+func (tbl V4UserTable) Tx() *sql.Tx {
+	return tbl.Db.(*sql.Tx)
+}
+
+// IsTx tests whether this is within a transaction.
+func (tbl V4UserTable) IsTx() bool {
+	_, ok := tbl.Db.(*sql.Tx)
+	return ok
+}
+
+// Begin starts a transaction. The default isolation level is dependent on the driver.
+func (tbl V4UserTable) BeginTx(opts *sql.TxOptions) (V4UserTable, error) {
+	d := tbl.Db.(*sql.DB)
+	var err error
+	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
+	return tbl, err
+}
+
 
 // ScanV4User reads a database record into a single value.
 func ScanV4User(row *sql.Row) (*User, error) {
@@ -189,9 +224,8 @@ func SliceV4UserWithoutPk(v *User) []interface{} {
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected.
-// Not every database or database driver may support this.
 func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
-	res, err := tbl.Db.Exec(query, args...)
+	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return 0, nil
 	}
@@ -202,13 +236,13 @@ func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
 
 // QueryOne is the low-level access function for one User.
 func (tbl V4UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
-	row := tbl.Db.QueryRow(query, args...)
+	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
 	return ScanV4User(row)
 }
 
 // Query is the low-level access function for Users.
 func (tbl V4UserTable) Query(query string, args ...interface{}) ([]*User, error) {
-	rows, err := tbl.Db.Query(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

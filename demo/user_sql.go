@@ -3,9 +3,10 @@
 package demo
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen2/dialect"
+	"github.com/rickb777/sqlgen2/db"
 	"github.com/rickb777/sqlgen2/where"
 	"strings"
 )
@@ -18,17 +19,51 @@ const DbUserTableName = "users"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DbUserTable struct {
 	Prefix, Name string
-	Db           *sql.DB
-	Dialect      dialect.Dialect
+	Db           db.Execer
+	Ctx          context.Context
+	Dialect      db.Dialect
 }
 
 // NewDbUserTable returns a new table instance.
-func NewDbUserTable(prefix, name string, db *sql.DB, dialect dialect.Dialect) DbUserTable {
+func NewDbUserTable(prefix, name string, d *sql.DB, dialect db.Dialect) DbUserTable {
 	if name == "" {
 		name = DbUserTableName
 	}
-	return DbUserTable{prefix, name, db, dialect}
+	return DbUserTable{prefix, name, d, context.Background(), dialect}
 }
+
+// WithContext sets the context for subsequent queries.
+func (tbl DbUserTable) WithContext(ctx context.Context) DbUserTable {
+	tbl.Ctx = ctx
+	return tbl
+}
+
+// DB gets the wrapped database handle, provided this is not within a transaction.
+// Panics if it is in the wrong state - use IsTx() if necessary.
+func (tbl DbUserTable) DB() *sql.DB {
+	return tbl.Db.(*sql.DB)
+}
+
+// Tx gets the wrapped transaction handle, provided this is within a transaction.
+// Panics if it is in the wrong state - use IsTx() if necessary.
+func (tbl DbUserTable) Tx() *sql.Tx {
+	return tbl.Db.(*sql.Tx)
+}
+
+// IsTx tests whether this is within a transaction.
+func (tbl DbUserTable) IsTx() bool {
+	_, ok := tbl.Db.(*sql.Tx)
+	return ok
+}
+
+// Begin starts a transaction. The default isolation level is dependent on the driver.
+func (tbl DbUserTable) BeginTx(opts *sql.TxOptions) (DbUserTable, error) {
+	d := tbl.Db.(*sql.DB)
+	var err error
+	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
+	return tbl, err
+}
+
 
 // ScanDbUser reads a database record into a single value.
 func ScanDbUser(row *sql.Row) (*User, error) {
@@ -192,9 +227,8 @@ func SliceDbUserWithoutPk(v *User) []interface{} {
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected.
-// Not every database or database driver may support this.
 func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
-	res, err := tbl.Db.Exec(query, args...)
+	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return 0, nil
 	}
@@ -205,13 +239,13 @@ func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
 
 // QueryOne is the low-level access function for one User.
 func (tbl DbUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
-	row := tbl.Db.QueryRow(query, args...)
+	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
 	return ScanDbUser(row)
 }
 
 // Query is the low-level access function for Users.
 func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error) {
-	rows, err := tbl.Db.Query(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +262,7 @@ func (tbl DbUserTable) SelectOneSA(where, limitClause string, args ...interface{
 }
 
 // SelectOne allows a single User to be obtained from the database.
-func (tbl DbUserTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*User, error) {
+func (tbl DbUserTable) SelectOne(where where.Expression, dialect db.Dialect) (*User, error) {
 	wh, args := where.Build(dialect)
 	return tbl.SelectOneSA(wh, "LIMIT 1", args)
 }
@@ -240,20 +274,20 @@ func (tbl DbUserTable) SelectSA(where string, args ...interface{}) ([]*User, err
 }
 
 // Select allows Users to be obtained from the database that match a 'where' clause.
-func (tbl DbUserTable) Select(where where.Expression, dialect dialect.Dialect) ([]*User, error) {
+func (tbl DbUserTable) Select(where where.Expression, dialect db.Dialect) ([]*User, error) {
 	return tbl.SelectSA(where.Build(dialect))
 }
 
 // CountSA counts Users in the database using supplied dialect-specific parameters.
 func (tbl DbUserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
-	row := tbl.Db.QueryRow(query, args)
+	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args)
 	err = row.Scan(&count)
 	return count, err
 }
 
 // Count counts the Users in the database that match a 'where' clause.
-func (tbl DbUserTable) Count(where where.Expression, dialect dialect.Dialect) (count int64, err error) {
+func (tbl DbUserTable) Count(where where.Expression, dialect db.Dialect) (count int64, err error) {
 	return tbl.CountSA(where.Build(dialect))
 }
 
@@ -266,14 +300,14 @@ const DbUserColumnNames = "uid, login, email, avatar, active, admin, token, secr
 func (tbl DbUserTable) Insert(vv ...*User) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case dialect.Postgres:
+	case db.Postgres:
 		stmt = sqlInsertDbUserPostgres
 		params = sDbUserDataColumnParamsPostgres
 	default:
 		stmt = sqlInsertDbUserSimple
 		params = sDbUserDataColumnParamsSimple
 	}
-	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
+	st, err := tbl.Db.PrepareContext(tbl.Ctx, fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
 	if err != nil {
 		return err
 	}
@@ -331,7 +365,7 @@ const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8"
 func (tbl DbUserTable) Update(v *User) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case dialect.Postgres:
+	case db.Postgres:
 		stmt = sqlUpdateDbUserByPkPostgres
 	default:
 		stmt = sqlUpdateDbUserByPkSimple
@@ -343,14 +377,14 @@ func (tbl DbUserTable) Update(v *User) (int64, error) {
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
-func (tbl DbUserTable) UpdateFields(wh where.Expression, fields ...where.Field) (int64, error) {
-	return tbl.Exec(tbl.updateFields(wh, fields...))
+func (tbl DbUserTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
+	return tbl.Exec(tbl.updateFields(where, fields...))
 }
 
-func (tbl DbUserTable) updateFields(wh where.Expression, fields ...where.Field) (string, []interface{}) {
-	list := where.FieldList(fields)
+func (tbl DbUserTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+	list := db.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
-	whereClause, extra := wh.Build(tbl.Dialect)
+	whereClause, extra := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
 	args := append(list.Values(), extra...)
 	return query, args
@@ -393,9 +427,9 @@ func (tbl DbUserTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl DbUserTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case dialect.Sqlite: stmt = sqlCreateDbUserTableSqlite
-    case dialect.Postgres: stmt = sqlCreateDbUserTablePostgres
-    case dialect.Mysql: stmt = sqlCreateDbUserTableMysql
+	case db.Sqlite: stmt = sqlCreateDbUserTableSqlite
+    case db.Postgres: stmt = sqlCreateDbUserTablePostgres
+    case db.Mysql: stmt = sqlCreateDbUserTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
@@ -430,9 +464,9 @@ func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExist string) string {
 	var stmt string
 	switch tbl.Dialect {
-	case dialect.Sqlite: stmt = sqlCreateDbUserLoginIndexSqlite
-    case dialect.Postgres: stmt = sqlCreateDbUserLoginIndexPostgres
-    case dialect.Mysql: stmt = sqlCreateDbUserLoginIndexMysql
+	case db.Sqlite: stmt = sqlCreateDbUserLoginIndexSqlite
+    case db.Postgres: stmt = sqlCreateDbUserLoginIndexPostgres
+    case db.Mysql: stmt = sqlCreateDbUserLoginIndexMysql
     }
 	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
 }
@@ -440,9 +474,9 @@ func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExist string) string {
 func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExist string) string {
 	var stmt string
 	switch tbl.Dialect {
-	case dialect.Sqlite: stmt = sqlCreateDbUserEmailIndexSqlite
-    case dialect.Postgres: stmt = sqlCreateDbUserEmailIndexPostgres
-    case dialect.Mysql: stmt = sqlCreateDbUserEmailIndexMysql
+	case db.Sqlite: stmt = sqlCreateDbUserEmailIndexSqlite
+    case db.Postgres: stmt = sqlCreateDbUserEmailIndexPostgres
+    case db.Mysql: stmt = sqlCreateDbUserEmailIndexMysql
     }
 	return fmt.Sprintf(stmt, ifNotExist, tbl.Prefix, tbl.Name)
 }

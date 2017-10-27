@@ -1,4 +1,4 @@
-package dialect
+package db
 
 import "github.com/rickb777/sqlgen2/schema"
 

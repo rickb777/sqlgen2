@@ -27,7 +27,7 @@ done
 cd ..
 #go install .
 
-for d in dialect schema where; do
+for d in db schema where; do
   echo ./$d...
   go test $1 -covermode=count -coverprofile=./$d.out ./$d
   go tool cover -func=./$d.out

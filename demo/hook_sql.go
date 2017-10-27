@@ -3,9 +3,10 @@
 package demo
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen2/dialect"
+	"github.com/rickb777/sqlgen2/db"
 	"github.com/rickb777/sqlgen2/where"
 	"strings"
 )
@@ -18,17 +19,51 @@ const HookTableName = "hooks"
 // specify the name of the schema, in which case it should have a trailing '.'.
 type HookTable struct {
 	Prefix, Name string
-	Db           *sql.DB
-	Dialect      dialect.Dialect
+	Db           db.Execer
+	Ctx          context.Context
+	Dialect      db.Dialect
 }
 
 // NewHookTable returns a new table instance.
-func NewHookTable(prefix, name string, db *sql.DB, dialect dialect.Dialect) HookTable {
+func NewHookTable(prefix, name string, d *sql.DB, dialect db.Dialect) HookTable {
 	if name == "" {
 		name = HookTableName
 	}
-	return HookTable{prefix, name, db, dialect}
+	return HookTable{prefix, name, d, context.Background(), dialect}
 }
+
+// WithContext sets the context for subsequent queries.
+func (tbl HookTable) WithContext(ctx context.Context) HookTable {
+	tbl.Ctx = ctx
+	return tbl
+}
+
+// DB gets the wrapped database handle, provided this is not within a transaction.
+// Panics if it is in the wrong state - use IsTx() if necessary.
+func (tbl HookTable) DB() *sql.DB {
+	return tbl.Db.(*sql.DB)
+}
+
+// Tx gets the wrapped transaction handle, provided this is within a transaction.
+// Panics if it is in the wrong state - use IsTx() if necessary.
+func (tbl HookTable) Tx() *sql.Tx {
+	return tbl.Db.(*sql.Tx)
+}
+
+// IsTx tests whether this is within a transaction.
+func (tbl HookTable) IsTx() bool {
+	_, ok := tbl.Db.(*sql.Tx)
+	return ok
+}
+
+// Begin starts a transaction. The default isolation level is dependent on the driver.
+func (tbl HookTable) BeginTx(opts *sql.TxOptions) (HookTable, error) {
+	d := tbl.Db.(*sql.DB)
+	var err error
+	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
+	return tbl, err
+}
+
 
 // ScanHook reads a database record into a single value.
 func ScanHook(row *sql.Row) (*Hook, error) {
@@ -294,9 +329,8 @@ func SliceHookWithoutPk(v *Hook) []interface{} {
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected.
-// Not every database or database driver may support this.
 func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
-	res, err := tbl.Db.Exec(query, args...)
+	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return 0, nil
 	}
@@ -307,13 +341,13 @@ func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
 
 // QueryOne is the low-level access function for one Hook.
 func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) {
-	row := tbl.Db.QueryRow(query, args...)
+	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
 	return ScanHook(row)
 }
 
 // Query is the low-level access function for Hooks.
 func (tbl HookTable) Query(query string, args ...interface{}) ([]*Hook, error) {
-	rows, err := tbl.Db.Query(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +364,7 @@ func (tbl HookTable) SelectOneSA(where, limitClause string, args ...interface{})
 }
 
 // SelectOne allows a single Hook to be obtained from the database.
-func (tbl HookTable) SelectOne(where where.Expression, dialect dialect.Dialect) (*Hook, error) {
+func (tbl HookTable) SelectOne(where where.Expression, dialect db.Dialect) (*Hook, error) {
 	wh, args := where.Build(dialect)
 	return tbl.SelectOneSA(wh, "LIMIT 1", args)
 }
@@ -342,20 +376,20 @@ func (tbl HookTable) SelectSA(where string, args ...interface{}) ([]*Hook, error
 }
 
 // Select allows Hooks to be obtained from the database that match a 'where' clause.
-func (tbl HookTable) Select(where where.Expression, dialect dialect.Dialect) ([]*Hook, error) {
+func (tbl HookTable) Select(where where.Expression, dialect db.Dialect) ([]*Hook, error) {
 	return tbl.SelectSA(where.Build(dialect))
 }
 
 // CountSA counts Hooks in the database using supplied dialect-specific parameters.
 func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
-	row := tbl.Db.QueryRow(query, args)
+	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args)
 	err = row.Scan(&count)
 	return count, err
 }
 
 // Count counts the Hooks in the database that match a 'where' clause.
-func (tbl HookTable) Count(where where.Expression, dialect dialect.Dialect) (count int64, err error) {
+func (tbl HookTable) Count(where where.Expression, dialect db.Dialect) (count int64, err error) {
 	return tbl.CountSA(where.Build(dialect))
 }
 
@@ -368,14 +402,14 @@ const HookColumnNames = "id, sha, after, before, created, deleted, forced"
 func (tbl HookTable) Insert(vv ...*Hook) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case dialect.Postgres:
+	case db.Postgres:
 		stmt = sqlInsertHookPostgres
 		params = sHookDataColumnParamsPostgres
 	default:
 		stmt = sqlInsertHookSimple
 		params = sHookDataColumnParamsSimple
 	}
-	st, err := tbl.Db.Prepare(fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
+	st, err := tbl.Db.PrepareContext(tbl.Ctx, fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
 	if err != nil {
 		return err
 	}
@@ -429,7 +463,7 @@ const sHookDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6"
 func (tbl HookTable) Update(v *Hook) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case dialect.Postgres:
+	case db.Postgres:
 		stmt = sqlUpdateHookByPkPostgres
 	default:
 		stmt = sqlUpdateHookByPkSimple
@@ -441,14 +475,14 @@ func (tbl HookTable) Update(v *Hook) (int64, error) {
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
-func (tbl HookTable) UpdateFields(wh where.Expression, fields ...where.Field) (int64, error) {
-	return tbl.Exec(tbl.updateFields(wh, fields...))
+func (tbl HookTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
+	return tbl.Exec(tbl.updateFields(where, fields...))
 }
 
-func (tbl HookTable) updateFields(wh where.Expression, fields ...where.Field) (string, []interface{}) {
-	list := where.FieldList(fields)
+func (tbl HookTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+	list := db.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
-	whereClause, extra := wh.Build(tbl.Dialect)
+	whereClause, extra := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
 	args := append(list.Values(), extra...)
 	return query, args
@@ -487,9 +521,9 @@ func (tbl HookTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl HookTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case dialect.Sqlite: stmt = sqlCreateHookTableSqlite
-    case dialect.Postgres: stmt = sqlCreateHookTablePostgres
-    case dialect.Mysql: stmt = sqlCreateHookTableMysql
+	case db.Sqlite: stmt = sqlCreateHookTableSqlite
+    case db.Postgres: stmt = sqlCreateHookTablePostgres
+    case db.Mysql: stmt = sqlCreateHookTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
