@@ -1,7 +1,8 @@
 **sqlgen** generates SQL statements and database helper functions from your Go structs. It can be used in
 place of a simple ORM or hand-written SQL.
 
-See the [demo](https://github.com/rickb777/sqlgen2/tree/master/demo) directory for examples.
+See the [demo](https://github.com/rickb777/sqlgen2/tree/master/demo) directory for examples. Look in the
+generated files `*_sql.go` and the hand-crafted files (`hook.go`, `issue.go`, `user.go`).
 
 ### Install
 
