@@ -23,6 +23,7 @@ func main() {
 	flag.StringVar(&prefix, "prefix", "", "prefix for names of generated types; optional")
 	flag.BoolVar(&Verbose, "v", false, "progress messages")
 	flag.BoolVar(&parse.Debug, "z", false, "debug messages")
+	flag.BoolVar(&parse.PrintAST, "ast", false, "trace the whole astract syntax tree")
 	flag.BoolVar(&genSchema, "schema", true, "generate sql schema and queries")
 	flag.BoolVar(&genFuncs, "funcs", true, "generate sql crud functions")
 	flag.BoolVar(&gofmt, "gofmt", false, "format and simplify the generated code nicely")

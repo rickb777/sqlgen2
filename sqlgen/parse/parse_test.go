@@ -15,27 +15,27 @@ func TestStructWith3FieldsAndTags(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg1", "Struct", Struct},
+			TypeRef: NewTypeRef("pkg1", "Struct", Struct),
 			Nodes: []*Node{
 				{
 					Name: "Id",
-					Type: Type{"", "int64", Int64},
+					TypeRef: NewTypeRef("", "int64", Int64),
 					Tags: &Tag{Primary: true, Auto: true},
 				}, {
 					Name: "Number",
-					Type: Type{"", "int", Int},
+					TypeRef: NewTypeRef("", "int", Int),
 					Tags: &Tag{},
 				}, {
 					Name: "Title",
-					Type: Type{"", "string", String},
+					TypeRef: NewTypeRef("", "string", String),
 					Tags: &Tag{},
 				}, {
 					Name: "Description",
-					Type: Type{"", "string", String},
+					TypeRef: NewTypeRef("", "string", String),
 					Tags: &Tag{},
 				}, {
 					Name: "Owner",
-					Type: Type{"", "string", String},
+					TypeRef: NewTypeRef("", "string", String),
 					Tags: &Tag{},
 				},
 			},
@@ -55,11 +55,11 @@ func TestStructWith1BoolFieldAndIgnoreTag(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg2", "Struct", Struct},
+			TypeRef: NewTypeRef("pkg2", "Struct", Struct),
 			Nodes: []*Node{
 				{
 					Name: "Flag",
-					Type: Type{"", "bool", Bool},
+					TypeRef: NewTypeRef("", "bool", Bool),
 					Tags: &Tag{Skip: true},
 				},
 			},
@@ -77,11 +77,11 @@ func TestStructWith1SliceFieldAndJsonTag(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg3", "Struct", Struct},
+			TypeRef: NewTypeRef("pkg3", "Struct", Struct),
 			Nodes: []*Node{
 				{
 					Name: "Labels",
-					Type: Type{"", "[]string", Slice},
+					TypeRef: NewTypeRef("", "[]string", Slice),
 					Tags: &Tag{Encode: "json"},
 				},
 			},
@@ -99,11 +99,11 @@ func TestStructWith1MapFieldAndJsonTag(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg4", "Struct", Struct},
+			TypeRef: NewTypeRef("pkg4", "Struct", Struct),
 			Nodes: []*Node{
 				{
 					Name: "Table",
-					Type: Type{"", "map[string]int", Map},
+					TypeRef: NewTypeRef("", "map[string]int", Map),
 					Tags: &Tag{Encode: "json"},
 				},
 			},
@@ -121,16 +121,16 @@ func TestStructWithNestedStructType(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg5", "Struct", Struct},
+			TypeRef: NewTypeRef("pkg5", "Struct", Struct),
 			Nodes: []*Node{
 				{
 					Name: "Author",
-					Type: Type{"", "Author", Ptr},
+					TypeRef: NewTypeRef("", "Author", Ptr),
 					Tags: &Tag{},
 					Nodes: []*Node{
 						{
 							Name: "Name",
-							Type: Type{"", "string", String},
+							TypeRef: NewTypeRef("", "string", String),
 							Tags: &Tag{},
 						},
 					},
@@ -153,11 +153,11 @@ func TestStructWithNestedSimpleType(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg6", "Struct", Struct},
+			TypeRef: NewTypeRef("pkg6", "Struct", Struct),
 			Nodes: []*Node{
 				{
 					Name: "Cat",
-					Type: Type{"pkg6", "Category", Int32},
+					TypeRef: NewTypeRef("pkg6", "Category", Int32),
 					Tags: &Tag{},
 				},
 			},
@@ -177,11 +177,11 @@ func TestStructWithNestedSimpleTypeInOtherPackageOrder1(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg7", "Struct", Struct},
+			TypeRef: NewTypeRef("pkg7", "Struct", Struct),
 			Nodes: []*Node{
 				{
 					Name: "Cat",
-					Type: Type{"other", "Category", Int32},
+					TypeRef: NewTypeRef("other", "Category", Int32),
 					Tags: &Tag{},
 				},
 			},
@@ -203,11 +203,11 @@ func TestStructWithNestedSimpleTypeInOtherPackageOrder2(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg8", "Struct", Struct},
+			TypeRef: NewTypeRef("pkg8", "Struct", Struct),
 			Nodes: []*Node{
 				{
 					Name: "Cat",
-					Type: Type{"other", "Category", Int32},
+					TypeRef: NewTypeRef("other", "Category", Int32),
 					Tags: &Tag{},
 				},
 			},
@@ -229,21 +229,21 @@ func TestStructWithNestingAcross2Packages(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg9", "Struct", Struct},
+			TypeRef: NewTypeRef("pkg9", "Struct", Struct),
 			Nodes: []*Node{
 				{
 					Name: "Id",
-					Type: Type{"", "uint32", Uint32},
+					TypeRef: NewTypeRef("", "uint32", Uint32),
 					Tags: &Tag{},
 				},
 				{
 					Name: "Wibble",
-					Type: Type{"stringy", "Thingy", String},
+					TypeRef: NewTypeRef("stringy", "Thingy", String),
 					Tags: &Tag{},
 				},
 				{
 					Name: "Bobble",
-					Type: Type{"", "string", String},
+					TypeRef: NewTypeRef("", "string", String),
 					Tags: &Tag{},
 				},
 			},
@@ -275,31 +275,31 @@ func TestStructWithNestingInTheSamePackage(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg10", "Struct", Struct},
+			TypeRef: NewTypeRef("pkg10", "Struct", Struct),
 			Nodes: []*Node{
 				{
 					Name: "Id",
-					Type: Type{"", "uint32", Uint32},
+					TypeRef: NewTypeRef("", "uint32", Uint32),
 					Tags: &Tag{},
 				},
 				{
 					Name: "Uid",
-					Type: Type{"", "uint32", Uint32},
+					TypeRef: NewTypeRef("", "uint32", Uint32),
 					Tags: &Tag{},
 				},
 				{
 					Name: "Name",
-					Type: Type{"pkg10", "Username", String},
+					TypeRef: NewTypeRef("pkg10", "Username", String),
 					Tags: &Tag{},
 				},
 				{
 					Name: "Wibble",
-					Type: Type{"pkg10", "Thingy", String},
+					TypeRef: NewTypeRef("pkg10", "Thingy", String),
 					Tags: &Tag{},
 				},
 				{
 					Name: "Bobble",
-					Type: Type{"pkg10", "Username", String},
+					TypeRef: NewTypeRef("pkg10", "Username", String),
 					Tags: &Tag{},
 				},
 			},
@@ -330,35 +330,40 @@ func TestStructWithNestingInTheSamePackage(t *testing.T) {
 	)
 }
 
-func TestStructWithNestingAcross3Packages(t *testing.T) {
+func TestStructWithNestingAcross4Packages(t *testing.T) {
 	doTestParseOK(t,
 		&Node{
 			Name: "Struct",
-			Type: Type{"pkg11", "Struct", Struct},
+			TypeRef: NewTypeRef("pkg11", "Struct", Struct),
 			Nodes: []*Node{
 				{
 					Name: "Id",
-					Type: Type{"", "uint32", Uint32},
+					TypeRef: NewTypeRef("", "uint32", Uint32),
 					Tags: &Tag{},
 				},
 				{
 					Name: "Uid",
-					Type: Type{"", "uint32", Uint32},
+					TypeRef: NewTypeRef("", "uint32", Uint32),
 					Tags: &Tag{},
 				},
 				{
 					Name: "Name",
-					Type: Type{"userindex", "Username", String},
+					TypeRef: NewTypeRef("userindex", "Username", String),
 					Tags: &Tag{},
 				},
 				{
 					Name: "Wibble",
-					Type: Type{"stringy", "Thingy", String},
+					TypeRef: NewTypeRef("stringy", "Thingy", String),
 					Tags: &Tag{},
 				},
 				{
 					Name: "Bobble",
-					Type: Type{"userindex", "Username", String},
+					TypeRef: NewTypeRef("userindex", "Username", String),
+					Tags: &Tag{},
+				},
+				{
+					Name: "Date",
+					TypeRef: NewTypeRef("date", "PeriodOfDays", Int32),
 					Tags: &Tag{},
 				},
 			},
@@ -367,12 +372,12 @@ func TestStructWithNestingAcross3Packages(t *testing.T) {
 		`package stringy
 
 		type Thingy string
-		`,
+		`, //--------------------------
 
 		`package userindex
 
 		type Username string
-		`,
+		`, //--------------------------
 
 		`package userindex
 
@@ -385,7 +390,16 @@ func TestStructWithNestingAcross3Packages(t *testing.T) {
 			User
 			Wibble stringy.Thingy
 		}
-		`,
+		`, //--------------------------
+
+		`package date
+
+		type PeriodOfDays int32
+
+		type Date struct {
+			day PeriodOfDays
+		}
+		`, //--------------------------
 
 		`package pkg11
 
@@ -393,6 +407,39 @@ func TestStructWithNestingAcross3Packages(t *testing.T) {
 			Id uint32
 			userindex.UserWithThingy
 			Bobble userindex.Username
+			Date   date.Date
+		}
+		`,
+	)
+}
+
+func TestStructWithUnexportedFields(t *testing.T) {
+	doTestParseOK(t,
+		&Node{
+			Name: "Struct",
+			TypeRef: NewTypeRef("pkg12", "Struct", Struct),
+			Nodes: []*Node{
+				{
+					Name: "Date",
+					TypeRef: NewTypeRef("date", "Date", Scanner),
+					Tags: &Tag{},
+				},
+			},
+		},
+		"pkg12", "Struct",
+		`package date
+
+		type PeriodOfDays int32
+
+		type Date struct {
+			day PeriodOfDays
+		}
+		`, //--------------------------
+
+		`package pkg12
+
+		type Struct struct {
+			Date   date.Date
 		}
 		`,
 	)
@@ -401,7 +448,7 @@ func TestStructWithNestingAcross3Packages(t *testing.T) {
 func doTestParseOK(t *testing.T, want *Node, pkg, name string, isource ...string) {
 	t.Helper()
 	exit.TestableExit()
-	Debug = true
+	//Debug = true
 
 	// fix edges missing in the literal values
 	for _, n0 := range want.Nodes {

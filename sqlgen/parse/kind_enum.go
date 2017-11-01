@@ -9,11 +9,11 @@ import (
 	"strings"
 )
 
-const kindEnumStrings = "InvalidBoolIntInt8Int16Int32Int64UintUint8Uint16Uint32Uint64Float32Float64Complex64Complex128InterfaceBytesMapPtrStringSliceStruct"
+const kindEnumStrings = "InvalidBoolIntInt8Int16Int32Int64UintUint8Uint16Uint32Uint64Float32Float64Complex64Complex128InterfaceBytesMapPtrStringSliceStructScanner"
 
-var kindEnumIndex = [...]uint16{0, 7, 11, 14, 18, 23, 28, 33, 37, 42, 48, 54, 60, 67, 74, 83, 93, 102, 107, 110, 113, 119, 124, 130}
+var kindEnumIndex = [...]uint16{0, 7, 11, 14, 18, 23, 28, 33, 37, 42, 48, 54, 60, 67, 74, 83, 93, 102, 107, 110, 113, 119, 124, 130, 137}
 
-var AllKinds = []Kind{Invalid, Bool, Int, Int8, Int16, Int32, Int64, Uint, Uint8, Uint16, Uint32, Uint64, Float32, Float64, Complex64, Complex128, Interface, Bytes, Map, Ptr, String, Slice, Struct}
+var AllKinds = []Kind{Invalid, Bool, Int, Int8, Int16, Int32, Int64, Uint, Uint8, Uint16, Uint32, Uint64, Float32, Float64, Complex64, Complex128, Interface, Bytes, Map, Ptr, String, Slice, Struct, Scanner}
 
 // String returns the string representation of a Kind
 func (i Kind) String() string {
@@ -73,6 +73,8 @@ func (i Kind) Ordinal() int {
 		return 21
 	case Struct:
 		return 22
+	case Scanner:
+		return 23
 	}
 	return -1
 }

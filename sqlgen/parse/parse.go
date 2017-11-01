@@ -8,14 +8,13 @@ import (
 	"io"
 	"os"
 	"strings"
-	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 )
 
-var printAST = false
+var PrintAST = false
 var Debug = false
 var depth = 0
 var fset = token.NewFileSet()
-var files []*ast.File
+var files []SourceDecl
 
 type Source struct {
 	Name string
@@ -45,54 +44,36 @@ func DoParse(pkg, name string, files []Source) (*Node, error) {
 }
 
 func parseAllFiles(path []Source) (error) {
-	files = make([]*ast.File, 0, len(path))
+	files = make([]SourceDecl, 0, len(path))
 
 	for _, p := range path {
-		DevInfo("parsing: %s\n", p.Name)
-		mode := parser.ParseComments
-		if Debug && printAST {
-			mode |= parser.Trace
-		}
-		file, err := parser.ParseFile(fset, p.Name, p.In, mode)
+		f, err := parse(p)
 		if err != nil {
 			return err
 		}
-		files = append(files, file)
+		files = append(files, f)
 	}
+
 	return nil
+}
+
+func parse(path Source) (SourceDecl, error) {
+	DevInfo("parsing: %s\n", path.Name)
+	mode := parser.ParseComments
+	if PrintAST {
+		mode |= parser.Trace
+	}
+	f, err := parser.ParseFile(fset, path.Name, path.In, mode)
+	if err != nil {
+		return SourceDecl{}, err
+	}
+	return NewSourceDecl(path.Name, f), nil
 }
 
 func findMatchingNodes(pkg, name string) (*Node, error) {
 	// find the type of interest and parse it
 	spec, pkg := findTypeDecl(pkg, name)
 	return examineSpec(pkg, spec)
-}
-
-func findTypeDecl(pkg, name string) (*ast.TypeSpec, string) {
-	for _, file := range files {
-		if file.Name.Name == pkg {
-			for _, decl := range file.Decls {
-				gen, isGenDecl := decl.(*ast.GenDecl)
-				if isGenDecl {
-					for _, gs := range gen.Specs {
-						spec, isTypeSpec := gs.(*ast.TypeSpec)
-						if isTypeSpec {
-							if spec.Name.String() == name {
-								DevInfo("findTypeDecl %s.%s -> found %#v %s\n", pkg, name, spec.Type, file.Name.Name)
-								return spec, file.Name.Name
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if pkg != "" {
-		pkg = pkg + "."
-	}
-	exit.Fail(1, "Cannot find '%s%s' in the source code. Should you add more source files to be parsed?\n", pkg, name)
-	return nil, ""
 }
 
 func examineSpec(pkg string, spec *ast.TypeSpec) (*Node, error) {
@@ -107,7 +88,7 @@ func examineSpec(pkg string, spec *ast.TypeSpec) (*Node, error) {
 
 	node := &Node{
 		Name: spec.Name.String(),
-		Type: Type{pkg, spec.Name.String(), Struct},
+		TypeRef: NewTypeRef(pkg, spec.Name.String(), Struct),
 	}
 
 	err := buildNodesFromStructFields(node, str)
@@ -116,7 +97,7 @@ func examineSpec(pkg string, spec *ast.TypeSpec) (*Node, error) {
 }
 
 func buildNodesFromStructFields(parent *Node, str *ast.StructType) (err error) {
-	DevInfo("buildNodesFromStructFields: %s %s\n", parent.Name, parent.Type)
+	DevInfo("buildNodesFromStructFields: %s %s\n", parent.Name, parent.TypeRef)
 	depth += 1
 	defer lessDeep()
 
@@ -134,6 +115,19 @@ func buildNodesFromStructFields(parent *Node, str *ast.StructType) (err error) {
 
 		} else {
 			for _, name := range field.Names {
+				if !name.IsExported() {
+					DevInfo("  %s is not exported\n", name)
+					basic := &Node{Name: name.Name, TypeRef: NewTypeRef("foo", "", Scanner)}
+					basic.Tags, err = parseTag(tag)
+					if err != nil {
+						return err
+					}
+					parent.appendNode(basic)
+					return nil
+				}
+			}
+
+			for _, name := range field.Names {
 				err = buildNode(parent, field.Type, name.Name, tag)
 				if err != nil {
 					return err
@@ -146,7 +140,7 @@ func buildNodesFromStructFields(parent *Node, str *ast.StructType) (err error) {
 }
 
 func buildNode(parent *Node, expr ast.Expr, name, tag string) (err error) {
-	DevInfo("buildNode: %s %s expr:%+v %s %q\n", parent.Name, parent.Type, expr, name, tag)
+	DevInfo("buildNode: %s %s expr:%+v %s %q\n", parent.Name, parent.TypeRef, expr, name, tag)
 	depth += 1
 	defer lessDeep()
 
@@ -171,28 +165,28 @@ func buildNode(parent *Node, expr ast.Expr, name, tag string) (err error) {
 }
 
 func buildEmbeddedStruct(parent *Node, expr ast.Expr, tag string) (err error) {
-	DevInfo("buildEmbeddedStruct %s %s expr:%#v tag:%q\n", parent.Name, parent.Type, expr, tag)
+	DevInfo("buildEmbeddedStruct %s %s expr:%#v tag:%q\n", parent.Name, parent.TypeRef, expr, tag)
 	depth += 1
 	defer lessDeep()
 
 	embedded := &Node{
-		Type: Type{parent.Type.Pkg, "", 0},
+		TypeRef: NewTypeRef(parent.TypeRef.Name.Pkg, "", 0),
 	}
 
 	switch ident := expr.(type) {
 	case *ast.Ident:
-		DevInfo("     ident is (%T) %s.%s\n", ident, parent.Type.Pkg, ident.Name)
+		DevInfo("     ident is (%T) %s.%s\n", ident, parent.TypeRef.Name.Pkg, ident.Name)
 		embedded.Name = ident.Name
-		embedded.Type.Name = ident.Name
-		//embedded.Type.Base, err = baseType(parent.Type.Pkg, embedded.Name)
+		embedded.TypeRef.Name.Identifier = ident.Name
+		//embedded.TypeRef.Base, err = baseType(parent.TypeRef.Pkg, embedded.Name)
 
 	case *ast.SelectorExpr:
 		DevInfo("     ident is (%T) %s.%s\n", ident, ident.X, ident.Sel.Name)
 		if p2, ok := ident.X.(*ast.Ident); ok {
 			DevInfo("     %#v %s\n", p2, p2.Name)
 			embedded.Name = ident.Sel.Name
-			embedded.Type = Type{p2.Name, ident.Sel.Name, 0}
-			//embedded.Type.Base, err = baseType(p2.Name, ident.Sel.Name)
+			embedded.TypeRef = NewTypeRef(p2.Name, ident.Sel.Name, 0)
+			//embedded.TypeRef.Base, err = baseType(p2.Name, ident.Sel.Name)
 		}
 
 	default:
@@ -203,11 +197,11 @@ func buildEmbeddedStruct(parent *Node, expr ast.Expr, tag string) (err error) {
 	//	return err
 	//}
 
-	t, _ := findTypeDecl(embedded.Type.Pkg, embedded.Name)
+	t, _ := findTypeDecl(embedded.TypeRef.Name.Pkg, embedded.Name)
 
 	str, ok := t.Type.(*ast.StructType)
 	if !ok {
-		return fmt.Errorf("Syntax error: '%s.%s' is the wrong type %T.", embedded.Type.Pkg, embedded.Name, t.Type)
+		return fmt.Errorf("Syntax error: '%s.%s' is the wrong type %T.", embedded.TypeRef.Name.Pkg, embedded.Name, t.Type)
 	}
 
 	err = buildNodesFromStructFields(embedded, str)
@@ -224,7 +218,7 @@ func baseType(enclosingPkg, name, typePkg, typeName string) (*Node, error) {
 	b, isSimple := SimpleTypes[typeName]
 	if isSimple {
 		DevInfo("baseType for %s is simple %s\n", typeName, b)
-		node := &Node{Name: name, Type: Type{typePkg, typeName, b}}
+		node := &Node{Name: name, TypeRef: NewTypeRef(typePkg, typeName, b)}
 		return node, nil
 	}
 
@@ -239,7 +233,7 @@ func baseType(enclosingPkg, name, typePkg, typeName string) (*Node, error) {
 	switch tt := t.Type.(type) {
 	case *ast.Ident:
 		b = SimpleTypes[tt.Name]
-		node := &Node{Name: name, Type: Type{typePkg, typeName, b}}
+		node := &Node{Name: name, TypeRef: NewTypeRef(typePkg, typeName, b)}
 		return node, nil
 		//case *ast.StructType:
 		//tt.Fields.
@@ -250,18 +244,26 @@ func baseType(enclosingPkg, name, typePkg, typeName string) (*Node, error) {
 
 func buildIdentNode(parent *Node, pkgqual string, ident *ast.Ident, name, tag string) (err error) {
 	if ident.Obj == nil {
-		// this case happens for an identifier with a non-denoted type, e.g.
-		//    Foo MyType
+		return buildIdentNodeWithNonDenotedType(parent, pkgqual, ident, name, tag)
+	}
 
-		DevInfo("buildIdentNode: %s %s pkg:%q ident:%v (obj:nil) name:%s tag:%q\n", parent.Name, parent.Type, pkgqual, ident, name, tag)
-		depth += 1
-		defer lessDeep()
+	return buildIdentNodeWithDenotedType(parent, pkgqual, ident, name, tag)
+}
 
-		basic, err := baseType(parent.Type.Pkg, name, pkgqual, ident.Name)
-		if err != nil {
-			return err
-		}
+func buildIdentNodeWithNonDenotedType(parent *Node, pkgqual string, ident *ast.Ident, name, tag string) (err error) {
+	// this case happens for an identifier with a non-denoted type, e.g.
+	//    Foo MyType
 
+	DevInfo("buildIdentNode: %s %s pkg:%q ident:%v (obj:nil) name:%s tag:%q\n", parent.Name, parent.TypeRef, pkgqual, ident, name, tag)
+	depth += 1
+	defer lessDeep()
+
+	enclosingPkg := parent.TypeRef.Name.Pkg
+
+	b, isSimple := SimpleTypes[ident.Name]
+	if isSimple {
+		DevInfo("baseType for %s is simple %s\n", ident.Name, b)
+		basic := &Node{Name: name, TypeRef: NewTypeRef(pkgqual, ident.Name, b)}
 		basic.Tags, err = parseTag(tag)
 		if err != nil {
 			return err
@@ -270,21 +272,64 @@ func buildIdentNode(parent *Node, pkgqual string, ident *ast.Ident, name, tag st
 		return nil
 	}
 
+	if pkgqual == "" {
+		// type is not qualified so we need the containing package instead
+		pkgqual = enclosingPkg
+	}
+
+	DevInfo("baseType for %s.%s\n", pkgqual, ident.Name)
+	t, _ := findTypeDecl(pkgqual, ident.Name)
+
+	switch tt := t.Type.(type) {
+	case *ast.Ident:
+		b = SimpleTypes[tt.Name]
+		basic := &Node{Name: name, TypeRef: NewTypeRef(pkgqual, ident.Name, b)}
+		basic.Tags, err = parseTag(tag)
+		if err != nil {
+			return err
+		}
+		parent.appendNode(basic)
+		return nil
+
+	case *ast.StructType:
+		structNode := &Node{
+			Name: name,
+			TypeRef: NewTypeRef(pkgqual, ident.Name, Struct),
+		}
+
+		structNode.Tags, err = parseTag(tag)
+		if err != nil {
+			return err
+		}
+
+		//parent.appendNode(structNode)
+		return buildNodesFromStructFields(structNode, tt)
+	}
+
+	//if err != nil {
+	//	return err
+	//}
+
+	//basic.Tags, err = parseTag(tag)
+	//if err != nil {
+	//	return err
+	//}
+	//parent.appendNode(basic)
+	//return nil
+	return fmt.Errorf("Cannot find match for %s.%s from %+v", pkgqual, ident.Name, t)
+}
+
+func buildIdentNodeWithDenotedType(parent *Node, pkgqual string, ident *ast.Ident, name, tag string) (err error) {
 	// this case happens for an identifier with a denoted type, e.g.
 	//    Foo mypkg.MyType
 
-	DevInfo("buildIdentNode: %s %s pkg:%q ident:%v obj:%+v name:%s tag:%q\n", parent.Name, parent.Type, pkgqual, ident, *ident.Obj, name, tag)
+	DevInfo("buildIdentNode: %s %s pkg:%q ident:%v obj:%+v name:%s tag:%q\n", parent.Name, parent.TypeRef, pkgqual, ident, ident.Obj, name, tag)
 	depth += 1
 	defer lessDeep()
 
-	spec, ok := ident.Obj.Decl.(*ast.TypeSpec)
-	if !ok {
-		return invalidType(name)
-	}
-
 	structNode := &Node{
 		Name: name,
-		Type: Type{parent.Type.Pkg, ident.Name, Struct},
+		TypeRef: NewTypeRef(parent.TypeRef.Name.Pkg, ident.Name, Struct),
 	}
 
 	structNode.Tags, err = parseTag(tag)
@@ -294,9 +339,14 @@ func buildIdentNode(parent *Node, pkgqual string, ident *ast.Ident, name, tag st
 
 	parent.appendNode(structNode)
 
+	spec, ok := ident.Obj.Decl.(*ast.TypeSpec)
+	if !ok {
+		return invalidType(name)
+	}
+
 	switch x := spec.Type.(type) {
 	case *ast.Ident:
-		structNode.Type.Base = SimpleTypes[x.Name]
+		structNode.TypeRef.Base = SimpleTypes[x.Name]
 		return nil
 
 	case *ast.StructType:
@@ -313,7 +363,7 @@ func buildArrayNode(parent *Node, ident *ast.ArrayType, name, tag string) (err e
 
 	node := &Node{
 		Name: name,
-		Type: Type{"", fmt.Sprintf("[]%s", ident.Elt), Slice},
+		TypeRef: NewTypeRef("", fmt.Sprintf("[]%s", ident.Elt), Slice),
 	}
 
 	node.Tags, err = parseTag(tag)
@@ -321,8 +371,8 @@ func buildArrayNode(parent *Node, ident *ast.ArrayType, name, tag string) (err e
 		return err
 	}
 
-	if node.Type.Name == "[]byte" {
-		node.Type.Base = Bytes
+	if node.TypeRef.Name.Identifier == "[]byte" {
+		node.TypeRef.Base = Bytes
 	}
 
 	parent.appendNode(node)
@@ -331,7 +381,7 @@ func buildArrayNode(parent *Node, ident *ast.ArrayType, name, tag string) (err e
 
 func buildMapNode(parent *Node, ident *ast.MapType, name, tag string) (err error) {
 	type_ := fmt.Sprintf("map[%s]%s", ident.Key, ident.Value)
-	node := &Node{Name: name, Type: Type{"", type_, Map}}
+	node := &Node{Name: name, TypeRef: NewTypeRef("", type_, Map)}
 	node.Tags, err = parseTag(tag)
 	if err != nil {
 		return err
@@ -355,7 +405,7 @@ func buildPtrNode(parent *Node, ident *ast.StarExpr, name, tag string) (err erro
 		return invalidType(name)
 	}
 
-	node := &Node{Name: name, Type: Type{"", innerIdent.Name, Ptr}}
+	node := &Node{Name: name, TypeRef: NewTypeRef("", innerIdent.Name, Ptr)}
 	node.Tags, err = parseTag(tag)
 	if err != nil {
 		return err

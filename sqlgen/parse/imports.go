@@ -3,43 +3,85 @@ package parse
 import (
 	"fmt"
 	"go/ast"
-	"go/token"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
+	"bytes"
+	"github.com/kortschak/utter"
 	"os"
 	"strings"
-	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 )
 
-func FindImport(tp Type) string {
-	case1 := fmt.Sprintf(`"%s"`, tp.Pkg)
-	case2 := fmt.Sprintf(`/%s"`, tp.Pkg)
+type Import struct {
+	Name string
+	Path string
+}
 
+type ImportList []Import
+
+func (il ImportList) Find(shortPkg string) (Import, bool) {
+	slashPkg := fmt.Sprintf(`/%s`, shortPkg)
+
+	for _, i := range il {
+		if i.Name == shortPkg || i.Path == shortPkg || strings.HasSuffix(i.Path, slashPkg) {
+			return i, true
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "Cannot find import %q in the source code.", shortPkg)
+	return Import{}, false
+}
+
+func findTypeDecl(pkg, name string) (*ast.TypeSpec, string) {
 	for _, file := range files {
-		for _, decl := range file.Decls {
-			gen, ok := decl.(*ast.GenDecl)
-			if ok && gen.Tok == token.IMPORT {
-				for _, gs := range gen.Specs {
-					spec, isImportSpec := gs.(*ast.ImportSpec)
-					if isImportSpec {
-						if spec.Path.Kind == token.STRING {
-							// spec.Name must be nil because . or renamed imports are explicitly not supported
-							if spec.Name != nil {
-								exit.Fail(1,
-									"import %s: implementation limitation: renamed imports are not supported.\n",
-									spec.Path.Value)
-							}
-							if spec.Path.Value == case1 || strings.HasSuffix(spec.Path.Value, case2) {
-								DevInfo("findImport %s -> found %s\n", tp.Pkg, spec.Path.Value)
-								ln := len(spec.Path.Value) - 1
-								return spec.Path.Value[1:ln]
-							}
-						}
-					}
+		if file.Pkg == pkg {
+			for _, spec := range file.Types {
+				if spec.Name.String() == name {
+					DevInfo("findTypeDecl %s.%s -> found %s %q\n", pkg, name, utter.Sdump(spec.Type), file.Pkg)
+					return spec, file.Pkg
 				}
 			}
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "Cannot find import '%s' in the source code (%+v).", tp.Pkg, tp)
-	return ""
+	if pkg != "" {
+		pkg = pkg + "."
+	}
+	exit.Fail(1, "Cannot find '%s%s' in the source code. Should you add more source files to be parsed?\n%s\n", pkg, name, findAllTypeDecls())
+	return nil, ""
 }
 
+func findAllTypeDecls() string {
+	info := &bytes.Buffer{}
+
+	for _, file := range files {
+		fmt.Fprintf(info, "\nfile %s:\n  package %s\n", file.FilePath, file.Pkg)
+		for _, spec := range file.Types {
+			fmt.Fprintf(info, "    %s\n      %s\n", spec.Name, exprInfo(spec.Type))
+		}
+	}
+
+	return info.String()
+}
+
+func exprInfo(expr ast.Expr) string {
+	switch ident := expr.(type) {
+	case *ast.Ident:
+		return fmt.Sprintf("%s (%T)", ident.Name, ident)
+
+	case *ast.SelectorExpr:
+		if p2, ok := ident.X.(*ast.Ident); ok {
+			return fmt.Sprintf("%s.%s %q %q (%T)", ident.X, ident.Sel.Name, p2, p2.Name, ident)
+		}
+		return fmt.Sprintf("%s.%s (%T)", ident.X, ident.Sel.Name, ident)
+	}
+	//case *ast.ArrayType:
+	//	return buildArrayNode(parent, e, name, tag)
+	//
+	//case *ast.MapType:
+	//	return buildMapNode(parent, e, name, tag)
+	//
+	//case *ast.StarExpr:
+	//	return buildPtrNode(parent, e, name, tag)
+	//}
+
+	return fmt.Sprintf("%+v", expr)
+}

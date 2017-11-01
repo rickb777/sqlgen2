@@ -15,8 +15,8 @@ func Load(tree *parse.Node) *Table {
 	// lookups and de-duping.
 	indices := map[string]*Index{}
 
-	table.Type = tree.Type.Name
-	table.Name = Pluralize(Underscore(tree.Type.Name))
+	table.Type = tree.TypeRef.Name.Identifier
+	table.Name = Pluralize(Underscore(tree.TypeRef.Name.Identifier))
 
 	// Each leaf node in the tree is a column in the table.
 	// Convert each leaf node to a Field structure.
@@ -31,12 +31,12 @@ func Load(tree *parse.Node) *Table {
 }
 
 func convertLeafNodeToField(leaf *parse.Node, indices map[string]*Index, table *Table) (*Field, bool) {
-	field := &Field{Name: leaf.Name, Type: leaf.Type}
+	field := &Field{Name: leaf.Name, Type: leaf.TypeRef}
 
 	// Lookup the SQL column type
 	field.SqlType = BLOB
-	if leaf.Type.Base.IsSimpleType() {
-		field.SqlType = types[leaf.Type.Base]
+	if leaf.TypeRef.Base.IsSimpleType() {
+		field.SqlType = types[leaf.TypeRef.Base]
 	}
 
 	// substitute tag variables

@@ -64,7 +64,6 @@ func (tbl HookTable) BeginTx(opts *sql.TxOptions) (HookTable, error) {
 	return tbl, err
 }
 
-
 // ScanHook reads a database record into a single value.
 func ScanHook(row *sql.Row) (*Hook, error) {
 	var v0 int64
@@ -261,7 +260,6 @@ func SliceHook(v *Hook) []interface{} {
 		v13,
 		v14,
 		v15,
-
 	}
 }
 
@@ -320,7 +318,6 @@ func SliceHookWithoutPk(v *Hook) []interface{} {
 		v13,
 		v14,
 		v15,
-
 	}
 }
 
@@ -424,7 +421,9 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreInsert(sqlgen2.Execer)}); ok {
+		if hook, ok := iv.(interface {
+			PreInsert(sqlgen2.Execer)
+		}); ok {
 			hook.PreInsert(tbl.Db)
 		}
 
@@ -498,7 +497,9 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 	var count int64
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreUpdate(sqlgen2.Execer)}); ok {
+		if hook, ok := iv.(interface {
+			PreUpdate(sqlgen2.Execer)
+		}); ok {
 			hook.PreUpdate(tbl.Db)
 		}
 
@@ -562,10 +563,13 @@ func (tbl HookTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl HookTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case sqlgen2.Sqlite: stmt = sqlCreateHookTableSqlite
-    case sqlgen2.Postgres: stmt = sqlCreateHookTablePostgres
-    case sqlgen2.Mysql: stmt = sqlCreateHookTableMysql
-    }
+	case sqlgen2.Sqlite:
+		stmt = sqlCreateHookTableSqlite
+	case sqlgen2.Postgres:
+		stmt = sqlCreateHookTablePostgres
+	case sqlgen2.Mysql:
+		stmt = sqlCreateHookTableMysql
+	}
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
 	return query
@@ -582,11 +586,9 @@ func (tbl HookTable) ternary(flag bool, a, b string) string {
 
 // CreateIndexes executes queries that create the indexes needed by the Hook table.
 func (tbl HookTable) CreateIndexes(ifNotExist bool) (err error) {
-	
+
 	return nil
 }
-
-
 
 //--------------------------------------------------------------------------------
 

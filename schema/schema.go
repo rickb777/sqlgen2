@@ -41,7 +41,7 @@ type Table struct {
 
 type Field struct {
 	Name    string
-	Type    parse.Type
+	Type    parse.TypeRef
 	Path    []string
 	SqlName string
 	SqlType SqlType

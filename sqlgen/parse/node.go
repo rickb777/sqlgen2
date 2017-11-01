@@ -8,7 +8,7 @@ import (
 
 type Node struct {
 	Name string // identifier name.
-	Type Type
+	TypeRef TypeRef
 	Tags *Tag
 
 	Parent *Node
@@ -66,7 +66,7 @@ func (n *Node) String() string {
 }
 
 func (n *Node) indented(w io.Writer, indent string) {
-	fmt.Fprintf(w, "%s%s %s\n", indent, n.Name, n.Type)
+	fmt.Fprintf(w, "%s%s %s\n", indent, n.Name, n.TypeRef)
 	deeper := indent + "  "
 	for _, c := range n.Nodes {
 		c.indented(w, deeper)

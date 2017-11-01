@@ -26,6 +26,7 @@ const (
 	String
 	Slice
 	Struct
+	Scanner
 )
 
 var SimpleTypes = map[string]Kind{
