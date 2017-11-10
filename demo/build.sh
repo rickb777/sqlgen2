@@ -1,5 +1,6 @@
 #!/bin/bash -e
 cd $(dirname $0)
+rm -f *_sql.go
 
 go generate .
 

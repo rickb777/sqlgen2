@@ -91,6 +91,13 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 	}
 
 	v := &Issue{}
+	v.Id = v0
+	v.Number = v1
+	v.Title = v2
+	v.Body = v3
+	v.Assignee = v4
+	v.State = v5
+	json.Unmarshal(v6, &v.Labels)
 
 	return v, nil
 }
@@ -124,6 +131,13 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 		}
 
 		v := &Issue{}
+		v.Id = v0
+		v.Number = v1
+		v.Title = v2
+		v.Body = v3
+		v.Assignee = v4
+		v.State = v5
+		json.Unmarshal(v6, &v.Labels)
 
 		vv = append(vv, v)
 	}
@@ -139,6 +153,13 @@ func SliceIssue(v *Issue) []interface{} {
 	var v5 string
 	var v6 []byte
 
+	v0 = v.Id
+	v1 = v.Number
+	v2 = v.Title
+	v3 = v.Body
+	v4 = v.Assignee
+	v5 = v.State
+	v6, _ = json.Marshal(&v.Labels)
 
 	return []interface{}{
 		v0,
@@ -160,6 +181,12 @@ func SliceIssueWithoutPk(v *Issue) []interface{} {
 	var v5 string
 	var v6 []byte
 
+	v1 = v.Number
+	v2 = v.Title
+	v3 = v.Body
+	v4 = v.Assignee
+	v5 = v.State
+	v6, _ = json.Marshal(&v.Labels)
 
 	return []interface{}{
 		v1,
