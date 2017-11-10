@@ -69,20 +69,12 @@ func (tbl HookTable) BeginTx(opts *sql.TxOptions) (HookTable, error) {
 func ScanHook(row *sql.Row) (*Hook, error) {
 	var v0 int64
 	var v1 string
-	var v2 string
-	var v3 string
+	var v2 hook.go.Dates
+	var v3 hook.go.Category
 	var v4 bool
 	var v5 bool
 	var v6 bool
-	var v7 string
-	var v8 string
-	var v9 string
-	var v10 string
-	var v11 string
-	var v12 string
-	var v13 string
-	var v14 string
-	var v15 string
+	var v7 *hook.go.Commit
 
 	err := row.Scan(
 		&v0,
@@ -93,14 +85,6 @@ func ScanHook(row *sql.Row) (*Hook, error) {
 		&v5,
 		&v6,
 		&v7,
-		&v8,
-		&v9,
-		&v10,
-		&v11,
-		&v12,
-		&v13,
-		&v14,
-		&v15,
 
 	)
 	if err != nil {
@@ -108,25 +92,6 @@ func ScanHook(row *sql.Row) (*Hook, error) {
 	}
 
 	v := &Hook{}
-	v.Id = v0
-	v.Sha = v1
-	v.After = v2
-	v.Before = v3
-	v.Created = v4
-	v.Deleted = v5
-	v.Forced = v6
-	v.HeadCommit = &Commit{}
-	v.HeadCommit.ID = v7
-	v.HeadCommit.Message = v8
-	v.HeadCommit.Timestamp = v9
-	v.HeadCommit.Author = &Author{}
-	v.HeadCommit.Author.Name = v10
-	v.HeadCommit.Author.Email = v11
-	v.HeadCommit.Author.Username = v12
-	v.HeadCommit.Committer = &Author{}
-	v.HeadCommit.Committer.Name = v13
-	v.HeadCommit.Committer.Email = v14
-	v.HeadCommit.Committer.Username = v15
 
 	return v, nil
 }
@@ -138,20 +103,12 @@ func ScanHooks(rows *sql.Rows) ([]*Hook, error) {
 
 	var v0 int64
 	var v1 string
-	var v2 string
-	var v3 string
+	var v2 hook.go.Dates
+	var v3 hook.go.Category
 	var v4 bool
 	var v5 bool
 	var v6 bool
-	var v7 string
-	var v8 string
-	var v9 string
-	var v10 string
-	var v11 string
-	var v12 string
-	var v13 string
-	var v14 string
-	var v15 string
+	var v7 *hook.go.Commit
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -163,14 +120,6 @@ func ScanHooks(rows *sql.Rows) ([]*Hook, error) {
 			&v5,
 			&v6,
 			&v7,
-			&v8,
-			&v9,
-			&v10,
-			&v11,
-			&v12,
-			&v13,
-			&v14,
-			&v15,
 
 		)
 		if err != nil {
@@ -178,25 +127,6 @@ func ScanHooks(rows *sql.Rows) ([]*Hook, error) {
 		}
 
 		v := &Hook{}
-		v.Id = v0
-		v.Sha = v1
-		v.After = v2
-		v.Before = v3
-		v.Created = v4
-		v.Deleted = v5
-		v.Forced = v6
-		v.HeadCommit = &Commit{}
-		v.HeadCommit.ID = v7
-		v.HeadCommit.Message = v8
-		v.HeadCommit.Timestamp = v9
-		v.HeadCommit.Author = &Author{}
-		v.HeadCommit.Author.Name = v10
-		v.HeadCommit.Author.Email = v11
-		v.HeadCommit.Author.Username = v12
-		v.HeadCommit.Committer = &Author{}
-		v.HeadCommit.Committer.Name = v13
-		v.HeadCommit.Committer.Email = v14
-		v.HeadCommit.Committer.Username = v15
 
 		vv = append(vv, v)
 	}
@@ -206,43 +136,13 @@ func ScanHooks(rows *sql.Rows) ([]*Hook, error) {
 func SliceHook(v *Hook) []interface{} {
 	var v0 int64
 	var v1 string
-	var v2 string
-	var v3 string
+	var v2 hook.go.Dates
+	var v3 hook.go.Category
 	var v4 bool
 	var v5 bool
 	var v6 bool
-	var v7 string
-	var v8 string
-	var v9 string
-	var v10 string
-	var v11 string
-	var v12 string
-	var v13 string
-	var v14 string
-	var v15 string
+	var v7 *hook.go.Commit
 
-	v0 = v.Id
-	v1 = v.Sha
-	v2 = v.After
-	v3 = v.Before
-	v4 = v.Created
-	v5 = v.Deleted
-	v6 = v.Forced
-	if v.HeadCommit != nil {
-		v7 = v.HeadCommit.ID
-		v8 = v.HeadCommit.Message
-		v9 = v.HeadCommit.Timestamp
-		if v.HeadCommit.Author != nil {
-			v10 = v.HeadCommit.Author.Name
-			v11 = v.HeadCommit.Author.Email
-			v12 = v.HeadCommit.Author.Username
-		}
-	}
-	if v.HeadCommit.Committer != nil {
-		v13 = v.HeadCommit.Committer.Name
-		v14 = v.HeadCommit.Committer.Email
-		v15 = v.HeadCommit.Committer.Username
-	}
 
 	return []interface{}{
 		v0,
@@ -253,56 +153,19 @@ func SliceHook(v *Hook) []interface{} {
 		v5,
 		v6,
 		v7,
-		v8,
-		v9,
-		v10,
-		v11,
-		v12,
-		v13,
-		v14,
-		v15,
 
 	}
 }
 
 func SliceHookWithoutPk(v *Hook) []interface{} {
 	var v1 string
-	var v2 string
-	var v3 string
+	var v2 hook.go.Dates
+	var v3 hook.go.Category
 	var v4 bool
 	var v5 bool
 	var v6 bool
-	var v7 string
-	var v8 string
-	var v9 string
-	var v10 string
-	var v11 string
-	var v12 string
-	var v13 string
-	var v14 string
-	var v15 string
+	var v7 *hook.go.Commit
 
-	v1 = v.Sha
-	v2 = v.After
-	v3 = v.Before
-	v4 = v.Created
-	v5 = v.Deleted
-	v6 = v.Forced
-	if v.HeadCommit != nil {
-		v7 = v.HeadCommit.ID
-		v8 = v.HeadCommit.Message
-		v9 = v.HeadCommit.Timestamp
-		if v.HeadCommit.Author != nil {
-			v10 = v.HeadCommit.Author.Name
-			v11 = v.HeadCommit.Author.Email
-			v12 = v.HeadCommit.Author.Username
-		}
-	}
-	if v.HeadCommit.Committer != nil {
-		v13 = v.HeadCommit.Committer.Name
-		v14 = v.HeadCommit.Committer.Email
-		v15 = v.HeadCommit.Committer.Username
-	}
 
 	return []interface{}{
 		v1,
@@ -312,14 +175,6 @@ func SliceHookWithoutPk(v *Hook) []interface{} {
 		v5,
 		v6,
 		v7,
-		v8,
-		v9,
-		v10,
-		v11,
-		v12,
-		v13,
-		v14,
-		v15,
 
 	}
 }
@@ -398,7 +253,7 @@ func (tbl HookTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(where.Build(tbl.Dialect))
 }
 
-const HookColumnNames = "id, sha, after, before, created, deleted, forced"
+const HookColumnNames = "id, sha, dates, category, created, deleted, forced, head_commit"
 
 //--------------------------------------------------------------------------------
 
@@ -445,28 +300,30 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 const sqlInsertHookSimple = `
 INSERT INTO %s%s (
 	sha,
-	after,
-	before,
+	dates,
+	category,
 	created,
 	deleted,
-	forced
+	forced,
+	head_commit
 ) VALUES (%s)
 `
 
 const sqlInsertHookPostgres = `
 INSERT INTO %s%s (
 	sha,
-	after,
-	before,
+	dates,
+	category,
 	created,
 	deleted,
-	forced
+	forced,
+	head_commit
 ) VALUES (%s)
 `
 
-const sHookDataColumnParamsSimple = "?,?,?,?,?,?"
+const sHookDataColumnParamsSimple = "?,?,?,?,?,?,?"
 
-const sHookDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6"
+const sHookDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7"
 
 //--------------------------------------------------------------------------------
 
@@ -517,23 +374,25 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 const sqlUpdateHookByPkSimple = `
 UPDATE %s%s SET 
 	sha=?,
-	after=?,
-	before=?,
+	dates=?,
+	category=?,
 	created=?,
 	deleted=?,
-	forced=? 
+	forced=?,
+	head_commit=? 
  WHERE id=?
 `
 
 const sqlUpdateHookByPkPostgres = `
 UPDATE %s%s SET 
 	sha=$2,
-	after=$3,
-	before=$4,
+	dates=$3,
+	category=$4,
 	created=$5,
 	deleted=$6,
-	forced=$7 
- WHERE id=$8
+	forced=$7,
+	head_commit=$8 
+ WHERE id=$9
 `
 
 //--------------------------------------------------------------------------------
@@ -592,37 +451,40 @@ func (tbl HookTable) CreateIndexes(ifNotExist bool) (err error) {
 
 const sqlCreateHookTableSqlite = `
 CREATE TABLE %s%s%s (
- id      integer primary key autoincrement,
- sha     text,
- after   text,
- before  text,
- created boolean,
- deleted boolean,
- forced  boolean
+ id          integer primary key autoincrement,
+ sha         text,
+ dates       blob,
+ category    integer,
+ created     boolean,
+ deleted     boolean,
+ forced      boolean,
+ head_commit blob
 )
 `
 
 const sqlCreateHookTablePostgres = `
 CREATE TABLE %s%s%s (
- id      bigserial primary key ,
- sha     varchar(512),
- after   varchar(512),
- before  varchar(512),
- created boolean,
- deleted boolean,
- forced  boolean
+ id          bigserial primary key ,
+ sha         varchar(512),
+ dates       byteaa,
+ category    integer,
+ created     boolean,
+ deleted     boolean,
+ forced      boolean,
+ head_commit byteaa
 )
 `
 
 const sqlCreateHookTableMysql = `
 CREATE TABLE %s%s%s (
- id      bigint primary key auto_increment,
- sha     varchar(512),
- after   varchar(512),
- before  varchar(512),
- created tinyint(1),
- deleted tinyint(1),
- forced  tinyint(1)
+ id          bigint primary key auto_increment,
+ sha         varchar(512),
+ dates       mediumblob,
+ category    tinyint unsigned,
+ created     tinyint(1),
+ deleted     tinyint(1),
+ forced      tinyint(1),
+ head_commit mediumblob
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 
@@ -630,12 +492,12 @@ CREATE TABLE %s%s%s (
 
 //--------------------------------------------------------------------------------
 
-const NumHookColumns = 7
+const NumHookColumns = 8
 
-const NumHookDataColumns = 6
+const NumHookDataColumns = 7
 
 const HookPk = "Id"
 
-const HookDataColumnNames = "sha, after, before, created, deleted, forced"
+const HookDataColumnNames = "sha, dates, category, created, deleted, forced, head_commit"
 
 //--------------------------------------------------------------------------------

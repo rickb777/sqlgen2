@@ -6,23 +6,24 @@ import (
 	. "strings"
 
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	"github.com/rickb777/sqlgen2/schema"
 )
 
-func WriteRowFunc(w io.Writer, tree *parse.Node, view View) {
-	var i int
-	var parent = tree
-	for _, node := range tree.Leaves() {
-		if node.Tags.Skip {
+func WriteRowFunc(w io.Writer, view View, table *schema.Table) {
+	//var parent = tree
+
+	for i, field := range table.Fields {
+		if field.Tags.Skip {
 			continue
 		}
 
 		// temporary variable declaration
-		switch node.Type.Base {
+		switch field.Type.Base {
 		case parse.Map, parse.Slice:
 			l1 := fmt.Sprintf("\tvar v%d %s\n", i, "[]byte")
 			view.Body1 = append(view.Body1, l1)
 		default:
-			l1 := fmt.Sprintf("\tvar v%d %s\n", i, node.Type.Type())
+			l1 := fmt.Sprintf("\tvar v%d %s\n", i, field.Type.Type())
 			view.Body1 = append(view.Body1, l1)
 		}
 
@@ -31,46 +32,45 @@ func WriteRowFunc(w io.Writer, tree *parse.Node, view View) {
 		view.Body2 = append(view.Body2, l2)
 
 		// variable setting
-		path := node.Path()[1:]
+		//path := field.Path()[1:]
+		//
+		//// if the parent is a ptr struct we
+		//// need to create a new
+		//if parent != field.Parent && field.Parent.Type.Base == parse.Ptr {
+		//	l3 := fmt.Sprintf("\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), field.Parent.Type.Type())
+		//	view.Body3 = append(view.Body3, l3)
+		//}
 
-		// if the parent is a ptr struct we
-		// need to create a new
-		if parent != node.Parent && node.Parent.Type.Base == parse.Ptr {
-			l3 := fmt.Sprintf("\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type.Type())
-			view.Body3 = append(view.Body3, l3)
-		}
+		//switch field.Type.Base {
+		//case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
+		//	l3 := fmt.Sprintf("\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
+		//	view.Body3 = append(view.Body3, l3)
+		//default:
+		//	l3 := fmt.Sprintf("\tv.%s = v%d\n", join(path, "."), i)
+		//	view.Body3 = append(view.Body3, l3)
+		//}
 
-		switch node.Type.Base {
-		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-			l3 := fmt.Sprintf("\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
-			view.Body3 = append(view.Body3, l3)
-		default:
-			l3 := fmt.Sprintf("\tv.%s = v%d\n", join(path, "."), i)
-			view.Body3 = append(view.Body3, l3)
-		}
-
-		parent = node.Parent
-		i++
+		//parent = field.Parent
 	}
 
 	must(tScanRow.Execute(w, view))
 }
 
-func WriteRowsFunc(w io.Writer, tree *parse.Node, view View) {
-	var i int
-	var parent = tree
-	for _, node := range tree.Leaves() {
-		if node.Tags.Skip {
+func WriteRowsFunc(w io.Writer, view View, table *schema.Table) {
+	//var parent = tree
+
+	for i, field := range table.Fields {
+		if field.Tags.Skip {
 			continue
 		}
 
 		// temporary variable declaration
-		switch node.Type.Base {
+		switch field.Type.Base {
 		case parse.Map, parse.Slice:
 			l1 := fmt.Sprintf("\tvar v%d %s\n", i, "[]byte")
 			view.Body1 = append(view.Body1, l1)
 		default:
-			l1 := fmt.Sprintf("\tvar v%d %s\n", i, node.Type.Type())
+			l1 := fmt.Sprintf("\tvar v%d %s\n", i, field.Type.Type())
 			view.Body1 = append(view.Body1, l1)
 		}
 
@@ -79,26 +79,25 @@ func WriteRowsFunc(w io.Writer, tree *parse.Node, view View) {
 		view.Body2 = append(view.Body2, l2)
 
 		// variable setting
-		path := node.Path()[1:]
+		//path := field.Path()[1:]
+		//
+		//// if the parent is a ptr struct we
+		//// need to create a new
+		//if parent != field.Parent && field.Parent.Type.Base == parse.Ptr {
+		//	l3 := fmt.Sprintf("\t\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), field.Parent.Type.Type())
+		//	view.Body3 = append(view.Body3, l3)
+		//}
 
-		// if the parent is a ptr struct we
-		// need to create a new
-		if parent != node.Parent && node.Parent.Type.Base == parse.Ptr {
-			l3 := fmt.Sprintf("\t\tv.%s = &%s{}\n", join(path[:len(path)-1], "."), node.Parent.Type.Type())
-			view.Body3 = append(view.Body3, l3)
-		}
+		//switch field.Type.Base {
+		//case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
+		//	l3 := fmt.Sprintf("\t\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
+		//	view.Body3 = append(view.Body3, l3)
+		//default:
+		//	l3 := fmt.Sprintf("\t\tv.%s = v%d\n", join(path, "."), i)
+		//	view.Body3 = append(view.Body3, l3)
+		//}
 
-		switch node.Type.Base {
-		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-			l3 := fmt.Sprintf("\t\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
-			view.Body3 = append(view.Body3, l3)
-		default:
-			l3 := fmt.Sprintf("\t\tv.%s = v%d\n", join(path, "."), i)
-			view.Body3 = append(view.Body3, l3)
-		}
-
-		parent = node.Parent
-		i++
+		//parent = field.Parent
 	}
 
 	must(tScanRows.Execute(w, view))

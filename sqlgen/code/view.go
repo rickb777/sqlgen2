@@ -7,7 +7,6 @@ import (
 
 	. "github.com/acsellers/inflections"
 	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/sqlgen/parse"
 )
 
 type View struct {
@@ -22,11 +21,11 @@ type View struct {
 	Table    *schema.Table
 }
 
-func NewView(tree *parse.Node, prefix string) View {
+func NewView(name, prefix string) View {
 	return View{
 		Prefix: prefix,
-		Type:   tree.Type.Name,
-		Types:  Pluralize(tree.Type.Name),
+		Type:   name,
+		Types:  Pluralize(name),
 	}
 }
 

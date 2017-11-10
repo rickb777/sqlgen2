@@ -70,7 +70,7 @@ func mysqlColumn(f *Field) string {
 	case VARCHAR:
 		// assigns an arbitrary size if
 		// none is provided.
-		size := f.Size
+		size := f.Tags.Size
 		if size == 0 {
 			size = 512
 		}

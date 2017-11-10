@@ -94,15 +94,6 @@ func ScanDbUser(row *sql.Row) (*User, error) {
 	}
 
 	v := &User{}
-	v.Uid = v0
-	v.Login = v1
-	v.Email = v2
-	v.Avatar = v3
-	v.Active = v4
-	v.Admin = v5
-	v.token = v6
-	v.secret = v7
-	v.hash = v8
 
 	return v, nil
 }
@@ -140,15 +131,6 @@ func ScanDbUsers(rows *sql.Rows) ([]*User, error) {
 		}
 
 		v := &User{}
-		v.Uid = v0
-		v.Login = v1
-		v.Email = v2
-		v.Avatar = v3
-		v.Active = v4
-		v.Admin = v5
-		v.token = v6
-		v.secret = v7
-		v.hash = v8
 
 		vv = append(vv, v)
 	}
@@ -166,15 +148,6 @@ func SliceDbUser(v *User) []interface{} {
 	var v7 string
 	var v8 string
 
-	v0 = v.Uid
-	v1 = v.Login
-	v2 = v.Email
-	v3 = v.Avatar
-	v4 = v.Active
-	v5 = v.Admin
-	v6 = v.token
-	v7 = v.secret
-	v8 = v.hash
 
 	return []interface{}{
 		v0,
@@ -200,14 +173,6 @@ func SliceDbUserWithoutPk(v *User) []interface{} {
 	var v7 string
 	var v8 string
 
-	v1 = v.Login
-	v2 = v.Email
-	v3 = v.Avatar
-	v4 = v.Active
-	v5 = v.Admin
-	v6 = v.token
-	v7 = v.secret
-	v8 = v.hash
 
 	return []interface{}{
 		v1,

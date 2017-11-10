@@ -49,7 +49,7 @@ func (dialect MySQLDialect) Column(f *schema.Field) string {
 	case schema.VARCHAR:
 		// assigns an arbitrary size if
 		// none is provided.
-		size := f.Size
+		size := f.Tags.Size
 		if size == 0 {
 			size = 512
 		}

@@ -39,16 +39,19 @@ type Table struct {
 	Primary *Field // compound primaries are not supported
 }
 
+type PathItem struct {
+	Name string
+	Ptr  bool
+}
+
 type Field struct {
 	Name    string
 	Type    parse.Type
-	Path    []string
+	Path    []PathItem
 	SqlName string
 	SqlType SqlType
 	Encode  SqlEncode
-	Primary bool
-	Auto    bool
-	Size    int
+	Tags    parse.Tag
 }
 
 type Index struct {
@@ -69,7 +72,7 @@ func (t *Table) HasPrimaryKey() bool {
 func (t *Table) NumColumnNames(withAuto bool) int {
 	num := 0
 	for _, f := range t.Fields {
-		if withAuto || !f.Auto {
+		if withAuto || !f.Tags.Auto {
 			num++
 		}
 	}
@@ -79,9 +82,19 @@ func (t *Table) NumColumnNames(withAuto bool) int {
 func (t *Table) ColumnNames(withAuto bool) []string {
 	names := make([]string, 0, len(t.Fields))
 	for _, f := range t.Fields {
-		if withAuto || !f.Auto {
+		if withAuto || !f.Tags.Auto {
 			names = append(names, f.SqlName)
 		}
 	}
 	return names
+}
+
+//-------------------------------------------------------------------------------------------------
+
+func PathOf(items ...string) []PathItem {
+	r := make([]PathItem, 0, len(items))
+	for _, s := range items {
+		r = append(r, PathItem{s, false})
+	}
+	return r
 }

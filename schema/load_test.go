@@ -1,144 +1,150 @@
 package schema
 
 import (
+	"bytes"
+	"fmt"
+	"github.com/kortschak/utter"
 	. "github.com/rickb777/sqlgen2/sqlgen/parse"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
-	"bytes"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
-	"github.com/kortschak/utter"
-	"fmt"
-	"os"
+	"time"
 )
 
-func TestConvertLeafNodeToField(t *testing.T) {
-	exit.TestableExit()
-
-	ef1 := &Field{"Id", Type{"", "uint32", Uint32}, nil, "", INTEGER, ENCNONE, true, false, 0}
-	doCompare(t, &Node{
-		Name: "Id",
-		Type: Type{"", "uint32", Uint32},
-		Tags: &Tag{Primary: true},
-	},
-		true, ef1, nil)
-
-	ef2 := &Field{"Wibble", Type{"stringy", "Thingy", String}, nil, "", VARCHAR, ENCNONE, false, false, 0}
-	doCompare(t, &Node{
-		Name: "Wibble",
-		Type: Type{"stringy", "Thingy", String},
-		Tags: &Tag{},
-	},
-		true, ef2, nil)
-
-	ef3 := &Field{"Bibble", Type{"", "string", String}, nil, "", VARCHAR, ENCNONE, false, false, 0}
-	doCompare(t, &Node{
-		Name: "Bibble",
-		Type: Type{"", "string", String},
-		Tags: &Tag{Index: "BibbleIdx"},
-	},
-		true, ef3,
-		&Index{Name: "BibbleIdx", Fields: []*Field{ef3}})
-
-	ef4 := &Field{"Bobble", Type{"", "string", String}, nil, "", VARCHAR, ENCNONE, false, false, 0}
-	doCompare(t, &Node{
-		Name: "Bobble",
-		Type: Type{"", "string", String},
-		Tags: &Tag{Unique: "BobbleIdx"},
-	},
-		true, ef4,
-		&Index{Name: "BobbleIdx", Fields: []*Field{ef4}, Unique: true})
-}
-
-func doCompare(t *testing.T, leaf *Node, wantOk bool, expectedField *Field, expectedIndex *Index) {
-	t.Helper()
-
-	table := new(Table)
-	indices := map[string]*Index{}
-
-	field, ok := convertLeafNodeToField(leaf, indices, table)
-	if !wantOk {
-		if ok {
-			t.Errorf("Should be not OK -> expected %+v", expectedField)
-		}
-		return
-	}
-
-	if !ok {
-		t.Errorf("NOT OK -> expected %+v", expectedField)
-	}
-
-	if !reflect.DeepEqual(field, expectedField) {
-		t.Errorf("\nexpected %+v\n"+
-			"but got  %+v", expectedField, field)
-	}
-
-	if expectedIndex != nil {
-		if len(indices) != 1 {
-			t.Errorf("\nexpected 1 index %+v", expectedIndex)
-		} else {
-			index := indices[expectedIndex.Name]
-			if !reflect.DeepEqual(index, expectedIndex) {
-				t.Errorf("\nexpected %+v\n"+
-					"but got  %+v", expectedIndex, index)
-			}
-		}
-	}
-}
+//func TestConvertLeafNodeToField(t *testing.T) {
+//	exit.TestableExit()
+//
+//	ef1 := &Field{"Id", Type{"", "uint32", Uint32}, nil, "id", INTEGER, ENCNONE, Tag{Primary:true}}
+//	doCompare(t, &Node{
+//		Name: "Id",
+//		Type: Type{"", "uint32", Uint32},
+//		Tags: &Tag{Primary: true},
+//	},
+//		true, ef1, nil)
+//
+//	ef2 := &Field{"Wibble", Type{"stringy", "Thingy", String}, nil, "", VARCHAR, ENCNONE, Tag{}}
+//	doCompare(t, &Node{
+//		Name: "Wibble",
+//		Type: Type{"stringy", "Thingy", String},
+//		Tags: &Tag{},
+//	},
+//		true, ef2, nil)
+//
+//	ef3 := &Field{"Bibble", Type{"", "string", String}, nil, "", VARCHAR, ENCNONE, Tag{}}
+//	doCompare(t, &Node{
+//		Name: "Bibble",
+//		Type: Type{"", "string", String},
+//		Tags: &Tag{Index: "BibbleIdx"},
+//	},
+//		true, ef3,
+//		&Index{Name: "BibbleIdx", Fields: []*Field{ef3}})
+//
+//	ef4 := &Field{"Bobble", Type{"", "string", String}, nil, "", VARCHAR, ENCNONE, Tag{}}
+//	doCompare(t, &Node{
+//		Name: "Bobble",
+//		Type: Type{"", "string", String},
+//		Tags: &Tag{Unique: "BobbleIdx"},
+//	},
+//		true, ef4,
+//		&Index{Name: "BobbleIdx", Fields: []*Field{ef4}, Unique: true})
+//}
+//
+//func doCompare(t *testing.T, leaf *Node, wantOk bool, expectedField *Field, expectedIndex *Index) {
+//	t.Helper()
+//
+//	table := new(Table)
+//	indices := map[string]*Index{}
+//	tags := make(map[string]Tag)
+//
+//	field, ok := convertLeafNodeToField(nil, "", "", tags, indices, table)
+//	if !wantOk {
+//		if ok {
+//			t.Errorf("Should be not OK -> expected %+v", expectedField)
+//		}
+//		return
+//	}
+//
+//	if !ok {
+//		t.Errorf("NOT OK -> expected %+v", expectedField)
+//	}
+//
+//	if !reflect.DeepEqual(field, expectedField) {
+//		t.Errorf("\nexpected %+v\n"+
+//			"but got  %+v", expectedField, field)
+//	}
+//
+//	if expectedIndex != nil {
+//		if len(indices) != 1 {
+//			t.Errorf("\nexpected 1 index %+v", expectedIndex)
+//		} else {
+//			index := indices[expectedIndex.Name]
+//			if !reflect.DeepEqual(index, expectedIndex) {
+//				t.Errorf("\nexpected %+v\n"+
+//					"but got  %+v", expectedIndex, index)
+//			}
+//		}
+//	}
+//}
 
 func TestParseAndLoad(t *testing.T) {
 	exit.TestableExit()
+	Debug = true
 	code := strings.Replace(`package pkg1
 
 type Example struct {
 	Id         int64    |sql:"pk: true, auto: true"|
 	Number     int
-	Category   Category
+	//Category   Category
 	Foo        int      |sql:"-"|
-	Commit     *Commit
+	//Commit     *Commit
 	Title      string   |sql:"index: titleIdx"|
-	//TODO Owner      string   |sql:"name: team_owner"|
+	////TODO Owner      string   |sql:"name: team_owner"|
 	Hobby      string   |sql:"size: 2048"|
 	Labels     []string |sql:"encode: json"|
 	Active     bool
 }
 
-type Category int32
-
-type Commit struct {
-	Message   string
-	Timestamp int64 // TODO should be able to support time.Time
-	Author    *Author
-}
-
-type Author struct {
-	Name     string
-	Email    string
-}
+//type Category int32
+//
+//type Commit struct {
+//	Message   string
+//	Timestamp int64 // TODO should be able to support time.Time
+//	Author    *Author
+//}
+//
+//type Author struct {
+//	Name     string
+//	Email    string
+//}
 
 `, "|", "`", -1)
 
 	source := Source{"issue.go", bytes.NewBufferString(code)}
 
-	node, err := DoParse("pkg1", "Example", []Source{source})
+	pkgStore, err := ParseGroups(Group{"Example", []Source{source}})
 	if err != nil {
-		t.Errorf("Error parsing: %s", err)
+		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table := Load(node)
+	table, err := Load(pkgStore, "pkg1", "Example")
+	if err != nil {
+		t.Fatalf("Error loading: %s", err)
+	}
 
-	id := &Field{"Id", Type{"", "int64", Int64}, []string{"Id"}, "id", INTEGER, ENCNONE, true, true, 0}
-	number := &Field{"Number", Type{"", "int", Int}, []string{"Number"}, "number", INTEGER, ENCNONE, false, false, 0}
-	category := &Field{"Category", Type{"pkg1", "Category", Int32}, []string{"Category"}, "category", INTEGER, ENCNONE, false, false, 0}
-	commitTitle := &Field{"Message", Type{"", "string", String}, []string{"Commit", "Message"}, "commit_message", VARCHAR, ENCNONE, false, false, 0}
-	timestamp := &Field{"Timestamp", Type{"", "int64", Int64}, []string{"Commit", "Timestamp"}, "commit_timestamp", INTEGER, ENCNONE, false, false, 0}
-	author := &Field{"Name", Type{"", "string", String}, []string{"Commit", "Author", "Name"}, "commit_author_name", VARCHAR, ENCNONE, false, false, 0}
-	email := &Field{"Email", Type{"", "string", String}, []string{"Commit", "Author", "Email"}, "commit_author_email", VARCHAR, ENCNONE, false, false, 0}
-	title := &Field{"Title", Type{"", "string", String}, []string{"Title"}, "title", VARCHAR, ENCNONE, false, false, 0}
-	//owner := &Field{"Owner", "team_owner", VARCHAR, false, false, 0}
-	hobby := &Field{"Hobby", Type{"", "string", String}, []string{"Hobby"}, "hobby", VARCHAR, ENCNONE, false, false, 2048}
-	labels := &Field{"Labels", Type{"", "[]string", Slice}, []string{"Labels"}, "labels", BLOB, ENCJSON, false, false, 0}
-	active := &Field{"Active", Type{"", "bool", Bool}, []string{"Active"}, "active", BOOLEAN, ENCNONE, false, false, 0}
+	id := &Field{"Id", Type{"", "int64", Int64}, PathOf("Id"), "id", INTEGER, ENCNONE, Tag{Primary: true, Auto: true}}
+	number := &Field{"Number", Type{"", "int", Int}, PathOf("Number"), "number", INTEGER, ENCNONE, Tag{}}
+	//category := &Field{"Category", Type{"pkg1", "Category", Int32}, PathOf("Category"), "category", INTEGER, ENCNONE, Tag{}}
+	//commitTitle := &Field{"Message", Type{"", "string", String}, PathOf("Commit", "Message"), "commit_message", VARCHAR, ENCNONE, Tag{}}
+	//timestamp := &Field{"Timestamp", Type{"", "int64", Int64}, PathOf("Commit", "Timestamp"), "commit_timestamp", INTEGER, ENCNONE, Tag{}}
+	//author := &Field{"Name", Type{"", "string", String}, PathOf("Commit", "Author", "Name"), "commit_author_name", VARCHAR, ENCNONE, Tag{}}
+	//email := &Field{"Email", Type{"", "string", String}, PathOf("Commit", "Author", "Email"), "commit_author_email", VARCHAR, ENCNONE, Tag{}}
+	title := &Field{"Title", Type{"", "string", String}, PathOf("Title"), "title", VARCHAR, ENCNONE, Tag{Index:"titleIdx"}}
+	////owner := &Field{"Owner", "team_owner", VARCHAR, Tag{}}
+	hobby := &Field{"Hobby", Type{"", "string", String}, PathOf("Hobby"), "hobby", VARCHAR, ENCNONE, Tag{Size: 2048}}
+	labels := &Field{"Labels", Type{"", "[]string", Slice}, PathOf("Labels"), "labels", BLOB, ENCJSON, Tag{Encode:"json"}}
+	active := &Field{"Active", Type{"", "bool", Bool}, PathOf("Active"), "active", BOOLEAN, ENCNONE, Tag{}}
 
 	ititle := &Index{"titleIdx", false, []*Field{title}}
 
@@ -148,13 +154,13 @@ type Author struct {
 		Fields: []*Field{
 			id,
 			number,
-			category,
-			commitTitle,
-			timestamp,
-			author,
-			email,
+			//category,
+			//commitTitle,
+			//timestamp,
+			//author,
+			//email,
 			title,
-			//owner,
+			////owner,
 			hobby,
 			labels,
 			active,
@@ -166,6 +172,8 @@ type Author struct {
 	}
 
 	if !reflect.DeepEqual(table, expected) {
+		os.Stderr.Sync()
+		time.Sleep(100 * time.Millisecond)
 		ex := utter.Sdump(expected)
 		ac := utter.Sdump(table)
 		outputDiff(ex, "expected.txt")

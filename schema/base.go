@@ -46,12 +46,12 @@ func (b *base) Table(t *Table, did DialectId) string {
 		io.WriteString(tab, "\t")
 		io.WriteString(tab, field.AsColumn(did))
 
-		if field.Primary {
+		if field.Tags.Primary {
 			io.WriteString(tab, " ")
 			io.WriteString(tab, PRIMARY_KEY.AsToken(did))
 		}
 
-		if field.Auto {
+		if field.Tags.Auto {
 			io.WriteString(tab, " ")
 			io.WriteString(tab, AUTO_INCREMENT.AsToken(did))
 		}
@@ -79,7 +79,7 @@ func (b *base) Insert(t *Table) string {
 	var i int
 
 	for _, field := range t.Fields {
-		if !field.Auto {
+		if !field.Tags.Auto {
 			fields = append(fields, field)
 			params = append(params, b.SDialect.Param(i))
 			i++
@@ -114,7 +114,7 @@ func (b *base) columns(fields []*Field, withAuto, inline, assign bool) string {
 	w := &bytes.Buffer{}
 	comma := ""
 	for i, field := range fields {
-		if withAuto || !field.Auto {
+		if withAuto || !field.Tags.Auto {
 			io.WriteString(w, comma)
 			comma = ","
 

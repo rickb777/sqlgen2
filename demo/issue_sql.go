@@ -91,13 +91,6 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 	}
 
 	v := &Issue{}
-	v.Id = v0
-	v.Number = v1
-	v.Title = v2
-	v.Body = v3
-	v.Assignee = v4
-	v.State = v5
-	json.Unmarshal(v6, &v.Labels)
 
 	return v, nil
 }
@@ -131,13 +124,6 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 		}
 
 		v := &Issue{}
-		v.Id = v0
-		v.Number = v1
-		v.Title = v2
-		v.Body = v3
-		v.Assignee = v4
-		v.State = v5
-		json.Unmarshal(v6, &v.Labels)
 
 		vv = append(vv, v)
 	}
@@ -153,13 +139,6 @@ func SliceIssue(v *Issue) []interface{} {
 	var v5 string
 	var v6 []byte
 
-	v0 = v.Id
-	v1 = v.Number
-	v2 = v.Title
-	v3 = v.Body
-	v4 = v.Assignee
-	v5 = v.State
-	v6, _ = json.Marshal(&v.Labels)
 
 	return []interface{}{
 		v0,
@@ -181,12 +160,6 @@ func SliceIssueWithoutPk(v *Issue) []interface{} {
 	var v5 string
 	var v6 []byte
 
-	v1 = v.Number
-	v2 = v.Title
-	v3 = v.Body
-	v4 = v.Assignee
-	v5 = v.State
-	v6, _ = json.Marshal(&v.Labels)
 
 	return []interface{}{
 		v1,
@@ -273,7 +246,7 @@ func (tbl IssueTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(where.Build(tbl.Dialect))
 }
 
-const IssueColumnNames = "id, number, title, assignee, state, labels"
+const IssueColumnNames = "id, number, title, body, assignee, state, labels"
 
 //--------------------------------------------------------------------------------
 
@@ -321,6 +294,7 @@ const sqlInsertIssueSimple = `
 INSERT INTO %s%s (
 	number,
 	title,
+	body,
 	assignee,
 	state,
 	labels
@@ -331,15 +305,16 @@ const sqlInsertIssuePostgres = `
 INSERT INTO %s%s (
 	number,
 	title,
+	body,
 	assignee,
 	state,
 	labels
 ) VALUES (%s)
 `
 
-const sIssueDataColumnParamsSimple = "?,?,?,?,?"
+const sIssueDataColumnParamsSimple = "?,?,?,?,?,?"
 
-const sIssueDataColumnParamsPostgres = "$1,$2,$3,$4,$5"
+const sIssueDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6"
 
 //--------------------------------------------------------------------------------
 
@@ -391,6 +366,7 @@ const sqlUpdateIssueByPkSimple = `
 UPDATE %s%s SET 
 	number=?,
 	title=?,
+	body=?,
 	assignee=?,
 	state=?,
 	labels=? 
@@ -401,10 +377,11 @@ const sqlUpdateIssueByPkPostgres = `
 UPDATE %s%s SET 
 	number=$2,
 	title=$3,
-	assignee=$4,
-	state=$5,
-	labels=$6 
- WHERE id=$7
+	body=$4,
+	assignee=$5,
+	state=$6,
+	labels=$7 
+ WHERE id=$8
 `
 
 //--------------------------------------------------------------------------------
@@ -476,6 +453,7 @@ CREATE TABLE %s%s%s (
  id       integer primary key autoincrement,
  number   integer,
  title    text,
+ body     text,
  assignee text,
  state    text,
  labels   blob
@@ -487,6 +465,7 @@ CREATE TABLE %s%s%s (
  id       bigserial primary key ,
  number   integer,
  title    varchar(512),
+ body     varchar(2048),
  assignee varchar(512),
  state    varchar(50),
  labels   byteaa
@@ -498,6 +477,7 @@ CREATE TABLE %s%s%s (
  id       bigint primary key auto_increment,
  number   bigint,
  title    varchar(512),
+ body     varchar(2048),
  assignee varchar(512),
  state    varchar(50),
  labels   mediumblob
@@ -512,12 +492,12 @@ CREATE INDEX %sissue_assignee ON %s%s (assignee)
 
 //--------------------------------------------------------------------------------
 
-const NumIssueColumns = 6
+const NumIssueColumns = 7
 
-const NumIssueDataColumns = 5
+const NumIssueDataColumns = 6
 
 const IssuePk = "Id"
 
-const IssueDataColumnNames = "number, title, assignee, state, labels"
+const IssueDataColumnNames = "number, title, body, assignee, state, labels"
 
 //--------------------------------------------------------------------------------

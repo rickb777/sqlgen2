@@ -20,7 +20,7 @@ func newPostgres() SDialect {
 func postgresColumn(f *Field) string {
 	// posgres uses a special column type
 	// for autoincrementing keys.
-	if f.Auto {
+	if f.Tags.Auto {
 		switch f.Type.Base {
 		case parse.Int64, parse.Uint64:
 			return "bigserial"
@@ -38,7 +38,7 @@ func postgresColumn(f *Field) string {
 	case VARCHAR:
 		// assigns an arbitrary size if
 		// none is provided.
-		size := f.Size
+		size := f.Tags.Size
 		if size == 0 {
 			size = 512
 		}

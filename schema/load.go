@@ -1,56 +1,100 @@
 package schema
 
 import (
-	"strings"
-
+	"fmt"
 	. "github.com/acsellers/inflections"
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
+	"go/types"
+	"strings"
 )
 
-func Load(tree *parse.Node) *Table {
+func Load(pkgStore parse.PackageStore, pkg, name string) (*Table, error) {
 	table := new(Table)
 
-	// local map of indexes, used for quick
-	// lookups and de-duping.
+	// local map of indexes, used for quick lookups and de-duping.
 	indices := map[string]*Index{}
 
-	table.Type = tree.Type.Name
-	table.Name = Pluralize(Underscore(tree.Type.Name))
+	//for j := 0; j < s.NumFields(); j++ {
+	//	f := s.Field(j)
+	//	parse.DevInfo("    f%d: name:%-10s pkg:%s type:%-10s %v,%v\n", j,
+	//		f.Name(), f.Pkg().Name(), f.Type(), f.Exported(), f.Anonymous())
+	//}
+
+	table.Type = name
+	table.Name = Pluralize(Underscore(table.Type))
+
+	str, tags, ok := pkgStore.Find(pkg, name)
+	if ok {
+		//err := checkAllFieldsAreUnexported(str, pkg, name)
+		//if err != nil {
+		//	return nil, err
+		//}
+
+		parse.DevInfo("\nFound\n")
+		for j := 0; j < str.NumFields(); j++ {
+			tField := str.Field(j)
+			parse.DevInfo("    f%d: name:%-10s pkg:%s type:%-10s %v,%v\n", j,
+				tField.Name(), tField.Pkg().Name(), tField.Type(), tField.Exported(), tField.Anonymous())
+
+			field, ok := convertLeafNodeToField(tField, pkg, name, tags, indices, table)
+			if ok {
+				table.Fields = append(table.Fields, field)
+			}
+		}
+	}
 
 	// Each leaf node in the tree is a column in the table.
 	// Convert each leaf node to a Field structure.
-	for _, node := range tree.Leaves() {
-		field, ok := convertLeafNodeToField(node, indices, table)
-		if ok {
-			table.Fields = append(table.Fields, field)
-		}
-	}
+	//for _, node := range tree.Leaves() {
+	//	field, ok := convertLeafNodeToField(node, indices, table)
+	//	if ok {
+	//		table.Fields = append(table.Fields, field)
+	//	}
+	//}
 
-	return table
+	return table, nil
 }
 
-func convertLeafNodeToField(leaf *parse.Node, indices map[string]*Index, table *Table) (*Field, bool) {
-	field := &Field{Name: leaf.Name, Type: leaf.Type}
+func checkAllFieldsAreUnexported(str *types.Struct, pkg, name string) error {
+	var un []string
+	for j := 0; j < str.NumFields(); j++ {
+		f := str.Field(j)
+		if !f.Exported() {
+			un = append(un, f.Name())
+		}
+	}
+	if len(un) > 0 {
+		return fmt.Errorf("%s.%s cannot be mapped because it contains unexported fields %v\n", pkg, name, un)
+	}
+	return nil
+}
+
+func convertLeafNodeToField(leaf *types.Var, pkg, name string, tags map[string]parse.Tag, indices map[string]*Index, table *Table) (*Field, bool) {
+	tp := parse.Type{Pkg: "", Name: leaf.Type().String()}
+	field := &Field{Name: leaf.Name(), Type: tp}
 
 	// Lookup the SQL column type
 	field.SqlType = BLOB
-	if leaf.Type.Base.IsSimpleType() {
-		field.SqlType = types[leaf.Type.Base]
+	underlying := leaf.Type().Underlying()
+	switch u := underlying.(type) {
+	case *types.Basic:
+		field.SqlType = mapKindToSqlType[u.Kind()]
+		field.Type.Base = parse.Kind(u.Kind())
+	case *types.Slice:
+		field.Type.Base = parse.Slice
 	}
 
 	// substitute tag variables
-	if leaf.Tags != nil {
+	if tag, exists := tags[leaf.Name()]; exists {
 
-		if leaf.Tags.Skip {
+		if tag.Skip {
 			return nil, false
 		}
 
-		field.Auto = leaf.Tags.Auto
-		field.Primary = leaf.Tags.Primary
-		field.Size = leaf.Tags.Size
+		field.Tags = tag
 
-		if leaf.Tags.Primary {
+		if tag.Primary {
 			if table.Primary != nil {
 				exit.Fail(1, "%s, %s: compound primary keys are not supported.\n",
 					table.Primary.Type.Name, field.Type.Name)
@@ -58,11 +102,11 @@ func convertLeafNodeToField(leaf *parse.Node, indices map[string]*Index, table *
 			table.Primary = field
 		}
 
-		if leaf.Tags.Index != "" {
-			index, ok := indices[leaf.Tags.Index]
+		if tag.Index != "" {
+			index, ok := indices[tag.Index]
 			if !ok {
 				index = &Index{
-					Name: leaf.Tags.Index,
+					Name: tag.Index,
 				}
 				indices[index.Name] = index
 				table.Index = append(table.Index, index)
@@ -70,11 +114,11 @@ func convertLeafNodeToField(leaf *parse.Node, indices map[string]*Index, table *
 			index.Fields = append(index.Fields, field)
 		}
 
-		if leaf.Tags.Unique != "" {
-			index, ok := indices[leaf.Tags.Index]
+		if tag.Unique != "" {
+			index, ok := indices[tag.Index]
 			if !ok {
 				index = &Index{
-					Name:   leaf.Tags.Unique,
+					Name:   tag.Unique,
 					Unique: true,
 				}
 				indices[index.Name] = index
@@ -83,14 +127,14 @@ func convertLeafNodeToField(leaf *parse.Node, indices map[string]*Index, table *
 			index.Fields = append(index.Fields, field)
 		}
 
-		if leaf.Tags.Type != "" {
-			t, ok := sqlTypes[leaf.Tags.Type]
+		if tag.Type != "" {
+			t, ok := mapStringToSqlType[tag.Type]
 			if ok {
 				field.SqlType = t
 			}
 		}
 
-		switch leaf.Tags.Encode {
+		switch tag.Encode {
 		case "json":
 			field.Encode = ENCJSON
 			// case "gzip":
@@ -100,48 +144,47 @@ func convertLeafNodeToField(leaf *parse.Node, indices map[string]*Index, table *
 
 	// get the full path name
 	// omit table name
-	path := leaf.Path()[1:]
+	//path := leaf.Path()[1:]
 	var parts []string
-	for _, part := range path {
-		if part.Tags != nil && part.Tags.Name != "" {
-			parts = append(parts, part.Tags.Name)
-			return nil, false
-		}
+	//for _, part := range path {
+	//	if part.Tags != nil && part.Tags.Name != "" {
+	//		parts = append(parts, part.Tags.Name)
+	//		return nil, false
+	//	}
+	//
+	parts = append(parts, leaf.Name())
 
-		parts = append(parts, part.Name)
-	}
-
-	field.Path = parts
+	field.Path = PathOf(parts...)
 	field.SqlName = Underscore(strings.Join(parts, "_"))
 
 	return field, true
 }
 
 // convert Go types to SQL types.
-var types = map[parse.Kind]SqlType{
-	parse.Bool:       BOOLEAN,
-	parse.Int:        INTEGER,
-	parse.Int8:       INTEGER,
-	parse.Int16:      INTEGER,
-	parse.Int32:      INTEGER,
-	parse.Int64:      INTEGER,
-	parse.Uint:       INTEGER,
-	parse.Uint8:      INTEGER,
-	parse.Uint16:     INTEGER,
-	parse.Uint32:     INTEGER,
-	parse.Uint64:     INTEGER,
-	parse.Float32:    REAL,
-	parse.Float64:    REAL,
-	parse.Complex64:  BLOB,
-	parse.Complex128: BLOB,
-	parse.Interface:  BLOB,
-	parse.Bytes:      BLOB,
-	parse.String:     VARCHAR,
-	parse.Map:        BLOB,
-	parse.Slice:      BLOB,
+var mapKindToSqlType = map[types.BasicKind]SqlType{
+	types.Bool:       BOOLEAN,
+	types.Int:        INTEGER,
+	types.Int8:       INTEGER,
+	types.Int16:      INTEGER,
+	types.Int32:      INTEGER,
+	types.Int64:      INTEGER,
+	types.Uint:       INTEGER,
+	types.Uint8:      INTEGER,
+	types.Uint16:     INTEGER,
+	types.Uint32:     INTEGER,
+	types.Uint64:     INTEGER,
+	types.Float32:    REAL,
+	types.Float64:    REAL,
+	types.Complex64:  BLOB,
+	types.Complex128: BLOB,
+	//types.Interface:  BLOB,
+	//types.Bytes:      BLOB,
+	types.String: VARCHAR,
+	//types.Map:        BLOB,
+	//types.Slice:      BLOB,
 }
 
-var sqlTypes = map[string]SqlType{
+var mapStringToSqlType = map[string]SqlType{
 	"text":     VARCHAR,
 	"varchar":  VARCHAR,
 	"varchar2": VARCHAR,

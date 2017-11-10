@@ -2,10 +2,9 @@ package code
 
 import (
 	"fmt"
+	"github.com/rickb777/sqlgen2/schema"
 	"io"
 	"sort"
-	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/sqlgen/parse"
 )
 
 const tabs = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
@@ -17,8 +16,8 @@ func WriteImports(w io.Writer, table *schema.Table, packages StringSet) {
 	// other packages
 	for _, field := range table.Fields {
 		if field.Type.Pkg != "" {
-			longName := parse.FindImport(field.Type)
-			packages[longName] = struct{}{}
+			//longName := parse.FindImport(field.Type)
+			//packages[longName] = struct{}{}
 		}
 
 		switch field.Encode {

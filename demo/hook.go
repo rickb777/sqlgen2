@@ -10,7 +10,7 @@ type Hook struct {
 	Id  int64 `sql:"pk: true, auto: true"`
 	Sha string
 	Dates
-	//Category   Category
+	Category   Category
 	Created    bool
 	Deleted    bool
 	Forced     bool

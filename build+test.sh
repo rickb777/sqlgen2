@@ -13,7 +13,7 @@ go get gopkg.in/yaml.v2
 enumeration -i schema/dialect.go -o schema/dialect_enum.go -package schema -type DialectId
 
 cd sqlgen
-enumeration -i parse/kind.go -o parse/kind_enum.go -package parse -type Kind
+#enumeration -i parse/kind.go -o parse/kind_enum.go -package parse -type Kind
 
 go install .
 
