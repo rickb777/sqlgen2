@@ -3,7 +3,6 @@ package code
 import (
 	"fmt"
 	"io"
-	. "strings"
 
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"github.com/rickb777/sqlgen2/schema"
@@ -41,14 +40,14 @@ func WriteRowFunc(w io.Writer, view View, table *schema.Table) {
 		//	view.Body3 = append(view.Body3, l3)
 		//}
 
-		//switch field.Type.Base {
-		//case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-		//	l3 := fmt.Sprintf("\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
-		//	view.Body3 = append(view.Body3, l3)
-		//default:
-		//	l3 := fmt.Sprintf("\tv.%s = v%d\n", join(path, "."), i)
-		//	view.Body3 = append(view.Body3, l3)
-		//}
+		switch field.Type.Base {
+		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
+			l3 := fmt.Sprintf("\tjson.Unmarshal(v%d, &v.%s)\n", i, field.Path.Join("."))
+			view.Body3 = append(view.Body3, l3)
+		default:
+			l3 := fmt.Sprintf("\tv.%s = v%d\n", field.Path.Join("."), i)
+			view.Body3 = append(view.Body3, l3)
+		}
 
 		//parent = field.Parent
 	}
@@ -88,14 +87,14 @@ func WriteRowsFunc(w io.Writer, view View, table *schema.Table) {
 		//	view.Body3 = append(view.Body3, l3)
 		//}
 
-		//switch field.Type.Base {
-		//case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-		//	l3 := fmt.Sprintf("\t\tjson.Unmarshal(v%d, &v.%s)\n", i, join(path, "."))
-		//	view.Body3 = append(view.Body3, l3)
-		//default:
-		//	l3 := fmt.Sprintf("\t\tv.%s = v%d\n", join(path, "."), i)
-		//	view.Body3 = append(view.Body3, l3)
-		//}
+		switch field.Type.Base {
+		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
+			l3 := fmt.Sprintf("\t\tjson.Unmarshal(v%d, &v.%s)\n", i, field.Path.Join("."))
+			view.Body3 = append(view.Body3, l3)
+		default:
+			l3 := fmt.Sprintf("\t\tv.%s = v%d\n", field.Path.Join("."), i)
+			view.Body3 = append(view.Body3, l3)
+		}
 
 		//parent = field.Parent
 	}
@@ -105,10 +104,10 @@ func WriteRowsFunc(w io.Writer, view View, table *schema.Table) {
 
 // join is a helper function that joins nodes
 // together by name using the seperator.
-func join(nodes []*parse.Node, sep string) string {
-	var parts []string
-	for _, node := range nodes {
-		parts = append(parts, node.Name)
-	}
-	return Join(parts, sep)
-}
+//func join(nodes []*parse.Node, sep string) string {
+//	var parts []string
+//	for _, node := range nodes {
+//		parts = append(parts, node.Name)
+//	}
+//	return Join(parts, sep)
+//}

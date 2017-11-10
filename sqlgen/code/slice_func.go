@@ -51,14 +51,14 @@ func WriteSliceFunc(w io.Writer, view View, table *schema.Table, withoutPk bool)
 		//	depth++
 		//}
 
-		//switch field.Type.Base {
-		//case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-		//	l2 := fmt.Sprintf("%s\tv%d, _ = json.Marshal(&v.%s)\n", tabs[:depth], i, join(path, "."))
-		//	view.Body2 = append(view.Body2, l2)
-		//default:
-		//	l2 := fmt.Sprintf("%s\tv%d = v.%s\n", tabs[:depth], i, join(path, "."))
-		//	view.Body2 = append(view.Body2, l2)
-		//}
+		switch field.Type.Base {
+		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
+			l2 := fmt.Sprintf("%s\tv%d, _ = json.Marshal(&v.%s)\n", tabs[:depth], i, field.Path.Join("."))
+			view.Body2 = append(view.Body2, l2)
+		default:
+			l2 := fmt.Sprintf("%s\tv%d = v.%s\n", tabs[:depth], i, field.Path.Join("."))
+			view.Body2 = append(view.Body2, l2)
+		}
 
 		//parent = field.Parent
 	}

@@ -1,6 +1,9 @@
 package schema
 
-import "github.com/rickb777/sqlgen2/sqlgen/parse"
+import (
+	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	"strings"
+)
 
 type SqlType int
 
@@ -47,7 +50,7 @@ type PathItem struct {
 type Field struct {
 	Name    string
 	Type    parse.Type
-	Path    []PathItem
+	Path    Path
 	SqlName string
 	SqlType SqlType
 	Encode  SqlEncode
@@ -91,10 +94,24 @@ func (t *Table) ColumnNames(withAuto bool) []string {
 
 //-------------------------------------------------------------------------------------------------
 
-func PathOf(items ...string) []PathItem {
+type Path []PathItem
+
+func PathOf(items ...string) Path {
 	r := make([]PathItem, 0, len(items))
 	for _, s := range items {
 		r = append(r, PathItem{s, false})
 	}
-	return r
+	return Path(r)
+}
+
+func (p Path) Strings() []string {
+	ss := make([]string, 0, len(p))
+	for _, s := range p {
+		ss = append(ss, s.Name)
+	}
+	return ss
+}
+
+func (p Path) Join(sep string) string {
+	return strings.Join(p.Strings(), sep)
 }
