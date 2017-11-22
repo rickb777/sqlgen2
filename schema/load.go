@@ -9,70 +9,73 @@ import (
 	"strings"
 )
 
+type context struct {
+	pkgStore parse.PackageStore
+	indices  map[string]*Index
+	table    *Table
+}
+
 func Load(pkgStore parse.PackageStore, pkg, name string) (*Table, error) {
 	table := new(Table)
 
 	// local map of indexes, used for quick lookups and de-duping.
 	indices := map[string]*Index{}
 
-	//for j := 0; j < s.NumFields(); j++ {
-	//	f := s.Field(j)
-	//	parse.DevInfo("    f%d: name:%-10s pkg:%s type:%-10s %v,%v\n", j,
-	//		f.Name(), f.Pkg().Name(), f.Type(), f.Exported(), f.Anonymous())
-	//}
-
 	table.Type = name
 	table.Name = Pluralize(Underscore(table.Type))
 
 	str, tags, ok := pkgStore.Find(pkg, name)
 	if ok {
-		//err := checkAllFieldsAreUnexported(str, pkg, name)
-		//if err != nil {
-		//	return nil, err
-		//}
-
-		parse.DevInfo("\nFound\n")
-		for j := 0; j < str.NumFields(); j++ {
-			tField := str.Field(j)
-			parse.DevInfo("    f%d: name:%-10s pkg:%s type:%-10s %v,%v\n", j,
-				tField.Name(), tField.Pkg().Name(), tField.Type(), tField.Exported(), tField.Anonymous())
-
-			field, ok := convertLeafNodeToField(tField, pkg, name, tags, indices, table)
-			if ok {
-				table.Fields = append(table.Fields, field)
-			}
-		}
+		ctx := &context{pkgStore, indices, table}
+		ctx.examineStruct(str, pkg, name, tags, nil)
 	}
-
-	// Each leaf node in the tree is a column in the table.
-	// Convert each leaf node to a Field structure.
-	//for _, node := range tree.Leaves() {
-	//	field, ok := convertLeafNodeToField(node, indices, table)
-	//	if ok {
-	//		table.Fields = append(table.Fields, field)
-	//	}
-	//}
-
 	return table, nil
 }
 
-func checkAllFieldsAreUnexported(str *types.Struct, pkg, name string) error {
-	var un []string
+//-------------------------------------------------------------------------------------------------
+
+func (ctx *context) examineStruct(str *types.Struct, pkg, name string, tags map[string]parse.Tag, parent *Node) {
+	parse.DevInfo("examineStruct %s %s\n", pkg, name)
 	for j := 0; j < str.NumFields(); j++ {
-		f := str.Field(j)
-		if !f.Exported() {
-			un = append(un, f.Name())
+		tField := str.Field(j)
+		parse.DevInfo("    f%d: name:%-10s pkg:%s type:%-25s f:%v, e:%v, a:%v\n", j,
+			tField.Name(), tField.Pkg().Name(), tField.Type(), tField.IsField(), tField.Exported(), tField.Anonymous())
+
+		if !tField.Exported() {
+			if tag, exists := tags[tField.Name()]; !exists || (exists && !tag.Skip) {
+				exit.Fail(2, "%s.%s cannot be mapped because it contains unexported field %q,"+
+					" which needs to be annotated with `sql:\"-\"`.\n", pkg, name, tField.Name())
+			}
+
+		} else if tField.Anonymous() {
+			ctx.convertEmbeddedNodeToFields(tField, pkg, parent)
+
+		} else {
+			ctx.convertLeafNodeToField(tField, pkg, tags, parent)
 		}
 	}
-	if len(un) > 0 {
-		return fmt.Errorf("%s.%s cannot be mapped because it contains unexported fields %v\n", pkg, name, un)
-	}
-	return nil
 }
 
-func convertLeafNodeToField(leaf *types.Var, pkg, name string, tags map[string]parse.Tag, indices map[string]*Index, table *Table) (*Field, bool) {
-	tp := parse.Type{Pkg: "", Name: leaf.Type().String()}
-	field := &Field{Name: leaf.Name(), Type: tp}
+//-------------------------------------------------------------------------------------------------
+
+func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, parent *Node) {
+	str, tags, ok := ctx.pkgStore.Find(pkg, leaf.Name())
+	if ok {
+		parse.DevInfo("convertEmbeddedNodeToFields %s %s\n", pkg, leaf.Name())
+		node := &Node{Name: leaf.Name(), Parent: parent, Type: Type{Pkg: pkg, Name: leaf.Name(), Base: parse.Struct}}
+		ctx.examineStruct(str, pkg, leaf.Name(), tags, node)
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
+func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map[string]parse.Tag, parent *Node) {
+	field := &Field{}
+	var ok bool
+	field.Node, ok = ctx.convertLeafNodeToNode(leaf, pkg, tags, parent)
+	if !ok {
+		return
+	}
 
 	// Lookup the SQL column type
 	field.SqlType = BLOB
@@ -81,48 +84,48 @@ func convertLeafNodeToField(leaf *types.Var, pkg, name string, tags map[string]p
 	case *types.Basic:
 		field.SqlType = mapKindToSqlType[u.Kind()]
 		field.Type.Base = parse.Kind(u.Kind())
+
 	case *types.Slice:
 		field.Type.Base = parse.Slice
 	}
 
 	// substitute tag variables
 	if tag, exists := tags[leaf.Name()]; exists {
-
 		if tag.Skip {
-			return nil, false
+			return
 		}
 
 		field.Tags = tag
 
 		if tag.Primary {
-			if table.Primary != nil {
+			if ctx.table.Primary != nil {
 				exit.Fail(1, "%s, %s: compound primary keys are not supported.\n",
-					table.Primary.Type.Name, field.Type.Name)
+					ctx.table.Primary.Type.Name, field.Type.Name)
 			}
-			table.Primary = field
+			ctx.table.Primary = field
 		}
 
 		if tag.Index != "" {
-			index, ok := indices[tag.Index]
+			index, ok := ctx.indices[tag.Index]
 			if !ok {
 				index = &Index{
 					Name: tag.Index,
 				}
-				indices[index.Name] = index
-				table.Index = append(table.Index, index)
+				ctx.indices[index.Name] = index
+				ctx.table.Index = append(ctx.table.Index, index)
 			}
 			index.Fields = append(index.Fields, field)
 		}
 
 		if tag.Unique != "" {
-			index, ok := indices[tag.Index]
+			index, ok := ctx.indices[tag.Index]
 			if !ok {
 				index = &Index{
 					Name:   tag.Unique,
 					Unique: true,
 				}
-				indices[index.Name] = index
-				table.Index = append(table.Index, index)
+				ctx.indices[index.Name] = index
+				ctx.table.Index = append(ctx.table.Index, index)
 			}
 			index.Fields = append(index.Fields, field)
 		}
@@ -134,64 +137,65 @@ func convertLeafNodeToField(leaf *types.Var, pkg, name string, tags map[string]p
 			}
 		}
 
-		switch tag.Encode {
-		case "json":
-			field.Encode = ENCJSON
-			// case "gzip":
-			// case "snappy":
-		}
+		field.Encode = mapTagToEncoding[tag.Encode]
 	}
 
-	// get the full path name
-	// omit table name
-	//path := leaf.Path()[1:]
-	var parts []string
-	//for _, part := range path {
-	//	if part.Tags != nil && part.Tags.Name != "" {
-	//		parts = append(parts, part.Tags.Name)
-	//		return nil, false
-	//	}
-	//
-	parts = append(parts, leaf.Name())
+	//field.Path = PathOf(parts...)
+	field.SqlName = Underscore(strings.Join(field.Parts(), "_"))
 
-	field.Path = PathOf(parts...)
-	field.SqlName = Underscore(strings.Join(parts, "_"))
-
-	return field, true
+	ctx.table.Fields = append(ctx.table.Fields, field)
 }
 
-// convert Go types to SQL types.
-var mapKindToSqlType = map[types.BasicKind]SqlType{
-	types.Bool:       BOOLEAN,
-	types.Int:        INTEGER,
-	types.Int8:       INTEGER,
-	types.Int16:      INTEGER,
-	types.Int32:      INTEGER,
-	types.Int64:      INTEGER,
-	types.Uint:       INTEGER,
-	types.Uint8:      INTEGER,
-	types.Uint16:     INTEGER,
-	types.Uint32:     INTEGER,
-	types.Uint64:     INTEGER,
-	types.Float32:    REAL,
-	types.Float64:    REAL,
-	types.Complex64:  BLOB,
-	types.Complex128: BLOB,
-	//types.Interface:  BLOB,
-	//types.Bytes:      BLOB,
-	types.String: VARCHAR,
-	//types.Map:        BLOB,
-	//types.Slice:      BLOB,
-}
+//-------------------------------------------------------------------------------------------------
 
-var mapStringToSqlType = map[string]SqlType{
-	"text":     VARCHAR,
-	"varchar":  VARCHAR,
-	"varchar2": VARCHAR,
-	"number":   INTEGER,
-	"integer":  INTEGER,
-	"int":      INTEGER,
-	"blob":     BLOB,
-	"bytea":    BLOB,
-	"json":     JSON,
+func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[string]parse.Tag, parent *Node) (Node, bool) {
+	node := Node{Name: leaf.Name(), Parent: parent}
+	tp := Type{Pkg: "", Name: ""}
+
+	lt := leaf.Type()
+	//isPtr := false
+
+	switch t := lt.(type) {
+	case *types.Pointer:
+		lt = t.Elem()
+		tp.Base = parse.Ptr
+		//isPtr = true
+	}
+
+	switch t := lt.(type) {
+	case *types.Basic:
+		tp.Name = t.Name()
+		//case *types.Struct:
+		//	tp.Name = t.String()
+	case *types.Named:
+		tObj := t.Obj()
+		if tObj.Pkg().Name() != pkg {
+			tp.Pkg = tObj.Pkg().Name()
+		}
+		tp.Name = tObj.Name()
+
+		if str, ok := t.Underlying().(*types.Struct); ok {
+			ctx.examineStruct(str, pkg, leaf.Name(), tags, &node)
+			return node, false
+		}
+	case *types.Array:
+		tp.Name = t.String()
+	case *types.Slice:
+		switch el := t.Elem().(type) {
+		case *types.Basic:
+			tp.Name = t.String()
+		case *types.Named:
+			tnObj := el.Obj()
+			parse.DevInfo("slice pkgname:%s pkgpath:%s name:%s\n", tnObj.Pkg().Name(), tnObj.Pkg().Path(), tnObj.Name())
+			if tnObj.Pkg().Name() != pkg {
+				tp.Pkg = tnObj.Pkg().Name()
+			}
+			tp.Name = tnObj.Name()
+		}
+	default:
+		panic(fmt.Sprintf("%#v", lt))
+	}
+
+	node.Type = tp
+	return node, true
 }

@@ -16,8 +16,6 @@ import (
 var PrintAST = false
 var Debug = false
 var depth = 0
-var fset = token.NewFileSet()
-var files []*ast.File
 
 type Group struct {
 	Owner   string
@@ -84,7 +82,8 @@ func Parse(paths []string) (PackageStore, error) {
 		}
 	}
 
-	return ParseGroups(groups...)
+	fset := token.NewFileSet()
+	return ParseGroups(fset, groups...)
 }
 
 func filterGoFiles(names []string) []string {
@@ -101,9 +100,8 @@ func isGoFile(name string) bool {
 	return strings.HasSuffix(name, ".go") && !strings.HasSuffix(name, "_test.go")
 }
 
-func ParseGroups(groups ...Group) (PackageStore, error) {
+func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 	pStore := make(PackageStore)
-	files = make([]*ast.File, 0, len(groups))
 
 	for _, group := range groups {
 		var gFiles []*ast.File
@@ -120,7 +118,6 @@ func ParseGroups(groups ...Group) (PackageStore, error) {
 				return nil, err
 			}
 
-			files = append(files, file)
 			gFiles = append(gFiles, file)
 		}
 
@@ -162,8 +159,8 @@ func ParseGroups(groups ...Group) (PackageStore, error) {
 				if ok {
 					for j := 0; j < s.NumFields(); j++ {
 						f := s.Field(j)
-						DevInfo("    f%d: name:%-10s pkg:%s type:%-10s %v,%v\n", j,
-							f.Name(), f.Pkg().Name(), f.Type(), f.Exported(), f.Anonymous())
+						DevInfo("    f%d: name:%-10s pkg:%s type:%-25s f:%v, e:%v, a:%v\n", j,
+							f.Name(), f.Pkg().Name(), f.Type(), f.IsField(), f.Exported(), f.Anonymous())
 					}
 				}
 			}
@@ -384,7 +381,7 @@ func ParseGroups(groups ...Group) (PackageStore, error) {
 func DevInfo(format string, args ...interface{}) {
 	if Debug {
 		in := strings.Repeat(" ", depth*2)
-		fmt.Fprintf(os.Stderr, in+format, args...)
+		fmt.Fprintf(os.Stdout, in+format, args...)
 	}
 }
 

@@ -2,7 +2,6 @@ package schema
 
 import (
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
-	"strings"
 )
 
 type SqlType int
@@ -42,15 +41,14 @@ type Table struct {
 	Primary *Field // compound primaries are not supported
 }
 
-type PathItem struct {
-	Name string
-	Ptr  bool
+type Node struct {
+	Name   string
+	Type   Type
+	Parent *Node
 }
 
 type Field struct {
-	Name    string
-	Type    parse.Type
-	Path    Path
+	Node
 	SqlName string
 	SqlType SqlType
 	Encode  SqlEncode
@@ -94,24 +92,40 @@ func (t *Table) ColumnNames(withAuto bool) []string {
 
 //-------------------------------------------------------------------------------------------------
 
-type Path []PathItem
-
-func PathOf(items ...string) Path {
-	r := make([]PathItem, 0, len(items))
-	for _, s := range items {
-		r = append(r, PathItem{s, false})
+// Parts gets the node containment chain as a sequence of names of parts.
+func (node *Node) Parts() []string {
+	d := 0
+	for n := node; n != nil; n = n.Parent {
+		d++
 	}
-	return Path(r)
-}
 
-func (p Path) Strings() []string {
-	ss := make([]string, 0, len(p))
-	for _, s := range p {
-		ss = append(ss, s.Name)
+	p := make([]string, d)
+	d--
+	for n := node; n != nil; n = n.Parent {
+		p[d] = n.Name
+		d--
 	}
-	return ss
+	return p
 }
 
-func (p Path) Join(sep string) string {
-	return strings.Join(p.Strings(), sep)
-}
+//type Path []PathItem
+//
+//func PathOf(items ...string) Path {
+//	r := make([]PathItem, 0, len(items))
+//	for _, s := range items {
+//		r = append(r, PathItem{s, false})
+//	}
+//	return Path(r)
+//}
+//
+//func (p Path) Strings() []string {
+//	ss := make([]string, 0, len(p))
+//	for _, s := range p {
+//		ss = append(ss, s.Name)
+//	}
+//	return ss
+//}
+//
+//func (p Path) Join(sep string) string {
+//	return strings.Join(p.Strings(), sep)
+//}

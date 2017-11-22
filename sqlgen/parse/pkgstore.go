@@ -40,13 +40,14 @@ func (st PackageStore) Find(pkg, name string) (*types.Struct, map[string]Tag, bo
 				DevInfo("  %T %v\n", otu, otu)
 				s, ok := otu.(*types.Struct)
 				if ok {
-					for j := 0; j < s.NumFields(); j++ {
-						f := s.Field(j)
-						DevInfo("    field%d: name:%-10s pkg:%s type:%-10s %v,%v\n", j,
-							f.Name(), f.Pkg().Name(), f.Type(), f.Exported(), f.Anonymous())
-					}
+					//for j := 0; j < s.NumFields(); j++ {
+					//	f := s.Field(j)
+					//	DevInfo("    f%d: name:%-10s pkg:%s type:%-25s f:%v, e:%v, a:%v\n", j,
+					//		f.Name(), f.Pkg().Name(), f.Type(), f.IsField(), f.Exported(), f.Anonymous())
+					//}
 					tags, err := findTags(pkgGrp.Files, pkg, name)
 					if err != nil {
+						exit.Fail(1, "%s, %s: tag error: %s\n", pkg, name, err)
 						return nil, nil, false
 					}
 					return s, tags, true
