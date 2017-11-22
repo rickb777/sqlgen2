@@ -47,7 +47,7 @@ func (st PackageStore) Find(pkg, name string) (*types.Struct, map[string]Tag, bo
 					//}
 					tags, err := findTags(pkgGrp.Files, pkg, name)
 					if err != nil {
-						exit.Fail(1, "%s, %s: tag error: %s\n", pkg, name, err)
+						exit.Fail(4, "%s, %s: tag error: %s\n", pkg, name, err)
 						return nil, nil, false
 					}
 					return s, tags, true
@@ -107,7 +107,7 @@ func findTypeDecl(files []*ast.File, pkg, name string) (*ast.TypeSpec, string) {
 	if pkg != "" {
 		pkg = pkg + "."
 	}
-	exit.Fail(1, "Cannot find '%s%s' in the source code. Should you add more source files to be parsed?\n", pkg, name)
+	exit.Fail(5, "Cannot find '%s%s' in the source code. Should you add more source files to be parsed?\n", pkg, name)
 	return nil, ""
 }
 

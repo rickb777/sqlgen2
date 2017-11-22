@@ -2,13 +2,13 @@ package parse
 
 import (
 	"fmt"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"go/ast"
 	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
 	"io"
-	"log"
 	"os"
 	"strings"
 )
@@ -125,14 +125,14 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 		// The defaults work fine except for one setting:
 		// we must specify how to deal with imports.
 		conf := types.Config{
-			Importer:                 importer.Default(),
+			Importer:                 importer.For("source", nil),
 			DisableUnusedImportCheck: true,
 		}
 
 		// Type-check the package containing gFiles.
 		pkg, err := conf.Check(group.Owner, fset, gFiles, nil)
 		if err != nil {
-			log.Fatal(err) // type error
+			exit.Fail(3, "%s\n", err) // type error
 		}
 
 		pStore.store(pkg, gFiles)

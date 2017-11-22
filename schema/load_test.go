@@ -223,15 +223,20 @@ type Author struct {
 	}
 }
 
-func TestParseAndLoad_roundupWithPrimaryAndIndexes(t *testing.T) {
+func TestParseAndLoad_multiplePackagesWithPrimaryAndIndexes(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 	code := strings.Replace(`package pkg1
 
+import (
+	"github.com/rickb777/sqlgen2/demo"
+	"time"
+)
+
 type Example struct {
 	Id         int64    |sql:"pk: true, auto: true"|
 	Number     int
-	Category   Category
+	Category   demo.Category
 	Foo        int      |sql:"-"|
 	Commit     *Commit
 	Title      string   |sql:"index: titleIdx"|
@@ -241,22 +246,15 @@ type Example struct {
 	Active     bool
 }
 
-type Category int32
-
 type Commit struct {
-	Message   string
-	//Timestamp int64 // TODO should be able to support time.Time
-	//Author    *Author
+	Message   string        |sql:"size: 2048"|
+	//Timestamp time.Time     |sql:"-"|
+	Author    *demo.Author
 }
-
-//type Author struct {
-//	Name     string
-//	Email    string
-//}
 
 `, "|", "`", -1)
 
-	source := Source{"issue.go", bytes.NewBufferString(code)}
+	source := Source{"issue1.go", bytes.NewBufferString(code)}
 
 	pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
 	if err != nil {
@@ -268,13 +266,17 @@ type Commit struct {
 		t.Fatalf("Error loading: %s", err)
 	}
 
+	p1 := &Node{Name: "Commit"}
+	p2 := &Node{Name: "Author", Parent: p1}
+
 	id := &Field{Node{"Id", Type{"", "int64", Int64}, nil}, "id", INTEGER, ENCNONE, Tag{Primary: true, Auto: true}}
 	number := &Field{Node{"Number", Type{"", "int", Int}, nil}, "number", INTEGER, ENCNONE, Tag{}}
-	category := &Field{Node{"Category", Type{"pkg1", "Category", Int32}, nil}, "category", INTEGER, ENCNONE, Tag{}}
-	commitTitle := &Field{Node{"Message", Type{"", "string", String}, nil}, "commit_message", VARCHAR, ENCNONE, Tag{}}
-	//timestamp := &Field{"Timestamp", Type{"", "int64", Int64}, PathOf("Commit", "Timestamp"), "commit_timestamp", INTEGER, ENCNONE, Tag{}}
-	//author := &Field{"Name", Type{"", "string", String}, PathOf("Commit", "Author", "Name"), "commit_author_name", VARCHAR, ENCNONE, Tag{}}
-	//email := &Field{"Email", Type{"", "string", String}, PathOf("Commit", "Author", "Email"), "commit_author_email", VARCHAR, ENCNONE, Tag{}}
+	category := &Field{Node{"Category", Type{"demo", "Category", Uint8}, nil}, "category", INTEGER, ENCNONE, Tag{}}
+	commitTitle := &Field{Node{"Message", Type{"", "string", String}, p1}, "commit_message", VARCHAR, ENCNONE, Tag{}}
+	//commitTimestamp := &Field{Node{"Timestamp", Type{"time", "Time", String}, p1}, "commit_timestamp", VARCHAR, ENCNONE, Tag{}}
+	authorName := &Field{Node{"Name", Type{"", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
+	authorEmail := &Field{Node{"Email", Type{"", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
+	authorUser := &Field{Node{"Username", Type{"", "string", String}, p2}, "commit_author_username", VARCHAR, ENCNONE, Tag{}}
 	title := &Field{Node{"Title", Type{"", "string", String}, nil}, "title", VARCHAR, ENCNONE, Tag{Index: "titleIdx"}}
 	////owner := &Field{"Owner", "team_owner", VARCHAR, Tag{}}
 	hobby := &Field{Node{"Hobby", Type{"", "string", String}, nil}, "hobby", VARCHAR, ENCNONE, Tag{Size: 2048}}
@@ -291,9 +293,10 @@ type Commit struct {
 			number,
 			category,
 			commitTitle,
-			//timestamp,
-			//author,
-			//email,
+			//commitTimestamp,
+			authorName,
+			authorEmail,
+			authorUser,
 			title,
 			////owner,
 			hobby,
@@ -312,6 +315,8 @@ type Commit struct {
 		outputDiff(ex, "expected.txt")
 		outputDiff(ac, "got.txt")
 		t.Errorf("expected | got\n%s\n", sideBySideDiff(ex, ac))
+	} else {
+		t.Log("OK\n")
 	}
 }
 
