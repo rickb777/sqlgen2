@@ -24,18 +24,16 @@ func Load(pkgStore parse.PackageStore, pkg, name string) (*Table, error) {
 	table.Type = name
 	table.Name = Pluralize(Underscore(table.Type))
 
-	str, tags, ok := pkgStore.Find(pkg, name)
-	if ok {
-		ctx := &context{pkgStore, indices, table}
-		ctx.examineStruct(str, pkg, name, tags, nil)
-	}
+	str, tags := pkgStore.Find(pkg, name)
+	ctx := &context{pkgStore, indices, table}
+	ctx.examineStruct(str, pkg, name, tags, nil)
 	return table, nil
 }
 
 //-------------------------------------------------------------------------------------------------
 
 func (ctx *context) examineStruct(str *types.Struct, pkg, name string, tags map[string]parse.Tag, parent *Node) {
-	parse.DevInfo("examineStruct %s %s\n", pkg, name)
+	parse.DevInfo("examineStruct %s %s\n  tags %v\n", pkg, name, tags)
 	for j := 0; j < str.NumFields(); j++ {
 		tField := str.Field(j)
 		parse.DevInfo("    f%d: name:%-10s pkg:%s type:%-25s f:%v, e:%v, a:%v\n", j,
@@ -59,12 +57,10 @@ func (ctx *context) examineStruct(str *types.Struct, pkg, name string, tags map[
 //-------------------------------------------------------------------------------------------------
 
 func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, parent *Node) {
-	str, tags, ok := ctx.pkgStore.Find(pkg, leaf.Name())
-	if ok {
-		parse.DevInfo("convertEmbeddedNodeToFields %s %s\n", pkg, leaf.Name())
-		node := &Node{Name: leaf.Name(), Parent: parent, Type: Type{Pkg: pkg, Name: leaf.Name(), Base: parse.Struct}}
-		ctx.examineStruct(str, pkg, leaf.Name(), tags, node)
-	}
+	str, tags := ctx.pkgStore.Find(pkg, leaf.Name())
+	parse.DevInfo("convertEmbeddedNodeToFields %s %s\n", pkg, leaf.Name())
+	node := &Node{Name: leaf.Name(), Parent: parent, Type: Type{Pkg: pkg, Name: leaf.Name(), Base: parse.Struct}}
+	ctx.examineStruct(str, pkg, leaf.Name(), tags, node)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -138,17 +134,22 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map
 		}
 
 		field.Encode = mapTagToEncoding[tag.Encode]
+
+		if tag.Name != "" {
+			field.SqlName = strings.ToLower(tag.Name)
+		}
 	}
 
-	//field.Path = PathOf(parts...)
-	field.SqlName = Underscore(strings.Join(field.Parts(), "_"))
+	if field.SqlName == "" {
+		field.SqlName = Underscore(strings.Join(field.Parts(), "_"))
+	}
 
 	ctx.table.Fields = append(ctx.table.Fields, field)
 }
 
 //-------------------------------------------------------------------------------------------------
 
-func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[string]parse.Tag, parent *Node) (Node, bool) {
+func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags1 map[string]parse.Tag, parent *Node) (Node, bool) {
 	node := Node{Name: leaf.Name(), Parent: parent}
 	tp := Type{Pkg: "", Name: ""}
 
@@ -175,7 +176,11 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 		tp.Name = tObj.Name()
 
 		if str, ok := t.Underlying().(*types.Struct); ok {
-			ctx.examineStruct(str, pkg, leaf.Name(), tags, &node)
+			tags2, err := addStructTags(str)
+			if err != nil {
+				exit.Fail(2, "%s contains unparseable tag; %s", str.String(), err)
+			}
+			ctx.examineStruct(str, pkg, leaf.Name(), tags2, &node)
 			return node, false
 		}
 	case *types.Array:
@@ -198,4 +203,19 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 
 	node.Type = tp
 	return node, true
+}
+
+func addStructTags(str *types.Struct) (map[string]parse.Tag, error) {
+	tags := make(map[string]parse.Tag)
+
+	for i := 0; i < str.NumFields(); i++ {
+		ts := str.Tag(i)
+		tag, err := parse.ParseTag(ts)
+		if err != nil {
+			return nil, err
+		}
+		tags[str.Field(i).Name()] = *tag
+	}
+
+	return tags, nil
 }

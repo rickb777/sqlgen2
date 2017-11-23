@@ -50,7 +50,7 @@ func TestParseTag(t *testing.T) {
 
 	for _, test := range tagTests {
 		want := test.tag
-		got, err := parseTag(test.raw)
+		got, err := ParseTag(test.raw)
 
 		if err != nil {
 			t.Errorf("Error parsing Tag %s. %s", test.raw, err)

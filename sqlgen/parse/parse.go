@@ -267,7 +267,7 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 //			return err
 //		}
 //
-//		basic.Tags, err = parseTag(tag)
+//		basic.Tags, err = ParseTag(tag)
 //		if err != nil {
 //			return err
 //		}
@@ -292,7 +292,7 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 //		Type: Type{parent.Type.Pkg, ident.Name, Struct},
 //	}
 //
-//	structNode.Tags, err = parseTag(tag)
+//	structNode.Tags, err = ParseTag(tag)
 //	if err != nil {
 //		return err
 //	}
@@ -321,7 +321,7 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 //		Type: Type{"", fmt.Sprintf("[]%s", ident.Elt), Slice},
 //	}
 //
-//	node.Tags, err = parseTag(tag)
+//	node.Tags, err = ParseTag(tag)
 //	if err != nil {
 //		return err
 //	}
@@ -337,7 +337,7 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 //func buildMapNode(parent *Node, ident *ast.MapType, name, tag string) (err error) {
 //	type_ := fmt.Sprintf("map[%s]%s", ident.Key, ident.Value)
 //	node := &Node{Name: name, Type: Type{"", type_, Map}}
-//	node.Tags, err = parseTag(tag)
+//	node.Tags, err = ParseTag(tag)
 //	if err != nil {
 //		return err
 //	}
@@ -361,7 +361,7 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 //	}
 //
 //	node := &Node{Name: name, Type: Type{"", innerIdent.Name, Ptr}}
-//	node.Tags, err = parseTag(tag)
+//	node.Tags, err = ParseTag(tag)
 //	if err != nil {
 //		return err
 //	}

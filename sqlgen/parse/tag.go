@@ -30,9 +30,9 @@ type Tag struct {
 	JSONAttr string `yaml:"json"`
 }
 
-// parseTag parses a tag string from the struct
+// ParseTag parses a tag string from the struct
 // field and unmarshals into a Tag struct.
-func parseTag(raw string) (*Tag, error) {
+func ParseTag(raw string) (*Tag, error) {
 	var tag = new(Tag)
 
 	raw = strings.Replace(raw, "`", "", -1)

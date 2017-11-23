@@ -17,11 +17,12 @@ func (st PackageStore) store(pkg *types.Package, files []*ast.File) {
 	st[pkg.Name()] = PackageGroup{pkg, files}
 }
 
-func (st PackageStore) Find(pkg, name string) (*types.Struct, map[string]Tag, bool) {
+func (st PackageStore) Find(pkg, name string) (*types.Struct, map[string]Tag) {
 	DevInfo("store.Find %s %s\n", pkg, name)
 	pkgGrp, exists := st[pkg]
 	if !exists {
-		return nil, nil, false
+		exit.Fail(5, "Unable to find package %q\n", pkg)
+		return nil, nil
 	}
 
 	scope := pkgGrp.Pkg.Scope()
@@ -48,15 +49,16 @@ func (st PackageStore) Find(pkg, name string) (*types.Struct, map[string]Tag, bo
 					tags, err := findTags(pkgGrp.Files, pkg, name)
 					if err != nil {
 						exit.Fail(4, "%s, %s: tag error: %s\n", pkg, name, err)
-						return nil, nil, false
+						return nil, nil
 					}
-					return s, tags, true
+					return s, tags
 				}
 			}
 		}
 	}
 
-	return nil, nil, false
+	exit.Fail(5, "Unable to find %s.%s\n", pkg, name)
+	return nil, nil
 }
 
 func findTags(files []*ast.File, pkg, name string) (map[string]Tag, error) {
@@ -65,19 +67,13 @@ func findTags(files []*ast.File, pkg, name string) (map[string]Tag, error) {
 		return nil, nil
 	}
 
-	tagStrings := make(map[string]string)
 	tags := make(map[string]Tag)
 
 	switch st := typeSpec.Type.(type) {
 	case *ast.StructType:
-		findStructTags(files, pkg, name, st, tagStrings)
-
-		for name, ts := range tagStrings {
-			tag, err := parseTag(ts)
-			if err != nil {
-				return nil, err
-			}
-			tags[name] = *tag
+		err := findStructTags(files, pkg, name, st, tags)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -111,7 +107,7 @@ func findTypeDecl(files []*ast.File, pkg, name string) (*ast.TypeSpec, string) {
 	return nil, ""
 }
 
-func findStructTags(files []*ast.File, pkg, name string, str *ast.StructType, tags map[string]string) error {
+func findStructTags(files []*ast.File, pkg, name string, str *ast.StructType, tags map[string]Tag) error {
 	DevInfo("findStructTags(%s %s str %d)\n", pkg, name, len(tags))
 
 	for j, field := range str.Fields.List {
@@ -125,7 +121,11 @@ func findStructTags(files []*ast.File, pkg, name string, str *ast.StructType, ta
 			} else {
 				for i, n := range field.Names {
 					DevInfo("  tag.%d.%d %-12s = %s\n", j, i, n.Name, field.Tag.Value)
-					tags[n.Name] = field.Tag.Value
+					tag, err := ParseTag(field.Tag.Value)
+					if err != nil {
+						return err
+					}
+					tags[n.Name] = *tag
 				}
 			}
 		}
