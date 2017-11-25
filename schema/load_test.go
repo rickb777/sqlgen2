@@ -159,7 +159,7 @@ type Example struct {
 	}
 }
 
-func xTestParseAndLoad_embeddedTypes(t *testing.T) {
+func TestParseAndLoad_embeddedTypes(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 	code := strings.Replace(`package pkg1
@@ -200,8 +200,8 @@ type Author struct {
 
 	category := &Field{Node{"Cat", Type{"", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
 	name := &Field{Node{"Name", Type{"", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
-	email := &Field{Node{"Email", Type{"", "string", String}, nil}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
-	message := &Field{Node{"Message", Type{"", "string", String}, nil}, "commit_message", VARCHAR, ENCNONE, Tag{}}
+	email := &Field{Node{"Email", Type{"", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
+	message := &Field{Node{"Message", Type{"", "string", String}, p1}, "commit_message", VARCHAR, ENCNONE, Tag{}}
 
 	expected := &Table{
 		Type: "Example",

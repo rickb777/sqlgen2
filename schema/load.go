@@ -40,7 +40,7 @@ func (ctx *context) examineStruct(str *types.Struct, pkg, name string, tags map[
 
 		if !tField.Exported() {
 			if tag, exists := tags[tField.Name()]; !exists || (exists && !tag.Skip) {
-				fmt.Printf("Warning: %s.%s cannot be accessed in other packages because it contains unexported field %q,"+
+				fmt.Printf("Warning: %s.%s contains unexported field %q,"+
 					" (perhaps it needs to be annotated with `sql:\"-\"`).\n", pkg, name, tField.Name())
 			}
 		}
@@ -59,7 +59,7 @@ func (ctx *context) examineStruct(str *types.Struct, pkg, name string, tags map[
 func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, parent *Node) {
 	str, tags := ctx.pkgStore.Find(pkg, leaf.Name())
 	parse.DevInfo("convertEmbeddedNodeToFields %s %s\n", pkg, leaf.Name())
-	node := &Node{Name: leaf.Name(), Parent: parent, Type: Type{Pkg: pkg, Name: leaf.Name(), Base: parse.Struct}}
+	node := &Node{Name: leaf.Name(), Parent: parent}
 	ctx.examineStruct(str, pkg, leaf.Name(), tags, node)
 }
 
