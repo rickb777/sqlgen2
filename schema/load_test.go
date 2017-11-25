@@ -247,7 +247,7 @@ type Example struct {
 }
 
 type Commit struct {
-	Message   string        |sql:"size: 2048"|
+	Message   string        |sql:"size: 2048, name: text"|
 	//Timestamp time.Time     |sql:"-"|
 	Author    *demo.Author
 }
@@ -272,11 +272,11 @@ type Commit struct {
 	id := &Field{Node{"Id", Type{"", "int64", Int64}, nil}, "id", INTEGER, ENCNONE, Tag{Primary: true, Auto: true}}
 	number := &Field{Node{"Number", Type{"", "int", Int}, nil}, "number", INTEGER, ENCNONE, Tag{}}
 	category := &Field{Node{"Category", Type{"demo", "Category", Uint8}, nil}, "category", INTEGER, ENCNONE, Tag{}}
-	commitTitle := &Field{Node{"Message", Type{"", "string", String}, p1}, "commit_message", VARCHAR, ENCNONE, Tag{Size: 2048}}
+	commitTitle := &Field{Node{"Message", Type{"", "string", String}, p1}, "text", VARCHAR, ENCNONE, Tag{Size: 2048, Name: "text"}}
 	//commitTimestamp := &Field{Node{"Timestamp", Type{"time", "Time", String}, p1}, "commit_timestamp", VARCHAR, ENCNONE, Tag{}}
 	authorName := &Field{Node{"Name", Type{"", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
 	authorEmail := &Field{Node{"Email", Type{"", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
-	authorUser := &Field{Node{"Username", Type{"", "string", String}, p2}, "user", VARCHAR, ENCNONE, Tag{Name: "user"}}
+	authorUser := &Field{Node{"Username", Type{"", "string", String}, p2}, "commit_author_username", VARCHAR, ENCNONE, Tag{}}
 	title := &Field{Node{"Title", Type{"", "string", String}, nil}, "title", VARCHAR, ENCNONE, Tag{Index: "titleIdx"}}
 	////owner := &Field{"Owner", "team_owner", VARCHAR, Tag{}}
 	hobby := &Field{Node{"Hobby", Type{"", "string", String}, nil}, "hobby", VARCHAR, ENCNONE, Tag{Size: 2048}}

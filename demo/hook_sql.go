@@ -392,7 +392,7 @@ func (tbl HookTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(where.Build(tbl.Dialect))
 }
 
-const HookColumnNames = "id, sha, dates_after, dates_before, category, created, deleted, forced, head_commit_id, head_commit_message, head_commit_timestamp, head_commit_author_name, head_commit_author_email, user, head_commit_committer_name, head_commit_committer_email, user"
+const HookColumnNames = "id, sha, dates_after, dates_before, category, created, deleted, forced, head_commit_id, head_commit_message, head_commit_timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
 
 //--------------------------------------------------------------------------------
 
@@ -450,10 +450,10 @@ INSERT INTO %s%s (
 	head_commit_timestamp,
 	head_commit_author_name,
 	head_commit_author_email,
-	user,
+	head_commit_author_username,
 	head_commit_committer_name,
 	head_commit_committer_email,
-	user
+	head_commit_committer_username
 ) VALUES (%s)
 `
 
@@ -471,10 +471,10 @@ INSERT INTO %s%s (
 	head_commit_timestamp,
 	head_commit_author_name,
 	head_commit_author_email,
-	user,
+	head_commit_author_username,
 	head_commit_committer_name,
 	head_commit_committer_email,
-	user
+	head_commit_committer_username
 ) VALUES (%s)
 `
 
@@ -542,10 +542,10 @@ UPDATE %s%s SET
 	head_commit_timestamp=?,
 	head_commit_author_name=?,
 	head_commit_author_email=?,
-	user=?,
+	head_commit_author_username=?,
 	head_commit_committer_name=?,
 	head_commit_committer_email=?,
-	user=? 
+	head_commit_committer_username=? 
  WHERE id=?
 `
 
@@ -563,10 +563,10 @@ UPDATE %s%s SET
 	head_commit_timestamp=$11,
 	head_commit_author_name=$12,
 	head_commit_author_email=$13,
-	user=$14,
+	head_commit_author_username=$14,
 	head_commit_committer_name=$15,
 	head_commit_committer_email=$16,
-	user=$17 
+	head_commit_committer_username=$17 
  WHERE id=$18
 `
 
@@ -626,67 +626,67 @@ func (tbl HookTable) CreateIndexes(ifNotExist bool) (err error) {
 
 const sqlCreateHookTableSqlite = `
 CREATE TABLE %s%s%s (
- id                          integer primary key autoincrement,
- sha                         text,
- dates_after                 text,
- dates_before                text,
- category                    integer,
- created                     boolean,
- deleted                     boolean,
- forced                      boolean,
- head_commit_id              text,
- head_commit_message         text,
- head_commit_timestamp       text,
- head_commit_author_name     text,
- head_commit_author_email    text,
- user                        text,
- head_commit_committer_name  text,
- head_commit_committer_email text,
- user                        text
+ id                             integer primary key autoincrement,
+ sha                            text,
+ dates_after                    text,
+ dates_before                   text,
+ category                       integer,
+ created                        boolean,
+ deleted                        boolean,
+ forced                         boolean,
+ head_commit_id                 text,
+ head_commit_message            text,
+ head_commit_timestamp          text,
+ head_commit_author_name        text,
+ head_commit_author_email       text,
+ head_commit_author_username    text,
+ head_commit_committer_name     text,
+ head_commit_committer_email    text,
+ head_commit_committer_username text
 )
 `
 
 const sqlCreateHookTablePostgres = `
 CREATE TABLE %s%s%s (
- id                          bigserial primary key ,
- sha                         varchar(512),
- dates_after                 varchar(512),
- dates_before                varchar(512),
- category                    integer,
- created                     boolean,
- deleted                     boolean,
- forced                      boolean,
- head_commit_id              varchar(512),
- head_commit_message         varchar(512),
- head_commit_timestamp       varchar(512),
- head_commit_author_name     varchar(512),
- head_commit_author_email    varchar(512),
- user                        varchar(512),
- head_commit_committer_name  varchar(512),
- head_commit_committer_email varchar(512),
- user                        varchar(512)
+ id                             bigserial primary key ,
+ sha                            varchar(512),
+ dates_after                    varchar(512),
+ dates_before                   varchar(512),
+ category                       integer,
+ created                        boolean,
+ deleted                        boolean,
+ forced                         boolean,
+ head_commit_id                 varchar(512),
+ head_commit_message            varchar(512),
+ head_commit_timestamp          varchar(512),
+ head_commit_author_name        varchar(512),
+ head_commit_author_email       varchar(512),
+ head_commit_author_username    varchar(512),
+ head_commit_committer_name     varchar(512),
+ head_commit_committer_email    varchar(512),
+ head_commit_committer_username varchar(512)
 )
 `
 
 const sqlCreateHookTableMysql = `
 CREATE TABLE %s%s%s (
- id                          bigint primary key auto_increment,
- sha                         varchar(512),
- dates_after                 varchar(512),
- dates_before                varchar(512),
- category                    tinyint unsigned,
- created                     tinyint(1),
- deleted                     tinyint(1),
- forced                      tinyint(1),
- head_commit_id              varchar(512),
- head_commit_message         varchar(512),
- head_commit_timestamp       varchar(512),
- head_commit_author_name     varchar(512),
- head_commit_author_email    varchar(512),
- user                        varchar(512),
- head_commit_committer_name  varchar(512),
- head_commit_committer_email varchar(512),
- user                        varchar(512)
+ id                             bigint primary key auto_increment,
+ sha                            varchar(512),
+ dates_after                    varchar(512),
+ dates_before                   varchar(512),
+ category                       tinyint unsigned,
+ created                        tinyint(1),
+ deleted                        tinyint(1),
+ forced                         tinyint(1),
+ head_commit_id                 varchar(512),
+ head_commit_message            varchar(512),
+ head_commit_timestamp          varchar(512),
+ head_commit_author_name        varchar(512),
+ head_commit_author_email       varchar(512),
+ head_commit_author_username    varchar(512),
+ head_commit_committer_name     varchar(512),
+ head_commit_committer_email    varchar(512),
+ head_commit_committer_username varchar(512)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 
@@ -700,6 +700,6 @@ const NumHookDataColumns = 16
 
 const HookPk = "Id"
 
-const HookDataColumnNames = "sha, dates_after, dates_before, category, created, deleted, forced, head_commit_id, head_commit_message, head_commit_timestamp, head_commit_author_name, head_commit_author_email, user, head_commit_committer_name, head_commit_committer_email, user"
+const HookDataColumnNames = "sha, dates_after, dates_before, category, created, deleted, forced, head_commit_id, head_commit_message, head_commit_timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
 
 //--------------------------------------------------------------------------------
