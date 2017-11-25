@@ -2,13 +2,13 @@ package parse
 
 import (
 	"fmt"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"go/ast"
 	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
 	"io"
-	"log"
 	"os"
 	"strings"
 )
@@ -16,8 +16,6 @@ import (
 var PrintAST = false
 var Debug = false
 var depth = 0
-var fset = token.NewFileSet()
-var files []*ast.File
 
 type Group struct {
 	Owner   string
@@ -84,7 +82,8 @@ func Parse(paths []string) (PackageStore, error) {
 		}
 	}
 
-	return ParseGroups(groups...)
+	fset := token.NewFileSet()
+	return ParseGroups(fset, groups...)
 }
 
 func filterGoFiles(names []string) []string {
@@ -101,9 +100,8 @@ func isGoFile(name string) bool {
 	return strings.HasSuffix(name, ".go") && !strings.HasSuffix(name, "_test.go")
 }
 
-func ParseGroups(groups ...Group) (PackageStore, error) {
+func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 	pStore := make(PackageStore)
-	files = make([]*ast.File, 0, len(groups))
 
 	for _, group := range groups {
 		var gFiles []*ast.File
@@ -120,7 +118,6 @@ func ParseGroups(groups ...Group) (PackageStore, error) {
 				return nil, err
 			}
 
-			files = append(files, file)
 			gFiles = append(gFiles, file)
 		}
 
@@ -128,14 +125,14 @@ func ParseGroups(groups ...Group) (PackageStore, error) {
 		// The defaults work fine except for one setting:
 		// we must specify how to deal with imports.
 		conf := types.Config{
-			Importer:                 importer.Default(),
+			Importer:                 importer.For("source", nil),
 			DisableUnusedImportCheck: true,
 		}
 
 		// Type-check the package containing gFiles.
 		pkg, err := conf.Check(group.Owner, fset, gFiles, nil)
 		if err != nil {
-			log.Fatal(err) // type error
+			exit.Fail(3, "%s\n", err) // type error
 		}
 
 		pStore.store(pkg, gFiles)
@@ -162,8 +159,8 @@ func ParseGroups(groups ...Group) (PackageStore, error) {
 				if ok {
 					for j := 0; j < s.NumFields(); j++ {
 						f := s.Field(j)
-						DevInfo("    f%d: name:%-10s pkg:%s type:%-10s %v,%v\n", j,
-							f.Name(), f.Pkg().Name(), f.Type(), f.Exported(), f.Anonymous())
+						DevInfo("    f%d: name:%-10s pkg:%s type:%-25s f:%v, e:%v, a:%v\n", j,
+							f.Name(), f.Pkg().Name(), f.Type(), f.IsField(), f.Exported(), f.Anonymous())
 					}
 				}
 			}
@@ -270,7 +267,7 @@ func ParseGroups(groups ...Group) (PackageStore, error) {
 //			return err
 //		}
 //
-//		basic.Tags, err = parseTag(tag)
+//		basic.Tags, err = ParseTag(tag)
 //		if err != nil {
 //			return err
 //		}
@@ -295,7 +292,7 @@ func ParseGroups(groups ...Group) (PackageStore, error) {
 //		Type: Type{parent.Type.Pkg, ident.Name, Struct},
 //	}
 //
-//	structNode.Tags, err = parseTag(tag)
+//	structNode.Tags, err = ParseTag(tag)
 //	if err != nil {
 //		return err
 //	}
@@ -324,7 +321,7 @@ func ParseGroups(groups ...Group) (PackageStore, error) {
 //		Type: Type{"", fmt.Sprintf("[]%s", ident.Elt), Slice},
 //	}
 //
-//	node.Tags, err = parseTag(tag)
+//	node.Tags, err = ParseTag(tag)
 //	if err != nil {
 //		return err
 //	}
@@ -340,7 +337,7 @@ func ParseGroups(groups ...Group) (PackageStore, error) {
 //func buildMapNode(parent *Node, ident *ast.MapType, name, tag string) (err error) {
 //	type_ := fmt.Sprintf("map[%s]%s", ident.Key, ident.Value)
 //	node := &Node{Name: name, Type: Type{"", type_, Map}}
-//	node.Tags, err = parseTag(tag)
+//	node.Tags, err = ParseTag(tag)
 //	if err != nil {
 //		return err
 //	}
@@ -364,7 +361,7 @@ func ParseGroups(groups ...Group) (PackageStore, error) {
 //	}
 //
 //	node := &Node{Name: name, Type: Type{"", innerIdent.Name, Ptr}}
-//	node.Tags, err = parseTag(tag)
+//	node.Tags, err = ParseTag(tag)
 //	if err != nil {
 //		return err
 //	}
@@ -384,7 +381,7 @@ func ParseGroups(groups ...Group) (PackageStore, error) {
 func DevInfo(format string, args ...interface{}) {
 	if Debug {
 		in := strings.Repeat(" ", depth*2)
-		fmt.Fprintf(os.Stderr, in+format, args...)
+		fmt.Fprintf(os.Stdout, in+format, args...)
 	}
 }
 

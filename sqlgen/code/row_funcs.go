@@ -42,10 +42,10 @@ func WriteRowFunc(w io.Writer, view View, table *schema.Table) {
 
 		switch field.Type.Base {
 		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-			l3 := fmt.Sprintf("\tjson.Unmarshal(v%d, &v.%s)\n", i, field.Path.Join("."))
+			l3 := fmt.Sprintf("\tjson.Unmarshal(v%d, &v.%s)\n", i, field.JoinParts("."))
 			view.Body3 = append(view.Body3, l3)
 		default:
-			l3 := fmt.Sprintf("\tv.%s = v%d\n", field.Path.Join("."), i)
+			l3 := fmt.Sprintf("\tv.%s = v%d\n", field.JoinParts("."), i)
 			view.Body3 = append(view.Body3, l3)
 		}
 
@@ -89,10 +89,10 @@ func WriteRowsFunc(w io.Writer, view View, table *schema.Table) {
 
 		switch field.Type.Base {
 		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-			l3 := fmt.Sprintf("\t\tjson.Unmarshal(v%d, &v.%s)\n", i, field.Path.Join("."))
+			l3 := fmt.Sprintf("\t\tjson.Unmarshal(v%d, &v.%s)\n", i, field.JoinParts("."))
 			view.Body3 = append(view.Body3, l3)
 		default:
-			l3 := fmt.Sprintf("\t\tv.%s = v%d\n", field.Path.Join("."), i)
+			l3 := fmt.Sprintf("\t\tv.%s = v%d\n", field.JoinParts("."), i)
 			view.Body3 = append(view.Body3, l3)
 		}
 

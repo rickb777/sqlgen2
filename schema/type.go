@@ -1,11 +1,14 @@
-package parse
+package schema
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/rickb777/sqlgen2/sqlgen/parse"
+)
 
 type Type struct {
 	Pkg  string // package name (short variant)
 	Name string // name of source code type.
-	Base Kind   // underlying source code kind.
+	Base parse.Kind   // underlying source code kind.
 }
 
 func (t Type) Type() string {

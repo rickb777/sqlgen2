@@ -273,7 +273,7 @@ func (tbl IssueTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(where.Build(tbl.Dialect))
 }
 
-const IssueColumnNames = "id, number, title, body, assignee, state, labels"
+const IssueColumnNames = "id, number, title, bigbody, assignee, state, labels"
 
 //--------------------------------------------------------------------------------
 
@@ -321,7 +321,7 @@ const sqlInsertIssueSimple = `
 INSERT INTO %s%s (
 	number,
 	title,
-	body,
+	bigbody,
 	assignee,
 	state,
 	labels
@@ -332,7 +332,7 @@ const sqlInsertIssuePostgres = `
 INSERT INTO %s%s (
 	number,
 	title,
-	body,
+	bigbody,
 	assignee,
 	state,
 	labels
@@ -393,7 +393,7 @@ const sqlUpdateIssueByPkSimple = `
 UPDATE %s%s SET 
 	number=?,
 	title=?,
-	body=?,
+	bigbody=?,
 	assignee=?,
 	state=?,
 	labels=? 
@@ -404,7 +404,7 @@ const sqlUpdateIssueByPkPostgres = `
 UPDATE %s%s SET 
 	number=$2,
 	title=$3,
-	body=$4,
+	bigbody=$4,
 	assignee=$5,
 	state=$6,
 	labels=$7 
@@ -480,7 +480,7 @@ CREATE TABLE %s%s%s (
  id       integer primary key autoincrement,
  number   integer,
  title    text,
- body     text,
+ bigbody  text,
  assignee text,
  state    text,
  labels   blob
@@ -492,7 +492,7 @@ CREATE TABLE %s%s%s (
  id       bigserial primary key ,
  number   integer,
  title    varchar(512),
- body     varchar(2048),
+ bigbody  varchar(2048),
  assignee varchar(512),
  state    varchar(50),
  labels   byteaa
@@ -504,7 +504,7 @@ CREATE TABLE %s%s%s (
  id       bigint primary key auto_increment,
  number   bigint,
  title    varchar(512),
- body     varchar(2048),
+ bigbody  varchar(2048),
  assignee varchar(512),
  state    varchar(50),
  labels   mediumblob
@@ -525,6 +525,6 @@ const NumIssueDataColumns = 6
 
 const IssuePk = "Id"
 
-const IssueDataColumnNames = "number, title, body, assignee, state, labels"
+const IssueDataColumnNames = "number, title, bigbody, assignee, state, labels"
 
 //--------------------------------------------------------------------------------

@@ -33,7 +33,7 @@ type Commit struct {
 type Author struct {
 	Name     string
 	Email    string
-	Username string
+	Username string  `sql:"name: user"`
 }
 
 type Category uint8
