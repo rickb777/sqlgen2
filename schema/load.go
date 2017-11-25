@@ -40,11 +40,12 @@ func (ctx *context) examineStruct(str *types.Struct, pkg, name string, tags map[
 
 		if !tField.Exported() {
 			if tag, exists := tags[tField.Name()]; !exists || (exists && !tag.Skip) {
-				exit.Fail(2, "%s.%s cannot be mapped because it contains unexported field %q,"+
-					" which needs to be annotated with `sql:\"-\"`.\n", pkg, name, tField.Name())
+				fmt.Printf("Warning: %s.%s cannot be accessed in other packages because it contains unexported field %q,"+
+					" (perhaps it needs to be annotated with `sql:\"-\"`).\n", pkg, name, tField.Name())
 			}
+		}
 
-		} else if tField.Anonymous() {
+		if tField.Anonymous() {
 			ctx.convertEmbeddedNodeToFields(tField, pkg, parent)
 
 		} else {
