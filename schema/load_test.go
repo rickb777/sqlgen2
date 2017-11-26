@@ -272,7 +272,7 @@ type Commit struct {
 
 	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", INTEGER, ENCNONE, Tag{Primary: true, Auto: true}}
 	number := &Field{Node{"Number", Type{"", "", "int", Int}, nil}, "number", INTEGER, ENCNONE, Tag{}}
-	category := &Field{Node{"Category", Type{"demo", "demo", "Category", Uint8}, nil}, "category", INTEGER, ENCNONE, Tag{}}
+	category := &Field{Node{"Category", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Category", Uint8}, nil}, "category", INTEGER, ENCNONE, Tag{}}
 	commitMessage := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "text", VARCHAR, ENCNONE, Tag{Size: 2048, Name: "text"}}
 	//commitTimestamp := &Field{Node{"Timestamp", Type{"time", "Time", String}, p1}, "commit_timestamp", VARCHAR, ENCNONE, Tag{}}
 	authorName := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
@@ -283,7 +283,7 @@ type Commit struct {
 	hobby := &Field{Node{"Hobby", Type{"", "", "string", String}, nil}, "hobby", VARCHAR, ENCNONE, Tag{Size: 2048}}
 	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
 	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", BOOLEAN, ENCNONE, Tag{}}
-	fave := &Field{Node{"Fave", Type{"big", "big", "Int", Struct}, nil}, "fave", BLOB, ENCJSON, Tag{Encode: "json"}}
+	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", BLOB, ENCJSON, Tag{Encode: "json"}}
 
 	ititle := &Index{"titleIdx", false, []*Field{title}}
 

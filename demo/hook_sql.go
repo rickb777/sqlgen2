@@ -203,7 +203,7 @@ func ScanHooks(rows *sql.Rows) ([]*Hook, error) {
 	return vv, rows.Err()
 }
 
-func SliceHook(v *Hook) []interface{} {
+func SliceHook(v *Hook) ([]interface{}, error) {
 	var v0 int64
 	var v1 string
 	var v2 string
@@ -259,10 +259,10 @@ func SliceHook(v *Hook) []interface{} {
 		v15,
 		v16,
 
-	}
+	}, nil
 }
 
-func SliceHookWithoutPk(v *Hook) []interface{} {
+func SliceHookWithoutPk(v *Hook) ([]interface{}, error) {
 	var v1 string
 	var v2 string
 	var v3 string
@@ -315,7 +315,7 @@ func SliceHookWithoutPk(v *Hook) []interface{} {
 		v15,
 		v16,
 
-	}
+	}, nil
 }
 
 //--------------------------------------------------------------------------------
@@ -422,7 +422,12 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 			hook.PreInsert(tbl.Db)
 		}
 
-		res, err := st.Exec(SliceHookWithoutPk(v)...)
+		fields, err := SliceHookWithoutPk(v)
+		if err != nil {
+			return err
+		}
+
+		res, err := st.Exec(fields...)
 		if err != nil {
 			return err
 		}
@@ -517,7 +522,12 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 		}
 
 		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
-		args := SliceHookWithoutPk(v)
+
+		args, err := SliceHookWithoutPk(v)
+		if err != nil {
+			return count, err
+		}
+
 		args = append(args, v.Id)
 		n, err := tbl.Exec(query, args...)
 		if err != nil {

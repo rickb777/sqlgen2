@@ -97,7 +97,10 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 	v.Body = v3
 	v.Assignee = v4
 	v.State = v5
-	json.Unmarshal(v6, &v.Labels)
+	err = json.Unmarshal(v6, &v.Labels)
+	if err != nil {
+		return nil, err
+	}
 
 	return v, nil
 }
@@ -137,14 +140,17 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 		v.Body = v3
 		v.Assignee = v4
 		v.State = v5
-		json.Unmarshal(v6, &v.Labels)
+		err = json.Unmarshal(v6, &v.Labels)
+		if err != nil {
+			return nil, err
+		}
 
 		vv = append(vv, v)
 	}
 	return vv, rows.Err()
 }
 
-func SliceIssue(v *Issue) []interface{} {
+func SliceIssue(v *Issue) ([]interface{}, error) {
 	var v0 int64
 	var v1 int
 	var v2 string
@@ -159,7 +165,10 @@ func SliceIssue(v *Issue) []interface{} {
 	v3 = v.Body
 	v4 = v.Assignee
 	v5 = v.State
-	v6, _ = json.Marshal(&v.Labels)
+	v6, err := json.Marshal(&v.Labels)
+	if err != nil {
+		return nil, err
+	}
 
 	return []interface{}{
 		v0,
@@ -170,10 +179,10 @@ func SliceIssue(v *Issue) []interface{} {
 		v5,
 		v6,
 
-	}
+	}, nil
 }
 
-func SliceIssueWithoutPk(v *Issue) []interface{} {
+func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 	var v1 int
 	var v2 string
 	var v3 string
@@ -186,7 +195,10 @@ func SliceIssueWithoutPk(v *Issue) []interface{} {
 	v3 = v.Body
 	v4 = v.Assignee
 	v5 = v.State
-	v6, _ = json.Marshal(&v.Labels)
+	v6, err := json.Marshal(&v.Labels)
+	if err != nil {
+		return nil, err
+	}
 
 	return []interface{}{
 		v1,
@@ -196,7 +208,7 @@ func SliceIssueWithoutPk(v *Issue) []interface{} {
 		v5,
 		v6,
 
-	}
+	}, nil
 }
 
 //--------------------------------------------------------------------------------
@@ -303,7 +315,12 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 			hook.PreInsert(tbl.Db)
 		}
 
-		res, err := st.Exec(SliceIssueWithoutPk(v)...)
+		fields, err := SliceIssueWithoutPk(v)
+		if err != nil {
+			return err
+		}
+
+		res, err := st.Exec(fields...)
 		if err != nil {
 			return err
 		}
@@ -378,7 +395,12 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 		}
 
 		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
-		args := SliceIssueWithoutPk(v)
+
+		args, err := SliceIssueWithoutPk(v)
+		if err != nil {
+			return count, err
+		}
+
 		args = append(args, v.Id)
 		n, err := tbl.Exec(query, args...)
 		if err != nil {

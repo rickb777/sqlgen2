@@ -71,7 +71,7 @@ func ScanV4User(row *sql.Row) (*User, error) {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 big.Int
+	var v6 []byte
 	var v7 string
 	var v8 string
 	var v9 string
@@ -100,7 +100,10 @@ func ScanV4User(row *sql.Row) (*User, error) {
 	v.Avatar = v3
 	v.Active = v4
 	v.Admin = v5
-	json.Unmarshal(v6, &v.Fave)
+	err = json.Unmarshal(v6, &v.Fave)
+	if err != nil {
+		return nil, err
+	}
 	v.token = v7
 	v.secret = v8
 	v.hash = v9
@@ -119,7 +122,7 @@ func ScanV4Users(rows *sql.Rows) ([]*User, error) {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 big.Int
+	var v6 []byte
 	var v7 string
 	var v8 string
 	var v9 string
@@ -149,7 +152,10 @@ func ScanV4Users(rows *sql.Rows) ([]*User, error) {
 		v.Avatar = v3
 		v.Active = v4
 		v.Admin = v5
-		json.Unmarshal(v6, &v.Fave)
+		err = json.Unmarshal(v6, &v.Fave)
+		if err != nil {
+			return nil, err
+		}
 		v.token = v7
 		v.secret = v8
 		v.hash = v9
@@ -159,14 +165,14 @@ func ScanV4Users(rows *sql.Rows) ([]*User, error) {
 	return vv, rows.Err()
 }
 
-func SliceV4User(v *User) []interface{} {
+func SliceV4User(v *User) ([]interface{}, error) {
 	var v0 int64
 	var v1 string
 	var v2 string
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 big.Int
+	var v6 []byte
 	var v7 string
 	var v8 string
 	var v9 string
@@ -177,7 +183,10 @@ func SliceV4User(v *User) []interface{} {
 	v3 = v.Avatar
 	v4 = v.Active
 	v5 = v.Admin
-	v6, _ = json.Marshal(&v.Fave)
+	v6, err := json.Marshal(&v.Fave)
+	if err != nil {
+		return nil, err
+	}
 	v7 = v.token
 	v8 = v.secret
 	v9 = v.hash
@@ -194,16 +203,16 @@ func SliceV4User(v *User) []interface{} {
 		v8,
 		v9,
 
-	}
+	}, nil
 }
 
-func SliceV4UserWithoutPk(v *User) []interface{} {
+func SliceV4UserWithoutPk(v *User) ([]interface{}, error) {
 	var v1 string
 	var v2 string
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 big.Int
+	var v6 []byte
 	var v7 string
 	var v8 string
 	var v9 string
@@ -213,7 +222,10 @@ func SliceV4UserWithoutPk(v *User) []interface{} {
 	v3 = v.Avatar
 	v4 = v.Active
 	v5 = v.Admin
-	v6, _ = json.Marshal(&v.Fave)
+	v6, err := json.Marshal(&v.Fave)
+	if err != nil {
+		return nil, err
+	}
 	v7 = v.token
 	v8 = v.secret
 	v9 = v.hash
@@ -229,7 +241,7 @@ func SliceV4UserWithoutPk(v *User) []interface{} {
 		v8,
 		v9,
 
-	}
+	}, nil
 }
 
 //--------------------------------------------------------------------------------

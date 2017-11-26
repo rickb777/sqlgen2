@@ -121,12 +121,12 @@ var tScanRows = template.Must(template.New("ScanRows").Funcs(funcMap).Parse(sSca
 //-------------------------------------------------------------------------------------------------
 
 const sSliceRow = `
-func Slice{{.Prefix}}{{.Type}}{{.Suffix}}(v *{{.Type}}) []interface{} {
+func Slice{{.Prefix}}{{.Type}}{{.Suffix}}(v *{{.Type}}) ([]interface{}, error) {
 {{range .Body1}}{{.}}{{end}}
 {{range .Body2}}{{.}}{{end}}
 	return []interface{}{
 {{range .Body3}}{{.}}{{end}}
-	}
+	}, nil
 }
 `
 
@@ -250,7 +250,12 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 			hook.PreInsert(tbl.Db)
 		}
 
-		res, err := st.Exec(Slice{{.Prefix}}{{.Type}}WithoutPk(v)...)
+		fields, err := Slice{{.Prefix}}{{.Type}}WithoutPk(v)
+		if err != nil {
+			return err
+		}
+
+		res, err := st.Exec(fields...)
 		if err != nil {
 			return err
 		}
@@ -296,7 +301,12 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 			hook.PreInsert(tbl.Db)
 		}
 
-		res, err := st.Exec(Slice{{.Prefix}}{{.Type}}Stmt(v)...)
+		fields, err := Slice{{.Prefix}}{{.Type}}Stmt(v)
+		if err != nil {
+			return err
+		}
+
+		res, err := st.Exec(fields...)
 		if err != nil {
 			return err
 		}
@@ -345,7 +355,12 @@ func (tbl {{.Prefix}}{{.Type}}Table) Update(vv ...*{{.Type}}) (int64, error) {
 		}
 
 		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
-		args := Slice{{.Prefix}}{{.Type}}WithoutPk(v)
+
+		args, err := Slice{{.Prefix}}{{.Type}}WithoutPk(v)
+		if err != nil {
+			return count, err
+		}
+
 		args = append(args, v.{{.Table.Primary.Name}})
 		n, err := tbl.Exec(query, args...)
 		if err != nil {

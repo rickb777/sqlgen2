@@ -169,7 +169,7 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 	case *types.Named:
 		tObj := t.Obj()
 		if tObj.Pkg().Name() != pkg {
-			tp.PkgPath = tObj.Pkg().Name()
+			tp.PkgPath = tObj.Pkg().Path()
 			tp.PkgName = tObj.Pkg().Name()
 		}
 		tp.Name = tObj.Name()
@@ -192,7 +192,7 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 			tnObj := el.Obj()
 			parse.DevInfo("slice pkgname:%s pkgpath:%s name:%s\n", tnObj.Pkg().Name(), tnObj.Pkg().Path(), tnObj.Name())
 			if tnObj.Pkg().Name() != pkg {
-				tp.PkgPath = tnObj.Pkg().Name()
+				tp.PkgPath = tnObj.Pkg().Path()
 				tp.PkgName = tnObj.Pkg().Name()
 			}
 			tp.Name = tnObj.Name()
