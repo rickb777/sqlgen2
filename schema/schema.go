@@ -112,25 +112,3 @@ func (node *Node) Parts() []string {
 func (node *Node) JoinParts(sep string) string {
 	return strings.Join(node.Parts(), sep)
 }
-
-//type Path []PathItem
-//
-//func PathOf(items ...string) Path {
-//	r := make([]PathItem, 0, len(items))
-//	for _, s := range items {
-//		r = append(r, PathItem{s, false})
-//	}
-//	return Path(r)
-//}
-//
-//func (p Path) Strings() []string {
-//	ss := make([]string, 0, len(p))
-//	for _, s := range p {
-//		ss = append(ss, s.Name)
-//	}
-//	return ss
-//}
-//
-//func (p Path) Join(sep string) string {
-//	return strings.Join(p.Strings(), sep)
-//}

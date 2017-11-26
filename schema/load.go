@@ -6,7 +6,14 @@ import (
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"go/types"
+	"strings"
 )
+
+type context struct {
+	pkgStore parse.PackageStore
+	indices  map[string]*Index
+	table    *Table
+}
 
 type context struct {
 	pkgStore parse.PackageStore
@@ -134,7 +141,10 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map
 		}
 
 		field.Encode = mapTagToEncoding[tag.Encode]
-		field.SqlName = tag.Name
+
+		if tag.Name != "" {
+			field.SqlName = strings.ToLower(tag.Name)
+		}
 	}
 
 	if field.SqlName == "" {
