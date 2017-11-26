@@ -15,12 +15,6 @@ type context struct {
 	table    *Table
 }
 
-type context struct {
-	pkgStore parse.PackageStore
-	indices  map[string]*Index
-	table    *Table
-}
-
 func Load(pkgStore parse.PackageStore, pkg, name string) (*Table, error) {
 	table := new(Table)
 
