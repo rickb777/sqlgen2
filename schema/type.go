@@ -6,14 +6,15 @@ import (
 )
 
 type Type struct {
-	Pkg  string // package name (short variant)
-	Name string // name of source code type.
-	Base parse.Kind   // underlying source code kind.
+	PkgPath string     // package name (full path)
+	PkgName string     // package name (short name)
+	Name    string     // name of source code type.
+	Base    parse.Kind // underlying source code kind.
 }
 
 func (t Type) Type() string {
-	if len(t.Pkg) > 0 {
-		return fmt.Sprintf("%s.%s", t.Pkg, t.Name)
+	if len(t.PkgName) > 0 {
+		return fmt.Sprintf("%s.%s", t.PkgName, t.Name)
 	} else {
 		return t.Name
 	}
@@ -22,4 +23,3 @@ func (t Type) Type() string {
 func (t Type) String() string {
 	return fmt.Sprintf("%s (%s)", t.Type(), t.Base)
 }
-

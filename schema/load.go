@@ -67,9 +67,19 @@ func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, par
 //-------------------------------------------------------------------------------------------------
 
 func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map[string]parse.Tag, parent *Node) {
+	tag := tags[leaf.Name()]
+
+	if tag.Skip {
+		return
+	}
+
 	field := &Field{}
+	field.Tags = tag
+	field.Encode = mapTagToEncoding[tag.Encode]
+
+	// only recurse into the node's fields if the leaf isn't encoded
 	var ok bool
-	field.Node, ok = ctx.convertLeafNodeToNode(leaf, pkg, tags, parent)
+	field.Node, ok = ctx.convertLeafNodeToNode(leaf, pkg, tags, parent, field.Encode == ENCNONE)
 	if !ok {
 		return
 	}
@@ -86,62 +96,49 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map
 		field.Type.Base = parse.Slice
 	}
 
-	// substitute tag variables
-	if tag, exists := tags[leaf.Name()]; exists {
-		if tag.Skip {
-			return
+	if tag.Primary {
+		if ctx.table.Primary != nil {
+			exit.Fail(1, "%s, %s: compound primary keys are not supported.\n",
+				ctx.table.Primary.Type.Name, field.Type.Name)
 		}
+		ctx.table.Primary = field
+	}
 
-		field.Tags = tag
-
-		if tag.Primary {
-			if ctx.table.Primary != nil {
-				exit.Fail(1, "%s, %s: compound primary keys are not supported.\n",
-					ctx.table.Primary.Type.Name, field.Type.Name)
+	if tag.Index != "" {
+		index, ok := ctx.indices[tag.Index]
+		if !ok {
+			index = &Index{
+				Name: tag.Index,
 			}
-			ctx.table.Primary = field
+			ctx.indices[index.Name] = index
+			ctx.table.Index = append(ctx.table.Index, index)
 		}
+		index.Fields = append(index.Fields, field)
+	}
 
-		if tag.Index != "" {
-			index, ok := ctx.indices[tag.Index]
-			if !ok {
-				index = &Index{
-					Name: tag.Index,
-				}
-				ctx.indices[index.Name] = index
-				ctx.table.Index = append(ctx.table.Index, index)
+	if tag.Unique != "" {
+		index, ok := ctx.indices[tag.Index]
+		if !ok {
+			index = &Index{
+				Name:   tag.Unique,
+				Unique: true,
 			}
-			index.Fields = append(index.Fields, field)
+			ctx.indices[index.Name] = index
+			ctx.table.Index = append(ctx.table.Index, index)
 		}
+		index.Fields = append(index.Fields, field)
+	}
 
-		if tag.Unique != "" {
-			index, ok := ctx.indices[tag.Index]
-			if !ok {
-				index = &Index{
-					Name:   tag.Unique,
-					Unique: true,
-				}
-				ctx.indices[index.Name] = index
-				ctx.table.Index = append(ctx.table.Index, index)
-			}
-			index.Fields = append(index.Fields, field)
-		}
-
-		if tag.Type != "" {
-			t, ok := mapStringToSqlType[tag.Type]
-			if ok {
-				field.SqlType = t
-			}
-		}
-
-		field.Encode = mapTagToEncoding[tag.Encode]
-
-		if tag.Name != "" {
-			field.SqlName = strings.ToLower(tag.Name)
+	if tag.Type != "" {
+		t, ok := mapStringToSqlType[tag.Type]
+		if ok {
+			field.SqlType = t
 		}
 	}
 
-	if field.SqlName == "" {
+	if tag.Name != "" {
+		field.SqlName = strings.ToLower(tag.Name)
+	} else {
 		field.SqlName = Underscore(field.JoinParts("_"))
 	}
 
@@ -150,9 +147,9 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map
 
 //-------------------------------------------------------------------------------------------------
 
-func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[string]parse.Tag, parent *Node) (Node, bool) {
+func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[string]parse.Tag, parent *Node, canRecurse bool) (Node, bool) {
 	node := Node{Name: leaf.Name(), Parent: parent}
-	tp := Type{Pkg: "", Name: ""}
+	tp := Type{}
 
 	lt := leaf.Type()
 	//isPtr := false
@@ -172,14 +169,18 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 	case *types.Named:
 		tObj := t.Obj()
 		if tObj.Pkg().Name() != pkg {
-			tp.Pkg = tObj.Pkg().Name()
+			tp.PkgPath = tObj.Pkg().Name()
+			tp.PkgName = tObj.Pkg().Name()
 		}
 		tp.Name = tObj.Name()
 
 		if str, ok := t.Underlying().(*types.Struct); ok {
-			addStructTags(tags, str)
-			ctx.examineStruct(str, pkg, leaf.Name(), tags, &node)
-			return node, false
+			tp.Base = parse.Struct
+			if canRecurse {
+				addStructTags(tags, str)
+				ctx.examineStruct(str, pkg, leaf.Name(), tags, &node)
+				return node, false
+			}
 		}
 	case *types.Array:
 		tp.Name = t.String()
@@ -191,7 +192,8 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 			tnObj := el.Obj()
 			parse.DevInfo("slice pkgname:%s pkgpath:%s name:%s\n", tnObj.Pkg().Name(), tnObj.Pkg().Path(), tnObj.Name())
 			if tnObj.Pkg().Name() != pkg {
-				tp.Pkg = tnObj.Pkg().Name()
+				tp.PkgPath = tnObj.Pkg().Name()
+				tp.PkgName = tnObj.Pkg().Name()
 			}
 			tp.Name = tnObj.Name()
 		}

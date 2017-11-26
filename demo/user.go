@@ -1,5 +1,7 @@
 package demo
 
+import "math/big"
+
 // This example demonstrates
 //   * indexes
 //   * unexported fields
@@ -7,12 +9,13 @@ package demo
 //go:generate sqlgen -type demo.User -o user_sql.go -v -prefix Db user.go
 
 type User struct {
-	Uid    int64  `sql:"pk: true, auto: true"`
-	Login  string `sql:"unique: user_login"`
-	Email  string `sql:"unique: user_email"`
+	Uid    int64   `sql:"pk: true, auto: true"`
+	Login  string  `sql:"unique: user_login"`
+	Email  string  `sql:"unique: user_email"`
 	Avatar string
 	Active bool
 	Admin  bool
+	Fave   big.Int `sql:"encode: json"`
 
 	// oauth token and secret
 	token  string

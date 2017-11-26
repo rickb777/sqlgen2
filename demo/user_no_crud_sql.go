@@ -5,6 +5,7 @@ package demo
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 )
@@ -71,9 +72,10 @@ func ScanV3User(row *sql.Row) (*User, error) {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 string
+	var v6 big.Int
 	var v7 string
 	var v8 string
+	var v9 string
 
 	err := row.Scan(
 		&v0,
@@ -85,6 +87,7 @@ func ScanV3User(row *sql.Row) (*User, error) {
 		&v6,
 		&v7,
 		&v8,
+		&v9,
 
 	)
 	if err != nil {
@@ -98,9 +101,10 @@ func ScanV3User(row *sql.Row) (*User, error) {
 	v.Avatar = v3
 	v.Active = v4
 	v.Admin = v5
-	v.token = v6
-	v.secret = v7
-	v.hash = v8
+	json.Unmarshal(v6, &v.Fave)
+	v.token = v7
+	v.secret = v8
+	v.hash = v9
 
 	return v, nil
 }
@@ -116,9 +120,10 @@ func ScanV3Users(rows *sql.Rows) ([]*User, error) {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 string
+	var v6 big.Int
 	var v7 string
 	var v8 string
+	var v9 string
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -131,6 +136,7 @@ func ScanV3Users(rows *sql.Rows) ([]*User, error) {
 			&v6,
 			&v7,
 			&v8,
+			&v9,
 
 		)
 		if err != nil {
@@ -144,9 +150,10 @@ func ScanV3Users(rows *sql.Rows) ([]*User, error) {
 		v.Avatar = v3
 		v.Active = v4
 		v.Admin = v5
-		v.token = v6
-		v.secret = v7
-		v.hash = v8
+		json.Unmarshal(v6, &v.Fave)
+		v.token = v7
+		v.secret = v8
+		v.hash = v9
 
 		vv = append(vv, v)
 	}
@@ -160,9 +167,10 @@ func SliceV3User(v *User) []interface{} {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 string
+	var v6 big.Int
 	var v7 string
 	var v8 string
+	var v9 string
 
 	v0 = v.Uid
 	v1 = v.Login
@@ -170,9 +178,10 @@ func SliceV3User(v *User) []interface{} {
 	v3 = v.Avatar
 	v4 = v.Active
 	v5 = v.Admin
-	v6 = v.token
-	v7 = v.secret
-	v8 = v.hash
+	v6, _ = json.Marshal(&v.Fave)
+	v7 = v.token
+	v8 = v.secret
+	v9 = v.hash
 
 	return []interface{}{
 		v0,
@@ -184,6 +193,7 @@ func SliceV3User(v *User) []interface{} {
 		v6,
 		v7,
 		v8,
+		v9,
 
 	}
 }
@@ -194,18 +204,20 @@ func SliceV3UserWithoutPk(v *User) []interface{} {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 string
+	var v6 big.Int
 	var v7 string
 	var v8 string
+	var v9 string
 
 	v1 = v.Login
 	v2 = v.Email
 	v3 = v.Avatar
 	v4 = v.Active
 	v5 = v.Admin
-	v6 = v.token
-	v7 = v.secret
-	v8 = v.hash
+	v6, _ = json.Marshal(&v.Fave)
+	v7 = v.token
+	v8 = v.secret
+	v9 = v.hash
 
 	return []interface{}{
 		v1,
@@ -216,6 +228,7 @@ func SliceV3UserWithoutPk(v *User) []interface{} {
 		v6,
 		v7,
 		v8,
+		v9,
 
 	}
 }
@@ -319,6 +332,7 @@ CREATE TABLE %s%s%s (
  avatar text,
  active boolean,
  admin  boolean,
+ fave   blob,
  token  text,
  secret text,
  hash   text
@@ -333,6 +347,7 @@ CREATE TABLE %s%s%s (
  avatar varchar(512),
  active boolean,
  admin  boolean,
+ fave   byteaa,
  token  varchar(512),
  secret varchar(512),
  hash   varchar(512)
@@ -347,6 +362,7 @@ CREATE TABLE %s%s%s (
  avatar varchar(512),
  active tinyint(1),
  admin  tinyint(1),
+ fave   mediumblob,
  token  varchar(512),
  secret varchar(512),
  hash   varchar(512)
@@ -365,12 +381,12 @@ CREATE UNIQUE INDEX %suser_email ON %s%s (email)
 
 //--------------------------------------------------------------------------------
 
-const NumV3UserColumns = 9
+const NumV3UserColumns = 10
 
-const NumV3UserDataColumns = 8
+const NumV3UserDataColumns = 9
 
 const V3UserPk = "Uid"
 
-const V3UserDataColumnNames = "login, email, avatar, active, admin, token, secret, hash"
+const V3UserDataColumnNames = "login, email, avatar, active, admin, fave, token, secret, hash"
 
 //--------------------------------------------------------------------------------

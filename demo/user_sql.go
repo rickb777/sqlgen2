@@ -5,6 +5,7 @@ package demo
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
@@ -73,9 +74,10 @@ func ScanDbUser(row *sql.Row) (*User, error) {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 string
+	var v6 big.Int
 	var v7 string
 	var v8 string
+	var v9 string
 
 	err := row.Scan(
 		&v0,
@@ -87,6 +89,7 @@ func ScanDbUser(row *sql.Row) (*User, error) {
 		&v6,
 		&v7,
 		&v8,
+		&v9,
 
 	)
 	if err != nil {
@@ -100,9 +103,10 @@ func ScanDbUser(row *sql.Row) (*User, error) {
 	v.Avatar = v3
 	v.Active = v4
 	v.Admin = v5
-	v.token = v6
-	v.secret = v7
-	v.hash = v8
+	json.Unmarshal(v6, &v.Fave)
+	v.token = v7
+	v.secret = v8
+	v.hash = v9
 
 	return v, nil
 }
@@ -118,9 +122,10 @@ func ScanDbUsers(rows *sql.Rows) ([]*User, error) {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 string
+	var v6 big.Int
 	var v7 string
 	var v8 string
+	var v9 string
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -133,6 +138,7 @@ func ScanDbUsers(rows *sql.Rows) ([]*User, error) {
 			&v6,
 			&v7,
 			&v8,
+			&v9,
 
 		)
 		if err != nil {
@@ -146,9 +152,10 @@ func ScanDbUsers(rows *sql.Rows) ([]*User, error) {
 		v.Avatar = v3
 		v.Active = v4
 		v.Admin = v5
-		v.token = v6
-		v.secret = v7
-		v.hash = v8
+		json.Unmarshal(v6, &v.Fave)
+		v.token = v7
+		v.secret = v8
+		v.hash = v9
 
 		vv = append(vv, v)
 	}
@@ -162,9 +169,10 @@ func SliceDbUser(v *User) []interface{} {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 string
+	var v6 big.Int
 	var v7 string
 	var v8 string
+	var v9 string
 
 	v0 = v.Uid
 	v1 = v.Login
@@ -172,9 +180,10 @@ func SliceDbUser(v *User) []interface{} {
 	v3 = v.Avatar
 	v4 = v.Active
 	v5 = v.Admin
-	v6 = v.token
-	v7 = v.secret
-	v8 = v.hash
+	v6, _ = json.Marshal(&v.Fave)
+	v7 = v.token
+	v8 = v.secret
+	v9 = v.hash
 
 	return []interface{}{
 		v0,
@@ -186,6 +195,7 @@ func SliceDbUser(v *User) []interface{} {
 		v6,
 		v7,
 		v8,
+		v9,
 
 	}
 }
@@ -196,18 +206,20 @@ func SliceDbUserWithoutPk(v *User) []interface{} {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 string
+	var v6 big.Int
 	var v7 string
 	var v8 string
+	var v9 string
 
 	v1 = v.Login
 	v2 = v.Email
 	v3 = v.Avatar
 	v4 = v.Active
 	v5 = v.Admin
-	v6 = v.token
-	v7 = v.secret
-	v8 = v.hash
+	v6, _ = json.Marshal(&v.Fave)
+	v7 = v.token
+	v8 = v.secret
+	v9 = v.hash
 
 	return []interface{}{
 		v1,
@@ -218,6 +230,7 @@ func SliceDbUserWithoutPk(v *User) []interface{} {
 		v6,
 		v7,
 		v8,
+		v9,
 
 	}
 }
@@ -296,7 +309,7 @@ func (tbl DbUserTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(where.Build(tbl.Dialect))
 }
 
-const DbUserColumnNames = "uid, login, email, avatar, active, admin, token, secret, hash"
+const DbUserColumnNames = "uid, login, email, avatar, active, admin, fave, token, secret, hash"
 
 //--------------------------------------------------------------------------------
 
@@ -347,6 +360,7 @@ INSERT INTO %s%s (
 	avatar,
 	active,
 	admin,
+	fave,
 	token,
 	secret,
 	hash
@@ -360,15 +374,16 @@ INSERT INTO %s%s (
 	avatar,
 	active,
 	admin,
+	fave,
 	token,
 	secret,
 	hash
 ) VALUES (%s)
 `
 
-const sDbUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?"
+const sDbUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?"
 
-const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8"
+const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 
 //--------------------------------------------------------------------------------
 
@@ -423,6 +438,7 @@ UPDATE %s%s SET
 	avatar=?,
 	active=?,
 	admin=?,
+	fave=?,
 	token=?,
 	secret=?,
 	hash=? 
@@ -436,10 +452,11 @@ UPDATE %s%s SET
 	avatar=$4,
 	active=$5,
 	admin=$6,
-	token=$7,
-	secret=$8,
-	hash=$9 
- WHERE uid=$10
+	fave=$7,
+	token=$8,
+	secret=$9,
+	hash=$10 
+ WHERE uid=$11
 `
 
 //--------------------------------------------------------------------------------
@@ -523,6 +540,7 @@ CREATE TABLE %s%s%s (
  avatar text,
  active boolean,
  admin  boolean,
+ fave   blob,
  token  text,
  secret text,
  hash   text
@@ -537,6 +555,7 @@ CREATE TABLE %s%s%s (
  avatar varchar(512),
  active boolean,
  admin  boolean,
+ fave   byteaa,
  token  varchar(512),
  secret varchar(512),
  hash   varchar(512)
@@ -551,6 +570,7 @@ CREATE TABLE %s%s%s (
  avatar varchar(512),
  active tinyint(1),
  admin  tinyint(1),
+ fave   mediumblob,
  token  varchar(512),
  secret varchar(512),
  hash   varchar(512)
@@ -569,12 +589,12 @@ CREATE UNIQUE INDEX %suser_email ON %s%s (email)
 
 //--------------------------------------------------------------------------------
 
-const NumDbUserColumns = 9
+const NumDbUserColumns = 10
 
-const NumDbUserDataColumns = 8
+const NumDbUserDataColumns = 9
 
 const DbUserPk = "Uid"
 
-const DbUserDataColumnNames = "login, email, avatar, active, admin, token, secret, hash"
+const DbUserDataColumnNames = "login, email, avatar, active, admin, fave, token, secret, hash"
 
 //--------------------------------------------------------------------------------

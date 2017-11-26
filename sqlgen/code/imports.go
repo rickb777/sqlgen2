@@ -15,7 +15,7 @@ func WriteImports(w io.Writer, table *schema.Table, packages StringSet) {
 	// encoded, which might require us to import
 	// other packages
 	for _, field := range table.Fields {
-		if field.Type.Pkg != "" {
+		if field.Type.PkgPath != "" {
 			//longName := parse.FindImport(field.Type)
 			//packages[longName] = struct{}{}
 		}

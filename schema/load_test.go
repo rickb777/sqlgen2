@@ -46,7 +46,7 @@ type Author struct {
 
 	p1 := &Node{Name: "Commit"}
 	p2 := &Node{Name: "Author", Parent: p1}
-	author := &Field{Node{"Name", Type{"", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
+	author := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
 
 	expected := &Table{
 		Type: "Example",
@@ -90,8 +90,8 @@ type Category int32
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	labels := &Field{Node{"Labels", Type{"", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
-	categories := &Field{Node{"Categories", Type{"", "Category", Slice}, nil}, "categories", BLOB, ENCJSON, Tag{Encode: "json"}}
+	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
+	categories := &Field{Node{"Categories", Type{"", "", "Category", Slice}, nil}, "categories", BLOB, ENCJSON, Tag{Encode: "json"}}
 
 	expected := &Table{
 		Type: "Example",
@@ -133,8 +133,8 @@ type Example struct {
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	aaa := &Field{Node{"Aaa", Type{"", "string", String}, nil}, "aaa", VARCHAR, ENCNONE, Tag{Size: 32, Index: "foo"}}
-	bbb := &Field{Node{"Bbb", Type{"", "string", String}, nil}, "bbb", VARCHAR, ENCNONE, Tag{Size: 32, Index: "foo"}}
+	aaa := &Field{Node{"Aaa", Type{"", "", "string", String}, nil}, "aaa", VARCHAR, ENCNONE, Tag{Size: 32, Index: "foo"}}
+	bbb := &Field{Node{"Bbb", Type{"", "", "string", String}, nil}, "bbb", VARCHAR, ENCNONE, Tag{Size: 32, Index: "foo"}}
 
 	idx := &Index{"foo", false, []*Field{aaa, bbb}}
 
@@ -198,10 +198,10 @@ type Author struct {
 	p1 := &Node{Name: "Commit"}
 	p2 := &Node{Name: "Author", Parent: p1}
 
-	category := &Field{Node{"Cat", Type{"", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
-	name := &Field{Node{"Name", Type{"", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
-	email := &Field{Node{"Email", Type{"", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
-	message := &Field{Node{"Message", Type{"", "string", String}, p1}, "commit_message", VARCHAR, ENCNONE, Tag{}}
+	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
+	email := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
+	message := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "commit_message", VARCHAR, ENCNONE, Tag{}}
 
 	expected := &Table{
 		Type: "Example",
@@ -230,25 +230,26 @@ func TestParseAndLoad_multiplePackagesWithPrimaryAndIndexes(t *testing.T) {
 
 import (
 	"github.com/rickb777/sqlgen2/demo"
+	"math/big"
 	"time"
 )
 
 type Example struct {
-	Id         int64    |sql:"pk: true, auto: true"|
+	Id         int64         |sql:"pk: true, auto: true"|
 	Number     int
 	Category   demo.Category
-	Foo        int      |sql:"-"|
+	Foo        int           |sql:"-"|
 	Commit     *Commit
-	Title      string   |sql:"index: titleIdx"|
-	////TODO Owner      string   |sql:"name: team_owner"|
-	Hobby      string   |sql:"size: 2048"|
-	Labels     []string |sql:"encode: json"|
+	Title      string        |sql:"index: titleIdx"|
+	Hobby      string        |sql:"size: 2048"|
+	Labels     []string      |sql:"encode: json"|
 	Active     bool
+	Fave       big.Int       |sql:"encode: json"|
 }
 
 type Commit struct {
 	Message   string        |sql:"size: 2048, name: text"|
-	//Timestamp time.Time     |sql:"-"|
+	Timestamp time.Time     |sql:"-"|
 	Author    *demo.Author
 }
 
@@ -269,19 +270,20 @@ type Commit struct {
 	p1 := &Node{Name: "Commit"}
 	p2 := &Node{Name: "Author", Parent: p1}
 
-	id := &Field{Node{"Id", Type{"", "int64", Int64}, nil}, "id", INTEGER, ENCNONE, Tag{Primary: true, Auto: true}}
-	number := &Field{Node{"Number", Type{"", "int", Int}, nil}, "number", INTEGER, ENCNONE, Tag{}}
-	category := &Field{Node{"Category", Type{"demo", "Category", Uint8}, nil}, "category", INTEGER, ENCNONE, Tag{}}
-	commitMessage := &Field{Node{"Message", Type{"", "string", String}, p1}, "text", VARCHAR, ENCNONE, Tag{Size: 2048, Name: "text"}}
+	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", INTEGER, ENCNONE, Tag{Primary: true, Auto: true}}
+	number := &Field{Node{"Number", Type{"", "", "int", Int}, nil}, "number", INTEGER, ENCNONE, Tag{}}
+	category := &Field{Node{"Category", Type{"demo", "demo", "Category", Uint8}, nil}, "category", INTEGER, ENCNONE, Tag{}}
+	commitMessage := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "text", VARCHAR, ENCNONE, Tag{Size: 2048, Name: "text"}}
 	//commitTimestamp := &Field{Node{"Timestamp", Type{"time", "Time", String}, p1}, "commit_timestamp", VARCHAR, ENCNONE, Tag{}}
-	authorName := &Field{Node{"Name", Type{"", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
-	authorEmail := &Field{Node{"Email", Type{"", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
-	authorUser := &Field{Node{"Username", Type{"", "string", String}, p2}, "commit_author_username", VARCHAR, ENCNONE, Tag{}}
-	title := &Field{Node{"Title", Type{"", "string", String}, nil}, "title", VARCHAR, ENCNONE, Tag{Index: "titleIdx"}}
+	authorName := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
+	authorEmail := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
+	authorUser := &Field{Node{"Username", Type{"", "", "string", String}, p2}, "commit_author_username", VARCHAR, ENCNONE, Tag{}}
+	title := &Field{Node{"Title", Type{"", "", "string", String}, nil}, "title", VARCHAR, ENCNONE, Tag{Index: "titleIdx"}}
 	////owner := &Field{"Owner", "team_owner", VARCHAR, Tag{}}
-	hobby := &Field{Node{"Hobby", Type{"", "string", String}, nil}, "hobby", VARCHAR, ENCNONE, Tag{Size: 2048}}
-	labels := &Field{Node{"Labels", Type{"", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
-	active := &Field{Node{"Active", Type{"", "bool", Bool}, nil}, "active", BOOLEAN, ENCNONE, Tag{}}
+	hobby := &Field{Node{"Hobby", Type{"", "", "string", String}, nil}, "hobby", VARCHAR, ENCNONE, Tag{Size: 2048}}
+	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
+	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", BOOLEAN, ENCNONE, Tag{}}
+	fave := &Field{Node{"Fave", Type{"big", "big", "Int", Struct}, nil}, "fave", BLOB, ENCJSON, Tag{Encode: "json"}}
 
 	ititle := &Index{"titleIdx", false, []*Field{title}}
 
@@ -302,6 +304,7 @@ type Commit struct {
 			hobby,
 			labels,
 			active,
+			fave,
 		},
 		Index: []*Index{
 			ititle,

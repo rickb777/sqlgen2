@@ -5,6 +5,7 @@ package demo
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
@@ -73,9 +74,10 @@ func ScanV2User(row *sql.Row) (*User, error) {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 string
+	var v6 big.Int
 	var v7 string
 	var v8 string
+	var v9 string
 
 	err := row.Scan(
 		&v0,
@@ -87,6 +89,7 @@ func ScanV2User(row *sql.Row) (*User, error) {
 		&v6,
 		&v7,
 		&v8,
+		&v9,
 
 	)
 	if err != nil {
@@ -100,9 +103,10 @@ func ScanV2User(row *sql.Row) (*User, error) {
 	v.Avatar = v3
 	v.Active = v4
 	v.Admin = v5
-	v.token = v6
-	v.secret = v7
-	v.hash = v8
+	json.Unmarshal(v6, &v.Fave)
+	v.token = v7
+	v.secret = v8
+	v.hash = v9
 
 	return v, nil
 }
@@ -118,9 +122,10 @@ func ScanV2Users(rows *sql.Rows) ([]*User, error) {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 string
+	var v6 big.Int
 	var v7 string
 	var v8 string
+	var v9 string
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -133,6 +138,7 @@ func ScanV2Users(rows *sql.Rows) ([]*User, error) {
 			&v6,
 			&v7,
 			&v8,
+			&v9,
 
 		)
 		if err != nil {
@@ -146,9 +152,10 @@ func ScanV2Users(rows *sql.Rows) ([]*User, error) {
 		v.Avatar = v3
 		v.Active = v4
 		v.Admin = v5
-		v.token = v6
-		v.secret = v7
-		v.hash = v8
+		json.Unmarshal(v6, &v.Fave)
+		v.token = v7
+		v.secret = v8
+		v.hash = v9
 
 		vv = append(vv, v)
 	}
@@ -162,9 +169,10 @@ func SliceV2User(v *User) []interface{} {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 string
+	var v6 big.Int
 	var v7 string
 	var v8 string
+	var v9 string
 
 	v0 = v.Uid
 	v1 = v.Login
@@ -172,9 +180,10 @@ func SliceV2User(v *User) []interface{} {
 	v3 = v.Avatar
 	v4 = v.Active
 	v5 = v.Admin
-	v6 = v.token
-	v7 = v.secret
-	v8 = v.hash
+	v6, _ = json.Marshal(&v.Fave)
+	v7 = v.token
+	v8 = v.secret
+	v9 = v.hash
 
 	return []interface{}{
 		v0,
@@ -186,6 +195,7 @@ func SliceV2User(v *User) []interface{} {
 		v6,
 		v7,
 		v8,
+		v9,
 
 	}
 }
@@ -196,18 +206,20 @@ func SliceV2UserWithoutPk(v *User) []interface{} {
 	var v3 string
 	var v4 bool
 	var v5 bool
-	var v6 string
+	var v6 big.Int
 	var v7 string
 	var v8 string
+	var v9 string
 
 	v1 = v.Login
 	v2 = v.Email
 	v3 = v.Avatar
 	v4 = v.Active
 	v5 = v.Admin
-	v6 = v.token
-	v7 = v.secret
-	v8 = v.hash
+	v6, _ = json.Marshal(&v.Fave)
+	v7 = v.token
+	v8 = v.secret
+	v9 = v.hash
 
 	return []interface{}{
 		v1,
@@ -218,6 +230,7 @@ func SliceV2UserWithoutPk(v *User) []interface{} {
 		v6,
 		v7,
 		v8,
+		v9,
 
 	}
 }
@@ -296,7 +309,7 @@ func (tbl V2UserTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(where.Build(tbl.Dialect))
 }
 
-const V2UserColumnNames = "uid, login, email, avatar, active, admin, token, secret, hash"
+const V2UserColumnNames = "uid, login, email, avatar, active, admin, fave, token, secret, hash"
 
 //--------------------------------------------------------------------------------
 
@@ -347,6 +360,7 @@ INSERT INTO %s%s (
 	avatar,
 	active,
 	admin,
+	fave,
 	token,
 	secret,
 	hash
@@ -360,15 +374,16 @@ INSERT INTO %s%s (
 	avatar,
 	active,
 	admin,
+	fave,
 	token,
 	secret,
 	hash
 ) VALUES (%s)
 `
 
-const sV2UserDataColumnParamsSimple = "?,?,?,?,?,?,?,?"
+const sV2UserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?"
 
-const sV2UserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8"
+const sV2UserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 
 //--------------------------------------------------------------------------------
 
@@ -423,6 +438,7 @@ UPDATE %s%s SET
 	avatar=?,
 	active=?,
 	admin=?,
+	fave=?,
 	token=?,
 	secret=?,
 	hash=? 
@@ -436,10 +452,11 @@ UPDATE %s%s SET
 	avatar=$4,
 	active=$5,
 	admin=$6,
-	token=$7,
-	secret=$8,
-	hash=$9 
- WHERE uid=$10
+	fave=$7,
+	token=$8,
+	secret=$9,
+	hash=$10 
+ WHERE uid=$11
 `
 
 //--------------------------------------------------------------------------------
