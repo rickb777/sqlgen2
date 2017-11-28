@@ -74,16 +74,16 @@ var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
 const sScanRow = `
 // Scan{{.Prefix}}{{.Type}} reads a database record into a single value.
 func Scan{{.Prefix}}{{.Type}}(row *sql.Row) (*{{.Type}}, error) {
-{{range .Body1}}{{.}}{{end}}
+{{range .Body1}}{{.}}{{- end}}
 	err := row.Scan(
-{{range .Body2}}{{.}}{{end}}
+{{range .Body2}}{{.}}{{- end}}
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	v := &{{.Type}}{}
-{{range .Body3}}{{.}}{{end}}
+{{range .Body3}}{{.}}{{- end}}
 	return v, nil
 }
 `
@@ -99,10 +99,10 @@ func Scan{{.Prefix}}{{.Types}}(rows *sql.Rows) ([]*{{.Type}}, error) {
 	var err error
 	var vv []*{{.Type}}
 
-{{range .Body1}}{{.}}{{end}}
+{{range .Body1}}{{.}}{{- end}}
 	for rows.Next() {
 		err = rows.Scan(
-{{range .Body2}}{{.}}{{end}}
+{{range .Body2}}{{.}}{{- end}}
 		)
 		if err != nil {
 			return vv, err
@@ -122,10 +122,10 @@ var tScanRows = template.Must(template.New("ScanRows").Funcs(funcMap).Parse(sSca
 
 const sSliceRow = `
 func Slice{{.Prefix}}{{.Type}}{{.Suffix}}(v *{{.Type}}) ([]interface{}, error) {
-{{range .Body1}}{{.}}{{end}}
-{{range .Body2}}{{.}}{{end}}
+{{range .Body1}}{{.}}{{- end}}
+{{range .Body2}}{{.}}{{- end}}
 	return []interface{}{
-{{range .Body3}}{{.}}{{end}}
+{{range .Body3}}{{.}}{{- end}}
 	}, nil
 }
 `
@@ -260,7 +260,12 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 			return err
 		}
 
+		{{if eq .Table.Primary.Type.Name "int64" -}}
 		v.{{.Table.Primary.Name}}, err = res.LastInsertId()
+		{{- else -}}
+		_i64, err := res.LastInsertId()
+		v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(_i64)
+		{{end}}
 		if err != nil {
 			return err
 		}
