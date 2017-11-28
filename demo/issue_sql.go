@@ -29,11 +29,19 @@ type IssueTable struct {
 var _ sqlgen2.Table = IssueTable{}
 
 // NewIssueTable returns a new table instance.
-func NewIssueTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) IssueTable {
+// If a blank table name is supplied, the default name "issues" will be used instead.
+// The table name prefix is initially blank and the request context is the background.
+func NewIssueTable(name string, d *sql.DB, dialect sqlgen2.Dialect) IssueTable {
 	if name == "" {
 		name = IssueTableName
 	}
-	return IssueTable{prefix, name, d, context.Background(), dialect}
+	return IssueTable{"", name, d, context.Background(), dialect}
+}
+
+// WithPrefix sets the prefix for subsequent queries.
+func (tbl IssueTable) WithPrefix(pfx string) IssueTable {
+	tbl.Prefix = pfx
+	return tbl
 }
 
 // WithContext sets the context for subsequent queries.

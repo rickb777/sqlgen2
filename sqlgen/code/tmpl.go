@@ -28,11 +28,19 @@ type {{.Prefix}}{{.Type}}Table struct {
 var _ sqlgen2.Table = {{.Prefix}}{{.Type}}Table{}
 
 // New{{.Prefix}}{{.Type}}Table returns a new table instance.
-func New{{.Prefix}}{{.Type}}Table(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) {{.Prefix}}{{.Type}}Table {
+// If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.
+// The table name prefix is initially blank and the request context is the background.
+func New{{.Prefix}}{{.Type}}Table(name string, d *sql.DB, dialect sqlgen2.Dialect) {{.Prefix}}{{.Type}}Table {
 	if name == "" {
 		name = {{.Prefix}}{{.Type}}TableName
 	}
-	return {{.Prefix}}{{.Type}}Table{prefix, name, d, context.Background(), dialect}
+	return {{.Prefix}}{{.Type}}Table{"", name, d, context.Background(), dialect}
+}
+
+// WithPrefix sets the prefix for subsequent queries.
+func (tbl {{.Prefix}}{{.Type}}Table) WithPrefix(pfx string) {{.Prefix}}{{.Type}}Table {
+	tbl.Prefix = pfx
+	return tbl
 }
 
 // WithContext sets the context for subsequent queries.

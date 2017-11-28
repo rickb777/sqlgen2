@@ -28,11 +28,19 @@ type V3UserTable struct {
 var _ sqlgen2.Table = V3UserTable{}
 
 // NewV3UserTable returns a new table instance.
-func NewV3UserTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) V3UserTable {
+// If a blank table name is supplied, the default name "users" will be used instead.
+// The table name prefix is initially blank and the request context is the background.
+func NewV3UserTable(name string, d *sql.DB, dialect sqlgen2.Dialect) V3UserTable {
 	if name == "" {
 		name = V3UserTableName
 	}
-	return V3UserTable{prefix, name, d, context.Background(), dialect}
+	return V3UserTable{"", name, d, context.Background(), dialect}
+}
+
+// WithPrefix sets the prefix for subsequent queries.
+func (tbl V3UserTable) WithPrefix(pfx string) V3UserTable {
+	tbl.Prefix = pfx
+	return tbl
 }
 
 // WithContext sets the context for subsequent queries.

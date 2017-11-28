@@ -76,8 +76,9 @@ func main() {
 
 	// load the Tree into a schema Object
 	table, err := schema.Load(pkgStore, pkg, name)
-	utter.Dump(table)
-	//fmt.Printf("schema.Load -> %+v %v\n", table, err)
+	if parse.Debug {
+		utter.Dump(table)
+	}
 
 	buf := &bytes.Buffer{}
 

@@ -26,11 +26,19 @@ type V4UserTable struct {
 var _ sqlgen2.Table = V4UserTable{}
 
 // NewV4UserTable returns a new table instance.
-func NewV4UserTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) V4UserTable {
+// If a blank table name is supplied, the default name "users" will be used instead.
+// The table name prefix is initially blank and the request context is the background.
+func NewV4UserTable(name string, d *sql.DB, dialect sqlgen2.Dialect) V4UserTable {
 	if name == "" {
 		name = V4UserTableName
 	}
-	return V4UserTable{prefix, name, d, context.Background(), dialect}
+	return V4UserTable{"", name, d, context.Background(), dialect}
+}
+
+// WithPrefix sets the prefix for subsequent queries.
+func (tbl V4UserTable) WithPrefix(pfx string) V4UserTable {
+	tbl.Prefix = pfx
+	return tbl
 }
 
 // WithContext sets the context for subsequent queries.

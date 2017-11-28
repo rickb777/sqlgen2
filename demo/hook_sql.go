@@ -28,11 +28,19 @@ type HookTable struct {
 var _ sqlgen2.Table = HookTable{}
 
 // NewHookTable returns a new table instance.
-func NewHookTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) HookTable {
+// If a blank table name is supplied, the default name "hooks" will be used instead.
+// The table name prefix is initially blank and the request context is the background.
+func NewHookTable(name string, d *sql.DB, dialect sqlgen2.Dialect) HookTable {
 	if name == "" {
 		name = HookTableName
 	}
-	return HookTable{prefix, name, d, context.Background(), dialect}
+	return HookTable{"", name, d, context.Background(), dialect}
+}
+
+// WithPrefix sets the prefix for subsequent queries.
+func (tbl HookTable) WithPrefix(pfx string) HookTable {
+	tbl.Prefix = pfx
+	return tbl
 }
 
 // WithContext sets the context for subsequent queries.

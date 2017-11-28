@@ -29,11 +29,19 @@ type DbUserTable struct {
 var _ sqlgen2.Table = DbUserTable{}
 
 // NewDbUserTable returns a new table instance.
-func NewDbUserTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) DbUserTable {
+// If a blank table name is supplied, the default name "users" will be used instead.
+// The table name prefix is initially blank and the request context is the background.
+func NewDbUserTable(name string, d *sql.DB, dialect sqlgen2.Dialect) DbUserTable {
 	if name == "" {
 		name = DbUserTableName
 	}
-	return DbUserTable{prefix, name, d, context.Background(), dialect}
+	return DbUserTable{"", name, d, context.Background(), dialect}
+}
+
+// WithPrefix sets the prefix for subsequent queries.
+func (tbl DbUserTable) WithPrefix(pfx string) DbUserTable {
+	tbl.Prefix = pfx
+	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
