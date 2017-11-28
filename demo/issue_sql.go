@@ -491,7 +491,11 @@ func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
 
 
 func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExist string) string {
-	return fmt.Sprintf(sqlCreateIssueAssigneeIndex, ifNotExist, tbl.Prefix, tbl.Name)
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	}
+	return fmt.Sprintf(sqlCreateIssueAssigneeIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
 
 
@@ -536,7 +540,7 @@ CREATE TABLE %s%s%s (
 //--------------------------------------------------------------------------------
 
 const sqlCreateIssueAssigneeIndex = `
-CREATE INDEX %sissue_assignee ON %s%s (assignee)
+CREATE INDEX %s%sissue_assignee ON %s%s (assignee)
 `
 
 //--------------------------------------------------------------------------------

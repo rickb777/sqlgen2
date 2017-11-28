@@ -50,6 +50,9 @@ func main() {
 
 	packagesToImport := NewStringSet("context", "database/sql", "github.com/rickb777/sqlgen2")
 
+	if genSchema {
+		packagesToImport.Add("strings")
+	}
 	if genFuncs || genSchema {
 		packagesToImport.Add("fmt")
 	}

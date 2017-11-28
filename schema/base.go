@@ -69,7 +69,7 @@ func (b *base) Index(table *Table, index *Index) string {
 	if index.Unique {
 		obj = "UNIQUE INDEX"
 	}
-	return fmt.Sprintf("CREATE %s %%s%s ON %%s%%s (%s)", obj, index.Name,
+	return fmt.Sprintf("CREATE %s %%s%%s%s ON %%s%%s (%s)", obj, index.Name,
 		b.columns(index.Fields, true, true, false))
 }
 

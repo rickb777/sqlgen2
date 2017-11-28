@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"strings"
 )
 
 // V3UserTableName is the default name for this table.
@@ -326,11 +327,19 @@ func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 
 
 func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
-	return fmt.Sprintf(sqlCreateV3UserLoginIndex, ifNotExist, tbl.Prefix, tbl.Name)
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	}
+	return fmt.Sprintf(sqlCreateV3UserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
 
 func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
-	return fmt.Sprintf(sqlCreateV3UserEmailIndex, ifNotExist, tbl.Prefix, tbl.Name)
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	}
+	return fmt.Sprintf(sqlCreateV3UserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
 
 
@@ -384,11 +393,11 @@ CREATE TABLE %s%s%s (
 //--------------------------------------------------------------------------------
 
 const sqlCreateV3UserLoginIndex = `
-CREATE UNIQUE INDEX %suser_login ON %s%s (login)
+CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
 `
 
 const sqlCreateV3UserEmailIndex = `
-CREATE UNIQUE INDEX %suser_email ON %s%s (email)
+CREATE UNIQUE INDEX %s%suser_email ON %s%s (email)
 `
 
 //--------------------------------------------------------------------------------

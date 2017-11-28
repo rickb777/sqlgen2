@@ -468,7 +468,11 @@ func (tbl {{.Prefix}}{{.Type}}Table) CreateIndexes(ifNotExist bool) (err error) 
 
 {{range .Body1}}{{$n := .}}
 func (tbl {{$.Prefix}}{{$.Type}}Table) create{{$.Prefix}}{{$n}}IndexSql(ifNotExist string) string {
-	return fmt.Sprintf(sqlCreate{{$.Prefix}}{{$n}}Index, ifNotExist, tbl.Prefix, tbl.Name)
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	}
+	return fmt.Sprintf(sqlCreate{{$.Prefix}}{{$n}}Index, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
 {{end}}
 `

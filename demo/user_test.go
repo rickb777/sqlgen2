@@ -34,7 +34,7 @@ func TestCreateIndex_postgres(t *testing.T) {
 	tbl := DbUserTable{"prefix_", "users", nil, context.Background(), sqlgen2.Postgres}
 	sql := tbl.createDbUserEmailIndexSql("IF NOT EXISTS ")
 	expected := `
-CREATE UNIQUE INDEX IF NOT EXISTS user_email ON prefix_users (email)
+CREATE UNIQUE INDEX IF NOT EXISTS prefix_user_email ON prefix_users (email)
 `
 	if sql != expected {
 		t.Errorf("got %s", sql)
