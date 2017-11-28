@@ -24,6 +24,9 @@ type V3UserTable struct {
 	Dialect      sqlgen2.Dialect
 }
 
+// Type conformance check
+var _ sqlgen2.Table = V3UserTable{}
+
 // NewV3UserTable returns a new table instance.
 func NewV3UserTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) V3UserTable {
 	if name == "" {
@@ -36,6 +39,11 @@ func NewV3UserTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) V3U
 func (tbl V3UserTable) WithContext(ctx context.Context) V3UserTable {
 	tbl.Ctx = ctx
 	return tbl
+}
+
+// FullName gets the concatenated prefix and table name.
+func (tbl V3UserTable) FullName() string {
+	return tbl.Prefix + tbl.Name
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -65,7 +73,7 @@ func (tbl V3UserTable) BeginTx(opts *sql.TxOptions) (V3UserTable, error) {
 }
 
 
-// ScanV3User reads a database record into a single value.
+// ScanV3User reads a table record into a single value.
 func ScanV3User(row *sql.Row) (*User, error) {
 	var v0 int64
 	var v1 string
@@ -113,7 +121,7 @@ func ScanV3User(row *sql.Row) (*User, error) {
 	return v, nil
 }
 
-// ScanV3Users reads database records into a slice of values.
+// ScanV3Users reads table records into a slice of values.
 func ScanV3Users(rows *sql.Rows) ([]*User, error) {
 	var err error
 	var vv []*User
@@ -250,7 +258,7 @@ func SliceV3UserWithoutPk(v *User) ([]interface{}, error) {
 
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
+// It returns the number of rows affected (of the database drive supports this).
 func (tbl V3UserTable) Exec(query string, args ...interface{}) (int64, error) {
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
@@ -279,10 +287,7 @@ func (tbl V3UserTable) Query(query string, args ...interface{}) ([]*User, error)
 
 //--------------------------------------------------------------------------------
 
-// Exec executes a query without returning any rows.
-// The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
-// Not every database or database driver may support this.
+// CreateTable creates the table.
 func (tbl V3UserTable) CreateTable(ifNotExist bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExist))
 }

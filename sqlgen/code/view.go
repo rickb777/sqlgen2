@@ -18,7 +18,7 @@ type View struct {
 	Body2    []string
 	Body3    []string
 	Dialects []string
-	Table    *schema.Table
+	Table    *schema.TableDescription
 }
 
 func NewView(name, prefix string) View {

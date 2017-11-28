@@ -33,7 +33,7 @@ const (
 	PRIMARY_KEY
 )
 
-type Table struct {
+type TableDescription struct {
 	Type string
 	Name string
 
@@ -63,15 +63,15 @@ type Index struct {
 	Fields []*Field
 }
 
-func (t *Table) HasLastInsertId() bool {
+func (t *TableDescription) HasLastInsertId() bool {
 	return t.Primary != nil && t.Primary.SqlType == INTEGER
 }
 
-func (t *Table) HasPrimaryKey() bool {
+func (t *TableDescription) HasPrimaryKey() bool {
 	return t.Primary != nil
 }
 
-func (t *Table) NumColumnNames(withAuto bool) int {
+func (t *TableDescription) NumColumnNames(withAuto bool) int {
 	num := 0
 	for _, f := range t.Fields {
 		if withAuto || !f.Tags.Auto {
@@ -81,7 +81,7 @@ func (t *Table) NumColumnNames(withAuto bool) int {
 	return num
 }
 
-func (t *Table) ColumnNames(withAuto bool) []string {
+func (t *TableDescription) ColumnNames(withAuto bool) []string {
 	names := make([]string, 0, len(t.Fields))
 	for _, f := range t.Fields {
 		if withAuto || !f.Tags.Auto {

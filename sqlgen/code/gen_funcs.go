@@ -13,14 +13,14 @@ func WriteType(w io.Writer, view View) {
 	must(tTable.Execute(w, view))
 }
 
-func WriteQueryFuncs(w io.Writer, view View, table *schema.Table) {
+func WriteQueryFuncs(w io.Writer, view View, table *schema.TableDescription) {
 	fmt.Fprintln(w, sectionBreak)
 
 	must(tQueryRow.Execute(w, view))
 	must(tQueryRows.Execute(w, view))
 }
 
-func WriteSelectRow(w io.Writer, view View, table *schema.Table) {
+func WriteSelectRow(w io.Writer, view View, table *schema.TableDescription) {
 	fmt.Fprintln(w, sectionBreak)
 
 	must(tSelectRow.Execute(w, view))
@@ -32,7 +32,7 @@ func WriteSelectRow(w io.Writer, view View, table *schema.Table) {
 		identifier("", tableName, "ColumnNames"), strings.Join(table.ColumnNames(true), ", "))
 }
 
-func WriteInsertFunc(w io.Writer, view View, table *schema.Table) {
+func WriteInsertFunc(w io.Writer, view View, table *schema.TableDescription) {
 	fmt.Fprintln(w, sectionBreak)
 
 	if table.HasLastInsertId() {
@@ -62,7 +62,7 @@ func WriteInsertFunc(w io.Writer, view View, table *schema.Table) {
 
 }
 
-func WriteUpdateFunc(w io.Writer, view View, table *schema.Table) {
+func WriteUpdateFunc(w io.Writer, view View, table *schema.TableDescription) {
 	if table.HasPrimaryKey() {
 		fmt.Fprintln(w, sectionBreak)
 
@@ -77,12 +77,12 @@ func WriteUpdateFunc(w io.Writer, view View, table *schema.Table) {
 	}
 }
 
-func WriteDeleteFunc(w io.Writer, view View, table *schema.Table) {
+func WriteDeleteFunc(w io.Writer, view View, table *schema.TableDescription) {
 	fmt.Fprintln(w, sectionBreak)
 	must(tDelete.Execute(w, view))
 }
 
-func WriteExecFunc(w io.Writer, view View, table *schema.Table) {
+func WriteExecFunc(w io.Writer, view View, table *schema.TableDescription) {
 	fmt.Fprintln(w, sectionBreak)
 	must(tExec.Execute(w, view))
 }

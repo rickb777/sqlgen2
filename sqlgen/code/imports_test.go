@@ -12,7 +12,7 @@ package code
 //func TestWriteImports_withoutAny(t *testing.T) {
 //	buf := &bytes.Buffer{}
 //
-//	WriteImports(buf, &schema.Table{}, NewStringSet())
+//	WriteImports(buf, &schema.TableDescription{}, NewStringSet())
 //
 //	code := buf.String()
 //	if code != `` {
@@ -23,7 +23,7 @@ package code
 //func TestWriteImports_withoutExtras(t *testing.T) {
 //	buf := &bytes.Buffer{}
 //
-//	WriteImports(buf, &schema.Table{}, NewStringSet("foo", "bar"))
+//	WriteImports(buf, &schema.TableDescription{}, NewStringSet("foo", "bar"))
 //
 //	code := buf.String()
 //	expected := `

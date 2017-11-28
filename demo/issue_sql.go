@@ -25,6 +25,9 @@ type IssueTable struct {
 	Dialect      sqlgen2.Dialect
 }
 
+// Type conformance check
+var _ sqlgen2.Table = IssueTable{}
+
 // NewIssueTable returns a new table instance.
 func NewIssueTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) IssueTable {
 	if name == "" {
@@ -37,6 +40,11 @@ func NewIssueTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) Issu
 func (tbl IssueTable) WithContext(ctx context.Context) IssueTable {
 	tbl.Ctx = ctx
 	return tbl
+}
+
+// FullName gets the concatenated prefix and table name.
+func (tbl IssueTable) FullName() string {
+	return tbl.Prefix + tbl.Name
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -66,7 +74,7 @@ func (tbl IssueTable) BeginTx(opts *sql.TxOptions) (IssueTable, error) {
 }
 
 
-// ScanIssue reads a database record into a single value.
+// ScanIssue reads a table record into a single value.
 func ScanIssue(row *sql.Row) (*Issue, error) {
 	var v0 int64
 	var v1 int
@@ -105,7 +113,7 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 	return v, nil
 }
 
-// ScanIssues reads database records into a slice of values.
+// ScanIssues reads table records into a slice of values.
 func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 	var err error
 	var vv []*Issue
@@ -215,7 +223,7 @@ func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
+// It returns the number of rows affected (of the database drive supports this).
 func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
@@ -244,7 +252,7 @@ func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error)
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single Issue to be obtained from the database that match a 'where' clause and some limit.
+// SelectOneSA allows a single Issue to be obtained from the table that match a 'where' clause and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl IssueTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Issue, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", IssueColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
@@ -258,21 +266,21 @@ func (tbl IssueTable) SelectOne(where where.Expression, orderBy string) (*Issue,
 	return tbl.SelectOneSA(wh, orderBy, args)
 }
 
-// SelectSA allows Issues to be obtained from the database that match a 'where' clause.
+// SelectSA allows Issues to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl IssueTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Issue, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", IssueColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
-// Select allows Issues to be obtained from the database that match a 'where' clause.
+// Select allows Issues to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl IssueTable) Select(where where.Expression, orderBy string) ([]*Issue, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectSA(wh, orderBy, args)
 }
 
-// CountSA counts Issues in the database that match a 'where' clause.
+// CountSA counts Issues in the table that match a 'where' clause.
 func (tbl IssueTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args)
@@ -280,7 +288,7 @@ func (tbl IssueTable) CountSA(where string, args ...interface{}) (count int64, e
 	return count, err
 }
 
-// Count counts the Issues in the database that match a 'where' clause.
+// Count counts the Issues in the table that match a 'where' clause.
 func (tbl IssueTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(where.Build(tbl.Dialect))
 }
@@ -435,7 +443,7 @@ UPDATE %s%s SET
 
 //--------------------------------------------------------------------------------
 
-// DeleteFields deleted one or more rows, given a 'where' clause.
+// Delete deletes one or more rows from the table, given a 'where' clause.
 func (tbl IssueTable) Delete(where where.Expression) (int64, error) {
 	return tbl.Exec(tbl.deleteRows(where))
 }
@@ -448,10 +456,7 @@ func (tbl IssueTable) deleteRows(where where.Expression) (string, []interface{})
 
 //--------------------------------------------------------------------------------
 
-// Exec executes a query without returning any rows.
-// The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
-// Not every database or database driver may support this.
+// CreateTable creates the table.
 func (tbl IssueTable) CreateTable(ifNotExist bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExist))
 }

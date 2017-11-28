@@ -7,7 +7,7 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 )
 
-func WriteSliceFunc(w io.Writer, view View, table *schema.Table, withoutPk bool) {
+func WriteSliceFunc(w io.Writer, view View, table *schema.TableDescription, withoutPk bool) {
 	var depth int
 
 	for i, field := range table.Fields {

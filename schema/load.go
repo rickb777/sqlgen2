@@ -12,11 +12,11 @@ import (
 type context struct {
 	pkgStore parse.PackageStore
 	indices  map[string]*Index
-	table    *Table
+	table    *TableDescription
 }
 
-func Load(pkgStore parse.PackageStore, pkg, name string) (*Table, error) {
-	table := new(Table)
+func Load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, error) {
+	table := new(TableDescription)
 
 	// local map of indexes, used for quick lookups and de-duping.
 	indices := map[string]*Index{}

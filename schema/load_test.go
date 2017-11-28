@@ -48,7 +48,7 @@ type Author struct {
 	p2 := &Node{Name: "Author", Parent: p1}
 	author := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
 
-	expected := &Table{
+	expected := &TableDescription{
 		Type: "Example",
 		Name: "examples",
 		Fields: []*Field{
@@ -93,7 +93,7 @@ type Category int32
 	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
 	categories := &Field{Node{"Categories", Type{"", "", "Category", Slice}, nil}, "categories", BLOB, ENCJSON, Tag{Encode: "json"}}
 
-	expected := &Table{
+	expected := &TableDescription{
 		Type: "Example",
 		Name: "examples",
 		Fields: []*Field{
@@ -138,7 +138,7 @@ type Example struct {
 
 	idx := &Index{"foo", false, []*Field{aaa, bbb}}
 
-	expected := &Table{
+	expected := &TableDescription{
 		Type: "Example",
 		Name: "examples",
 		Fields: []*Field{
@@ -203,7 +203,7 @@ type Author struct {
 	email := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
 	message := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "commit_message", VARCHAR, ENCNONE, Tag{}}
 
-	expected := &Table{
+	expected := &TableDescription{
 		Type: "Example",
 		Name: "examples",
 		Fields: []*Field{
@@ -287,7 +287,7 @@ type Commit struct {
 
 	ititle := &Index{"titleIdx", false, []*Field{title}}
 
-	expected := &Table{
+	expected := &TableDescription{
 		Type: "Example",
 		Name: "examples",
 		Fields: []*Field{

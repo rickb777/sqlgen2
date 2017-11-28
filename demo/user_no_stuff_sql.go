@@ -22,6 +22,9 @@ type V4UserTable struct {
 	Dialect      sqlgen2.Dialect
 }
 
+// Type conformance check
+var _ sqlgen2.Table = V4UserTable{}
+
 // NewV4UserTable returns a new table instance.
 func NewV4UserTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) V4UserTable {
 	if name == "" {
@@ -34,6 +37,11 @@ func NewV4UserTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) V4U
 func (tbl V4UserTable) WithContext(ctx context.Context) V4UserTable {
 	tbl.Ctx = ctx
 	return tbl
+}
+
+// FullName gets the concatenated prefix and table name.
+func (tbl V4UserTable) FullName() string {
+	return tbl.Prefix + tbl.Name
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -63,7 +71,7 @@ func (tbl V4UserTable) BeginTx(opts *sql.TxOptions) (V4UserTable, error) {
 }
 
 
-// ScanV4User reads a database record into a single value.
+// ScanV4User reads a table record into a single value.
 func ScanV4User(row *sql.Row) (*User, error) {
 	var v0 int64
 	var v1 string
@@ -111,7 +119,7 @@ func ScanV4User(row *sql.Row) (*User, error) {
 	return v, nil
 }
 
-// ScanV4Users reads database records into a slice of values.
+// ScanV4Users reads table records into a slice of values.
 func ScanV4Users(rows *sql.Rows) ([]*User, error) {
 	var err error
 	var vv []*User
@@ -248,7 +256,7 @@ func SliceV4UserWithoutPk(v *User) ([]interface{}, error) {
 
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
+// It returns the number of rows affected (of the database drive supports this).
 func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {

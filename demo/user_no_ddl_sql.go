@@ -25,6 +25,9 @@ type V2UserTable struct {
 	Dialect      sqlgen2.Dialect
 }
 
+// Type conformance check
+var _ sqlgen2.Table = V2UserTable{}
+
 // NewV2UserTable returns a new table instance.
 func NewV2UserTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) V2UserTable {
 	if name == "" {
@@ -37,6 +40,11 @@ func NewV2UserTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) V2U
 func (tbl V2UserTable) WithContext(ctx context.Context) V2UserTable {
 	tbl.Ctx = ctx
 	return tbl
+}
+
+// FullName gets the concatenated prefix and table name.
+func (tbl V2UserTable) FullName() string {
+	return tbl.Prefix + tbl.Name
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -66,7 +74,7 @@ func (tbl V2UserTable) BeginTx(opts *sql.TxOptions) (V2UserTable, error) {
 }
 
 
-// ScanV2User reads a database record into a single value.
+// ScanV2User reads a table record into a single value.
 func ScanV2User(row *sql.Row) (*User, error) {
 	var v0 int64
 	var v1 string
@@ -114,7 +122,7 @@ func ScanV2User(row *sql.Row) (*User, error) {
 	return v, nil
 }
 
-// ScanV2Users reads database records into a slice of values.
+// ScanV2Users reads table records into a slice of values.
 func ScanV2Users(rows *sql.Rows) ([]*User, error) {
 	var err error
 	var vv []*User
@@ -251,7 +259,7 @@ func SliceV2UserWithoutPk(v *User) ([]interface{}, error) {
 
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
+// It returns the number of rows affected (of the database drive supports this).
 func (tbl V2UserTable) Exec(query string, args ...interface{}) (int64, error) {
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
@@ -280,7 +288,7 @@ func (tbl V2UserTable) Query(query string, args ...interface{}) ([]*User, error)
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single User to be obtained from the database that match a 'where' clause and some limit.
+// SelectOneSA allows a single User to be obtained from the table that match a 'where' clause and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl V2UserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", V2UserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
@@ -294,21 +302,21 @@ func (tbl V2UserTable) SelectOne(where where.Expression, orderBy string) (*User,
 	return tbl.SelectOneSA(wh, orderBy, args)
 }
 
-// SelectSA allows Users to be obtained from the database that match a 'where' clause.
+// SelectSA allows Users to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl V2UserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", V2UserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
-// Select allows Users to be obtained from the database that match a 'where' clause.
+// Select allows Users to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl V2UserTable) Select(where where.Expression, orderBy string) ([]*User, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectSA(wh, orderBy, args)
 }
 
-// CountSA counts Users in the database that match a 'where' clause.
+// CountSA counts Users in the table that match a 'where' clause.
 func (tbl V2UserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args)
@@ -316,7 +324,7 @@ func (tbl V2UserTable) CountSA(where string, args ...interface{}) (count int64, 
 	return count, err
 }
 
-// Count counts the Users in the database that match a 'where' clause.
+// Count counts the Users in the table that match a 'where' clause.
 func (tbl V2UserTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(where.Build(tbl.Dialect))
 }
@@ -483,7 +491,7 @@ UPDATE %s%s SET
 
 //--------------------------------------------------------------------------------
 
-// DeleteFields deleted one or more rows, given a 'where' clause.
+// Delete deletes one or more rows from the table, given a 'where' clause.
 func (tbl V2UserTable) Delete(where where.Expression) (int64, error) {
 	return tbl.Exec(tbl.deleteRows(where))
 }

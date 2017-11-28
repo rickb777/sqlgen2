@@ -9,7 +9,7 @@ import (
 
 const tabs = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 
-func WriteImports(w io.Writer, table *schema.Table, packages StringSet) {
+func WriteImports(w io.Writer, table *schema.TableDescription, packages StringSet) {
 
 	// check each edge field to see if it is
 	// encoded, which might require us to import

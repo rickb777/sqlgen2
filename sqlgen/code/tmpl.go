@@ -24,6 +24,9 @@ type {{.Prefix}}{{.Type}}Table struct {
 	Dialect      sqlgen2.Dialect
 }
 
+// Type conformance check
+var _ sqlgen2.Table = {{.Prefix}}{{.Type}}Table{}
+
 // New{{.Prefix}}{{.Type}}Table returns a new table instance.
 func New{{.Prefix}}{{.Type}}Table(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) {{.Prefix}}{{.Type}}Table {
 	if name == "" {
@@ -36,6 +39,11 @@ func New{{.Prefix}}{{.Type}}Table(prefix, name string, d *sql.DB, dialect sqlgen
 func (tbl {{.Prefix}}{{.Type}}Table) WithContext(ctx context.Context) {{.Prefix}}{{.Type}}Table {
 	tbl.Ctx = ctx
 	return tbl
+}
+
+// FullName gets the concatenated prefix and table name.
+func (tbl {{.Prefix}}{{.Type}}Table) FullName() string {
+	return tbl.Prefix + tbl.Name
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -72,7 +80,7 @@ var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
 
 // function template to scan a single row.
 const sScanRow = `
-// Scan{{.Prefix}}{{.Type}} reads a database record into a single value.
+// Scan{{.Prefix}}{{.Type}} reads a table record into a single value.
 func Scan{{.Prefix}}{{.Type}}(row *sql.Row) (*{{.Type}}, error) {
 {{range .Body1}}{{.}}{{- end}}
 	err := row.Scan(
@@ -94,7 +102,7 @@ var tScanRow = template.Must(template.New("ScanRow").Funcs(funcMap).Parse(sScanR
 
 // function template to scan multiple rows.
 const sScanRows = `
-// Scan{{.Prefix}}{{.Types}} reads database records into a slice of values.
+// Scan{{.Prefix}}{{.Types}} reads table records into a slice of values.
 func Scan{{.Prefix}}{{.Types}}(rows *sql.Rows) ([]*{{.Type}}, error) {
 	var err error
 	var vv []*{{.Type}}
@@ -163,7 +171,7 @@ var tQueryRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(s
 //-------------------------------------------------------------------------------------------------
 
 const sSelectRow = `
-// SelectOneSA allows a single {{.Type}} to be obtained from the database that match a 'where' clause and some limit.
+// SelectOneSA allows a single {{.Type}} to be obtained from the table that match a 'where' clause and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
@@ -184,14 +192,14 @@ var tSelectRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sS
 
 // function template to select multiple rows.
 const sSelectRows = `
-// SelectSA allows {{.Types}} to be obtained from the database that match a 'where' clause.
+// SelectSA allows {{.Types}} to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectSA(where, orderBy string, args ...interface{}) ([]*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
-// Select allows {{.Types}} to be obtained from the database that match a 'where' clause.
+// Select allows {{.Types}} to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl {{.Prefix}}{{.Type}}Table) Select(where where.Expression, orderBy string) ([]*{{.Type}}, error) {
 	wh, args := where.Build(tbl.Dialect)
@@ -204,7 +212,7 @@ var tSelectRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(
 //-------------------------------------------------------------------------------------------------
 
 const sCountRows = `
-// CountSA counts {{.Types}} in the database that match a 'where' clause.
+// CountSA counts {{.Types}} in the table that match a 'where' clause.
 func (tbl {{.Prefix}}{{.Type}}Table) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args)
@@ -212,7 +220,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) CountSA(where string, args ...interface{}) 
 	return count, err
 }
 
-// Count counts the {{.Types}} in the database that match a 'where' clause.
+// Count counts the {{.Types}} in the table that match a 'where' clause.
 func (tbl {{.Prefix}}{{.Type}}Table) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(where.Build(tbl.Dialect))
 }
@@ -382,7 +390,7 @@ var tUpdate = template.Must(template.New("Update").Funcs(funcMap).Parse(sUpdate)
 //-------------------------------------------------------------------------------------------------
 
 const sDelete = `
-// DeleteFields deleted one or more rows, given a 'where' clause.
+// Delete deletes one or more rows from the table, given a 'where' clause.
 func (tbl {{.Prefix}}{{.Type}}Table) Delete(where where.Expression) (int64, error) {
 	return tbl.Exec(tbl.deleteRows(where))
 }
@@ -402,7 +410,7 @@ var tDelete = template.Must(template.New("Delete").Funcs(funcMap).Parse(sDelete)
 const sExec = `
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
+// It returns the number of rows affected (of the database drive supports this).
 func (tbl {{.Prefix}}{{.Type}}Table) Exec(query string, args ...interface{}) (int64, error) {
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
@@ -418,10 +426,7 @@ var tExec = template.Must(template.New("Exec").Funcs(funcMap).Parse(sExec))
 
 // function template to create a table
 const sCreateTable = `
-// Exec executes a query without returning any rows.
-// The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
-// Not every database or database driver may support this.
+// CreateTable creates the table.
 func (tbl {{.Prefix}}{{.Type}}Table) CreateTable(ifNotExist bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExist))
 }

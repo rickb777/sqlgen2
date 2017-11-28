@@ -8,7 +8,7 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 )
 
-func WriteRowFunc(w io.Writer, view View, table *schema.Table) {
+func WriteRowFunc(w io.Writer, view View, table *schema.TableDescription) {
 
 	for i, field := range table.Fields {
 		if field.Tags.Skip {
@@ -46,7 +46,7 @@ func WriteRowFunc(w io.Writer, view View, table *schema.Table) {
 const oneTab = "\t"
 const twoTabs = "\t\t"
 
-func WriteRowsFunc(w io.Writer, view View, table *schema.Table) {
+func WriteRowsFunc(w io.Writer, view View, table *schema.TableDescription) {
 
 	for i, field := range table.Fields {
 		if field.Tags.Skip {

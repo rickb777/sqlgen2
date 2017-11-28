@@ -8,11 +8,11 @@ import (
 )
 
 type SDialect interface {
-	Table(*Table, DialectId) string
-	Index(*Table, *Index) string
-	Insert(*Table) string
-	Update(*Table, []*Field) string
-	Delete(*Table, []*Field) string
+	Table(*TableDescription, DialectId) string
+	Index(*TableDescription, *Index) string
+	Insert(*TableDescription) string
+	Update(*TableDescription, []*Field) string
+	Delete(*TableDescription, []*Field) string
 	Param(int) string
 	CreateTableSettings() string
 }
@@ -22,7 +22,7 @@ type base struct {
 }
 
 // Table returns a SQL statement to create the table.
-func (b *base) Table(t *Table, did DialectId) string {
+func (b *base) Table(t *TableDescription, did DialectId) string {
 
 	// use a large default buffer size of so that
 	// the tabbing doesn't get prematurely flushed
@@ -64,7 +64,7 @@ func (b *base) Table(t *Table, did DialectId) string {
 }
 
 // Index returns a SQL statement to create the index.
-func (b *base) Index(table *Table, index *Index) string {
+func (b *base) Index(table *TableDescription, index *Index) string {
 	var obj = "INDEX"
 	if index.Unique {
 		obj = "UNIQUE INDEX"
@@ -73,7 +73,7 @@ func (b *base) Index(table *Table, index *Index) string {
 		b.columns(index.Fields, true, true, false))
 }
 
-func (b *base) Insert(t *Table) string {
+func (b *base) Insert(t *TableDescription) string {
 	var fields []*Field
 	var params []string
 	var i int
@@ -90,13 +90,13 @@ func (b *base) Insert(t *Table) string {
 		b.columns(fields, false, false, false))
 }
 
-func (b *base) Update(t *Table, fields []*Field) string {
+func (b *base) Update(t *TableDescription, fields []*Field) string {
 	return fmt.Sprintf("UPDATE %%s%%s SET %s %s",
 		b.columns(t.Fields, false, false, true),
 		b.whereClause(fields, len(t.Fields)))
 }
 
-func (b *base) Delete(t *Table, fields []*Field) string {
+func (b *base) Delete(t *TableDescription, fields []*Field) string {
 	return fmt.Sprintf("DELETE FROM %%s%%s%s",
 		b.whereClause(fields, 0))
 }

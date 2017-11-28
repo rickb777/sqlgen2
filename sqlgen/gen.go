@@ -48,7 +48,11 @@ func main() {
 
 	o := NewOutput(oFile)
 
-	packagesToImport := NewStringSet("context", "database/sql", "github.com/rickb777/sqlgen2")
+	packagesToImport := NewStringSet(
+		"context",
+		"database/sql",
+		"github.com/rickb777/sqlgen2",
+	)
 
 	if genSchema {
 		packagesToImport.Add("strings")

@@ -24,6 +24,9 @@ type HookTable struct {
 	Dialect      sqlgen2.Dialect
 }
 
+// Type conformance check
+var _ sqlgen2.Table = HookTable{}
+
 // NewHookTable returns a new table instance.
 func NewHookTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) HookTable {
 	if name == "" {
@@ -36,6 +39,11 @@ func NewHookTable(prefix, name string, d *sql.DB, dialect sqlgen2.Dialect) HookT
 func (tbl HookTable) WithContext(ctx context.Context) HookTable {
 	tbl.Ctx = ctx
 	return tbl
+}
+
+// FullName gets the concatenated prefix and table name.
+func (tbl HookTable) FullName() string {
+	return tbl.Prefix + tbl.Name
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -65,7 +73,7 @@ func (tbl HookTable) BeginTx(opts *sql.TxOptions) (HookTable, error) {
 }
 
 
-// ScanHook reads a database record into a single value.
+// ScanHook reads a table record into a single value.
 func ScanHook(row *sql.Row) (*Hook, error) {
 	var v0 int64
 	var v1 string
@@ -131,7 +139,7 @@ func ScanHook(row *sql.Row) (*Hook, error) {
 	return v, nil
 }
 
-// ScanHooks reads database records into a slice of values.
+// ScanHooks reads table records into a slice of values.
 func ScanHooks(rows *sql.Rows) ([]*Hook, error) {
 	var err error
 	var vv []*Hook
@@ -322,7 +330,7 @@ func SliceHookWithoutPk(v *Hook) ([]interface{}, error) {
 
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
+// It returns the number of rows affected (of the database drive supports this).
 func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
@@ -351,7 +359,7 @@ func (tbl HookTable) Query(query string, args ...interface{}) ([]*Hook, error) {
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single Hook to be obtained from the database that match a 'where' clause and some limit.
+// SelectOneSA allows a single Hook to be obtained from the table that match a 'where' clause and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", HookColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
@@ -365,21 +373,21 @@ func (tbl HookTable) SelectOne(where where.Expression, orderBy string) (*Hook, e
 	return tbl.SelectOneSA(wh, orderBy, args)
 }
 
-// SelectSA allows Hooks to be obtained from the database that match a 'where' clause.
+// SelectSA allows Hooks to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl HookTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", HookColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
-// Select allows Hooks to be obtained from the database that match a 'where' clause.
+// Select allows Hooks to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl HookTable) Select(where where.Expression, orderBy string) ([]*Hook, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectSA(wh, orderBy, args)
 }
 
-// CountSA counts Hooks in the database that match a 'where' clause.
+// CountSA counts Hooks in the table that match a 'where' clause.
 func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args)
@@ -387,7 +395,7 @@ func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, er
 	return count, err
 }
 
-// Count counts the Hooks in the database that match a 'where' clause.
+// Count counts the Hooks in the table that match a 'where' clause.
 func (tbl HookTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(where.Build(tbl.Dialect))
 }
@@ -582,7 +590,7 @@ UPDATE %s%s SET
 
 //--------------------------------------------------------------------------------
 
-// DeleteFields deleted one or more rows, given a 'where' clause.
+// Delete deletes one or more rows from the table, given a 'where' clause.
 func (tbl HookTable) Delete(where where.Expression) (int64, error) {
 	return tbl.Exec(tbl.deleteRows(where))
 }
@@ -595,10 +603,7 @@ func (tbl HookTable) deleteRows(where where.Expression) (string, []interface{}) 
 
 //--------------------------------------------------------------------------------
 
-// Exec executes a query without returning any rows.
-// The args are for any placeholder parameters in the query.
-// It returns the number of rows affected.
-// Not every database or database driver may support this.
+// CreateTable creates the table.
 func (tbl HookTable) CreateTable(ifNotExist bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExist))
 }
