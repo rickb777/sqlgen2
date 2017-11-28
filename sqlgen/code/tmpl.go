@@ -111,9 +111,9 @@ var tScanRow = template.Must(template.New("ScanRow").Funcs(funcMap).Parse(sScanR
 // function template to scan multiple rows.
 const sScanRows = `
 // Scan{{.Prefix}}{{.Types}} reads table records into a slice of values.
-func Scan{{.Prefix}}{{.Types}}(rows *sql.Rows) ([]*{{.Type}}, error) {
+func Scan{{.Prefix}}{{.Types}}(rows *sql.Rows) ({{.List}}, error) {
 	var err error
-	var vv []*{{.Type}}
+	var vv {{.List}}
 
 {{range .Body1}}{{.}}{{- end}}
 	for rows.Next() {
@@ -164,7 +164,7 @@ var tQueryRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sQu
 
 const sQueryRows = `
 // Query is the low-level access function for {{.Types}}.
-func (tbl {{.Prefix}}{{.Type}}Table) Query(query string, args ...interface{}) ([]*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}Table) Query(query string, args ...interface{}) ({{.List}}, error) {
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -202,14 +202,14 @@ var tSelectRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sS
 const sSelectRows = `
 // SelectSA allows {{.Types}} to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
-func (tbl {{.Prefix}}{{.Type}}Table) SelectSA(where, orderBy string, args ...interface{}) ([]*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}Table) SelectSA(where, orderBy string, args ...interface{}) ({{.List}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows {{.Types}} to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
-func (tbl {{.Prefix}}{{.Type}}Table) Select(where where.Expression, orderBy string) ([]*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}Table) Select(where where.Expression, orderBy string) ({{.List}}, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectSA(wh, orderBy, args)
 }

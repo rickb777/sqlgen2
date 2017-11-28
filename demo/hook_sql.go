@@ -148,9 +148,9 @@ func ScanHook(row *sql.Row) (*Hook, error) {
 }
 
 // ScanHooks reads table records into a slice of values.
-func ScanHooks(rows *sql.Rows) ([]*Hook, error) {
+func ScanHooks(rows *sql.Rows) (HookList, error) {
 	var err error
-	var vv []*Hook
+	var vv HookList
 
 	var v0 int64
 	var v1 string
@@ -356,7 +356,7 @@ func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) 
 }
 
 // Query is the low-level access function for Hooks.
-func (tbl HookTable) Query(query string, args ...interface{}) ([]*Hook, error) {
+func (tbl HookTable) Query(query string, args ...interface{}) (HookList, error) {
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -383,14 +383,14 @@ func (tbl HookTable) SelectOne(where where.Expression, orderBy string) (*Hook, e
 
 // SelectSA allows Hooks to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
-func (tbl HookTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Hook, error) {
+func (tbl HookTable) SelectSA(where, orderBy string, args ...interface{}) (HookList, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", HookColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Hooks to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
-func (tbl HookTable) Select(where where.Expression, orderBy string) ([]*Hook, error) {
+func (tbl HookTable) Select(where where.Expression, orderBy string) (HookList, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectSA(wh, orderBy, args)
 }

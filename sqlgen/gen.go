@@ -14,12 +14,13 @@ import (
 )
 
 func main() {
-	var oFile, typeName, prefix string
+	var oFile, typeName, prefix, list string
 	var genSchema, genFuncs, gofmt bool
 
 	flag.StringVar(&oFile, "o", "", "output file name (or file path); if omitted, the first input filename is used with _sql.go suffix")
 	flag.StringVar(&typeName, "type", "", "type to generate; required")
 	flag.StringVar(&prefix, "prefix", "", "prefix for names of generated types; optional")
+	flag.StringVar(&list, "list", "", "list type for slice of model objects; optional")
 	flag.BoolVar(&Verbose, "v", false, "progress messages")
 	flag.BoolVar(&parse.Debug, "z", false, "debug messages")
 	flag.BoolVar(&parse.PrintAST, "ast", false, "trace the whole astract syntax tree (very verbose)")
@@ -84,7 +85,7 @@ func main() {
 
 	WritePackage(buf, pkg)
 
-	view := NewView(name, prefix)
+	view := NewView(name, prefix, list)
 	view.Table = table
 	view.Dialects = schema.Dialects
 

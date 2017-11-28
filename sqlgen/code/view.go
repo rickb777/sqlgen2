@@ -13,6 +13,7 @@ type View struct {
 	Prefix   string
 	Type     string
 	Types    string
+	List     string
 	Suffix   string
 	Body1    []string
 	Body2    []string
@@ -21,11 +22,15 @@ type View struct {
 	Table    *schema.TableDescription
 }
 
-func NewView(name, prefix string) View {
+func NewView(name, prefix, list string) View {
+	if list == "" {
+		list = fmt.Sprintf("[]*%s", name)
+	}
 	return View{
 		Prefix: prefix,
 		Type:   name,
 		Types:  Pluralize(name),
+		List:   list,
 	}
 }
 

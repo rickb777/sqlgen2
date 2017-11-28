@@ -4,7 +4,7 @@ package demo
 //   * embedded structs
 //   * the use of pointers for optional items
 
-//go:generate sqlgen -type demo.Hook -o hook_sql.go -v hook.go
+//go:generate sqlgen -type demo.Hook -o hook_sql.go -list HookList -v hook.go
 
 type Hook struct {
 	Id  int64 `sql:"pk: true, auto: true"`
@@ -16,6 +16,8 @@ type Hook struct {
 	Forced     bool
 	HeadCommit *Commit `sql:"name: head"`
 }
+
+type HookList []*Hook
 
 type Dates struct {
 	After  string
