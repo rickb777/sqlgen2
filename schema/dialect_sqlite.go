@@ -1,5 +1,9 @@
 package schema
 
+//import (
+//	_ "github.com/mattn/go-sqlite3"
+//)
+
 type sqlite struct {
 	base
 }

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"log"
 	"strings"
 )
 
@@ -22,6 +23,7 @@ type V3UserTable struct {
 	Db           sqlgen2.Execer
 	Ctx          context.Context
 	Dialect      sqlgen2.Dialect
+	Logger       *log.Logger
 }
 
 // Type conformance check
@@ -34,7 +36,7 @@ func NewV3UserTable(name string, d *sql.DB, dialect sqlgen2.Dialect) V3UserTable
 	if name == "" {
 		name = V3UserTableName
 	}
-	return V3UserTable{"", name, d, context.Background(), dialect}
+	return V3UserTable{"", name, d, context.Background(), dialect, nil}
 }
 
 // WithPrefix sets the prefix for subsequent queries.
@@ -46,6 +48,12 @@ func (tbl V3UserTable) WithPrefix(pfx string) V3UserTable {
 // WithContext sets the context for subsequent queries.
 func (tbl V3UserTable) WithContext(ctx context.Context) V3UserTable {
 	tbl.Ctx = ctx
+	return tbl
+}
+
+// WithLogger sets the logger for subsequent queries.
+func (tbl V3UserTable) WithLogger(logger *log.Logger) V3UserTable {
+	tbl.Logger = logger
 	return tbl
 }
 
@@ -78,6 +86,12 @@ func (tbl V3UserTable) BeginTx(opts *sql.TxOptions) (V3UserTable, error) {
 	var err error
 	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
 	return tbl, err
+}
+
+func (tbl V3UserTable) logQuery(query string, args ...interface{}) {
+	if tbl.Logger != nil {
+		tbl.Logger.Printf(query + " %v\n", args)
+	}
 }
 
 
@@ -268,6 +282,7 @@ func SliceV3UserWithoutPk(v *User) ([]interface{}, error) {
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected (of the database drive supports this).
 func (tbl V3UserTable) Exec(query string, args ...interface{}) (int64, error) {
+	tbl.logQuery(query, args...)
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return 0, nil
@@ -279,12 +294,14 @@ func (tbl V3UserTable) Exec(query string, args ...interface{}) (int64, error) {
 
 // QueryOne is the low-level access function for one User.
 func (tbl V3UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
 	return ScanV3User(row)
 }
 
 // Query is the low-level access function for Users.
 func (tbl V3UserTable) Query(query string, args ...interface{}) ([]*User, error) {
+	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -319,7 +336,7 @@ func (tbl V3UserTable) ternary(flag bool, a, b string) string {
 	return b
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
@@ -353,6 +370,16 @@ func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
 		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
 	}
 	return fmt.Sprintf(sqlCreateV3UserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
+
+
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ifNotExist)
+	if err != nil {
+		return err
+	}
+	return tbl.CreateIndexes(ifNotExist)
 }
 
 

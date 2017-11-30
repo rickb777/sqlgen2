@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/rickb777/sqlgen2"
+	"log"
 )
 
 // V4UserTableName is the default name for this table.
@@ -20,6 +21,7 @@ type V4UserTable struct {
 	Db           sqlgen2.Execer
 	Ctx          context.Context
 	Dialect      sqlgen2.Dialect
+	Logger       *log.Logger
 }
 
 // Type conformance check
@@ -32,7 +34,7 @@ func NewV4UserTable(name string, d *sql.DB, dialect sqlgen2.Dialect) V4UserTable
 	if name == "" {
 		name = V4UserTableName
 	}
-	return V4UserTable{"", name, d, context.Background(), dialect}
+	return V4UserTable{"", name, d, context.Background(), dialect, nil}
 }
 
 // WithPrefix sets the prefix for subsequent queries.
@@ -44,6 +46,12 @@ func (tbl V4UserTable) WithPrefix(pfx string) V4UserTable {
 // WithContext sets the context for subsequent queries.
 func (tbl V4UserTable) WithContext(ctx context.Context) V4UserTable {
 	tbl.Ctx = ctx
+	return tbl
+}
+
+// WithLogger sets the logger for subsequent queries.
+func (tbl V4UserTable) WithLogger(logger *log.Logger) V4UserTable {
+	tbl.Logger = logger
 	return tbl
 }
 
@@ -76,6 +84,12 @@ func (tbl V4UserTable) BeginTx(opts *sql.TxOptions) (V4UserTable, error) {
 	var err error
 	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
 	return tbl, err
+}
+
+func (tbl V4UserTable) logQuery(query string, args ...interface{}) {
+	if tbl.Logger != nil {
+		tbl.Logger.Printf(query + " %v\n", args)
+	}
 }
 
 
@@ -266,6 +280,7 @@ func SliceV4UserWithoutPk(v *User) ([]interface{}, error) {
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected (of the database drive supports this).
 func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
+	tbl.logQuery(query, args...)
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return 0, nil
@@ -277,12 +292,14 @@ func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
 
 // QueryOne is the low-level access function for one User.
 func (tbl V4UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
 	return ScanV4User(row)
 }
 
 // Query is the low-level access function for Users.
 func (tbl V4UserTable) Query(query string, args ...interface{}) ([]*User, error) {
+	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err

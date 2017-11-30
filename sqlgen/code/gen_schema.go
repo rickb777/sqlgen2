@@ -85,17 +85,14 @@ func WriteSchema(w io.Writer, view View, table *schema.TableDescription) {
 	fmt.Fprintln(w, sectionBreak)
 }
 
-func WriteCreateTableFunc(w io.Writer, view View, table *schema.TableDescription) {
+func WriteCreateTableAndIndexesFunc(w io.Writer, view View, table *schema.TableDescription) {
 	fmt.Fprintln(w, sectionBreak)
-	must(tCreateTable.Execute(w, view))
-}
 
-func WriteCreateIndexFunc(w io.Writer, view View, table *schema.TableDescription) {
-	fmt.Fprintln(w, sectionBreak)
 	for _, ix := range table.Index {
 		view.Body1 = append(view.Body1, inflect.Camelize(ix.Name))
 	}
-	must(tCreateIndex.Execute(w, view))
+
+	must(tCreateTableAndIndexes.Execute(w, view))
 }
 
 func identifier(prefix, id, suffix string) string {

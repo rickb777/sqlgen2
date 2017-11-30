@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
+	"log"
 	"strings"
 )
 
@@ -22,6 +23,7 @@ type HookTable struct {
 	Db           sqlgen2.Execer
 	Ctx          context.Context
 	Dialect      sqlgen2.Dialect
+	Logger       *log.Logger
 }
 
 // Type conformance check
@@ -34,7 +36,7 @@ func NewHookTable(name string, d *sql.DB, dialect sqlgen2.Dialect) HookTable {
 	if name == "" {
 		name = HookTableName
 	}
-	return HookTable{"", name, d, context.Background(), dialect}
+	return HookTable{"", name, d, context.Background(), dialect, nil}
 }
 
 // WithPrefix sets the prefix for subsequent queries.
@@ -46,6 +48,12 @@ func (tbl HookTable) WithPrefix(pfx string) HookTable {
 // WithContext sets the context for subsequent queries.
 func (tbl HookTable) WithContext(ctx context.Context) HookTable {
 	tbl.Ctx = ctx
+	return tbl
+}
+
+// WithLogger sets the logger for subsequent queries.
+func (tbl HookTable) WithLogger(logger *log.Logger) HookTable {
+	tbl.Logger = logger
 	return tbl
 }
 
@@ -78,6 +86,12 @@ func (tbl HookTable) BeginTx(opts *sql.TxOptions) (HookTable, error) {
 	var err error
 	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
 	return tbl, err
+}
+
+func (tbl HookTable) logQuery(query string, args ...interface{}) {
+	if tbl.Logger != nil {
+		tbl.Logger.Printf(query + " %v\n", args)
+	}
 }
 
 
@@ -340,6 +354,7 @@ func SliceHookWithoutPk(v *Hook) ([]interface{}, error) {
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected (of the database drive supports this).
 func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
+	tbl.logQuery(query, args...)
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return 0, nil
@@ -351,12 +366,14 @@ func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
 
 // QueryOne is the low-level access function for one Hook.
 func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) {
+	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
 	return ScanHook(row)
 }
 
 // Query is the low-level access function for Hooks.
 func (tbl HookTable) Query(query string, args ...interface{}) (HookList, error) {
+	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -378,7 +395,7 @@ func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*H
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl HookTable) SelectOne(where where.Expression, orderBy string) (*Hook, error) {
 	wh, args := where.Build(tbl.Dialect)
-	return tbl.SelectOneSA(wh, orderBy, args)
+	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Hooks to be obtained from the table that match a 'where' clause.
@@ -392,20 +409,22 @@ func (tbl HookTable) SelectSA(where, orderBy string, args ...interface{}) (HookL
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl HookTable) Select(where where.Expression, orderBy string) (HookList, error) {
 	wh, args := where.Build(tbl.Dialect)
-	return tbl.SelectSA(wh, orderBy, args)
+	return tbl.SelectSA(wh, orderBy, args...)
 }
 
 // CountSA counts Hooks in the table that match a 'where' clause.
 func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args)
+	tbl.logQuery(query, args...)
+	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
 	err = row.Scan(&count)
 	return count, err
 }
 
 // Count counts the Hooks in the table that match a 'where' clause.
 func (tbl HookTable) Count(where where.Expression) (count int64, err error) {
-	return tbl.CountSA(where.Build(tbl.Dialect))
+	wh, args := where.Build(tbl.Dialect)
+	return tbl.CountSA(wh, args...)
 }
 
 const HookColumnNames = "id, sha, dates_after, dates_before, category, created, deleted, forced, head_commit_id, head_commit_message, head_commit_timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
@@ -426,7 +445,8 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 		params = sHookDataColumnParamsSimple
 	}
 
-	st, err := tbl.Db.PrepareContext(tbl.Ctx, fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
+	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params)
+	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
 	if err != nil {
 		return err
 	}
@@ -434,7 +454,7 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreInsert(sqlgen2.Execer)}); ok {
+		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
 			hook.PreInsert(tbl.Db)
 		}
 
@@ -443,6 +463,7 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 			return err
 		}
 
+		tbl.logQuery(query, fields...)
 		res, err := st.Exec(fields...)
 		if err != nil {
 			return err
@@ -545,6 +566,7 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 		}
 
 		args = append(args, v.Id)
+		tbl.logQuery(query, args...)
 		n, err := tbl.Exec(query, args...)
 		if err != nil {
 			return count, err
@@ -600,7 +622,8 @@ UPDATE %s%s SET
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 func (tbl HookTable) Delete(where where.Expression) (int64, error) {
-	return tbl.Exec(tbl.deleteRows(where))
+	query, args := tbl.deleteRows(where)
+	return tbl.Exec(query, args...)
 }
 
 func (tbl HookTable) deleteRows(where where.Expression) (string, []interface{}) {
@@ -635,7 +658,7 @@ func (tbl HookTable) ternary(flag bool, a, b string) string {
 	return b
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateIndexes executes queries that create the indexes needed by the Hook table.
 func (tbl HookTable) CreateIndexes(ifNotExist bool) (err error) {
@@ -643,6 +666,16 @@ func (tbl HookTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
+
+
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl HookTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ifNotExist)
+	if err != nil {
+		return err
+	}
+	return tbl.CreateIndexes(ifNotExist)
+}
 
 
 //--------------------------------------------------------------------------------

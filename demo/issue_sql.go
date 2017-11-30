@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
+	"log"
 	"strings"
 )
 
@@ -23,6 +24,7 @@ type IssueTable struct {
 	Db           sqlgen2.Execer
 	Ctx          context.Context
 	Dialect      sqlgen2.Dialect
+	Logger       *log.Logger
 }
 
 // Type conformance check
@@ -35,7 +37,7 @@ func NewIssueTable(name string, d *sql.DB, dialect sqlgen2.Dialect) IssueTable {
 	if name == "" {
 		name = IssueTableName
 	}
-	return IssueTable{"", name, d, context.Background(), dialect}
+	return IssueTable{"", name, d, context.Background(), dialect, nil}
 }
 
 // WithPrefix sets the prefix for subsequent queries.
@@ -47,6 +49,12 @@ func (tbl IssueTable) WithPrefix(pfx string) IssueTable {
 // WithContext sets the context for subsequent queries.
 func (tbl IssueTable) WithContext(ctx context.Context) IssueTable {
 	tbl.Ctx = ctx
+	return tbl
+}
+
+// WithLogger sets the logger for subsequent queries.
+func (tbl IssueTable) WithLogger(logger *log.Logger) IssueTable {
+	tbl.Logger = logger
 	return tbl
 }
 
@@ -79,6 +87,12 @@ func (tbl IssueTable) BeginTx(opts *sql.TxOptions) (IssueTable, error) {
 	var err error
 	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
 	return tbl, err
+}
+
+func (tbl IssueTable) logQuery(query string, args ...interface{}) {
+	if tbl.Logger != nil {
+		tbl.Logger.Printf(query + " %v\n", args)
+	}
 }
 
 
@@ -233,6 +247,7 @@ func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected (of the database drive supports this).
 func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
+	tbl.logQuery(query, args...)
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return 0, nil
@@ -244,12 +259,14 @@ func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
 
 // QueryOne is the low-level access function for one Issue.
 func (tbl IssueTable) QueryOne(query string, args ...interface{}) (*Issue, error) {
+	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
 	return ScanIssue(row)
 }
 
 // Query is the low-level access function for Issues.
 func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error) {
+	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -271,7 +288,7 @@ func (tbl IssueTable) SelectOneSA(where, orderBy string, args ...interface{}) (*
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl IssueTable) SelectOne(where where.Expression, orderBy string) (*Issue, error) {
 	wh, args := where.Build(tbl.Dialect)
-	return tbl.SelectOneSA(wh, orderBy, args)
+	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Issues to be obtained from the table that match a 'where' clause.
@@ -285,20 +302,22 @@ func (tbl IssueTable) SelectSA(where, orderBy string, args ...interface{}) ([]*I
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl IssueTable) Select(where where.Expression, orderBy string) ([]*Issue, error) {
 	wh, args := where.Build(tbl.Dialect)
-	return tbl.SelectSA(wh, orderBy, args)
+	return tbl.SelectSA(wh, orderBy, args...)
 }
 
 // CountSA counts Issues in the table that match a 'where' clause.
 func (tbl IssueTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args)
+	tbl.logQuery(query, args...)
+	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
 	err = row.Scan(&count)
 	return count, err
 }
 
 // Count counts the Issues in the table that match a 'where' clause.
 func (tbl IssueTable) Count(where where.Expression) (count int64, err error) {
-	return tbl.CountSA(where.Build(tbl.Dialect))
+	wh, args := where.Build(tbl.Dialect)
+	return tbl.CountSA(wh, args...)
 }
 
 const IssueColumnNames = "id, number, title, bigbody, assignee, state, labels"
@@ -319,7 +338,8 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 		params = sIssueDataColumnParamsSimple
 	}
 
-	st, err := tbl.Db.PrepareContext(tbl.Ctx, fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
+	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params)
+	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
 	if err != nil {
 		return err
 	}
@@ -327,7 +347,7 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreInsert(sqlgen2.Execer)}); ok {
+		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
 			hook.PreInsert(tbl.Db)
 		}
 
@@ -336,6 +356,7 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 			return err
 		}
 
+		tbl.logQuery(query, fields...)
 		res, err := st.Exec(fields...)
 		if err != nil {
 			return err
@@ -418,6 +439,7 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 		}
 
 		args = append(args, v.Id)
+		tbl.logQuery(query, args...)
 		n, err := tbl.Exec(query, args...)
 		if err != nil {
 			return count, err
@@ -453,7 +475,8 @@ UPDATE %s%s SET
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 func (tbl IssueTable) Delete(where where.Expression) (int64, error) {
-	return tbl.Exec(tbl.deleteRows(where))
+	query, args := tbl.deleteRows(where)
+	return tbl.Exec(query, args...)
 }
 
 func (tbl IssueTable) deleteRows(where where.Expression) (string, []interface{}) {
@@ -488,7 +511,7 @@ func (tbl IssueTable) ternary(flag bool, a, b string) string {
 	return b
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateIndexes executes queries that create the indexes needed by the Issue table.
 func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
@@ -509,6 +532,16 @@ func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExist string) string {
 		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
 	}
 	return fmt.Sprintf(sqlCreateIssueAssigneeIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
+
+
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl IssueTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ifNotExist)
+	if err != nil {
+		return err
+	}
+	return tbl.CreateIndexes(ifNotExist)
 }
 
 

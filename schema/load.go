@@ -7,12 +7,14 @@ import (
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"go/types"
 	"strings"
+	"github.com/rickb777/sqlgen2/sqlgen/output"
 )
 
 type context struct {
-	pkgStore parse.PackageStore
-	indices  map[string]*Index
-	table    *TableDescription
+	pkgStore         parse.PackageStore
+	indices          map[string]*Index
+	table            *TableDescription
+	unexportedFields []string
 }
 
 func Load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, error) {
@@ -25,8 +27,13 @@ func Load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, err
 	table.Name = Pluralize(Underscore(table.Type))
 
 	str, tags := pkgStore.Find(pkg, name)
-	ctx := &context{pkgStore, indices, table}
+	ctx := &context{pkgStore, indices, table, nil}
 	ctx.examineStruct(str, pkg, name, tags, nil)
+
+	if len(ctx.unexportedFields) > 0 {
+		output.Info("Warning: %s.%s contains unexported fields %s"+
+			" (perhaps annotate with `sql:\"-\"`).\n", pkg, name, strings.Join(ctx.unexportedFields, ", "))
+	}
 	return table, nil
 }
 
@@ -41,8 +48,7 @@ func (ctx *context) examineStruct(str *types.Struct, pkg, name string, tags map[
 
 		if !tField.Exported() {
 			if tag, exists := tags[tField.Name()]; !exists || (exists && !tag.Skip) {
-				fmt.Printf("Warning: %s.%s contains unexported field %q,"+
-					" (perhaps it needs to be annotated with `sql:\"-\"`).\n", pkg, name, tField.Name())
+				ctx.unexportedFields = append(ctx.unexportedFields, tField.Name())
 			}
 		}
 

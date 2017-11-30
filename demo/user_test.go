@@ -5,11 +5,10 @@ import (
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
 	"reflect"
-	"context"
 )
 
 func TestCreateTable_postgres(t *testing.T) {
-	tbl := DbUserTable{"prefix_", "users", nil, context.Background(), sqlgen2.Postgres}
+	tbl := NewDbUserTable("users", nil, sqlgen2.Postgres).WithPrefix("prefix_")
 	sql := tbl.createTableSql(true)
 	expected := `
 CREATE TABLE IF NOT EXISTS prefix_users (
@@ -31,7 +30,7 @@ CREATE TABLE IF NOT EXISTS prefix_users (
 }
 
 func TestCreateIndex_postgres(t *testing.T) {
-	tbl := DbUserTable{"prefix_", "users", nil, context.Background(), sqlgen2.Postgres}
+	tbl := NewDbUserTable("users", nil, sqlgen2.Postgres).WithPrefix("prefix_")
 	sql := tbl.createDbUserEmailIndexSql("IF NOT EXISTS ")
 	expected := `
 CREATE UNIQUE INDEX IF NOT EXISTS prefix_user_email ON prefix_users (email)
@@ -42,8 +41,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS prefix_user_email ON prefix_users (email)
 }
 
 func TestUpdateFields_postgres(t *testing.T) {
-	cases := []struct{
-		d sqlgen2.Dialect
+	cases := []struct {
+		d        sqlgen2.Dialect
 		expected string
 	}{
 		{sqlgen2.Mysql, `UPDATE prefix_users SET Email=?, Hash=? WHERE Email ISNULL`},
@@ -51,7 +50,7 @@ func TestUpdateFields_postgres(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		tbl := DbUserTable{"prefix_", "users", nil, context.Background(), c.d}
+		tbl := NewDbUserTable("users", nil, c.d).WithPrefix("prefix_")
 
 		sql, args := tbl.updateFields(where.Null("Email"),
 			sqlgen2.Named("Email", "foo@x.com"), sqlgen2.Named("Hash", "abc123"))

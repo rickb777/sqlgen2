@@ -20,9 +20,13 @@ type Execer interface {
 var _ Execer = &sql.DB{}
 var _ Execer = &sql.Tx{}
 
+type CanPreInsert interface {
+	PreInsert(Execer) error
+}
+
 //-------------------------------------------------------------------------------------------------
 
-// Table
+// Table provides the generic features of each generated table handler.
 type Table interface {
 	// FullName gets the concatenated prefix and table name.
 	FullName() string
@@ -39,3 +43,26 @@ type Table interface {
 	IsTx() bool
 }
 
+type TableWithDDL interface {
+	Table
+	CreateTable(ifNotExist bool) (int64, error)
+	CreateIndexes(ifNotExist bool) (err error)
+	CreateTableWithIndexes(ifNotExist bool) (err error)
+}
+
+type TableWithCrud interface {
+	Table
+	Exec(query string, args ...interface{}) (int64, error)
+	//QueryOne(query string, args ...interface{}) (*User, error)
+	//Query(query string, args ...interface{}) ([]*User, error)
+	//SelectOneSA(where, orderBy string, args ...interface{}) (*User, error)
+	//SelectOne(where where.Expression, orderBy string) (*User, error)
+	//SelectSA(where, orderBy string, args ...interface{}) ([]*User, error)
+	//Select(where where.Expression, orderBy string) ([]*User, error)
+	CountSA(where string, args ...interface{}) (count int64, err error)
+	//Count(where where.Expression) (count int64, err error)
+	//Insert(vv ...*User) error
+	//UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error)
+	//Update(vv ...*User) (int64, error)
+	//Delete(where where.Expression) (int64, error)
+}

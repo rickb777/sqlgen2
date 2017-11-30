@@ -52,6 +52,7 @@ func main() {
 	packagesToImport := NewStringSet(
 		"context",
 		"database/sql",
+		"log",
 		"github.com/rickb777/sqlgen2",
 	)
 
@@ -107,8 +108,7 @@ func main() {
 	}
 
 	if genSchema {
-		WriteCreateTableFunc(buf, view, table)
-		WriteCreateIndexFunc(buf, view, table)
+		WriteCreateTableAndIndexesFunc(buf, view, table)
 		WriteSchema(buf, view, table)
 	}
 

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
+	"log"
 	"strings"
 )
 
@@ -23,6 +24,7 @@ type V2UserTable struct {
 	Db           sqlgen2.Execer
 	Ctx          context.Context
 	Dialect      sqlgen2.Dialect
+	Logger       *log.Logger
 }
 
 // Type conformance check
@@ -35,7 +37,7 @@ func NewV2UserTable(name string, d *sql.DB, dialect sqlgen2.Dialect) V2UserTable
 	if name == "" {
 		name = V2UserTableName
 	}
-	return V2UserTable{"", name, d, context.Background(), dialect}
+	return V2UserTable{"", name, d, context.Background(), dialect, nil}
 }
 
 // WithPrefix sets the prefix for subsequent queries.
@@ -47,6 +49,12 @@ func (tbl V2UserTable) WithPrefix(pfx string) V2UserTable {
 // WithContext sets the context for subsequent queries.
 func (tbl V2UserTable) WithContext(ctx context.Context) V2UserTable {
 	tbl.Ctx = ctx
+	return tbl
+}
+
+// WithLogger sets the logger for subsequent queries.
+func (tbl V2UserTable) WithLogger(logger *log.Logger) V2UserTable {
+	tbl.Logger = logger
 	return tbl
 }
 
@@ -79,6 +87,12 @@ func (tbl V2UserTable) BeginTx(opts *sql.TxOptions) (V2UserTable, error) {
 	var err error
 	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
 	return tbl, err
+}
+
+func (tbl V2UserTable) logQuery(query string, args ...interface{}) {
+	if tbl.Logger != nil {
+		tbl.Logger.Printf(query + " %v\n", args)
+	}
 }
 
 
@@ -269,6 +283,7 @@ func SliceV2UserWithoutPk(v *User) ([]interface{}, error) {
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected (of the database drive supports this).
 func (tbl V2UserTable) Exec(query string, args ...interface{}) (int64, error) {
+	tbl.logQuery(query, args...)
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return 0, nil
@@ -280,12 +295,14 @@ func (tbl V2UserTable) Exec(query string, args ...interface{}) (int64, error) {
 
 // QueryOne is the low-level access function for one User.
 func (tbl V2UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
 	return ScanV2User(row)
 }
 
 // Query is the low-level access function for Users.
 func (tbl V2UserTable) Query(query string, args ...interface{}) ([]*User, error) {
+	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -307,7 +324,7 @@ func (tbl V2UserTable) SelectOneSA(where, orderBy string, args ...interface{}) (
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl V2UserTable) SelectOne(where where.Expression, orderBy string) (*User, error) {
 	wh, args := where.Build(tbl.Dialect)
-	return tbl.SelectOneSA(wh, orderBy, args)
+	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Users to be obtained from the table that match a 'where' clause.
@@ -321,20 +338,22 @@ func (tbl V2UserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl V2UserTable) Select(where where.Expression, orderBy string) ([]*User, error) {
 	wh, args := where.Build(tbl.Dialect)
-	return tbl.SelectSA(wh, orderBy, args)
+	return tbl.SelectSA(wh, orderBy, args...)
 }
 
 // CountSA counts Users in the table that match a 'where' clause.
 func (tbl V2UserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args)
+	tbl.logQuery(query, args...)
+	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
 	err = row.Scan(&count)
 	return count, err
 }
 
 // Count counts the Users in the table that match a 'where' clause.
 func (tbl V2UserTable) Count(where where.Expression) (count int64, err error) {
-	return tbl.CountSA(where.Build(tbl.Dialect))
+	wh, args := where.Build(tbl.Dialect)
+	return tbl.CountSA(wh, args...)
 }
 
 const V2UserColumnNames = "uid, login, email, avatar, active, admin, fave, token, secret, hash"
@@ -355,7 +374,8 @@ func (tbl V2UserTable) Insert(vv ...*User) error {
 		params = sV2UserDataColumnParamsSimple
 	}
 
-	st, err := tbl.Db.PrepareContext(tbl.Ctx, fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
+	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params)
+	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
 	if err != nil {
 		return err
 	}
@@ -363,7 +383,7 @@ func (tbl V2UserTable) Insert(vv ...*User) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreInsert(sqlgen2.Execer)}); ok {
+		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
 			hook.PreInsert(tbl.Db)
 		}
 
@@ -372,6 +392,7 @@ func (tbl V2UserTable) Insert(vv ...*User) error {
 			return err
 		}
 
+		tbl.logQuery(query, fields...)
 		res, err := st.Exec(fields...)
 		if err != nil {
 			return err
@@ -460,6 +481,7 @@ func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 		}
 
 		args = append(args, v.Uid)
+		tbl.logQuery(query, args...)
 		n, err := tbl.Exec(query, args...)
 		if err != nil {
 			return count, err
@@ -501,7 +523,8 @@ UPDATE %s%s SET
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 func (tbl V2UserTable) Delete(where where.Expression) (int64, error) {
-	return tbl.Exec(tbl.deleteRows(where))
+	query, args := tbl.deleteRows(where)
+	return tbl.Exec(query, args...)
 }
 
 func (tbl V2UserTable) deleteRows(where where.Expression) (string, []interface{}) {

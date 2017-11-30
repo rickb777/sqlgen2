@@ -2,7 +2,6 @@ package parse
 
 import (
 	"fmt"
-	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"go/ast"
 	"go/importer"
 	"go/parser"
@@ -121,18 +120,26 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 			gFiles = append(gFiles, file)
 		}
 
+		//sourceImporter := importer.Default()
+		sourceImporter := importer.For("source", nil)
+
 		// A Config controls various options of the type checker.
 		// The defaults work fine except for one setting:
 		// we must specify how to deal with imports.
 		conf := types.Config{
-			Importer:                 importer.For("source", nil),
+			Importer: &importerWrapper{
+				sourceImporter.(types.ImporterFrom),
+			},
+			IgnoreFuncBodies:         true,
 			DisableUnusedImportCheck: true,
+			FakeImportC:              true,
 		}
 
 		// Type-check the package containing gFiles.
 		pkg, err := conf.Check(group.Owner, fset, gFiles, nil)
 		if err != nil {
-			exit.Fail(3, "%s\n", err) // type error
+			//exit.Fail(3, "%s\n", err) // type error
+			fmt.Fprintf(os.Stderr, "Warning: %s\n", err)
 		}
 
 		pStore.store(pkg, gFiles)
@@ -171,6 +178,20 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 
 	DevInfo("----------\n")
 	return pStore, nil
+}
+
+type importerWrapper struct {
+	inner types.ImporterFrom
+}
+
+func (i *importerWrapper) Import(path string) (*types.Package, error) {
+	DevInfo("Import %s\n", path)
+	return i.inner.Import(path)
+}
+
+func (i *importerWrapper) ImportFrom(path, dir string, mode types.ImportMode) (*types.Package, error) {
+	DevInfo("ImportFrom %s %s %v\n", path, dir, mode)
+	return i.inner.ImportFrom(path, dir, mode)
 }
 
 //func findMatchingNodes(pkg, name string) (PackageStore, error) {
