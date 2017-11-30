@@ -286,7 +286,7 @@ func (tbl V2UserTable) Exec(query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 	return res.RowsAffected()
 }
@@ -443,7 +443,8 @@ const sV2UserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 func (tbl V2UserTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return tbl.Exec(tbl.updateFields(where, fields...))
+	query, args := tbl.updateFields(where, fields...)
+	return tbl.Exec(query, args...)
 }
 
 func (tbl V2UserTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
@@ -469,7 +470,7 @@ func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 	var count int64
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(interface{PreUpdate(sqlgen2.Execer)}); ok {
+		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
 			hook.PreUpdate(tbl.Db)
 		}
 

@@ -285,7 +285,7 @@ func (tbl V3UserTable) Exec(query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 	return res.RowsAffected()
 }

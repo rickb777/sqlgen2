@@ -24,6 +24,10 @@ type CanPreInsert interface {
 	PreInsert(Execer) error
 }
 
+type CanPreUpdate interface {
+	PreUpdate(Execer) error
+}
+
 //-------------------------------------------------------------------------------------------------
 
 // Table provides the generic features of each generated table handler.
