@@ -409,28 +409,28 @@ func (tbl V2UserTable) Insert(vv ...*User) error {
 
 const sqlInsertV2UserSimple = `
 INSERT INTO %s%s (
-	login,
-	email,
-	avatar,
-	active,
-	admin,
-	fave,
-	token,
-	secret,
+	login, 
+	email, 
+	avatar, 
+	active, 
+	admin, 
+	fave, 
+	token, 
+	secret, 
 	hash
 ) VALUES (%s)
 `
 
 const sqlInsertV2UserPostgres = `
 INSERT INTO %s%s (
-	login,
-	email,
-	avatar,
-	active,
-	admin,
-	fave,
-	token,
-	secret,
+	login, 
+	email, 
+	avatar, 
+	active, 
+	admin, 
+	fave, 
+	token, 
+	secret, 
 	hash
 ) VALUES (%s)
 `
@@ -494,28 +494,28 @@ func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 
 const sqlUpdateV2UserByPkSimple = `
 UPDATE %s%s SET 
-	login=?,
-	email=?,
-	avatar=?,
-	active=?,
-	admin=?,
-	fave=?,
-	token=?,
-	secret=?,
+	login=?, 
+	email=?, 
+	avatar=?, 
+	active=?, 
+	admin=?, 
+	fave=?, 
+	token=?, 
+	secret=?, 
 	hash=? 
  WHERE uid=?
 `
 
 const sqlUpdateV2UserByPkPostgres = `
 UPDATE %s%s SET 
-	login=$2,
-	email=$3,
-	avatar=$4,
-	active=$5,
-	admin=$6,
-	fave=$7,
-	token=$8,
-	secret=$9,
+	login=$2, 
+	email=$3, 
+	avatar=$4, 
+	active=$5, 
+	admin=$6, 
+	fave=$7, 
+	token=$8, 
+	secret=$9, 
 	hash=$10 
  WHERE uid=$11
 `

@@ -34,6 +34,11 @@ func Load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, err
 		output.Info("Warning: %s.%s contains unexported fields %s"+
 			" (perhaps annotate with `sql:\"-\"`).\n", pkg, name, strings.Join(ctx.unexportedFields, ", "))
 	}
+
+	for _, idx := range ctx.indices {
+		table.Index = append(table.Index, idx)
+	}
+
 	return table, nil
 }
 
@@ -117,22 +122,20 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map
 				Name: tag.Index,
 			}
 			ctx.indices[index.Name] = index
-			ctx.table.Index = append(ctx.table.Index, index)
 		}
 		index.Fields = append(index.Fields, field)
 	}
 
 	if tag.Unique != "" {
-		index, ok := ctx.indices[tag.Index]
+		index, ok := ctx.indices[tag.Unique]
 		if !ok {
 			index = &Index{
-				Name:   tag.Unique,
-				Unique: true,
+				Name: tag.Unique,
 			}
 			ctx.indices[index.Name] = index
-			ctx.table.Index = append(ctx.table.Index, index)
 		}
 		index.Fields = append(index.Fields, field)
+		index.Unique = true
 	}
 
 	if tag.Type != "" {

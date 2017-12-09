@@ -329,7 +329,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params))
+	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params)
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
 	if err != nil {
 		return err
@@ -342,13 +342,13 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 			hook.PreInsert(tbl.Db)
 		}
 
-		fields, err := Slice{{.Prefix}}{{.Type}}Stmt(v)
+		fields, err := Slice{{.Prefix}}{{.Type}}(v)
 		if err != nil {
 			return err
 		}
 
 		tbl.logQuery(query, fields...)
-		res, err := st.Exec(fields...)
+		_, err = st.Exec(fields...)
 		if err != nil {
 			return err
 		}

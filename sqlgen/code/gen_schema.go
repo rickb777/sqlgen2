@@ -51,21 +51,6 @@ func WriteSchema(w io.Writer, view View, table *schema.TableDescription) {
 			identifier("sqlCreate"+view.Prefix, ix.Name, "Index"), sqlite.Index(table, ix))
 	}
 
-	//for _, did := range schema.AllDialectIds {
-	//	d := schema.New(did)
-	//	ds := did.String()
-	//
-	//	for _, ix := range table.Index {
-	//
-	//		fmt.Fprintln(w, sectionBreak)
-	//
-	//		if ix.Unique {
-	//			fmt.Fprintf(w, constStringWithTicks,
-	//				identifier("sqlUpdate"+view.Prefix, ix.Name, ds), d.Update(table, ix.Fields))
-	//		}
-	//	}
-	//}
-
 	fmt.Fprintln(w, sectionBreak)
 
 	fmt.Fprintf(w, "\nconst %s = %d\n",

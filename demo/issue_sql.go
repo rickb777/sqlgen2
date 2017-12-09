@@ -373,22 +373,22 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 
 const sqlInsertIssueSimple = `
 INSERT INTO %s%s (
-	number,
-	title,
-	bigbody,
-	assignee,
-	state,
+	number, 
+	title, 
+	bigbody, 
+	assignee, 
+	state, 
 	labels
 ) VALUES (%s)
 `
 
 const sqlInsertIssuePostgres = `
 INSERT INTO %s%s (
-	number,
-	title,
-	bigbody,
-	assignee,
-	state,
+	number, 
+	title, 
+	bigbody, 
+	assignee, 
+	state, 
 	labels
 ) VALUES (%s)
 `
@@ -452,22 +452,22 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 
 const sqlUpdateIssueByPkSimple = `
 UPDATE %s%s SET 
-	number=?,
-	title=?,
-	bigbody=?,
-	assignee=?,
-	state=?,
+	number=?, 
+	title=?, 
+	bigbody=?, 
+	assignee=?, 
+	state=?, 
 	labels=? 
  WHERE id=?
 `
 
 const sqlUpdateIssueByPkPostgres = `
 UPDATE %s%s SET 
-	number=$2,
-	title=$3,
-	bigbody=$4,
-	assignee=$5,
-	state=$6,
+	number=$2, 
+	title=$3, 
+	bigbody=$4, 
+	assignee=$5, 
+	state=$6, 
 	labels=$7 
  WHERE id=$8
 `

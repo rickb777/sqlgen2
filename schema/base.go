@@ -116,7 +116,7 @@ func (b *base) columns(fields []*Field, withAuto, inline, assign bool) string {
 	for i, field := range fields {
 		if withAuto || !field.Tags.Auto {
 			io.WriteString(w, comma)
-			comma = ","
+			comma = ", "
 
 			if !inline {
 				io.WriteString(w, "\n")
