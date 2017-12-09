@@ -46,6 +46,10 @@ func Load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, err
 
 func (ctx *context) examineStruct(str *types.Struct, pkg, name string, tags map[string]parse.Tag, parent *Node) {
 	parse.DevInfo("examineStruct %s %s\n  tags %v\n", pkg, name, tags)
+	if str.NumFields() == 0 {
+		exit.Fail(1, "%s.%s: empty structs are not supported (was there a parser warning?).\n", pkg, name)
+	}
+
 	for j := 0; j < str.NumFields(); j++ {
 		tField := str.Field(j)
 		parse.DevInfo("    f%d: name:%-10s pkg:%s type:%-25s f:%v, e:%v, a:%v\n", j,

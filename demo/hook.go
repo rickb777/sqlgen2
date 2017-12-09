@@ -4,7 +4,7 @@ package demo
 //   * embedded structs
 //   * the use of pointers for optional items
 
-//go:generate sqlgen -type demo.Hook -o hook_sql.go -list HookList -v hook.go
+//go:generate sqlgen -type demo.Hook -o hook_sql.go -list HookList -v .
 
 type Hook struct {
 	Id  int64 `sql:"pk: true, auto: true"`
@@ -37,12 +37,3 @@ type Author struct {
 	Email    string
 	Username string
 }
-
-type Category uint8
-
-const (
-	Alpha Category = iota
-	Beta
-	Gamma
-	Delta
-)

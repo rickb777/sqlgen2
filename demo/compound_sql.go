@@ -99,10 +99,12 @@ func (tbl DbCompoundTable) logQuery(query string, args ...interface{}) {
 func ScanDbCompound(row *sql.Row) (*Compound, error) {
 	var v0 string
 	var v1 string
+	var v2 Category
 
 	err := row.Scan(
 		&v0,
 		&v1,
+		&v2,
 
 	)
 	if err != nil {
@@ -112,6 +114,7 @@ func ScanDbCompound(row *sql.Row) (*Compound, error) {
 	v := &Compound{}
 	v.Alpha = v0
 	v.Beta = v1
+	v.Category = v2
 
 	return v, nil
 }
@@ -123,11 +126,13 @@ func ScanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
 
 	var v0 string
 	var v1 string
+	var v2 Category
 
 	for rows.Next() {
 		err = rows.Scan(
 			&v0,
 			&v1,
+			&v2,
 
 		)
 		if err != nil {
@@ -137,6 +142,7 @@ func ScanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
 		v := &Compound{}
 		v.Alpha = v0
 		v.Beta = v1
+		v.Category = v2
 
 		vv = append(vv, v)
 	}
@@ -146,13 +152,16 @@ func ScanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
 func SliceDbCompound(v *Compound) ([]interface{}, error) {
 	var v0 string
 	var v1 string
+	var v2 Category
 
 	v0 = v.Alpha
 	v1 = v.Beta
+	v2 = v.Category
 
 	return []interface{}{
 		v0,
 		v1,
+		v2,
 
 	}, nil
 }
@@ -160,13 +169,16 @@ func SliceDbCompound(v *Compound) ([]interface{}, error) {
 func SliceDbCompoundWithoutPk(v *Compound) ([]interface{}, error) {
 	var v0 string
 	var v1 string
+	var v2 Category
 
 	v0 = v.Alpha
 	v1 = v.Beta
+	v2 = v.Category
 
 	return []interface{}{
 		v0,
 		v1,
+		v2,
 
 	}, nil
 }
@@ -250,7 +262,7 @@ func (tbl DbCompoundTable) Count(where where.Expression) (count int64, err error
 	return tbl.CountSA(wh, args...)
 }
 
-const DbCompoundColumnNames = "alpha, beta"
+const DbCompoundColumnNames = "alpha, beta, category"
 
 //--------------------------------------------------------------------------------
 
@@ -298,20 +310,22 @@ func (tbl DbCompoundTable) Insert(vv ...*Compound) error {
 const sqlInsertDbCompoundSimple = `
 INSERT INTO %s%s (
 	alpha, 
-	beta
+	beta, 
+	category
 ) VALUES (%s)
 `
 
 const sqlInsertDbCompoundPostgres = `
 INSERT INTO %s%s (
 	alpha, 
-	beta
+	beta, 
+	category
 ) VALUES (%s)
 `
 
-const sDbCompoundDataColumnParamsSimple = "?,?"
+const sDbCompoundDataColumnParamsSimple = "?,?,?"
 
-const sDbCompoundDataColumnParamsPostgres = "$1,$2"
+const sDbCompoundDataColumnParamsPostgres = "$1,$2,$3"
 
 //--------------------------------------------------------------------------------
 
@@ -391,22 +405,25 @@ func (tbl DbCompoundTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 
 const sqlCreateDbCompoundTableSqlite = `
 CREATE TABLE %s%s%s (
- alpha text,
- beta  text
+ alpha    text,
+ beta     text,
+ category integer
 )
 `
 
 const sqlCreateDbCompoundTablePostgres = `
 CREATE TABLE %s%s%s (
- alpha varchar(512),
- beta  varchar(512)
+ alpha    varchar(512),
+ beta     varchar(512),
+ category integer
 )
 `
 
 const sqlCreateDbCompoundTableMysql = `
 CREATE TABLE %s%s%s (
- alpha varchar(512),
- beta  varchar(512)
+ alpha    varchar(512),
+ beta     varchar(512),
+ category tinyint unsigned
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 
@@ -418,10 +435,10 @@ CREATE UNIQUE INDEX %s%salpha_beta ON %s%s (alpha, beta)
 
 //--------------------------------------------------------------------------------
 
-const NumDbCompoundColumns = 2
+const NumDbCompoundColumns = 3
 
-const NumDbCompoundDataColumns = 2
+const NumDbCompoundDataColumns = 3
 
-const DbCompoundDataColumnNames = "alpha, beta"
+const DbCompoundDataColumnNames = "alpha, beta, category"
 
 //--------------------------------------------------------------------------------

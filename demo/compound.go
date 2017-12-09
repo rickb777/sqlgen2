@@ -4,10 +4,10 @@ package demo
 //   * no primary key column (which is unusual but permitted)
 //   * an index that spans multiple columns
 
-//go:generate sqlgen -type demo.Compound -o compound_sql.go -v -prefix Db compound.go
+//go:generate sqlgen -type demo.Compound -o compound_sql.go -v -prefix Db .
 
 type Compound struct {
-	Alpha  string  `sql:"unique: alpha_beta"`
-	Beta   string  `sql:"unique: alpha_beta"`
+	Alpha    string `sql:"unique: alpha_beta"`
+	Beta     string `sql:"unique: alpha_beta"`
+	Category Category
 }
-
