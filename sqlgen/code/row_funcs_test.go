@@ -11,6 +11,36 @@ import (
 	. "github.com/rickb777/sqlgen2/sqlgen/parse"
 )
 
+func fixtureTable() *TableDescription {
+	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", INTEGER, ENCNONE, Tag{Primary: true, Auto: true}}
+	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "name", VARCHAR, ENCNONE, Tag{Size: 2048, Name: "username", Index: "nameIdx"}}
+	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", BOOLEAN, ENCNONE, Tag{}}
+	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
+	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", BLOB, ENCJSON, Tag{Encode: "json"}}
+	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", BLOB, ENCTEXT, Tag{Encode: "text"}}
+
+	ititle := &Index{"nameIdx", false, []*Field{name}}
+
+	return &TableDescription{
+		Type: "Example",
+		Name: "examples",
+		Fields: []*Field{
+			id,
+			category,
+			name,
+			active,
+			labels,
+			fave,
+			updated,
+		},
+		Index: []*Index{
+			ititle,
+		},
+		Primary: id,
+	}
+}
+
 //TODO unfinished work based on this test
 func xTestWriteRowFunc1(t *testing.T) {
 	exit.TestableExit()
@@ -80,30 +110,6 @@ func ScanXExample(row *sql.Row) (*Example, error) {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
 		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
-}
-
-func fixtureTable() *TableDescription {
-	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", INTEGER, ENCNONE, Tag{Primary: true, Auto: true}}
-	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
-	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "name", VARCHAR, ENCNONE, Tag{Size: 2048}}
-	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", BOOLEAN, ENCNONE, Tag{}}
-	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
-	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", BLOB, ENCJSON, Tag{Encode: "json"}}
-	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", BLOB, ENCTEXT, Tag{Encode: "text"}}
-
-	return &TableDescription{
-		Type: "Example",
-		Name: "examples",
-		Fields: []*Field{
-			id,
-			category,
-			name,
-			active,
-			labels,
-			fave,
-			updated,
-		},
 	}
 }
 

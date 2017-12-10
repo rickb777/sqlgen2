@@ -44,7 +44,9 @@ func WriteSchema(w io.Writer, view View, table *schema.TableDescription) {
 			"CREATE TABLE %s%s%s ("+d.Table(table, did)+"\n)"+d.CreateTableSettings())
 	}
 
-	fmt.Fprintln(w, sectionBreak)
+	if len(table.Index) > 0 {
+		fmt.Fprintln(w, sectionBreak)
+	}
 
 	for _, ix := range table.Index {
 		fmt.Fprintf(w, constStringWithTicks,
