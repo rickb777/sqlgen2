@@ -5,6 +5,7 @@ import "go/types"
 var mapTagToEncoding = map[string]SqlEncode{
 	"":     ENCNONE,
 	"json": ENCJSON,
+	"text": ENCTEXT,
 }
 
 // convert Go types to SQL types.

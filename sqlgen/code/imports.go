@@ -19,6 +19,8 @@ func WriteImports(w io.Writer, table *schema.TableDescription, packages StringSe
 		switch field.Encode {
 		case schema.ENCJSON:
 			packages["encoding/json"] = struct{}{}
+		case schema.ENCTEXT:
+			packages["encoding"] = struct{}{}
 			// case "gzip":
 			// 	packages["compress/gzip"] = struct{}{}
 		default:

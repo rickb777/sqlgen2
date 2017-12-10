@@ -23,6 +23,7 @@ type SqlEncode int
 const (
 	ENCNONE SqlEncode = iota
 	ENCJSON
+	ENCTEXT
 )
 
 type SqlToken int

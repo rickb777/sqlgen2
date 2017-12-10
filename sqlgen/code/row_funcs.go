@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"github.com/rickb777/sqlgen2/schema"
+	"text/template"
 )
 
-func WriteRowFunc(w io.Writer, view View, table *schema.TableDescription) {
+func writeRowFunc(w io.Writer, view View, table *schema.TableDescription, tabs string, tmpl *template.Template) {
 
 	for i, field := range table.Fields {
 		if field.Tags.Skip {
@@ -16,8 +16,8 @@ func WriteRowFunc(w io.Writer, view View, table *schema.TableDescription) {
 		}
 
 		// temporary variable declaration
-		switch field.Type.Base {
-		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
+		switch field.Encode {
+		case schema.ENCJSON, schema.ENCTEXT:
 			l1 := fmt.Sprintf("\tvar v%d %s\n", i, "[]byte")
 			view.Body1 = append(view.Body1, l1)
 		default:
@@ -26,57 +26,34 @@ func WriteRowFunc(w io.Writer, view View, table *schema.TableDescription) {
 		}
 
 		// variable scanning
-		l2 := fmt.Sprintf("\t\t&v%d,\n", i)
+		l2 := fmt.Sprintf("%s\t&v%d,\n", tabs, i)
 		view.Body2 = append(view.Body2, l2)
 
-		switch field.Type.Base {
-		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
+		switch field.Encode {
+		case schema.ENCJSON:
 			l3 := fmt.Sprintf("%serr = json.Unmarshal(v%d, &v.%s)\n%sif err != nil {\n%s\treturn nil, err\n%s}\n",
-				oneTab, i, field.JoinParts("."), oneTab, oneTab, oneTab)
+				tabs, i, field.JoinParts("."), tabs, tabs, tabs)
+			view.Body3 = append(view.Body3, l3)
+		case schema.ENCTEXT:
+			l3 := fmt.Sprintf("%serr = encoding.UnmarshalText(v%d, &v.%s)\n%sif err != nil {\n%s\treturn nil, err\n%s}\n",
+				tabs, i, field.JoinParts("."), tabs, tabs, tabs)
 			view.Body3 = append(view.Body3, l3)
 		default:
-			l3 := fmt.Sprintf("\tv.%s = v%d\n", field.JoinParts("."), i)
+			l3 := fmt.Sprintf("%sv.%s = v%d\n", tabs, field.JoinParts("."), i)
 			view.Body3 = append(view.Body3, l3)
 		}
 	}
 
-	must(tScanRow.Execute(w, view))
+	must(tmpl.Execute(w, view))
+}
+
+func WriteRowFunc(w io.Writer, view View, table *schema.TableDescription) {
+	writeRowFunc(w, view, table, oneTab, tScanRow)
+}
+
+func WriteRowsFunc(w io.Writer, view View, table *schema.TableDescription) {
+	writeRowFunc(w, view, table, twoTabs, tScanRows)
 }
 
 const oneTab = "\t"
 const twoTabs = "\t\t"
-
-func WriteRowsFunc(w io.Writer, view View, table *schema.TableDescription) {
-
-	for i, field := range table.Fields {
-		if field.Tags.Skip {
-			continue
-		}
-
-		// temporary variable declaration
-		switch field.Type.Base {
-		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-			l1 := fmt.Sprintf("\tvar v%d %s\n", i, "[]byte")
-			view.Body1 = append(view.Body1, l1)
-		default:
-			l1 := fmt.Sprintf("\tvar v%d %s\n", i, field.Type.Type())
-			view.Body1 = append(view.Body1, l1)
-		}
-
-		// variable scanning
-		l2 := fmt.Sprintf("\t\t\t&v%d,\n", i)
-		view.Body2 = append(view.Body2, l2)
-
-		switch field.Type.Base {
-		case parse.Map, parse.Slice, parse.Struct, parse.Ptr:
-			l3 := fmt.Sprintf("%serr = json.Unmarshal(v%d, &v.%s)\n%sif err != nil {\n%s\treturn nil, err\n%s}\n",
-				twoTabs, i, field.JoinParts("."), twoTabs, twoTabs, twoTabs)
-			view.Body3 = append(view.Body3, l3)
-		default:
-			l3 := fmt.Sprintf("\t\tv.%s = v%d\n", field.JoinParts("."), i)
-			view.Body3 = append(view.Body3, l3)
-		}
-	}
-
-	must(tScanRows.Execute(w, view))
-}

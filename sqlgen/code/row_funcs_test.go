@@ -5,197 +5,238 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"testing"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
+	. "github.com/rickb777/sqlgen2/schema"
+	. "github.com/rickb777/sqlgen2/sqlgen/parse"
 )
 
-var literal = strings.Replace(`package pkg1
+//TODO unfinished work based on this test
+func xTestWriteRowFunc1(t *testing.T) {
+	exit.TestableExit()
 
-type Party struct {
-	Id         int64    |sql:"pk: true, auto: true"|
-	Number     int
-	Category   Category
-	Foo        int      |sql:"-"|
-	Commit     *Commit
-	Title      string   |sql:"index: titleIdx"|
-	Hobby      string   |sql:"size: 2048"|
-	Labels     []string |sql:"encode: json"|
-	Active     bool
+	p1 := &Node{Name: "Commit"}
+	p2 := &Node{Name: "Author", Parent: p1}
+
+	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
+	email := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
+	message := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "commit_message", VARCHAR, ENCNONE, Tag{}}
+
+	table := &TableDescription{
+		Type: "Example",
+		Name: "examples",
+		Fields: []*Field{
+			category,
+			name,
+			email,
+			message,
+		},
+	}
+
+	//table := schema.Load(node)
+	view := NewView("Example", "X", "")
+	//view.Table = table
+
+	buf := &bytes.Buffer{}
+
+	WriteRowFunc(buf, view, table)
+
+	code := buf.String()
+	expected := `
+// ScanXExample reads a table record into a single value.
+func ScanXExample(row *sql.Row) (*Example, error) {
+	var v0 int64
+	var v1 Category
+	var v2 string
+	var v3 string
+	var v4 string
+
+	err := row.Scan(
+		&v0,
+		&v1,
+		&v2,
+		&v3,
+		&v4,
+
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	v := &Example{}
+	v.Cat = v0
+	v.Id = v1
+	v.Commit = &Commit{}
+	v.Commit.Author = &Author{}
+	v.Commit.Author.Name = v2
+	v.Commit.Author.Email = v3
+	v.Commit.Author.Message = v4
+
+	return v, nil
+}
+`
+	if code != expected {
+		outputDiff(expected, "expected.txt")
+		outputDiff(code, "got.txt")
+		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
+	}
 }
 
-type Category int32
+func fixtureTable() *TableDescription {
+	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", INTEGER, ENCNONE, Tag{Primary: true, Auto: true}}
+	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "name", VARCHAR, ENCNONE, Tag{Size: 2048}}
+	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", BOOLEAN, ENCNONE, Tag{}}
+	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
+	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", BLOB, ENCJSON, Tag{Encode: "json"}}
+	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", BLOB, ENCTEXT, Tag{Encode: "text"}}
 
-type Commit struct {
-	Message   string
-	Timestamp int64 // TODO should be able to support time.Time
-	Author    *Author
+	return &TableDescription{
+		Type: "Example",
+		Name: "examples",
+		Fields: []*Field{
+			id,
+			category,
+			name,
+			active,
+			labels,
+			fave,
+			updated,
+		},
+	}
 }
 
-type Author struct {
-	Name     string
-	Email    string
+func TestWriteRowFunc2(t *testing.T) {
+	exit.TestableExit()
+
+	view := NewView("Example", "X", "")
+	buf := &bytes.Buffer{}
+
+	WriteRowFunc(buf, view, fixtureTable())
+
+	code := buf.String()
+	expected := `
+// ScanXExample reads a table record into a single value.
+func ScanXExample(row *sql.Row) (*Example, error) {
+	var v0 int64
+	var v1 Category
+	var v2 string
+	var v3 bool
+	var v4 []byte
+	var v5 []byte
+	var v6 []byte
+
+	err := row.Scan(
+		&v0,
+		&v1,
+		&v2,
+		&v3,
+		&v4,
+		&v5,
+		&v6,
+
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	v := &Example{}
+	v.Id = v0
+	v.Cat = v1
+	v.Name = v2
+	v.Active = v3
+	err = json.Unmarshal(v4, &v.Labels)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(v5, &v.Fave)
+	if err != nil {
+		return nil, err
+	}
+	err = encoding.UnmarshalText(v6, &v.Updated)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+`
+	if code != expected {
+		outputDiff(expected, "expected.txt")
+		outputDiff(code, "got.txt")
+		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
+	}
 }
 
-`, "|", "`", -1)
+func TestWriteRowsFunc2(t *testing.T) {
+	exit.TestableExit()
 
-//func TestWriteRowFunc(t *testing.T) {
-//	exit.TestableExit()
-//
-//	source := parse.Source{"issue.go", bytes.NewBufferString(literal)}
-//
-//	tree, err := parse.DoParse("pkg1", "Party", []parse.Source{source})
-//	if err != nil {
-//		t.Errorf("Error parsing: %s", err)
-//	}
-//
-//	//table := schema.Load(node)
-//	view := NewView(tree, "X")
-//	//view.Table = table
-//
-//	buf := &bytes.Buffer{}
-//
-//	WriteRowFunc(buf, tree, view)
-//
-//	code := buf.String()
-//	expected := `
-//// ScanXParty reads a database record into a single value.
-//func ScanXParty(row *sql.Row) (*Party, error) {
-//	var v0 int64
-//	var v1 int
-//	var v2 pkg1.Category
-//	var v3 string
-//	var v4 int64
-//	var v5 string
-//	var v6 string
-//	var v7 string
-//	var v8 string
-//	var v9 []byte
-//	var v10 bool
-//
-//	err := row.Scan(
-//		&v0,
-//		&v1,
-//		&v2,
-//		&v3,
-//		&v4,
-//		&v5,
-//		&v6,
-//		&v7,
-//		&v8,
-//		&v9,
-//		&v10,
-//
-//	)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	v := &Party{}
-//	v.Id = v0
-//	v.Number = v1
-//	v.Category = v2
-//	v.Commit = &Commit{}
-//	v.Commit.Message = v3
-//	v.Commit.Timestamp = v4
-//	v.Commit.Author = &Author{}
-//	v.Commit.Author.Name = v5
-//	v.Commit.Author.Email = v6
-//	v.Title = v7
-//	v.Hobby = v8
-//	json.Unmarshal(v9, &v.Labels)
-//	v.Active = v10
-//
-//	return v, nil
-//}
-//`
-//	if code != expected {
-//		outputDiff(expected, "expected.txt")
-//		outputDiff(code, "got.txt")
-//		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-//	}
-//}
+	view := NewView("Example", "X", "")
+	buf := &bytes.Buffer{}
 
-//TODO plural records names are not handled correctly - fix this
-//func TestWriteRowsFunc(t *testing.T) {
-//	exit.TestableExit()
-//
-//	source := parse.Source{"issue.go", bytes.NewBufferString(literal)}
-//
-//	tree, err := parse.DoParse("pkg1", "Party", []parse.Source{source})
-//	if err != nil {
-//		t.Errorf("Error parsing: %s", err)
-//	}
-//
-//	//table := schema.Load(node)
-//	view := NewView(tree, "X")
-//	//view.Table = table
-//
-//	buf := &bytes.Buffer{}
-//
-//	WriteRowsFunc(buf, tree, view)
-//
-//	code := buf.String()
-//	expected := `
-//// ScanXPartys reads database records into a slice of values.
-//func ScanXPartys(rows *sql.Rows) ([]*Party, error) {
-//	var err error
-//	var vv []*Party
-//
-//	var v0 int64
-//	var v1 int
-//	var v2 pkg1.Category
-//	var v3 string
-//	var v4 int64
-//	var v5 string
-//	var v6 string
-//	var v7 string
-//	var v8 string
-//	var v9 []byte
-//	var v10 bool
-//
-//	for rows.Next() {
-//		err = rows.Scan(
-//			&v0,
-//			&v1,
-//			&v2,
-//			&v3,
-//			&v4,
-//			&v5,
-//			&v6,
-//			&v7,
-//			&v8,
-//			&v9,
-//			&v10,
-//
-//		)
-//		if err != nil {
-//			return vv, err
-//		}
-//
-//		v := &Party{}
-//		v.Id = v0
-//		v.Number = v1
-//		v.Category = v2
-//		v.Commit = &Commit{}
-//		v.Commit.Message = v3
-//		v.Commit.Timestamp = v4
-//		v.Commit.Author = &Author{}
-//		v.Commit.Author.Name = v5
-//		v.Commit.Author.Email = v6
-//		v.Title = v7
-//		v.Hobby = v8
-//		json.Unmarshal(v9, &v.Labels)
-//		v.Active = v10
-//
-//		vv = append(vv, v)
-//	}
-//	return vv, rows.Err()
-//}
-//`
-//	if code != expected {
-//		outputDiff(expected, "expected.txt")
-//		outputDiff(code, "got.txt")
-//		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-//	}
-//}
+	WriteRowsFunc(buf, view, fixtureTable())
+
+	code := buf.String()
+	expected := `
+// ScanXExamples reads table records into a slice of values.
+func ScanXExamples(rows *sql.Rows) ([]*Example, error) {
+	var err error
+	var vv []*Example
+
+	var v0 int64
+	var v1 Category
+	var v2 string
+	var v3 bool
+	var v4 []byte
+	var v5 []byte
+	var v6 []byte
+
+	for rows.Next() {
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+			&v3,
+			&v4,
+			&v5,
+			&v6,
+
+		)
+		if err != nil {
+			return vv, err
+		}
+
+		v := &Example{}
+		v.Id = v0
+		v.Cat = v1
+		v.Name = v2
+		v.Active = v3
+		err = json.Unmarshal(v4, &v.Labels)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(v5, &v.Fave)
+		if err != nil {
+			return nil, err
+		}
+		err = encoding.UnmarshalText(v6, &v.Updated)
+		if err != nil {
+			return nil, err
+		}
+
+		vv = append(vv, v)
+	}
+	return vv, rows.Err()
+}
+`
+	if code != expected {
+		outputDiff(expected, "expected.txt")
+		outputDiff(code, "got.txt")
+		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
+	}
+}
+
 
 func outputDiff(a, name string) {
 	f, err := os.Create(name)

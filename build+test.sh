@@ -1,6 +1,9 @@
 #!/bin/bash -e
 PATH=$HOME/gopath/bin:$GOPATH/bin:$PATH
 
+# delete artefacts from previous build (if any)
+rm -f *.out */*.txt demo/*_sql.go
+
 if [ -z "$(type -p enumeration)" ]; then
   go get bitbucket.org/rickb777/enumeration
 fi

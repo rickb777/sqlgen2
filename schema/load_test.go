@@ -245,6 +245,7 @@ type Example struct {
 	Labels     []string      |sql:"encode: json"|
 	Active     bool
 	Fave       big.Int       |sql:"encode: json"|
+	Updated    time.Time     |sql:"encode: text"|
 }
 
 type Commit struct {
@@ -284,6 +285,7 @@ type Commit struct {
 	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
 	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", BOOLEAN, ENCNONE, Tag{}}
 	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", BLOB, ENCJSON, Tag{Encode: "json"}}
+	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", BLOB, ENCTEXT, Tag{Encode: "text"}}
 
 	ititle := &Index{"titleIdx", false, []*Field{title}}
 
@@ -305,6 +307,7 @@ type Commit struct {
 			labels,
 			active,
 			fave,
+			updated,
 		},
 		Index: []*Index{
 			ititle,

@@ -196,6 +196,8 @@ func ScanV4Users(rows *sql.Rows) ([]*User, error) {
 }
 
 func SliceV4User(v *User) ([]interface{}, error) {
+	var err error
+
 	var v0 int64
 	var v1 string
 	var v2 string
@@ -213,7 +215,7 @@ func SliceV4User(v *User) ([]interface{}, error) {
 	v3 = v.Avatar
 	v4 = v.Active
 	v5 = v.Admin
-	v6, err := json.Marshal(&v.Fave)
+	v6, err = json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
@@ -237,6 +239,8 @@ func SliceV4User(v *User) ([]interface{}, error) {
 }
 
 func SliceV4UserWithoutPk(v *User) ([]interface{}, error) {
+	var err error
+
 	var v1 string
 	var v2 string
 	var v3 string
@@ -252,7 +256,7 @@ func SliceV4UserWithoutPk(v *User) ([]interface{}, error) {
 	v3 = v.Avatar
 	v4 = v.Active
 	v5 = v.Admin
-	v6, err := json.Marshal(&v.Fave)
+	v6, err = json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}

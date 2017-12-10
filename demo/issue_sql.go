@@ -181,6 +181,8 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 }
 
 func SliceIssue(v *Issue) ([]interface{}, error) {
+	var err error
+
 	var v0 int64
 	var v1 int
 	var v2 string
@@ -195,7 +197,7 @@ func SliceIssue(v *Issue) ([]interface{}, error) {
 	v3 = v.Body
 	v4 = v.Assignee
 	v5 = v.State
-	v6, err := json.Marshal(&v.Labels)
+	v6, err = json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
 	}
@@ -213,6 +215,8 @@ func SliceIssue(v *Issue) ([]interface{}, error) {
 }
 
 func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
+	var err error
+
 	var v1 int
 	var v2 string
 	var v3 string
@@ -225,7 +229,7 @@ func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 	v3 = v.Body
 	v4 = v.Assignee
 	v5 = v.State
-	v6, err := json.Marshal(&v.Labels)
+	v6, err = json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
 	}

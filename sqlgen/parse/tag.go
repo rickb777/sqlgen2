@@ -8,11 +8,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const (
-	EncodeGzip = "gzip"
-	EncodeJson = "json"
-)
-
 const TagKey = "sql"
 
 // Tag stores the parsed data from the tag string in
