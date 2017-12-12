@@ -90,8 +90,8 @@ type Category int32
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
-	categories := &Field{Node{"Categories", Type{"", "", "Category", Slice}, nil}, "categories", BLOB, ENCJSON, Tag{Encode: "json"}}
+	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", JSON, ENCJSON, Tag{Encode: "json"}}
+	categories := &Field{Node{"Categories", Type{"", "", "Category", Slice}, nil}, "categories", JSON, ENCJSON, Tag{Encode: "json"}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -244,6 +244,7 @@ type Example struct {
 	Hobby      string        |sql:"size: 2048"|
 	Labels     []string      |sql:"encode: json"|
 	Active     bool
+	Avatar     []byte
 	Fave       big.Int       |sql:"encode: json"|
 	Updated    time.Time     |sql:"encode: text"|
 }
@@ -282,9 +283,10 @@ type Commit struct {
 	title := &Field{Node{"Title", Type{"", "", "string", String}, nil}, "title", VARCHAR, ENCNONE, Tag{Index: "titleIdx"}}
 	////owner := &Field{"Owner", "team_owner", VARCHAR, Tag{}}
 	hobby := &Field{Node{"Hobby", Type{"", "", "string", String}, nil}, "hobby", VARCHAR, ENCNONE, Tag{Size: 2048}}
-	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
+	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", JSON, ENCJSON, Tag{Encode: "json"}}
 	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", BOOLEAN, ENCNONE, Tag{}}
-	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", BLOB, ENCJSON, Tag{Encode: "json"}}
+	avatar := &Field{Node{"Avatar", Type{"", "", "[]byte", Slice}, nil}, "avatar", BLOB, ENCNONE, Tag{}}
+	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", JSON, ENCJSON, Tag{Encode: "json"}}
 	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", BLOB, ENCTEXT, Tag{Encode: "text"}}
 
 	ititle := &Index{"titleIdx", false, []*Field{title}}
@@ -306,6 +308,7 @@ type Commit struct {
 			hobby,
 			labels,
 			active,
+			avatar,
 			fave,
 			updated,
 		},

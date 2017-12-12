@@ -21,24 +21,26 @@ func TestWriteSchema(t *testing.T) {
 
 const sqlCreateXExampleTableSqlite = |
 CREATE TABLE %s%s%s (
- id       integer primary key autoincrement,
- cat      integer,
+ id       bigint primary key,
+ cat      int,
  username text,
  active   boolean,
- labels   blob,
+ labels   text,
  fave     blob,
+ avatar   blob,
  updated  blob
 )
 |
 
 const sqlCreateXExampleTablePostgres = |
 CREATE TABLE %s%s%s (
- id       bigserial primary key ,
+ id       bigserial primary key,
  cat      integer,
  username varchar(2048),
  active   boolean,
- labels   byteaa,
+ labels   json,
  fave     byteaa,
+ avatar   byteaa,
  updated  byteaa
 )
 |
@@ -49,8 +51,9 @@ CREATE TABLE %s%s%s (
  cat      int,
  username varchar(2048),
  active   tinyint(1),
- labels   mediumblob,
+ labels   json,
  fave     mediumblob,
+ avatar   mediumblob,
  updated  mediumblob
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 |
@@ -63,13 +66,13 @@ CREATE INDEX %s%snameIdx ON %s%s (username)
 
 //--------------------------------------------------------------------------------
 
-const NumXExampleColumns = 7
+const NumXExampleColumns = 8
 
-const NumXExampleDataColumns = 6
+const NumXExampleDataColumns = 7
 
 const XExamplePk = "Id"
 
-const XExampleDataColumnNames = "cat, username, active, labels, fave, updated"
+const XExampleDataColumnNames = "cat, username, active, labels, fave, avatar, updated"
 
 //--------------------------------------------------------------------------------
 `, "|", "`", -1)

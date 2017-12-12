@@ -683,11 +683,11 @@ func (tbl HookTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 
 const sqlCreateHookTableSqlite = `
 CREATE TABLE %s%s%s (
- id                             integer primary key autoincrement,
+ id                             bigint primary key,
  sha                            text,
  dates_after                    text,
  dates_before                   text,
- category                       integer,
+ category                       tinyint unsigned,
  created                        boolean,
  deleted                        boolean,
  forced                         boolean,
@@ -705,7 +705,7 @@ CREATE TABLE %s%s%s (
 
 const sqlCreateHookTablePostgres = `
 CREATE TABLE %s%s%s (
- id                             bigserial primary key ,
+ id                             bigserial primary key,
  sha                            varchar(512),
  dates_after                    varchar(512),
  dates_before                   varchar(512),

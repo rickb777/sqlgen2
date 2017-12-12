@@ -615,13 +615,13 @@ func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 
 const sqlCreateDbUserTableSqlite = `
 CREATE TABLE %s%s%s (
- uid    integer primary key autoincrement,
+ uid    bigint primary key,
  login  text,
  email  text,
  avatar text,
  active boolean,
  admin  boolean,
- fave   blob,
+ fave   text,
  token  text,
  secret text,
  hash   text
@@ -630,13 +630,13 @@ CREATE TABLE %s%s%s (
 
 const sqlCreateDbUserTablePostgres = `
 CREATE TABLE %s%s%s (
- uid    bigserial primary key ,
+ uid    bigserial primary key,
  login  varchar(512),
  email  varchar(512),
  avatar varchar(512),
  active boolean,
  admin  boolean,
- fave   byteaa,
+ fave   json,
  token  varchar(512),
  secret varchar(512),
  hash   varchar(512)
@@ -651,7 +651,7 @@ CREATE TABLE %s%s%s (
  avatar varchar(512),
  active tinyint(1),
  admin  tinyint(1),
- fave   mediumblob,
+ fave   json,
  token  varchar(512),
  secret varchar(512),
  hash   varchar(512)

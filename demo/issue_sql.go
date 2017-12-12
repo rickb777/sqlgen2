@@ -554,25 +554,25 @@ func (tbl IssueTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 
 const sqlCreateIssueTableSqlite = `
 CREATE TABLE %s%s%s (
- id       integer primary key autoincrement,
- number   integer,
+ id       bigint primary key,
+ number   bigint,
  title    text,
  bigbody  text,
  assignee text,
  state    text,
- labels   blob
+ labels   text
 )
 `
 
 const sqlCreateIssueTablePostgres = `
 CREATE TABLE %s%s%s (
- id       bigserial primary key ,
+ id       bigserial primary key,
  number   integer,
  title    varchar(512),
  bigbody  varchar(2048),
  assignee varchar(512),
  state    varchar(50),
- labels   byteaa
+ labels   json
 )
 `
 
@@ -584,7 +584,7 @@ CREATE TABLE %s%s%s (
  bigbody  varchar(2048),
  assignee varchar(512),
  state    varchar(50),
- labels   mediumblob
+ labels   json
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 

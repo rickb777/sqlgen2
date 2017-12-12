@@ -19,6 +19,38 @@ func (d *mysql) CreateTableSettings() string {
 	return " ENGINE=InnoDB DEFAULT CHARSET=utf8"
 }
 
+// see https://dev.mysql.com/doc/refman/5.7/en/data-types.html
+
+func mysqlColumn(f *Field) string {
+	switch f.SqlType {
+	case INTEGER:
+		return mysqlIntegerColumn(f)
+
+	case REAL:
+		return mysqlRealColumn(f)
+
+	case BOOLEAN:
+		return "tinyint(1)"
+
+	case BLOB:
+		return "mediumblob"
+
+	case JSON:
+		return "json"
+
+	case VARCHAR:
+		// assigns an arbitrary size if
+		// none is provided.
+		size := f.Tags.Size
+		if size == 0 {
+			size = 512
+		}
+		return fmt.Sprintf("varchar(%d)", size)
+	}
+
+	return "text"
+}
+
 // see https://dev.mysql.com/doc/refman/5.7/en/integer-types.html
 
 func mysqlIntegerColumn(f *Field) string {
@@ -57,34 +89,12 @@ func mysqlRealColumn(f *Field) string {
 	return ""
 }
 
-func mysqlColumn(f *Field) string {
-	switch f.SqlType {
-	case INTEGER:
-		return mysqlIntegerColumn(f)
-	case REAL:
-		return mysqlRealColumn(f)
-	case BOOLEAN:
-		return "tinyint(1)"
-	case BLOB:
-		return "mediumblob"
-	case VARCHAR:
-		// assigns an arbitrary size if
-		// none is provided.
-		size := f.Tags.Size
-		if size == 0 {
-			size = 512
-		}
-		return fmt.Sprintf("varchar(%d)", size)
-	}
-	return ""
-}
-
 func mysqlToken(v SqlToken) string {
 	switch v {
 	case AUTO_INCREMENT:
-		return "auto_increment"
+		return " auto_increment"
 	case PRIMARY_KEY:
-		return "primary key"
+		return " primary key"
 	default:
 		return ""
 	}

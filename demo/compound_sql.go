@@ -407,7 +407,7 @@ const sqlCreateDbCompoundTableSqlite = `
 CREATE TABLE %s%s%s (
  alpha    text,
  beta     text,
- category integer
+ category tinyint unsigned
 )
 `
 

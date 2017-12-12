@@ -12,13 +12,13 @@ func TestCreateTable_postgres(t *testing.T) {
 	sql := tbl.createTableSql(true)
 	expected := `
 CREATE TABLE IF NOT EXISTS prefix_users (
- uid    bigserial primary key ,
+ uid    bigserial primary key,
  login  varchar(512),
  email  varchar(512),
  avatar varchar(512),
  active boolean,
  admin  boolean,
- fave   byteaa,
+ fave   json,
  token  varchar(512),
  secret varchar(512),
  hash   varchar(512)

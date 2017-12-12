@@ -16,8 +16,9 @@ func fixtureTable() *TableDescription {
 	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
 	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "username", VARCHAR, ENCNONE, Tag{Size: 2048, Name: "username", Index: "nameIdx"}}
 	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", BOOLEAN, ENCNONE, Tag{}}
-	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
+	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", JSON, ENCJSON, Tag{Encode: "json"}}
 	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", BLOB, ENCJSON, Tag{Encode: "json"}}
+	avatar := &Field{Node{"Avatar", Type{"", "", "[]byte", Slice}, nil}, "avatar", BLOB, ENCNONE, Tag{}}
 	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", BLOB, ENCTEXT, Tag{Encode: "text"}}
 
 	ititle := &Index{"nameIdx", false, []*Field{name}}
@@ -32,6 +33,7 @@ func fixtureTable() *TableDescription {
 			active,
 			labels,
 			fave,
+			avatar,
 			updated,
 		},
 		Index: []*Index{
@@ -132,6 +134,7 @@ func ScanXExample(row *sql.Row) (*Example, error) {
 	var v4 []byte
 	var v5 []byte
 	var v6 []byte
+	var v7 []byte
 
 	err := row.Scan(
 		&v0,
@@ -141,6 +144,7 @@ func ScanXExample(row *sql.Row) (*Example, error) {
 		&v4,
 		&v5,
 		&v6,
+		&v7,
 
 	)
 	if err != nil {
@@ -160,7 +164,8 @@ func ScanXExample(row *sql.Row) (*Example, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = encoding.UnmarshalText(v6, &v.Updated)
+	v.Avatar = v6
+	err = encoding.UnmarshalText(v7, &v.Updated)
 	if err != nil {
 		return nil, err
 	}
@@ -197,6 +202,7 @@ func ScanXExamples(rows *sql.Rows) ([]*Example, error) {
 	var v4 []byte
 	var v5 []byte
 	var v6 []byte
+	var v7 []byte
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -207,6 +213,7 @@ func ScanXExamples(rows *sql.Rows) ([]*Example, error) {
 			&v4,
 			&v5,
 			&v6,
+			&v7,
 
 		)
 		if err != nil {
@@ -226,7 +233,8 @@ func ScanXExamples(rows *sql.Rows) ([]*Example, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = encoding.UnmarshalText(v6, &v.Updated)
+		v.Avatar = v6
+		err = encoding.UnmarshalText(v7, &v.Updated)
 		if err != nil {
 			return nil, err
 		}

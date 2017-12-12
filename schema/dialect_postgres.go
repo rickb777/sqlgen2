@@ -15,7 +15,7 @@ func newPostgres() SDialect {
 	return d
 }
 
-// see https://github.com/eaigner/hood/blob/master/mysql.go#L35
+// https://www.postgresql.org/docs/9.5/static/datatype.html
 
 func postgresColumn(f *Field) string {
 	// posgres uses a special column type
@@ -53,11 +53,10 @@ func postgresColumn(f *Field) string {
 func postgresToken(v SqlToken) string {
 	switch v {
 	case AUTO_INCREMENT:
-		// postgres does not support the
-		// auto-increment keyword.
+		// postgres does not support the auto-increment keyword.
 		return ""
 	case PRIMARY_KEY:
-		return "primary key"
+		return " primary key"
 	default:
 		return ""
 	}

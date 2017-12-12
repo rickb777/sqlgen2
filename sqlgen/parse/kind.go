@@ -24,11 +24,10 @@ const (
 	String     = Kind(types.String)
 
 	Interface = 101
-	Bytes     = 102
-	Map       = 103
-	Ptr       = 104
-	Slice     = 105
-	Struct    = 106
+	Map       = 102
+	Ptr       = 103
+	Slice     = 104
+	Struct    = 105
 )
 
 //var SimpleTypes = map[string]Kind{

@@ -111,6 +111,10 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map
 		field.Type.Base = parse.Slice
 	}
 
+	if tag.Encode == "json" {
+		field.SqlType = JSON
+	}
+
 	if tag.Primary {
 		if ctx.table.Primary != nil {
 			exit.Fail(1, "%s, %s: compound primary keys are not supported.\n",
