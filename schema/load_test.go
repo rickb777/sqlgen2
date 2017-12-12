@@ -223,6 +223,61 @@ type Author struct {
 	}
 }
 
+func TestParseAndLoad_embeddedTypes_inDifferentPackages(t *testing.T) {
+	exit.TestableExit()
+	Debug = true
+	code := strings.Replace(`package pkg1
+
+import "github.com/rickb777/sqlgen2/demo"
+
+type Example struct {
+	Cat      demo.Category
+	demo.Dates
+	Name     string
+}
+`, "|", "`", -1)
+
+	source := Source{"issue1.go", bytes.NewBufferString(code)}
+
+	pkgStore, err := ParseGroups(token.NewFileSet(),
+		Group{"pkg1", []Source{source}},
+	)
+	if err != nil {
+		t.Fatalf("Error parsing: %s", err)
+	}
+
+	table, err := Load(pkgStore, "pkg1", "Example")
+	if err != nil {
+		t.Fatalf("Error loading: %s", err)
+	}
+
+	p1 := &Node{Name: "Dates"}
+
+	category := &Field{Node{"Cat", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Category", Uint8}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
+	after := &Field{Node{"After", Type{"", "", "string", String}, p1}, "dates_after", VARCHAR, ENCNONE, Tag{Size: 20}}
+	before := &Field{Node{"Before", Type{"", "", "string", String}, p1}, "dates_before", VARCHAR, ENCNONE, Tag{Size: 20}}
+	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "name", VARCHAR, ENCNONE, Tag{}}
+
+	expected := &TableDescription{
+		Type: "Example",
+		Name: "examples",
+		Fields: []*Field{
+			category,
+			after,
+			before,
+			name,
+		},
+	}
+
+	if !reflect.DeepEqual(table, expected) {
+		ex := utter.Sdump(expected)
+		ac := utter.Sdump(table)
+		outputDiff(ex, "expected.txt")
+		outputDiff(ac, "got.txt")
+		t.Errorf("expected | got\n%s\n", sideBySideDiff(ex, ac))
+	}
+}
+
 func TestParseAndLoad_multiplePackagesWithPrimaryAndIndexes(t *testing.T) {
 	exit.TestableExit()
 	Debug = true

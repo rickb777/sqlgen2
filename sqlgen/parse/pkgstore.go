@@ -57,7 +57,7 @@ func (st PackageStore) Find(pkg, name string) (*types.Struct, map[string]Tag) {
 		}
 	}
 
-	exit.Fail(5, "Unable to find %s.%s\n", pkg, name)
+	//exit.Fail(5, "Unable to find %s.%s\n", pkg, name)
 	return nil, nil
 }
 

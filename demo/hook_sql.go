@@ -707,8 +707,8 @@ const sqlCreateHookTablePostgres = `
 CREATE TABLE %s%s%s (
  id                             bigserial primary key,
  sha                            varchar(512),
- dates_after                    varchar(512),
- dates_before                   varchar(512),
+ dates_after                    varchar(20),
+ dates_before                   varchar(20),
  category                       integer,
  created                        boolean,
  deleted                        boolean,
@@ -729,8 +729,8 @@ const sqlCreateHookTableMysql = `
 CREATE TABLE %s%s%s (
  id                             bigint primary key auto_increment,
  sha                            varchar(512),
- dates_after                    varchar(512),
- dates_before                   varchar(512),
+ dates_after                    varchar(20),
+ dates_before                   varchar(20),
  category                       tinyint unsigned,
  created                        tinyint(1),
  deleted                        tinyint(1),

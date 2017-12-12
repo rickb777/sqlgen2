@@ -20,8 +20,8 @@ type Hook struct {
 type HookList []*Hook
 
 type Dates struct {
-	After  string
-	Before string
+	After  string `sql:"size: 20"`
+	Before string `sql:"size: 20"`
 }
 
 type Commit struct {
