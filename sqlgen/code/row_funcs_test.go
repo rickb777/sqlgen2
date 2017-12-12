@@ -14,7 +14,7 @@ import (
 func fixtureTable() *TableDescription {
 	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", INTEGER, ENCNONE, Tag{Primary: true, Auto: true}}
 	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
-	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "name", VARCHAR, ENCNONE, Tag{Size: 2048, Name: "username", Index: "nameIdx"}}
+	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "username", VARCHAR, ENCNONE, Tag{Size: 2048, Name: "username", Index: "nameIdx"}}
 	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", BOOLEAN, ENCNONE, Tag{}}
 	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", BLOB, ENCJSON, Tag{Encode: "json"}}
 	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", BLOB, ENCJSON, Tag{Encode: "json"}}
