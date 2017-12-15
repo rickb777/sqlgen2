@@ -1,9 +1,10 @@
-package schema
+package main
 
 import (
 	"bytes"
 	"fmt"
 	"github.com/kortschak/utter"
+	. "github.com/rickb777/sqlgen2/schema"
 	. "github.com/rickb777/sqlgen2/sqlgen/parse"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"go/token"
@@ -39,7 +40,7 @@ type Author struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := Load(pkgStore, "pkg1", "Example")
+	table, err := load(pkgStore, "pkg1", "Example")
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -85,7 +86,7 @@ type Category int32
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := Load(pkgStore, "pkg1", "Example")
+	table, err := load(pkgStore, "pkg1", "Example")
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -128,7 +129,7 @@ type Example struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := Load(pkgStore, "pkg1", "Example")
+	table, err := load(pkgStore, "pkg1", "Example")
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -190,7 +191,7 @@ type Author struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := Load(pkgStore, "pkg1", "Example")
+	table, err := load(pkgStore, "pkg1", "Example")
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -246,7 +247,7 @@ type Example struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := Load(pkgStore, "pkg1", "Example")
+	table, err := load(pkgStore, "pkg1", "Example")
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -319,7 +320,7 @@ type Commit struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := Load(pkgStore, "pkg1", "Example")
+	table, err := load(pkgStore, "pkg1", "Example")
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}

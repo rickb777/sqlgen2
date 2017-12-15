@@ -1,6 +1,9 @@
-package schema
+package main
 
-import "go/types"
+import (
+	"go/types"
+	. "github.com/rickb777/sqlgen2/schema"
+)
 
 var mapTagToEncoding = map[string]SqlEncode{
 	"":     ENCNONE,

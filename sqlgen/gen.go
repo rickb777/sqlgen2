@@ -77,7 +77,7 @@ func main() {
 	//}
 
 	// load the Tree into a schema Object
-	table, err := schema.Load(pkgStore, pkg, name)
+	table, err := load(pkgStore, pkg, name)
 	if parse.Debug {
 		utter.Dump(table)
 	}

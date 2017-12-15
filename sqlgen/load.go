@@ -1,12 +1,13 @@
-package schema
+package main
 
 import (
 	"fmt"
-	. "github.com/acsellers/inflections"
-	"github.com/rickb777/sqlgen2/sqlgen/parse"
-	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"go/types"
 	"strings"
+	. "github.com/acsellers/inflections"
+	. "github.com/rickb777/sqlgen2/schema"
+	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"github.com/rickb777/sqlgen2/sqlgen/output"
 	"github.com/kortschak/utter"
 )
@@ -18,7 +19,7 @@ type context struct {
 	unexportedFields []string
 }
 
-func Load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, error) {
+func load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, error) {
 	table := new(TableDescription)
 
 	// local map of indexes, used for quick lookups and de-duping.
