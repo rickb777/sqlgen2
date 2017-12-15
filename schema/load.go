@@ -8,6 +8,7 @@ import (
 	"go/types"
 	"strings"
 	"github.com/rickb777/sqlgen2/sqlgen/output"
+	"github.com/kortschak/utter"
 )
 
 type context struct {
@@ -38,6 +39,8 @@ func Load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, err
 	for _, idx := range ctx.indices {
 		table.Index = append(table.Index, idx)
 	}
+
+	checkNoConflictingNames(pkg, name, table)
 
 	return table, nil
 }
@@ -77,7 +80,10 @@ func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, par
 	parse.DevInfo("convertEmbeddedNodeToFields %s %s\n", pkg, name)
 	str, tags := ctx.pkgStore.Find(pkg, name)
 	if str == nil {
-		nm := leaf.Type().(*types.Named)
+		nm, ok := leaf.Type().(*types.Named)
+		if !ok {
+			exit.Fail(5, "Unable to find %s.%s\n", pkg, name)
+		}
 		pkg = nm.Obj().Pkg().Name()
 		str = nm.Underlying().(*types.Struct)
 		tags = make(map[string]parse.Tag)
@@ -162,10 +168,15 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map
 		}
 	}
 
+	prefix := ""
+	if tag.Prefixed {
+		prefix = Underscore(field.JoinParts(1, "_")) + "_"
+	}
+
 	if tag.Name != "" {
-		field.SqlName = strings.ToLower(tag.Name)
+		field.SqlName = prefix + strings.ToLower(tag.Name)
 	} else {
-		field.SqlName = Underscore(field.JoinParts("_"))
+		field.SqlName = prefix + strings.ToLower(field.Name)
 	}
 
 	ctx.table.Fields = append(ctx.table.Fields, field)
@@ -240,5 +251,24 @@ func addStructTags(tags map[string]parse.Tag, str *types.Struct) {
 		}
 		tags[str.Field(i).Name()] = *tag
 	}
+}
 
+func checkNoConflictingNames(pkg, name string, table *TableDescription) {
+	names := make(map[string]struct{})
+	var duplicates []string
+
+	for _, field := range table.Fields {
+		name := strings.ToLower(field.SqlName)
+		_, exists := names[name]
+		if exists {
+			duplicates = append(duplicates, name)
+		}
+		names[name] = struct{}{}
+	}
+
+	if len(duplicates) > 0 {
+		parse.DevInfo("checkNoConflictingNames %s %s %+v\n", pkg, name, utter.Sdump(table))
+		exit.Fail(1, "%s.%s: found conflicting SQL column names: %s.\nPlease set the names on these fields explicitly using tags.\n",
+			pkg, name, strings.Join(duplicates, ", "))
+	}
 }

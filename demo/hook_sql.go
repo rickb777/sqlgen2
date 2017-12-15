@@ -427,7 +427,7 @@ func (tbl HookTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(wh, args...)
 }
 
-const HookColumnNames = "id, sha, dates_after, dates_before, category, created, deleted, forced, head_commit_id, head_commit_message, head_commit_timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
+const HookColumnNames = "id, sha, after, before, category, created, deleted, forced, commit_id, message, timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
 
 //--------------------------------------------------------------------------------
 
@@ -481,15 +481,15 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 const sqlInsertHookSimple = `
 INSERT INTO %s%s (
 	sha, 
-	dates_after, 
-	dates_before, 
+	after, 
+	before, 
 	category, 
 	created, 
 	deleted, 
 	forced, 
-	head_commit_id, 
-	head_commit_message, 
-	head_commit_timestamp, 
+	commit_id, 
+	message, 
+	timestamp, 
 	head_commit_author_name, 
 	head_commit_author_email, 
 	head_commit_author_username, 
@@ -502,15 +502,15 @@ INSERT INTO %s%s (
 const sqlInsertHookPostgres = `
 INSERT INTO %s%s (
 	sha, 
-	dates_after, 
-	dates_before, 
+	after, 
+	before, 
 	category, 
 	created, 
 	deleted, 
 	forced, 
-	head_commit_id, 
-	head_commit_message, 
-	head_commit_timestamp, 
+	commit_id, 
+	message, 
+	timestamp, 
 	head_commit_author_name, 
 	head_commit_author_email, 
 	head_commit_author_username, 
@@ -580,15 +580,15 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 const sqlUpdateHookByPkSimple = `
 UPDATE %s%s SET 
 	sha=?, 
-	dates_after=?, 
-	dates_before=?, 
+	after=?, 
+	before=?, 
 	category=?, 
 	created=?, 
 	deleted=?, 
 	forced=?, 
-	head_commit_id=?, 
-	head_commit_message=?, 
-	head_commit_timestamp=?, 
+	commit_id=?, 
+	message=?, 
+	timestamp=?, 
 	head_commit_author_name=?, 
 	head_commit_author_email=?, 
 	head_commit_author_username=?, 
@@ -601,15 +601,15 @@ UPDATE %s%s SET
 const sqlUpdateHookByPkPostgres = `
 UPDATE %s%s SET 
 	sha=$2, 
-	dates_after=$3, 
-	dates_before=$4, 
+	after=$3, 
+	before=$4, 
 	category=$5, 
 	created=$6, 
 	deleted=$7, 
 	forced=$8, 
-	head_commit_id=$9, 
-	head_commit_message=$10, 
-	head_commit_timestamp=$11, 
+	commit_id=$9, 
+	message=$10, 
+	timestamp=$11, 
 	head_commit_author_name=$12, 
 	head_commit_author_email=$13, 
 	head_commit_author_username=$14, 
@@ -685,15 +685,15 @@ const sqlCreateHookTableSqlite = `
 CREATE TABLE %s%s%s (
  id                             bigint primary key,
  sha                            text,
- dates_after                    text,
- dates_before                   text,
+ after                          text,
+ before                         text,
  category                       tinyint unsigned,
  created                        boolean,
  deleted                        boolean,
  forced                         boolean,
- head_commit_id                 text,
- head_commit_message            text,
- head_commit_timestamp          text,
+ commit_id                      text,
+ message                        text,
+ timestamp                      text,
  head_commit_author_name        text,
  head_commit_author_email       text,
  head_commit_author_username    text,
@@ -707,15 +707,15 @@ const sqlCreateHookTablePostgres = `
 CREATE TABLE %s%s%s (
  id                             bigserial primary key,
  sha                            varchar(512),
- dates_after                    varchar(20),
- dates_before                   varchar(20),
+ after                          varchar(20),
+ before                         varchar(20),
  category                       integer,
  created                        boolean,
  deleted                        boolean,
  forced                         boolean,
- head_commit_id                 varchar(512),
- head_commit_message            varchar(512),
- head_commit_timestamp          varchar(512),
+ commit_id                      varchar(512),
+ message                        varchar(512),
+ timestamp                      varchar(512),
  head_commit_author_name        varchar(512),
  head_commit_author_email       varchar(512),
  head_commit_author_username    varchar(512),
@@ -729,15 +729,15 @@ const sqlCreateHookTableMysql = `
 CREATE TABLE %s%s%s (
  id                             bigint primary key auto_increment,
  sha                            varchar(512),
- dates_after                    varchar(20),
- dates_before                   varchar(20),
+ after                          varchar(20),
+ before                         varchar(20),
  category                       tinyint unsigned,
  created                        tinyint(1),
  deleted                        tinyint(1),
  forced                         tinyint(1),
- head_commit_id                 varchar(512),
- head_commit_message            varchar(512),
- head_commit_timestamp          varchar(512),
+ commit_id                      varchar(512),
+ message                        varchar(512),
+ timestamp                      varchar(512),
  head_commit_author_name        varchar(512),
  head_commit_author_email       varchar(512),
  head_commit_author_username    varchar(512),
@@ -755,6 +755,6 @@ const NumHookDataColumns = 16
 
 const HookPk = "Id"
 
-const HookDataColumnNames = "sha, dates_after, dates_before, category, created, deleted, forced, head_commit_id, head_commit_message, head_commit_timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
+const HookDataColumnNames = "sha, after, before, category, created, deleted, forced, commit_id, message, timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
 
 //--------------------------------------------------------------------------------

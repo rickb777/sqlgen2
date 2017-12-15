@@ -47,14 +47,14 @@ func WriteSliceFunc(w io.Writer, view View, table *schema.TableDescription, with
 		switch field.Encode {
 		case schema.ENCJSON:
 			l2 := fmt.Sprintf("%s\tv%d, err = json.Marshal(&v.%s)\n%s\tif err != nil {\n%s\t\treturn nil, err\n%s\t}\n",
-				tabs[:depth], i, field.JoinParts("."), tabs[:depth], tabs[:depth], tabs[:depth])
+				tabs[:depth], i, field.JoinParts(0, "."), tabs[:depth], tabs[:depth], tabs[:depth])
 			view.Body2 = append(view.Body2, l2)
 		case schema.ENCTEXT:
 			l2 := fmt.Sprintf("%s\tv%d, err = encoding.MarshalText(&v.%s)\n%s\tif err != nil {\n%s\t\treturn nil, err\n%s\t}\n",
-				tabs[:depth], i, field.JoinParts("."), tabs[:depth], tabs[:depth], tabs[:depth])
+				tabs[:depth], i, field.JoinParts(0, "."), tabs[:depth], tabs[:depth], tabs[:depth])
 			view.Body2 = append(view.Body2, l2)
 		default:
-			l2 := fmt.Sprintf("%s\tv%d = v.%s\n", tabs[:depth], i, field.JoinParts("."))
+			l2 := fmt.Sprintf("%s\tv%d = v.%s\n", tabs[:depth], i, field.JoinParts(0, "."))
 			view.Body2 = append(view.Body2, l2)
 		}
 	}

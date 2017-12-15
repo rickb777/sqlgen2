@@ -207,6 +207,20 @@ WHERE user_login=?
 `
 ```
 
+#### Tags Summary
+
+| Tag      | Value         | Purpose                                                      |
+| -------- | ------------- | ------------------------------------------------------------ |
+| pk       | true or false | the column is the primary key                                |
+| auto     | true or false | the column is auto-incrementing (ignored if not using MySQL) |
+| prefixed | true or false | the column name is made unique using a computed prefixed     |
+| name     | string        | the column name                                              |
+| type     | string        | overrides the column type explicitly                         |
+| size     | integer       | sets the storage size for the column                         |
+| encode   | string        | encodes as "json" or "text"                                  |
+| index    | string        | the column has an index                                      |
+| unique   | string        | the column has a unique index                                |
+
 ### Nesting
 
 Nested Go structures can be flattened into a single database table. As an example, we have a `User` and `Address` with a one-to-one relationship. In some cases, we may prefer to de-normalize our data and store in a single table, avoiding un-necessary joins.
@@ -340,7 +354,7 @@ BenchmarkSqlgenRows-4       2000       700673 ns/op
 ### Restrictions
 
 * Compound primaries are not supported
-* Imports must not use '.' or be renamed.
+* In the structs used for tables, the imports must not use '.' or be renamed.
 
 
 ### Credits

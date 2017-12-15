@@ -100,11 +100,12 @@ func (tbl IssueTable) logQuery(query string, args ...interface{}) {
 func ScanIssue(row *sql.Row) (*Issue, error) {
 	var v0 int64
 	var v1 int
-	var v2 string
+	var v2 int32
 	var v3 string
 	var v4 string
 	var v5 string
-	var v6 []byte
+	var v6 string
+	var v7 []byte
 
 	err := row.Scan(
 		&v0,
@@ -114,6 +115,7 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 		&v4,
 		&v5,
 		&v6,
+		&v7,
 
 	)
 	if err != nil {
@@ -123,11 +125,12 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 	v := &Issue{}
 	v.Id = v0
 	v.Number = v1
-	v.Title = v2
-	v.Body = v3
-	v.Assignee = v4
-	v.State = v5
-	err = json.Unmarshal(v6, &v.Labels)
+	v.Date.day = v2
+	v.Title = v3
+	v.Body = v4
+	v.Assignee = v5
+	v.State = v6
+	err = json.Unmarshal(v7, &v.Labels)
 	if err != nil {
 		return nil, err
 	}
@@ -142,11 +145,12 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 
 	var v0 int64
 	var v1 int
-	var v2 string
+	var v2 int32
 	var v3 string
 	var v4 string
 	var v5 string
-	var v6 []byte
+	var v6 string
+	var v7 []byte
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -157,6 +161,7 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 			&v4,
 			&v5,
 			&v6,
+			&v7,
 
 		)
 		if err != nil {
@@ -166,11 +171,12 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 		v := &Issue{}
 		v.Id = v0
 		v.Number = v1
-		v.Title = v2
-		v.Body = v3
-		v.Assignee = v4
-		v.State = v5
-		err = json.Unmarshal(v6, &v.Labels)
+		v.Date.day = v2
+		v.Title = v3
+		v.Body = v4
+		v.Assignee = v5
+		v.State = v6
+		err = json.Unmarshal(v7, &v.Labels)
 		if err != nil {
 			return nil, err
 		}
@@ -185,19 +191,21 @@ func SliceIssue(v *Issue) ([]interface{}, error) {
 
 	var v0 int64
 	var v1 int
-	var v2 string
+	var v2 int32
 	var v3 string
 	var v4 string
 	var v5 string
-	var v6 []byte
+	var v6 string
+	var v7 []byte
 
 	v0 = v.Id
 	v1 = v.Number
-	v2 = v.Title
-	v3 = v.Body
-	v4 = v.Assignee
-	v5 = v.State
-	v6, err = json.Marshal(&v.Labels)
+	v2 = v.Date.day
+	v3 = v.Title
+	v4 = v.Body
+	v5 = v.Assignee
+	v6 = v.State
+	v7, err = json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
 	}
@@ -210,6 +218,7 @@ func SliceIssue(v *Issue) ([]interface{}, error) {
 		v4,
 		v5,
 		v6,
+		v7,
 
 	}, nil
 }
@@ -218,18 +227,20 @@ func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 	var err error
 
 	var v1 int
-	var v2 string
+	var v2 int32
 	var v3 string
 	var v4 string
 	var v5 string
-	var v6 []byte
+	var v6 string
+	var v7 []byte
 
 	v1 = v.Number
-	v2 = v.Title
-	v3 = v.Body
-	v4 = v.Assignee
-	v5 = v.State
-	v6, err = json.Marshal(&v.Labels)
+	v2 = v.Date.day
+	v3 = v.Title
+	v4 = v.Body
+	v5 = v.Assignee
+	v6 = v.State
+	v7, err = json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
 	}
@@ -241,6 +252,7 @@ func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 		v4,
 		v5,
 		v6,
+		v7,
 
 	}, nil
 }
@@ -324,7 +336,7 @@ func (tbl IssueTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(wh, args...)
 }
 
-const IssueColumnNames = "id, number, title, bigbody, assignee, state, labels"
+const IssueColumnNames = "id, number, day, title, bigbody, assignee, state, labels"
 
 //--------------------------------------------------------------------------------
 
@@ -378,6 +390,7 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 const sqlInsertIssueSimple = `
 INSERT INTO %s%s (
 	number, 
+	day, 
 	title, 
 	bigbody, 
 	assignee, 
@@ -389,6 +402,7 @@ INSERT INTO %s%s (
 const sqlInsertIssuePostgres = `
 INSERT INTO %s%s (
 	number, 
+	day, 
 	title, 
 	bigbody, 
 	assignee, 
@@ -397,9 +411,9 @@ INSERT INTO %s%s (
 ) VALUES (%s)
 `
 
-const sIssueDataColumnParamsSimple = "?,?,?,?,?,?"
+const sIssueDataColumnParamsSimple = "?,?,?,?,?,?,?"
 
-const sIssueDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6"
+const sIssueDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7"
 
 //--------------------------------------------------------------------------------
 
@@ -457,6 +471,7 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 const sqlUpdateIssueByPkSimple = `
 UPDATE %s%s SET 
 	number=?, 
+	day=?, 
 	title=?, 
 	bigbody=?, 
 	assignee=?, 
@@ -468,12 +483,13 @@ UPDATE %s%s SET
 const sqlUpdateIssueByPkPostgres = `
 UPDATE %s%s SET 
 	number=$2, 
-	title=$3, 
-	bigbody=$4, 
-	assignee=$5, 
-	state=$6, 
-	labels=$7 
- WHERE id=$8
+	day=$3, 
+	title=$4, 
+	bigbody=$5, 
+	assignee=$6, 
+	state=$7, 
+	labels=$8 
+ WHERE id=$9
 `
 
 //--------------------------------------------------------------------------------
@@ -556,6 +572,7 @@ const sqlCreateIssueTableSqlite = `
 CREATE TABLE %s%s%s (
  id       bigint primary key,
  number   bigint,
+ day      int,
  title    text,
  bigbody  text,
  assignee text,
@@ -568,6 +585,7 @@ const sqlCreateIssueTablePostgres = `
 CREATE TABLE %s%s%s (
  id       bigserial primary key,
  number   integer,
+ day      integer,
  title    varchar(512),
  bigbody  varchar(2048),
  assignee varchar(512),
@@ -580,6 +598,7 @@ const sqlCreateIssueTableMysql = `
 CREATE TABLE %s%s%s (
  id       bigint primary key auto_increment,
  number   bigint,
+ day      int,
  title    varchar(512),
  bigbody  varchar(2048),
  assignee varchar(512),
@@ -596,12 +615,12 @@ CREATE INDEX %s%sissue_assignee ON %s%s (assignee)
 
 //--------------------------------------------------------------------------------
 
-const NumIssueColumns = 7
+const NumIssueColumns = 8
 
-const NumIssueDataColumns = 6
+const NumIssueDataColumns = 7
 
 const IssuePk = "Id"
 
-const IssueDataColumnNames = "number, title, bigbody, assignee, state, labels"
+const IssueDataColumnNames = "number, day, title, bigbody, assignee, state, labels"
 
 //--------------------------------------------------------------------------------

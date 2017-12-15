@@ -32,14 +32,14 @@ func writeRowFunc(w io.Writer, view View, table *schema.TableDescription, tabs s
 		switch field.Encode {
 		case schema.ENCJSON:
 			l3 := fmt.Sprintf("%serr = json.Unmarshal(v%d, &v.%s)\n%sif err != nil {\n%s\treturn nil, err\n%s}\n",
-				tabs, i, field.JoinParts("."), tabs, tabs, tabs)
+				tabs, i, field.JoinParts(0, "."), tabs, tabs, tabs)
 			view.Body3 = append(view.Body3, l3)
 		case schema.ENCTEXT:
 			l3 := fmt.Sprintf("%serr = encoding.UnmarshalText(v%d, &v.%s)\n%sif err != nil {\n%s\treturn nil, err\n%s}\n",
-				tabs, i, field.JoinParts("."), tabs, tabs, tabs)
+				tabs, i, field.JoinParts(0, "."), tabs, tabs, tabs)
 			view.Body3 = append(view.Body3, l3)
 		default:
-			l3 := fmt.Sprintf("%sv.%s = v%d\n", tabs, field.JoinParts("."), i)
+			l3 := fmt.Sprintf("%sv.%s = v%d\n", tabs, field.JoinParts(0, "."), i)
 			view.Body3 = append(view.Body3, l3)
 		}
 	}

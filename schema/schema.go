@@ -110,6 +110,10 @@ func (node *Node) Parts() []string {
 	return p
 }
 
-func (node *Node) JoinParts(sep string) string {
-	return strings.Join(node.Parts(), sep)
+func (node *Node) JoinParts(delta int, sep string) string {
+	parts := node.Parts()
+	if delta > 0 {
+		parts = parts[:len(parts)-delta]
+	}
+	return strings.Join(parts, sep)
 }

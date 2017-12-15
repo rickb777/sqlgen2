@@ -21,7 +21,7 @@ func (st PackageStore) Find(pkg, name string) (*types.Struct, map[string]Tag) {
 	DevInfo("store.Find %s %s\n", pkg, name)
 	pkgGrp, exists := st[pkg]
 	if !exists {
-		exit.Fail(5, "Unable to find package %q\n", pkg)
+		//exit.Fail(5, "Unable to find package %q\n", pkg)
 		return nil, nil
 	}
 
@@ -41,11 +41,6 @@ func (st PackageStore) Find(pkg, name string) (*types.Struct, map[string]Tag) {
 				DevInfo("  %T %v\n", otu, otu)
 				s, ok := otu.(*types.Struct)
 				if ok {
-					//for j := 0; j < s.NumFields(); j++ {
-					//	f := s.Field(j)
-					//	DevInfo("    f%d: name:%-10s pkg:%s type:%-25s f:%v, e:%v, a:%v\n", j,
-					//		f.Name(), f.Pkg().Name(), f.Type(), f.IsField(), f.Exported(), f.Anonymous())
-					//}
 					tags, err := findTags(pkgGrp.Files, pkg, name)
 					if err != nil {
 						exit.Fail(4, "%s, %s: tag error: %s\n", pkg, name, err)

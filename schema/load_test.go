@@ -46,7 +46,7 @@ type Author struct {
 
 	p1 := &Node{Name: "Commit"}
 	p2 := &Node{Name: "Author", Parent: p1}
-	author := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
+	author := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "name", VARCHAR, ENCNONE, Tag{}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -199,9 +199,9 @@ type Author struct {
 	p2 := &Node{Name: "Author", Parent: p1}
 
 	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
-	name := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
-	email := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
-	message := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "commit_message", VARCHAR, ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "name", VARCHAR, ENCNONE, Tag{}}
+	email := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "email", VARCHAR, ENCNONE, Tag{}}
+	message := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "message", VARCHAR, ENCNONE, Tag{}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -254,8 +254,8 @@ type Example struct {
 	p1 := &Node{Name: "Dates"}
 
 	category := &Field{Node{"Cat", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Category", Uint8}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
-	after := &Field{Node{"After", Type{"", "", "string", String}, p1}, "dates_after", VARCHAR, ENCNONE, Tag{Size: 20}}
-	before := &Field{Node{"Before", Type{"", "", "string", String}, p1}, "dates_before", VARCHAR, ENCNONE, Tag{Size: 20}}
+	after := &Field{Node{"After", Type{"", "", "string", String}, p1}, "after", VARCHAR, ENCNONE, Tag{Size: 20}}
+	before := &Field{Node{"Before", Type{"", "", "string", String}, p1}, "before", VARCHAR, ENCNONE, Tag{Size: 20}}
 	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "name", VARCHAR, ENCNONE, Tag{}}
 
 	expected := &TableDescription{
@@ -332,9 +332,9 @@ type Commit struct {
 	category := &Field{Node{"Category", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Category", Uint8}, nil}, "category", INTEGER, ENCNONE, Tag{}}
 	commitMessage := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "text", VARCHAR, ENCNONE, Tag{Size: 2048, Name: "text"}}
 	//commitTimestamp := &Field{Node{"Timestamp", Type{"time", "Time", String}, p1}, "commit_timestamp", VARCHAR, ENCNONE, Tag{}}
-	authorName := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
-	authorEmail := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
-	authorUser := &Field{Node{"Username", Type{"", "", "string", String}, p2}, "commit_author_username", VARCHAR, ENCNONE, Tag{}}
+	authorName := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{Prefixed: true}}
+	authorEmail := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{Prefixed: true}}
+	authorUser := &Field{Node{"Username", Type{"", "", "string", String}, p2}, "commit_author_username", VARCHAR, ENCNONE, Tag{Prefixed: true}}
 	title := &Field{Node{"Title", Type{"", "", "string", String}, nil}, "title", VARCHAR, ENCNONE, Tag{Index: "titleIdx"}}
 	////owner := &Field{"Owner", "team_owner", VARCHAR, Tag{}}
 	hobby := &Field{Node{"Hobby", Type{"", "", "string", String}, nil}, "hobby", VARCHAR, ENCNONE, Tag{Size: 2048}}

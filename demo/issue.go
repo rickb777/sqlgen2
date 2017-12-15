@@ -8,6 +8,7 @@ package demo
 type Issue struct {
 	Id       int64 `sql:"pk: true, auto: true"`
 	Number   int
+	Date     Date
 	Title    string   `sql:"size: 512"`
 	Body     string   `sql:"size: 2048, name: bigbody"`
 	Assignee string   `sql:"index: issue_assignee"`
@@ -15,4 +16,8 @@ type Issue struct {
 	Labels   []string `sql:"encode: json"`
 
 	locked bool `sql:"-"`
+}
+
+type Date struct {
+	day int32
 }

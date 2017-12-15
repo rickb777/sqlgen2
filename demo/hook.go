@@ -25,7 +25,7 @@ type Dates struct {
 }
 
 type Commit struct {
-	ID        string
+	ID        string `sql:"name: commit_id"`
 	Message   string
 	Timestamp string
 	Author    *Author
@@ -33,7 +33,7 @@ type Commit struct {
 }
 
 type Author struct {
-	Name     string
-	Email    string
-	Username string
+	Name     string `sql:"prefixed: true"`
+	Email    string `sql:"prefixed: true"`
+	Username string `sql:"prefixed: true"`
 }

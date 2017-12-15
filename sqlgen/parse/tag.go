@@ -15,6 +15,7 @@ const TagKey = "sql"
 type Tag struct {
 	Name     string `yaml:"name"`
 	Type     string `yaml:"type"`
+	Prefixed bool   `yaml:"prefixed"`
 	Primary  bool   `yaml:"pk"`
 	Auto     bool   `yaml:"auto"`
 	Index    string `yaml:"index"`
@@ -22,7 +23,7 @@ type Tag struct {
 	Size     int    `yaml:"size"`
 	Skip     bool   `yaml:"skip"`
 	Encode   string `yaml:"encode"`
-	JSONAttr string `yaml:"json"`
+	//JSONAttr string `yaml:"json"`
 }
 
 // ParseTag parses a tag string from the struct
@@ -49,9 +50,9 @@ func ParseTag(raw string) (*Tag, error) {
 	// the Tag structure.
 	var err = yaml.Unmarshal([]byte(yamlValue), tag)
 
-	if tag.JSONAttr == "" {
-		tag.JSONAttr = structTag.Get("json")
-	}
+	//if tag.JSONAttr == "" {
+	//	tag.JSONAttr = structTag.Get("json")
+	//}
 
 	return tag, err
 }
