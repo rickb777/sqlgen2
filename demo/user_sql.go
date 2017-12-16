@@ -570,12 +570,12 @@ func (tbl DbUserTable) ternary(flag bool, a, b string) string {
 func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
     
-	_, err = tbl.Exec(tbl.createDbUserLoginIndexSql(extra))
+	_, err = tbl.Exec(tbl.createDbUserEmailIndexSql(extra))
 	if err != nil {
 		return err
 	}
     
-	_, err = tbl.Exec(tbl.createDbUserEmailIndexSql(extra))
+	_, err = tbl.Exec(tbl.createDbUserLoginIndexSql(extra))
 	if err != nil {
 		return err
 	}
@@ -584,20 +584,20 @@ func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 }
 
 
-func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
-	}
-	return fmt.Sprintf(sqlCreateDbUserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
-}
-
 func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExist string) string {
 	indexPrefix := tbl.Prefix
 	if strings.HasSuffix(indexPrefix, ".") {
 		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
 	}
 	return fmt.Sprintf(sqlCreateDbUserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
+
+func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	}
+	return fmt.Sprintf(sqlCreateDbUserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
 
 
@@ -660,12 +660,12 @@ CREATE TABLE %s%s%s (
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateDbUserLoginIndex = `
-CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
-`
-
 const sqlCreateDbUserEmailIndex = `
 CREATE UNIQUE INDEX %s%suser_email ON %s%s (email)
+`
+
+const sqlCreateDbUserLoginIndex = `
+CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
 `
 
 //--------------------------------------------------------------------------------

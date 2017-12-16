@@ -31,7 +31,7 @@ type Tag struct {
 func ParseTag(raw string) (*Tag, error) {
 	var tag = new(Tag)
 
-	raw = strings.Replace(raw, "`", "", -1)
+	raw = strings.TrimSpace(topAndTail(strings.TrimSpace(raw)))
 	structTag := reflect.StructTag(raw)
 	value := strings.TrimSpace(structTag.Get(TagKey))
 
@@ -55,4 +55,12 @@ func ParseTag(raw string) (*Tag, error) {
 	//}
 
 	return tag, err
+}
+
+func topAndTail(s string) string {
+	last := len(s) - 1
+	if len(s) >= 2 && s[0] == s[last] {
+		return s[1:last]
+	}
+	return s
 }

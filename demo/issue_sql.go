@@ -100,7 +100,7 @@ func (tbl IssueTable) logQuery(query string, args ...interface{}) {
 func ScanIssue(row *sql.Row) (*Issue, error) {
 	var v0 int64
 	var v1 int
-	var v2 int32
+	var v2 Date
 	var v3 string
 	var v4 string
 	var v5 string
@@ -125,7 +125,7 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 	v := &Issue{}
 	v.Id = v0
 	v.Number = v1
-	v.Date.day = v2
+	v.Date = v2
 	v.Title = v3
 	v.Body = v4
 	v.Assignee = v5
@@ -145,7 +145,7 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 
 	var v0 int64
 	var v1 int
-	var v2 int32
+	var v2 Date
 	var v3 string
 	var v4 string
 	var v5 string
@@ -171,7 +171,7 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 		v := &Issue{}
 		v.Id = v0
 		v.Number = v1
-		v.Date.day = v2
+		v.Date = v2
 		v.Title = v3
 		v.Body = v4
 		v.Assignee = v5
@@ -191,7 +191,7 @@ func SliceIssue(v *Issue) ([]interface{}, error) {
 
 	var v0 int64
 	var v1 int
-	var v2 int32
+	var v2 Date
 	var v3 string
 	var v4 string
 	var v5 string
@@ -200,7 +200,7 @@ func SliceIssue(v *Issue) ([]interface{}, error) {
 
 	v0 = v.Id
 	v1 = v.Number
-	v2 = v.Date.day
+	v2 = v.Date
 	v3 = v.Title
 	v4 = v.Body
 	v5 = v.Assignee
@@ -227,7 +227,7 @@ func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 	var err error
 
 	var v1 int
-	var v2 int32
+	var v2 Date
 	var v3 string
 	var v4 string
 	var v5 string
@@ -235,7 +235,7 @@ func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 	var v7 []byte
 
 	v1 = v.Number
-	v2 = v.Date.day
+	v2 = v.Date
 	v3 = v.Title
 	v4 = v.Body
 	v5 = v.Assignee
@@ -336,7 +336,7 @@ func (tbl IssueTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(wh, args...)
 }
 
-const IssueColumnNames = "id, number, day, title, bigbody, assignee, state, labels"
+const IssueColumnNames = "id, number, date, title, bigbody, assignee, state, labels"
 
 //--------------------------------------------------------------------------------
 
@@ -390,7 +390,7 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 const sqlInsertIssueSimple = `
 INSERT INTO %s%s (
 	number, 
-	day, 
+	date, 
 	title, 
 	bigbody, 
 	assignee, 
@@ -402,7 +402,7 @@ INSERT INTO %s%s (
 const sqlInsertIssuePostgres = `
 INSERT INTO %s%s (
 	number, 
-	day, 
+	date, 
 	title, 
 	bigbody, 
 	assignee, 
@@ -471,7 +471,7 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 const sqlUpdateIssueByPkSimple = `
 UPDATE %s%s SET 
 	number=?, 
-	day=?, 
+	date=?, 
 	title=?, 
 	bigbody=?, 
 	assignee=?, 
@@ -483,7 +483,7 @@ UPDATE %s%s SET
 const sqlUpdateIssueByPkPostgres = `
 UPDATE %s%s SET 
 	number=$2, 
-	day=$3, 
+	date=$3, 
 	title=$4, 
 	bigbody=$5, 
 	assignee=$6, 
@@ -572,7 +572,7 @@ const sqlCreateIssueTableSqlite = `
 CREATE TABLE %s%s%s (
  id       bigint primary key,
  number   bigint,
- day      int,
+ date     blob,
  title    text,
  bigbody  text,
  assignee text,
@@ -585,7 +585,7 @@ const sqlCreateIssueTablePostgres = `
 CREATE TABLE %s%s%s (
  id       bigserial primary key,
  number   integer,
- day      integer,
+ date     byteaa,
  title    varchar(512),
  bigbody  varchar(2048),
  assignee varchar(512),
@@ -598,7 +598,7 @@ const sqlCreateIssueTableMysql = `
 CREATE TABLE %s%s%s (
  id       bigint primary key auto_increment,
  number   bigint,
- day      int,
+ date     mediumblob,
  title    varchar(512),
  bigbody  varchar(2048),
  assignee varchar(512),
@@ -621,6 +621,6 @@ const NumIssueDataColumns = 7
 
 const IssuePk = "Id"
 
-const IssueDataColumnNames = "number, day, title, bigbody, assignee, state, labels"
+const IssueDataColumnNames = "number, date, title, bigbody, assignee, state, labels"
 
 //--------------------------------------------------------------------------------

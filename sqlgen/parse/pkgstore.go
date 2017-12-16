@@ -14,15 +14,16 @@ type PackageGroup struct {
 type PackageStore map[string]PackageGroup
 
 func (st PackageStore) store(pkg *types.Package, files []*ast.File) {
+	DevInfo("store %s %d\n", pkg, len(files))
 	st[pkg.Name()] = PackageGroup{pkg, files}
 }
 
-func (st PackageStore) Find(pkg, name string) (*types.Struct, map[string]Tag) {
-	DevInfo("store.Find %s %s\n", pkg, name)
+func (st PackageStore) FindNamed(pkg, name string) *types.Named {
+	DevInfo("Find %s %s\n", pkg, name)
 	pkgGrp, exists := st[pkg]
 	if !exists {
 		//exit.Fail(5, "Unable to find package %q\n", pkg)
-		return nil, nil
+		return nil
 	}
 
 	scope := pkgGrp.Pkg.Scope()
@@ -36,24 +37,52 @@ func (st PackageStore) Find(pkg, name string) (*types.Struct, map[string]Tag) {
 				o := t.Obj()
 				ot := o.Type()
 				otu := ot.Underlying()
+				DevInfo("  %T %v\n", t, t)
 				DevInfo("  %T %v\n", o, o)
 				DevInfo("  %T %v\n", ot, ot)
 				DevInfo("  %T %v\n", otu, otu)
-				s, ok := otu.(*types.Struct)
-				if ok {
-					tags, err := findTags(pkgGrp.Files, pkg, name)
-					if err != nil {
-						exit.Fail(4, "%s, %s: tag error: %s\n", pkg, name, err)
-						return nil, nil
-					}
-					return s, tags
-				}
+				return t
 			}
 		}
 	}
 
-	//exit.Fail(5, "Unable to find %s.%s\n", pkg, name)
-	return nil, nil
+	return nil
+}
+
+func (st PackageStore) FindStruct(pkg, name string) (*types.Struct, map[string]Tag) {
+	DevInfo("FindStruct %s %s\n", pkg, name)
+	t := st.FindNamed(pkg, name)
+	if t == nil {
+		return nil, nil
+	}
+
+	o := t.Obj()
+	ot := o.Type()
+	otu := ot.Underlying()
+	DevInfo("  %T %v\n", o, o)
+	DevInfo("  %T %v\n", ot, ot)
+	DevInfo("  %T %v\n", otu, otu)
+	s, ok := otu.(*types.Struct)
+	if !ok {
+		return nil, nil
+	}
+
+	tags, err := findTags(st[pkg].Files, pkg, name)
+	if err != nil {
+		exit.Fail(4, "%s, %s: tag error: %s\n", pkg, name, err)
+		return nil, nil
+	}
+
+	return s, tags
+}
+
+func (st PackageStore) FindTags(pkg, name string) map[string]Tag {
+	tags, err := findTags(st[pkg].Files, pkg, name)
+	if err != nil {
+		exit.Fail(4, "%s, %s: tag error: %s\n", pkg, name, err)
+		return nil
+	}
+	return tags
 }
 
 func findTags(files []*ast.File, pkg, name string) (map[string]Tag, error) {

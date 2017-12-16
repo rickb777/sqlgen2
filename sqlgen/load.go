@@ -13,10 +13,9 @@ import (
 )
 
 type context struct {
-	pkgStore         parse.PackageStore
-	indices          map[string]*Index
-	table            *TableDescription
-	unexportedFields []string
+	pkgStore parse.PackageStore
+	indices  map[string]*Index
+	table    *TableDescription
 }
 
 func load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, error) {
@@ -28,14 +27,10 @@ func load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, err
 	table.Type = name
 	table.Name = Pluralize(Underscore(table.Type))
 
-	str, tags := pkgStore.Find(pkg, name)
-	ctx := &context{pkgStore, indices, table, nil}
-	ctx.examineStruct(str, pkg, name, tags, nil)
-
-	if len(ctx.unexportedFields) > 0 {
-		output.Info("Warning: %s.%s contains unexported fields %s"+
-			" (perhaps annotate with `sql:\"-\"`).\n", pkg, name, strings.Join(ctx.unexportedFields, ", "))
-	}
+	nm := pkgStore.FindNamed(pkg, name)
+	tags := pkgStore.FindTags(pkg, name)
+	ctx := &context{pkgStore, indices, table}
+	ctx.examineStruct(nm, pkg, name, tags, nil)
 
 	for _, idx := range ctx.indices {
 		table.Index = append(table.Index, idx)
@@ -48,10 +43,35 @@ func load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, err
 
 //-------------------------------------------------------------------------------------------------
 
-func (ctx *context) examineStruct(str *types.Struct, pkg, name string, tags map[string]parse.Tag, parent *Node) {
+func (ctx *context) examineStruct(nm *types.Named, pkg, name string, tags map[string]parse.Tag, parent *Node) bool {
+	str := nm.Underlying().(*types.Struct)
 	parse.DevInfo("examineStruct %s %s\n  tags %v\n", pkg, name, tags)
 	if str.NumFields() == 0 {
 		exit.Fail(1, "%s.%s: empty structs are not supported (was there a parser warning?).\n", pkg, name)
+	}
+
+	var unexportedFields []string
+
+	for j := 0; j < str.NumFields(); j++ {
+		tField := str.Field(j)
+		//parse.DevInfo("    f%d: name:%-10s pkg:%s type:%-25s f:%v, e:%v, a:%v\n", j,
+		//	tField.Name(), tField.Pkg().Name(), tField.Type(), tField.IsField(), tField.Exported(), tField.Anonymous())
+
+		if !tField.Exported() {
+			tag := tags[tField.Name()]
+			if !tag.Skip {
+				unexportedFields = append(unexportedFields, tField.Name())
+			}
+		}
+	}
+
+	if len(unexportedFields) == str.NumFields() {
+		output.Info("%s.%s: Info: %s contains no exported fields; it must implement sql.Scanner and driver.Valuer.\n", pkg, name, str.String())
+		return true // add this struct as a field; assume the type implements Scanner/Valuer
+
+	} else if len(unexportedFields) > 0 {
+		output.Info("%s.%s: Warning: %s.%s contains unexported fields %s.\n"+
+			"  (perhaps annotate with `sql:\"-\"`)\n", pkg, name, nm.Obj().Pkg().Name(), nm.Obj().Name(), strings.Join(unexportedFields, ", "))
 	}
 
 	for j := 0; j < str.NumFields(); j++ {
@@ -59,19 +79,18 @@ func (ctx *context) examineStruct(str *types.Struct, pkg, name string, tags map[
 		parse.DevInfo("    f%d: name:%-10s pkg:%s type:%-25s f:%v, e:%v, a:%v\n", j,
 			tField.Name(), tField.Pkg().Name(), tField.Type(), tField.IsField(), tField.Exported(), tField.Anonymous())
 
-		if !tField.Exported() {
-			if tag, exists := tags[tField.Name()]; !exists || (exists && !tag.Skip) {
-				ctx.unexportedFields = append(ctx.unexportedFields, tField.Name())
+		tag := tags[tField.Name()]
+		if !tag.Skip {
+			if tField.Anonymous() {
+				ctx.convertEmbeddedNodeToFields(tField, pkg, parent)
+
+			} else {
+				ctx.convertLeafNodeToField(tField, pkg, tags, parent)
 			}
 		}
-
-		if tField.Anonymous() {
-			ctx.convertEmbeddedNodeToFields(tField, pkg, parent)
-
-		} else {
-			ctx.convertLeafNodeToField(tField, pkg, tags, parent)
-		}
 	}
+
+	return false
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -79,31 +98,28 @@ func (ctx *context) examineStruct(str *types.Struct, pkg, name string, tags map[
 func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, parent *Node) {
 	name := leaf.Name()
 	parse.DevInfo("convertEmbeddedNodeToFields %s %s\n", pkg, name)
-	str, tags := ctx.pkgStore.Find(pkg, name)
-	if str == nil {
-		nm, ok := leaf.Type().(*types.Named)
+	nm := ctx.pkgStore.FindNamed(pkg, name)
+	tags := ctx.pkgStore.FindTags(pkg, name)
+	if nm == nil {
+		var ok bool
+		nm, ok = leaf.Type().(*types.Named)
 		if !ok {
 			exit.Fail(5, "Unable to find %s.%s\n", pkg, name)
 		}
 		pkg = nm.Obj().Pkg().Name()
-		str = nm.Underlying().(*types.Struct)
+		str2 := nm.Underlying().(*types.Struct)
 		tags = make(map[string]parse.Tag)
-		addStructTags(tags, str)
-		parse.DevInfo(" - found in other package %v %v\n", leaf.Type(), str)
+		addStructTags(tags, str2)
+		parse.DevInfo(" - found in other package %v %v\n", leaf.Type(), str2)
 	}
 	node := &Node{Name: name, Parent: parent}
-	ctx.examineStruct(str, pkg, name, tags, node)
+	ctx.examineStruct(nm, pkg, name, tags, node)
 }
 
 //-------------------------------------------------------------------------------------------------
 
 func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map[string]parse.Tag, parent *Node) {
 	tag := tags[leaf.Name()]
-
-	if tag.Skip {
-		return
-	}
-
 	field := &Field{}
 	field.Tags = tag
 	field.Encode = mapTagToEncoding[tag.Encode]
@@ -199,33 +215,34 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 		//isPtr = true
 	}
 
-	switch t := lt.(type) {
+	switch nm := lt.(type) {
 	case *types.Basic:
-		tp.Name = t.Name()
+		tp.Name = nm.Name()
 		//case *types.Struct:
-		//	tp.Name = t.String()
+		//	tp.Name = nm.String()
 	case *types.Named:
-		tObj := t.Obj()
+		tObj := nm.Obj()
 		if tObj.Pkg().Name() != pkg {
 			tp.PkgPath = tObj.Pkg().Path()
 			tp.PkgName = tObj.Pkg().Name()
 		}
 		tp.Name = tObj.Name()
 
-		if str, ok := t.Underlying().(*types.Struct); ok {
+		if str, ok := nm.Underlying().(*types.Struct); ok {
 			tp.Base = parse.Struct
 			if canRecurse {
 				addStructTags(tags, str)
-				ctx.examineStruct(str, pkg, leaf.Name(), tags, &node)
-				return node, false
+				ok = ctx.examineStruct(nm, pkg, leaf.Name(), tags, &node)
+				node.Type = tp
+				return node, ok
 			}
 		}
 	case *types.Array:
-		tp.Name = t.String()
+		tp.Name = nm.String()
 	case *types.Slice:
-		switch el := t.Elem().(type) {
+		switch el := nm.Elem().(type) {
 		case *types.Basic:
-			tp.Name = t.String()
+			tp.Name = nm.String()
 		case *types.Named:
 			tnObj := el.Obj()
 			parse.DevInfo("slice pkgname:%s pkgpath:%s name:%s\n", tnObj.Pkg().Name(), tnObj.Pkg().Path(), tnObj.Name())

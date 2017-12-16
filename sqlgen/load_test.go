@@ -14,6 +14,71 @@ import (
 	"testing"
 )
 
+func TestParseAndLoad_typesWithAllFieldsUnexported(t *testing.T) {
+	exit.TestableExit()
+	Debug = true
+
+	template := `package pkg1
+
+type Example struct {
+	Event    Date    %s
+}
+
+type Date struct {
+	day int32
+}
+`
+
+	cases := []struct {
+		tag  string
+		date *Field
+	}{
+		{
+			"",
+			&Field{Node{"Event", Type{"", "", "Date", Struct}, nil}, "event", BLOB, ENCNONE, Tag{}},
+		},
+		{
+			"`sql:\"encode: json\"`",
+			&Field{Node{"Event", Type{"", "", "Date", Struct}, nil}, "event", JSON, ENCJSON, Tag{Encode: "json"}},
+		},
+		{
+			"`sql:\"type: integer\"`",
+			&Field{Node{"Event", Type{"", "", "Date", Struct}, nil}, "event", INTEGER, ENCNONE, Tag{Type: "integer"}},
+		},
+	}
+
+	for i, c := range cases {
+		code := fmt.Sprintf(template, c.tag)
+		source := Source{"issue.go", bytes.NewBufferString(code)}
+
+		pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+		if err != nil {
+			t.Fatalf("Error parsing: %s", err)
+		}
+
+		table, err := load(pkgStore, "pkg1", "Example")
+		if err != nil {
+			t.Fatalf("Error loading: %s", err)
+		}
+
+		expected := &TableDescription{
+			Type: "Example",
+			Name: "examples",
+			Fields: []*Field{
+				c.date,
+			},
+		}
+
+		if !reflect.DeepEqual(table, expected) {
+			ex := utter.Sdump(expected)
+			ac := utter.Sdump(table)
+			outputDiff(ex, "expected.txt")
+			outputDiff(ac, "got.txt")
+			t.Errorf("%d: expected | got\n%s\n", i, sideBySideDiff(ex, ac))
+		}
+	}
+}
+
 func TestParseAndLoad_nestingWithPointers(t *testing.T) {
 	exit.TestableExit()
 	Debug = true

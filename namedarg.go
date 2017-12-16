@@ -15,12 +15,14 @@ func Named(name string, value interface{}) sql.NamedArg {
 	return sql.NamedArg{Name: name, Value: value}
 }
 
+// NamedArgString converts the argument to a string of the form "name=value".
 func NamedArgString(arg sql.NamedArg) string {
 	return fmt.Sprintf("%s=%v", arg.Name, arg.Value)
 }
 
 //-------------------------------------------------------------------------------------------------
 
+// NamedArgList holds a slice of NamedArgs
 type NamedArgList []sql.NamedArg
 
 // Exists verifies that one or more elements of NamedArgList return true for the passed func.
@@ -33,6 +35,7 @@ func (list NamedArgList) Exists(fn func(sql.NamedArg) bool) bool {
 	return false
 }
 
+// Contains tests whether anything in the list has a certain name.
 func (list NamedArgList) Contains(name string) bool {
 	return list.Exists(func(f sql.NamedArg) bool {
 		return f.Name == name
@@ -52,6 +55,7 @@ func (list NamedArgList) Find(fn func(sql.NamedArg) bool) (sql.NamedArg, bool) {
 	return empty, false
 }
 
+// FindByName finds the first item with a particular name.
 func (list NamedArgList) FindByName(name string) (sql.NamedArg, bool) {
 	return list.Find(func(f sql.NamedArg) bool {
 		return f.Name == name
@@ -60,6 +64,7 @@ func (list NamedArgList) FindByName(name string) (sql.NamedArg, bool) {
 
 //-------------------------------------------------------------------------------------------------
 
+// MkString produces a string ontainin all the values separated by sep.
 func (list NamedArgList) MkString(sep string) string {
 	ss := make([]string, len(list))
 	for i, v := range list {
@@ -68,10 +73,12 @@ func (list NamedArgList) MkString(sep string) string {
 	return strings.Join(ss, sep)
 }
 
+// String produces a string ontainin all the values separated by comma.
 func (list NamedArgList) String() string {
 	return list.MkString(", ")
 }
 
+// Names gets all the names.
 func (list NamedArgList) Names() []string {
 	ss := make([]string, len(list))
 	for i, v := range list {
@@ -80,6 +87,16 @@ func (list NamedArgList) Names() []string {
 	return ss
 }
 
+// Values gets all the valules
+func (list NamedArgList) Values() []interface{} {
+	ss := make([]interface{}, len(list))
+	for i, v := range list {
+		ss[i] = v.Value
+	}
+	return ss
+}
+
+// Assignments gets the assignment expressions.
 func (list NamedArgList) Assignments(d Dialect, from int) []string {
 	ss := make([]string, len(list))
 	switch d {
@@ -92,14 +109,6 @@ func (list NamedArgList) Assignments(d Dialect, from int) []string {
 		for i, v := range list {
 			ss[i] = fmt.Sprintf("%s=?", v.Name)
 		}
-	}
-	return ss
-}
-
-func (list NamedArgList) Values() []interface{} {
-	ss := make([]interface{}, len(list))
-	for i, v := range list {
-		ss[i] = v.Value
 	}
 	return ss
 }
