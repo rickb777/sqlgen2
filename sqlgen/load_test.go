@@ -110,9 +110,9 @@ type Author struct {
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	p1 := &Node{Name: "Commit"}
-	p2 := &Node{Name: "Author", Parent: p1}
-	author := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "name", VARCHAR, ENCNONE, Tag{}}
+	p1 := &Node{Name: "Commit", Type: Type{Name: "Commit", Base: Struct}}
+	p2 := &Node{Name: "Author", Type: Type{Name: "Author", Base: Struct}, Parent: p1}
+	author := &Field{Node{"Name", Type{Name: "string", Base: String}, p2}, "name", VARCHAR, ENCNONE, Tag{}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -225,14 +225,19 @@ type Example struct {
 	}
 }
 
+//-------------------------------------------------------------------------------------------------
+
 func TestParseAndLoad_embeddedTypes(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 	code := strings.Replace(`package pkg1
 
+import "go/token"
+
 type Example struct {
 	Cat    Category
 	Commit
+	token.Position // a convenient concrete type with exported fields
 }
 
 type Category int32
@@ -263,11 +268,16 @@ type Author struct {
 
 	p1 := &Node{Name: "Commit"}
 	p2 := &Node{Name: "Author", Parent: p1}
+	p3 := &Node{Name: "Position"}
 
 	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
 	name := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "name", VARCHAR, ENCNONE, Tag{}}
 	email := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "email", VARCHAR, ENCNONE, Tag{}}
 	message := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "message", VARCHAR, ENCNONE, Tag{}}
+	filename := &Field{Node{"Filename", Type{"", "", "string", String}, p3}, "filename", VARCHAR, ENCNONE, Tag{}}
+	offset := &Field{Node{"Offset", Type{"", "", "int", Int}, p3}, "offset", INTEGER, ENCNONE, Tag{}}
+	line := &Field{Node{"Line", Type{"", "", "int", Int}, p3}, "line", INTEGER, ENCNONE, Tag{}}
+	column := &Field{Node{"Column", Type{"", "", "int", Int}, p3}, "column", INTEGER, ENCNONE, Tag{}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -277,6 +287,10 @@ type Author struct {
 			name,
 			email,
 			message,
+			filename,
+			offset,
+			line,
+			column,
 		},
 	}
 
@@ -390,8 +404,8 @@ type Commit struct {
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	p1 := &Node{Name: "Commit"}
-	p2 := &Node{Name: "Author", Parent: p1}
+	p1 := &Node{Name: "Commit", Type: Type{Name: "Commit", Base: Struct}}
+	p2 := &Node{Name: "Author", Type: Type{PkgPath: "github.com/rickb777/sqlgen2/demo", PkgName: "demo", Name: "Author", Base: Struct}, Parent: p1}
 
 	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", INTEGER, ENCNONE, Tag{Primary: true, Auto: true}}
 	number := &Field{Node{"Number", Type{"", "", "int", Int}, nil}, "number", INTEGER, ENCNONE, Tag{}}

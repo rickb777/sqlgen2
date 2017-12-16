@@ -96,10 +96,12 @@ func (ctx *context) examineStruct(nm *types.Named, pkg, name string, tags map[st
 //-------------------------------------------------------------------------------------------------
 
 func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, parent *Node) {
+	var tags map[string]parse.Tag
+
 	name := leaf.Name()
 	parse.DevInfo("convertEmbeddedNodeToFields %s %s\n", pkg, name)
 	nm := ctx.pkgStore.FindNamed(pkg, name)
-	tags := ctx.pkgStore.FindTags(pkg, name)
+
 	if nm == nil {
 		var ok bool
 		nm, ok = leaf.Type().(*types.Named)
@@ -111,7 +113,11 @@ func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, par
 		tags = make(map[string]parse.Tag)
 		addStructTags(tags, str2)
 		parse.DevInfo(" - found in other package %v %v\n", leaf.Type(), str2)
+	} else {
+		pkg = nm.Obj().Pkg().Name()
+		tags = ctx.pkgStore.FindTags(pkg, name)
 	}
+
 	node := &Node{Name: name, Parent: parent}
 	ctx.examineStruct(nm, pkg, name, tags, node)
 }
