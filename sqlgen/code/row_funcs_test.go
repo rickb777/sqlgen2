@@ -66,13 +66,12 @@ func xTestWriteRowFunc1(t *testing.T) {
 		},
 	}
 
-	//table := schema.Load(node)
 	view := NewView("Example", "X", "")
-	//view.Table = table
+	view.Table = table
 
 	buf := &bytes.Buffer{}
 
-	WriteRowFunc(buf, view, table)
+	WriteRowFunc(buf, view)
 
 	code := buf.String()
 	expected := `
@@ -119,9 +118,10 @@ func TestWriteRowFunc2(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
+	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteRowFunc(buf, view, fixtureTable())
+	WriteRowFunc(buf, view)
 
 	code := buf.String()
 	expected := `
@@ -184,9 +184,10 @@ func TestWriteRowsFunc2(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
+	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteRowsFunc(buf, view, fixtureTable())
+	WriteRowsFunc(buf, view)
 
 	code := buf.String()
 	expected := `

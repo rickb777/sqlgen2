@@ -93,6 +93,40 @@ func (tbl V4UserTable) logQuery(query string, args ...interface{}) {
 }
 
 
+//--------------------------------------------------------------------------------
+
+// Exec executes a query without returning any rows.
+// The args are for any placeholder parameters in the query.
+// It returns the number of rows affected (of the database drive supports this).
+func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
+	tbl.logQuery(query, args...)
+	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+//--------------------------------------------------------------------------------
+
+// QueryOne is the low-level access function for one User.
+func (tbl V4UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+	tbl.logQuery(query, args...)
+	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
+	return ScanV4User(row)
+}
+
+// Query is the low-level access function for Users.
+func (tbl V4UserTable) Query(query string, args ...interface{}) ([]*User, error) {
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return ScanV4Users(rows)
+}
+
 // ScanV4User reads a table record into a single value.
 func ScanV4User(row *sql.Row) (*User, error) {
 	var v0 int64
@@ -276,38 +310,4 @@ func SliceV4UserWithoutPk(v *User) ([]interface{}, error) {
 		v9,
 
 	}, nil
-}
-
-//--------------------------------------------------------------------------------
-
-// Exec executes a query without returning any rows.
-// The args are for any placeholder parameters in the query.
-// It returns the number of rows affected (of the database drive supports this).
-func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
-	tbl.logQuery(query, args...)
-	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return 0, err
-	}
-	return res.RowsAffected()
-}
-
-//--------------------------------------------------------------------------------
-
-// QueryOne is the low-level access function for one User.
-func (tbl V4UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
-	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return ScanV4User(row)
-}
-
-// Query is the low-level access function for Users.
-func (tbl V4UserTable) Query(query string, args ...interface{}) ([]*User, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return ScanV4Users(rows)
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"flag"
 	"github.com/kortschak/utter"
-	"github.com/rickb777/sqlgen2/schema"
 	. "github.com/rickb777/sqlgen2/sqlgen/code"
 	. "github.com/rickb777/sqlgen2/sqlgen/output"
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
@@ -88,29 +87,29 @@ func main() {
 
 	view := NewView(name, prefix, list)
 	view.Table = table
-	view.Dialects = schema.Dialects
 
 	WriteImports(buf, table, packagesToImport)
 
 	WriteType(buf, view)
-	WriteRowFunc(buf, view, table)
-	WriteRowsFunc(buf, view, table)
-	WriteSliceFunc(buf, view, table, false)
-	WriteSliceFunc(buf, view, table, true)
-	WriteExecFunc(buf, view, table)
-	WriteQueryFuncs(buf, view, table)
-
-	if genFuncs {
-		WriteSelectRow(buf, view, table)
-		WriteInsertFunc(buf, view, table)
-		WriteUpdateFunc(buf, view, table)
-		WriteDeleteFunc(buf, view, table)
-	}
 
 	if genSchema {
-		WriteCreateTableAndIndexesFunc(buf, view, table)
-		WriteSchema(buf, view, table)
+		WriteSchema(buf, view)
 	}
+
+	WriteExecFunc(buf, view)
+	WriteQueryFuncs(buf, view)
+
+	if genFuncs {
+		WriteSelectRow(buf, view)
+		WriteInsertFunc(buf, view)
+		WriteUpdateFunc(buf, view)
+		WriteDeleteFunc(buf, view)
+	}
+
+	WriteRowFunc(buf, view)
+	WriteRowsFunc(buf, view)
+	WriteSliceFunc(buf, view, false)
+	WriteSliceFunc(buf, view, true)
 
 	// formats the generated file using gofmt
 	var pretty io.Reader = buf

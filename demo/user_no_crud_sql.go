@@ -95,6 +95,176 @@ func (tbl V3UserTable) logQuery(query string, args ...interface{}) {
 }
 
 
+//--------------------------------------------------------------------------------
+
+// CreateTable creates the table.
+func (tbl V3UserTable) CreateTable(ifNotExist bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExist))
+}
+
+func (tbl V3UserTable) createTableSql(ifNotExist bool) string {
+	var stmt string
+	switch tbl.Dialect {
+	case sqlgen2.Sqlite: stmt = sqlCreateV3UserTableSqlite
+    case sqlgen2.Postgres: stmt = sqlCreateV3UserTablePostgres
+    case sqlgen2.Mysql: stmt = sqlCreateV3UserTableMysql
+    }
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	return query
+}
+
+func (tbl V3UserTable) ternary(flag bool, a, b string) string {
+	if flag {
+		return a
+	}
+	return b
+}
+
+const sqlCreateV3UserTableSqlite = `
+CREATE TABLE %s%s%s (
+ uid    bigint primary key,
+ login  text,
+ email  text,
+ avatar text,
+ active boolean,
+ admin  boolean,
+ fave   text,
+ token  text,
+ secret text,
+ hash   text
+)
+`
+
+const sqlCreateV3UserTablePostgres = `
+CREATE TABLE %s%s%s (
+ uid    bigserial primary key,
+ login  varchar(512),
+ email  varchar(512),
+ avatar varchar(512),
+ active boolean,
+ admin  boolean,
+ fave   json,
+ token  varchar(512),
+ secret varchar(512),
+ hash   varchar(512)
+)
+`
+
+const sqlCreateV3UserTableMysql = `
+CREATE TABLE %s%s%s (
+ uid    bigint primary key auto_increment,
+ login  varchar(512),
+ email  varchar(512),
+ avatar varchar(512),
+ active tinyint(1),
+ admin  tinyint(1),
+ fave   json,
+ token  varchar(512),
+ secret varchar(512),
+ hash   varchar(512)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+`
+
+//--------------------------------------------------------------------------------
+
+// CreateIndexes executes queries that create the indexes needed by the User table.
+func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	_, err = tbl.Exec(tbl.createV3UserLoginIndexSql(extra))
+	if err != nil {
+		return err
+	}
+
+	_, err = tbl.Exec(tbl.createV3UserEmailIndexSql(extra))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
+func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	}
+	return fmt.Sprintf(sqlCreateV3UserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
+
+func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	}
+	return fmt.Sprintf(sqlCreateV3UserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
+
+
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ifNotExist)
+	if err != nil {
+		return err
+	}
+	return tbl.CreateIndexes(ifNotExist)
+}
+
+//--------------------------------------------------------------------------------
+
+const sqlCreateV3UserLoginIndex = `
+CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
+`
+
+const sqlCreateV3UserEmailIndex = `
+CREATE UNIQUE INDEX %s%suser_email ON %s%s (email)
+`
+
+//--------------------------------------------------------------------------------
+
+const NumV3UserColumns = 10
+
+const NumV3UserDataColumns = 9
+
+const V3UserPk = "Uid"
+
+const V3UserDataColumnNames = "login, email, avatar, active, admin, fave, token, secret, hash"
+
+//--------------------------------------------------------------------------------
+
+// Exec executes a query without returning any rows.
+// The args are for any placeholder parameters in the query.
+// It returns the number of rows affected (of the database drive supports this).
+func (tbl V3UserTable) Exec(query string, args ...interface{}) (int64, error) {
+	tbl.logQuery(query, args...)
+	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+//--------------------------------------------------------------------------------
+
+// QueryOne is the low-level access function for one User.
+func (tbl V3UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+	tbl.logQuery(query, args...)
+	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
+	return ScanV3User(row)
+}
+
+// Query is the low-level access function for Users.
+func (tbl V3UserTable) Query(query string, args ...interface{}) ([]*User, error) {
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return ScanV3Users(rows)
+}
+
 // ScanV3User reads a table record into a single value.
 func ScanV3User(row *sql.Row) (*User, error) {
 	var v0 int64
@@ -279,179 +449,3 @@ func SliceV3UserWithoutPk(v *User) ([]interface{}, error) {
 
 	}, nil
 }
-
-//--------------------------------------------------------------------------------
-
-// Exec executes a query without returning any rows.
-// The args are for any placeholder parameters in the query.
-// It returns the number of rows affected (of the database drive supports this).
-func (tbl V3UserTable) Exec(query string, args ...interface{}) (int64, error) {
-	tbl.logQuery(query, args...)
-	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return 0, err
-	}
-	return res.RowsAffected()
-}
-
-//--------------------------------------------------------------------------------
-
-// QueryOne is the low-level access function for one User.
-func (tbl V3UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
-	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return ScanV3User(row)
-}
-
-// Query is the low-level access function for Users.
-func (tbl V3UserTable) Query(query string, args ...interface{}) ([]*User, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return ScanV3Users(rows)
-}
-
-//--------------------------------------------------------------------------------
-
-// CreateTable creates the table.
-func (tbl V3UserTable) CreateTable(ifNotExist bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExist))
-}
-
-func (tbl V3UserTable) createTableSql(ifNotExist bool) string {
-	var stmt string
-	switch tbl.Dialect {
-	case sqlgen2.Sqlite: stmt = sqlCreateV3UserTableSqlite
-    case sqlgen2.Postgres: stmt = sqlCreateV3UserTablePostgres
-    case sqlgen2.Mysql: stmt = sqlCreateV3UserTableMysql
-    }
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
-	return query
-}
-
-func (tbl V3UserTable) ternary(flag bool, a, b string) string {
-	if flag {
-		return a
-	}
-	return b
-}
-
-//-------------------------------------------------------------------------------------------------
-
-// CreateIndexes executes queries that create the indexes needed by the User table.
-func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-    
-	_, err = tbl.Exec(tbl.createV3UserEmailIndexSql(extra))
-	if err != nil {
-		return err
-	}
-    
-	_, err = tbl.Exec(tbl.createV3UserLoginIndexSql(extra))
-	if err != nil {
-		return err
-	}
-    
-	return nil
-}
-
-
-func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
-	}
-	return fmt.Sprintf(sqlCreateV3UserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
-}
-
-func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
-	}
-	return fmt.Sprintf(sqlCreateV3UserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
-}
-
-
-// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ifNotExist)
-	if err != nil {
-		return err
-	}
-	return tbl.CreateIndexes(ifNotExist)
-}
-
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateV3UserTableSqlite = `
-CREATE TABLE %s%s%s (
- uid    bigint primary key,
- login  text,
- email  text,
- avatar text,
- active boolean,
- admin  boolean,
- fave   text,
- token  text,
- secret text,
- hash   text
-)
-`
-
-const sqlCreateV3UserTablePostgres = `
-CREATE TABLE %s%s%s (
- uid    bigserial primary key,
- login  varchar(512),
- email  varchar(512),
- avatar varchar(512),
- active boolean,
- admin  boolean,
- fave   json,
- token  varchar(512),
- secret varchar(512),
- hash   varchar(512)
-)
-`
-
-const sqlCreateV3UserTableMysql = `
-CREATE TABLE %s%s%s (
- uid    bigint primary key auto_increment,
- login  varchar(512),
- email  varchar(512),
- avatar varchar(512),
- active tinyint(1),
- admin  tinyint(1),
- fave   json,
- token  varchar(512),
- secret varchar(512),
- hash   varchar(512)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-`
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateV3UserEmailIndex = `
-CREATE UNIQUE INDEX %s%suser_email ON %s%s (email)
-`
-
-const sqlCreateV3UserLoginIndex = `
-CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
-`
-
-//--------------------------------------------------------------------------------
-
-const NumV3UserColumns = 10
-
-const NumV3UserDataColumns = 9
-
-const V3UserPk = "Uid"
-
-const V3UserDataColumnNames = "login, email, avatar, active, admin, fave, token, secret, hash"
-
-//--------------------------------------------------------------------------------

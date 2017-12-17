@@ -96,191 +96,6 @@ func (tbl V2UserTable) logQuery(query string, args ...interface{}) {
 }
 
 
-// ScanV2User reads a table record into a single value.
-func ScanV2User(row *sql.Row) (*User, error) {
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 string
-	var v8 string
-	var v9 string
-
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
-		&v3,
-		&v4,
-		&v5,
-		&v6,
-		&v7,
-		&v8,
-		&v9,
-
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	v := &User{}
-	v.Uid = v0
-	v.Login = v1
-	v.Email = v2
-	v.Avatar = v3
-	v.Active = v4
-	v.Admin = v5
-	err = json.Unmarshal(v6, &v.Fave)
-	if err != nil {
-		return nil, err
-	}
-	v.token = v7
-	v.secret = v8
-	v.hash = v9
-
-	return v, nil
-}
-
-// ScanV2Users reads table records into a slice of values.
-func ScanV2Users(rows *sql.Rows) ([]*User, error) {
-	var err error
-	var vv []*User
-
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 string
-	var v8 string
-	var v9 string
-
-	for rows.Next() {
-		err = rows.Scan(
-			&v0,
-			&v1,
-			&v2,
-			&v3,
-			&v4,
-			&v5,
-			&v6,
-			&v7,
-			&v8,
-			&v9,
-
-		)
-		if err != nil {
-			return vv, err
-		}
-
-		v := &User{}
-		v.Uid = v0
-		v.Login = v1
-		v.Email = v2
-		v.Avatar = v3
-		v.Active = v4
-		v.Admin = v5
-		err = json.Unmarshal(v6, &v.Fave)
-		if err != nil {
-			return nil, err
-		}
-		v.token = v7
-		v.secret = v8
-		v.hash = v9
-
-		vv = append(vv, v)
-	}
-	return vv, rows.Err()
-}
-
-func SliceV2User(v *User) ([]interface{}, error) {
-	var err error
-
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 string
-	var v8 string
-	var v9 string
-
-	v0 = v.Uid
-	v1 = v.Login
-	v2 = v.Email
-	v3 = v.Avatar
-	v4 = v.Active
-	v5 = v.Admin
-	v6, err = json.Marshal(&v.Fave)
-	if err != nil {
-		return nil, err
-	}
-	v7 = v.token
-	v8 = v.secret
-	v9 = v.hash
-
-	return []interface{}{
-		v0,
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
-		v6,
-		v7,
-		v8,
-		v9,
-
-	}, nil
-}
-
-func SliceV2UserWithoutPk(v *User) ([]interface{}, error) {
-	var err error
-
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 string
-	var v8 string
-	var v9 string
-
-	v1 = v.Login
-	v2 = v.Email
-	v3 = v.Avatar
-	v4 = v.Active
-	v5 = v.Admin
-	v6, err = json.Marshal(&v.Fave)
-	if err != nil {
-		return nil, err
-	}
-	v7 = v.token
-	v8 = v.secret
-	v9 = v.hash
-
-	return []interface{}{
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
-		v6,
-		v7,
-		v8,
-		v9,
-
-	}, nil
-}
-
 //--------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
@@ -536,4 +351,189 @@ func (tbl V2UserTable) deleteRows(where where.Expression) (string, []interface{}
 	whereClause, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
 	return query, args
+}
+
+// ScanV2User reads a table record into a single value.
+func ScanV2User(row *sql.Row) (*User, error) {
+	var v0 int64
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 bool
+	var v5 bool
+	var v6 []byte
+	var v7 string
+	var v8 string
+	var v9 string
+
+	err := row.Scan(
+		&v0,
+		&v1,
+		&v2,
+		&v3,
+		&v4,
+		&v5,
+		&v6,
+		&v7,
+		&v8,
+		&v9,
+
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	v := &User{}
+	v.Uid = v0
+	v.Login = v1
+	v.Email = v2
+	v.Avatar = v3
+	v.Active = v4
+	v.Admin = v5
+	err = json.Unmarshal(v6, &v.Fave)
+	if err != nil {
+		return nil, err
+	}
+	v.token = v7
+	v.secret = v8
+	v.hash = v9
+
+	return v, nil
+}
+
+// ScanV2Users reads table records into a slice of values.
+func ScanV2Users(rows *sql.Rows) ([]*User, error) {
+	var err error
+	var vv []*User
+
+	var v0 int64
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 bool
+	var v5 bool
+	var v6 []byte
+	var v7 string
+	var v8 string
+	var v9 string
+
+	for rows.Next() {
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+			&v3,
+			&v4,
+			&v5,
+			&v6,
+			&v7,
+			&v8,
+			&v9,
+
+		)
+		if err != nil {
+			return vv, err
+		}
+
+		v := &User{}
+		v.Uid = v0
+		v.Login = v1
+		v.Email = v2
+		v.Avatar = v3
+		v.Active = v4
+		v.Admin = v5
+		err = json.Unmarshal(v6, &v.Fave)
+		if err != nil {
+			return nil, err
+		}
+		v.token = v7
+		v.secret = v8
+		v.hash = v9
+
+		vv = append(vv, v)
+	}
+	return vv, rows.Err()
+}
+
+func SliceV2User(v *User) ([]interface{}, error) {
+	var err error
+
+	var v0 int64
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 bool
+	var v5 bool
+	var v6 []byte
+	var v7 string
+	var v8 string
+	var v9 string
+
+	v0 = v.Uid
+	v1 = v.Login
+	v2 = v.Email
+	v3 = v.Avatar
+	v4 = v.Active
+	v5 = v.Admin
+	v6, err = json.Marshal(&v.Fave)
+	if err != nil {
+		return nil, err
+	}
+	v7 = v.token
+	v8 = v.secret
+	v9 = v.hash
+
+	return []interface{}{
+		v0,
+		v1,
+		v2,
+		v3,
+		v4,
+		v5,
+		v6,
+		v7,
+		v8,
+		v9,
+
+	}, nil
+}
+
+func SliceV2UserWithoutPk(v *User) ([]interface{}, error) {
+	var err error
+
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 bool
+	var v5 bool
+	var v6 []byte
+	var v7 string
+	var v8 string
+	var v9 string
+
+	v1 = v.Login
+	v2 = v.Email
+	v3 = v.Avatar
+	v4 = v.Active
+	v5 = v.Admin
+	v6, err = json.Marshal(&v.Fave)
+	if err != nil {
+		return nil, err
+	}
+	v7 = v.token
+	v8 = v.secret
+	v9 = v.hash
+
+	return []interface{}{
+		v1,
+		v2,
+		v3,
+		v4,
+		v5,
+		v6,
+		v7,
+		v8,
+		v9,
+
+	}, nil
 }

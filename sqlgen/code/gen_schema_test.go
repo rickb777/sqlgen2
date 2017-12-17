@@ -11,13 +11,38 @@ func TestWriteSchema(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
+	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteSchema(buf, view, fixtureTable())
+	WriteSchema(buf, view)
 
 	code := buf.String()
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
+
+// CreateTable creates the table.
+func (tbl XExampleTable) CreateTable(ifNotExist bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExist))
+}
+
+func (tbl XExampleTable) createTableSql(ifNotExist bool) string {
+	var stmt string
+	switch tbl.Dialect {
+	case sqlgen2.Sqlite: stmt = sqlCreateXExampleTableSqlite
+    case sqlgen2.Postgres: stmt = sqlCreateXExampleTablePostgres
+    case sqlgen2.Mysql: stmt = sqlCreateXExampleTableMysql
+    }
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	return query
+}
+
+func (tbl XExampleTable) ternary(flag bool, a, b string) string {
+	if flag {
+		return a
+	}
+	return b
+}
 
 const sqlCreateXExampleTableSqlite = |
 CREATE TABLE %s%s%s (
@@ -60,6 +85,38 @@ CREATE TABLE %s%s%s (
 
 //--------------------------------------------------------------------------------
 
+// CreateIndexes executes queries that create the indexes needed by the Example table.
+func (tbl XExampleTable) CreateIndexes(ifNotExist bool) (err error) {
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	_, err = tbl.Exec(tbl.createXNameIdxIndexSql(extra))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
+func (tbl XExampleTable) createXNameIdxIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	}
+	return fmt.Sprintf(sqlCreateXNameIdxIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
+
+
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl XExampleTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ifNotExist)
+	if err != nil {
+		return err
+	}
+	return tbl.CreateIndexes(ifNotExist)
+}
+
+//--------------------------------------------------------------------------------
+
 const sqlCreateXNameIdxIndex = |
 CREATE INDEX %s%snameIdx ON %s%s (username)
 |
@@ -73,8 +130,6 @@ const NumXExampleDataColumns = 7
 const XExamplePk = "Id"
 
 const XExampleDataColumnNames = "cat, username, active, labels, fave, avatar, updated"
-
-//--------------------------------------------------------------------------------
 `, "|", "`", -1)
 
 	if code != expected {

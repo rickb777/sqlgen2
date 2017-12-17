@@ -8,9 +8,9 @@ import (
 	"text/template"
 )
 
-func writeRowFunc(w io.Writer, view View, table *schema.TableDescription, tabs string, tmpl *template.Template) {
+func writeRowFunc(w io.Writer, view View, tabs string, tmpl *template.Template) {
 
-	for i, field := range table.Fields {
+	for i, field := range view.Table.Fields {
 		if field.Tags.Skip {
 			continue
 		}
@@ -47,12 +47,12 @@ func writeRowFunc(w io.Writer, view View, table *schema.TableDescription, tabs s
 	must(tmpl.Execute(w, view))
 }
 
-func WriteRowFunc(w io.Writer, view View, table *schema.TableDescription) {
-	writeRowFunc(w, view, table, oneTab, tScanRow)
+func WriteRowFunc(w io.Writer, view View) {
+	writeRowFunc(w, view, oneTab, tScanRow)
 }
 
-func WriteRowsFunc(w io.Writer, view View, table *schema.TableDescription) {
-	writeRowFunc(w, view, table, twoTabs, tScanRows)
+func WriteRowsFunc(w io.Writer, view View) {
+	writeRowFunc(w, view, twoTabs, tScanRows)
 }
 
 const oneTab = "\t"

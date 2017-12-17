@@ -28,12 +28,12 @@ func WritePackage(w io.Writer, name string) {
 
 // writeSchema writes SQL statements to CREATE, INSERT,
 // UPDATE and DELETE values from Table t.
-func WriteSchema(w io.Writer, view View, table *schema.TableDescription) {
+func WriteSchema(w io.Writer, view View) {
 	sqlite := schema.New(schema.Sqlite)
 
-	fmt.Fprintln(w, sectionBreak)
+	tableName := view.Prefix + view.Table.Type
 
-	tableName := view.Prefix + table.Type
+	writeCreateTableFunc(w, view)
 
 	for _, did := range schema.AllDialectIds {
 		d := schema.New(did)
@@ -41,45 +41,51 @@ func WriteSchema(w io.Writer, view View, table *schema.TableDescription) {
 
 		fmt.Fprintf(w, constStringWithTicks,
 			identifier("sqlCreate", tableName, "Table"+ds),
-			"CREATE TABLE %s%s%s ("+d.Table(table, did)+"\n)"+d.CreateTableSettings())
+			"CREATE TABLE %s%s%s ("+d.Table(view.Table, did)+"\n)"+d.CreateTableSettings())
 	}
 
-	if len(table.Index) > 0 {
+	if len(view.Table.Index) > 0 {
+		writeCreateIndexesFunc(w, view)
+
 		fmt.Fprintln(w, sectionBreak)
-	}
 
-	for _, ix := range table.Index {
-		fmt.Fprintf(w, constStringWithTicks,
-			identifier("sqlCreate"+view.Prefix, ix.Name, "Index"), sqlite.Index(table, ix))
+		for _, ix := range view.Table.Index {
+			fmt.Fprintf(w, constStringWithTicks,
+				identifier("sqlCreate"+view.Prefix, ix.Name, "Index"), sqlite.Index(view.Table, ix))
+		}
 	}
 
 	fmt.Fprintln(w, sectionBreak)
 
 	fmt.Fprintf(w, "\nconst %s = %d\n",
-		identifier("Num", tableName, "Columns"), table.NumColumnNames(true))
+		identifier("Num", tableName, "Columns"), view.Table.NumColumnNames(true))
 
 	fmt.Fprintf(w, "\nconst %s = %d\n",
-		identifier("Num", tableName, "DataColumns"), table.NumColumnNames(false))
+		identifier("Num", tableName, "DataColumns"), view.Table.NumColumnNames(false))
 
-	if table.HasPrimaryKey() {
+	if view.Table.HasPrimaryKey() {
 		fmt.Fprintf(w, constStringQ,
-			identifier("", tableName, "Pk"), table.Primary.Name)
+			identifier("", tableName, "Pk"), view.Table.Primary.Name)
 	}
 
 	fmt.Fprintf(w, constStringQ,
-		identifier("", tableName, "DataColumnNames"), Join(table.ColumnNames(false), ", "))
-
-	fmt.Fprintln(w, sectionBreak)
+		identifier("", tableName, "DataColumnNames"), Join(view.Table.ColumnNames(false), ", "))
 }
 
-func WriteCreateTableAndIndexesFunc(w io.Writer, view View, table *schema.TableDescription) {
+func writeCreateTableFunc(w io.Writer, view View) {
 	fmt.Fprintln(w, sectionBreak)
 
-	for _, ix := range table.Index {
+	must(tCreateTableFunc.Execute(w, view))
+}
+
+func writeCreateIndexesFunc(w io.Writer, view View) {
+	fmt.Fprintln(w, sectionBreak)
+
+	for _, ix := range view.Table.Index {
 		view.Body1 = append(view.Body1, inflect.Camelize(ix.Name))
 	}
 
-	must(tCreateTableAndIndexes.Execute(w, view))
+	must(tCreateIndexesFunc.Execute(w, view))
 }
 
 func identifier(prefix, id, suffix string) string {

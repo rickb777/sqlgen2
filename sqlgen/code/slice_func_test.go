@@ -10,9 +10,10 @@ func TestWriteSliceFuncWithPk(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
+	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteSliceFunc(buf, view, fixtureTable(), false)
+	WriteSliceFunc(buf, view, false)
 
 	code := buf.String()
 	expected := `
@@ -70,9 +71,10 @@ func TestWriteSliceFuncWithoutPk(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
+	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteSliceFunc(buf, view, fixtureTable(), true)
+	WriteSliceFunc(buf, view, true)
 
 	code := buf.String()
 	expected := `

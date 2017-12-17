@@ -95,93 +95,101 @@ func (tbl DbCompoundTable) logQuery(query string, args ...interface{}) {
 }
 
 
-// ScanDbCompound reads a table record into a single value.
-func ScanDbCompound(row *sql.Row) (*Compound, error) {
-	var v0 string
-	var v1 string
-	var v2 Category
+//--------------------------------------------------------------------------------
 
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
+// CreateTable creates the table.
+func (tbl DbCompoundTable) CreateTable(ifNotExist bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExist))
+}
 
-	)
+func (tbl DbCompoundTable) createTableSql(ifNotExist bool) string {
+	var stmt string
+	switch tbl.Dialect {
+	case sqlgen2.Sqlite: stmt = sqlCreateDbCompoundTableSqlite
+    case sqlgen2.Postgres: stmt = sqlCreateDbCompoundTablePostgres
+    case sqlgen2.Mysql: stmt = sqlCreateDbCompoundTableMysql
+    }
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	return query
+}
+
+func (tbl DbCompoundTable) ternary(flag bool, a, b string) string {
+	if flag {
+		return a
+	}
+	return b
+}
+
+const sqlCreateDbCompoundTableSqlite = `
+CREATE TABLE %s%s%s (
+ alpha    text,
+ beta     text,
+ category tinyint unsigned
+)
+`
+
+const sqlCreateDbCompoundTablePostgres = `
+CREATE TABLE %s%s%s (
+ alpha    varchar(512),
+ beta     varchar(512),
+ category integer
+)
+`
+
+const sqlCreateDbCompoundTableMysql = `
+CREATE TABLE %s%s%s (
+ alpha    varchar(512),
+ beta     varchar(512),
+ category tinyint unsigned
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+`
+
+//--------------------------------------------------------------------------------
+
+// CreateIndexes executes queries that create the indexes needed by the Compound table.
+func (tbl DbCompoundTable) CreateIndexes(ifNotExist bool) (err error) {
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	_, err = tbl.Exec(tbl.createDbAlphaBetaIndexSql(extra))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	v := &Compound{}
-	v.Alpha = v0
-	v.Beta = v1
-	v.Category = v2
-
-	return v, nil
+	return nil
 }
 
-// ScanDbCompounds reads table records into a slice of values.
-func ScanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
-	var err error
-	var vv []*Compound
 
-	var v0 string
-	var v1 string
-	var v2 Category
-
-	for rows.Next() {
-		err = rows.Scan(
-			&v0,
-			&v1,
-			&v2,
-
-		)
-		if err != nil {
-			return vv, err
-		}
-
-		v := &Compound{}
-		v.Alpha = v0
-		v.Beta = v1
-		v.Category = v2
-
-		vv = append(vv, v)
+func (tbl DbCompoundTable) createDbAlphaBetaIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
 	}
-	return vv, rows.Err()
+	return fmt.Sprintf(sqlCreateDbAlphaBetaIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
 
-func SliceDbCompound(v *Compound) ([]interface{}, error) {
-	var v0 string
-	var v1 string
-	var v2 Category
 
-	v0 = v.Alpha
-	v1 = v.Beta
-	v2 = v.Category
-
-	return []interface{}{
-		v0,
-		v1,
-		v2,
-
-	}, nil
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl DbCompoundTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ifNotExist)
+	if err != nil {
+		return err
+	}
+	return tbl.CreateIndexes(ifNotExist)
 }
 
-func SliceDbCompoundWithoutPk(v *Compound) ([]interface{}, error) {
-	var v0 string
-	var v1 string
-	var v2 Category
+//--------------------------------------------------------------------------------
 
-	v0 = v.Alpha
-	v1 = v.Beta
-	v2 = v.Category
+const sqlCreateDbAlphaBetaIndex = `
+CREATE UNIQUE INDEX %s%salpha_beta ON %s%s (alpha, beta)
+`
 
-	return []interface{}{
-		v0,
-		v1,
-		v2,
+//--------------------------------------------------------------------------------
 
-	}, nil
-}
+const NumDbCompoundColumns = 3
+
+const NumDbCompoundDataColumns = 3
+
+const DbCompoundDataColumnNames = "alpha, beta, category"
 
 //--------------------------------------------------------------------------------
 
@@ -341,104 +349,90 @@ func (tbl DbCompoundTable) deleteRows(where where.Expression) (string, []interfa
 	return query, args
 }
 
-//--------------------------------------------------------------------------------
+// ScanDbCompound reads a table record into a single value.
+func ScanDbCompound(row *sql.Row) (*Compound, error) {
+	var v0 string
+	var v1 string
+	var v2 Category
 
-// CreateTable creates the table.
-func (tbl DbCompoundTable) CreateTable(ifNotExist bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExist))
-}
+	err := row.Scan(
+		&v0,
+		&v1,
+		&v2,
 
-func (tbl DbCompoundTable) createTableSql(ifNotExist bool) string {
-	var stmt string
-	switch tbl.Dialect {
-	case sqlgen2.Sqlite: stmt = sqlCreateDbCompoundTableSqlite
-    case sqlgen2.Postgres: stmt = sqlCreateDbCompoundTablePostgres
-    case sqlgen2.Mysql: stmt = sqlCreateDbCompoundTableMysql
-    }
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
-	return query
-}
-
-func (tbl DbCompoundTable) ternary(flag bool, a, b string) string {
-	if flag {
-		return a
-	}
-	return b
-}
-
-//-------------------------------------------------------------------------------------------------
-
-// CreateIndexes executes queries that create the indexes needed by the Compound table.
-func (tbl DbCompoundTable) CreateIndexes(ifNotExist bool) (err error) {
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-    
-	_, err = tbl.Exec(tbl.createDbAlphaBetaIndexSql(extra))
+	)
 	if err != nil {
-		return err
+		return nil, err
 	}
-    
-	return nil
+
+	v := &Compound{}
+	v.Alpha = v0
+	v.Beta = v1
+	v.Category = v2
+
+	return v, nil
 }
 
+// ScanDbCompounds reads table records into a slice of values.
+func ScanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
+	var err error
+	var vv []*Compound
 
-func (tbl DbCompoundTable) createDbAlphaBetaIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	var v0 string
+	var v1 string
+	var v2 Category
+
+	for rows.Next() {
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+
+		)
+		if err != nil {
+			return vv, err
+		}
+
+		v := &Compound{}
+		v.Alpha = v0
+		v.Beta = v1
+		v.Category = v2
+
+		vv = append(vv, v)
 	}
-	return fmt.Sprintf(sqlCreateDbAlphaBetaIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+	return vv, rows.Err()
 }
 
+func SliceDbCompound(v *Compound) ([]interface{}, error) {
+	var v0 string
+	var v1 string
+	var v2 Category
 
-// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl DbCompoundTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ifNotExist)
-	if err != nil {
-		return err
-	}
-	return tbl.CreateIndexes(ifNotExist)
+	v0 = v.Alpha
+	v1 = v.Beta
+	v2 = v.Category
+
+	return []interface{}{
+		v0,
+		v1,
+		v2,
+
+	}, nil
 }
 
+func SliceDbCompoundWithoutPk(v *Compound) ([]interface{}, error) {
+	var v0 string
+	var v1 string
+	var v2 Category
 
-//--------------------------------------------------------------------------------
+	v0 = v.Alpha
+	v1 = v.Beta
+	v2 = v.Category
 
-const sqlCreateDbCompoundTableSqlite = `
-CREATE TABLE %s%s%s (
- alpha    text,
- beta     text,
- category tinyint unsigned
-)
-`
+	return []interface{}{
+		v0,
+		v1,
+		v2,
 
-const sqlCreateDbCompoundTablePostgres = `
-CREATE TABLE %s%s%s (
- alpha    varchar(512),
- beta     varchar(512),
- category integer
-)
-`
-
-const sqlCreateDbCompoundTableMysql = `
-CREATE TABLE %s%s%s (
- alpha    varchar(512),
- beta     varchar(512),
- category tinyint unsigned
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-`
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateDbAlphaBetaIndex = `
-CREATE UNIQUE INDEX %s%salpha_beta ON %s%s (alpha, beta)
-`
-
-//--------------------------------------------------------------------------------
-
-const NumDbCompoundColumns = 3
-
-const NumDbCompoundDataColumns = 3
-
-const DbCompoundDataColumnNames = "alpha, beta, category"
-
-//--------------------------------------------------------------------------------
+	}, nil
+}

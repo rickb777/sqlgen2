@@ -6,11 +6,11 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 )
 
-func WriteSliceFunc(w io.Writer, view View, table *schema.TableDescription, withoutPk bool) {
+func WriteSliceFunc(w io.Writer, view View, withoutPk bool) {
 	var depth int
 
 	needsErr := false
-	for _, field := range table.Fields {
+	for _, field := range view.Table.Fields {
 		if field.Tags.Skip || (withoutPk && field.Tags.Primary) {
 			continue
 		}
@@ -25,7 +25,7 @@ func WriteSliceFunc(w io.Writer, view View, table *schema.TableDescription, with
 		view.Body1 = append(view.Body1, "\tvar err error\n\n")
 	}
 
-	for i, field := range table.Fields {
+	for i, field := range view.Table.Fields {
 		if field.Tags.Skip || (withoutPk && field.Tags.Primary) {
 			continue
 		}

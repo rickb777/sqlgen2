@@ -457,8 +457,8 @@ var tExec = template.Must(template.New("Exec").Funcs(funcMap).Parse(sExec))
 
 //-------------------------------------------------------------------------------------------------
 
-// function template to create a table and its indexes
-const sCreateTableAndIndexes = `
+// function template to create a table
+const sCreateTableFunc = `
 // CreateTable creates the table.
 func (tbl {{.Prefix}}{{.Type}}Table) CreateTable(ifNotExist bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExist))
@@ -482,20 +482,22 @@ func (tbl {{.Prefix}}{{.Type}}Table) ternary(flag bool, a, b string) string {
 	}
 	return b
 }
+`
+var tCreateTableFunc = template.Must(template.New("CreateTable").Funcs(funcMap).Parse(sCreateTableFunc))
 
-//-------------------------------------------------------------------------------------------------
-
+// function template to create DDL for indexes
+const sCreateIndexesFunc = `
 // CreateIndexes executes queries that create the indexes needed by the {{.Type}} table.
 func (tbl {{.Prefix}}{{.Type}}Table) CreateIndexes(ifNotExist bool) (err error) {
 	{{if gt (len .Body1) 0 -}}
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-    {{end -}}
-	{{range .Body1}}{{$n := .}}
+{{- end -}}
+{{range .Body1}}{{$n := .}}
 	_, err = tbl.Exec(tbl.create{{$.Prefix}}{{$n}}IndexSql(extra))
 	if err != nil {
 		return err
 	}
-    {{end}}
+{{end}}
 	return nil
 }
 
@@ -517,26 +519,6 @@ func (tbl {{.Prefix}}{{.Type}}Table) CreateTableWithIndexes(ifNotExist bool) (er
 	}
 	return tbl.CreateIndexes(ifNotExist)
 }
-
 `
 
-var tCreateTableAndIndexes = template.Must(template.New("CreateTable").Funcs(funcMap).Parse(sCreateTableAndIndexes))
-
-//-------------------------------------------------------------------------------------------------
-//TODO
-//func (builder UpdateBuilder) SetFields(fields FieldList) UpdateBuilder {
-//	for i := 0; i < len(fields); i++ {
-//		builder.Upd = builder.Upd.Set(fields[i].Name, fields[i].Value)
-//	}
-//	return builder
-//}
-//
-//func (builder UpdateBuilder) Set(what string, v interface{}) UpdateBuilder {
-//	builder.Upd = builder.Upd.Set(what, v)
-//	return builder
-//}
-//
-//func (builder UpdateBuilder) Unset(what string) UpdateBuilder {
-//	builder.Upd = builder.Upd.SetSQL(what, "null")
-//	return builder
-//}
+var tCreateIndexesFunc = template.Must(template.New("CreateTable").Funcs(funcMap).Parse(sCreateIndexesFunc))

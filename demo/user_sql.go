@@ -96,190 +96,141 @@ func (tbl DbUserTable) logQuery(query string, args ...interface{}) {
 }
 
 
-// ScanDbUser reads a table record into a single value.
-func ScanDbUser(row *sql.Row) (*User, error) {
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 string
-	var v8 string
-	var v9 string
+//--------------------------------------------------------------------------------
 
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
-		&v3,
-		&v4,
-		&v5,
-		&v6,
-		&v7,
-		&v8,
-		&v9,
-
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	v := &User{}
-	v.Uid = v0
-	v.Login = v1
-	v.Email = v2
-	v.Avatar = v3
-	v.Active = v4
-	v.Admin = v5
-	err = json.Unmarshal(v6, &v.Fave)
-	if err != nil {
-		return nil, err
-	}
-	v.token = v7
-	v.secret = v8
-	v.hash = v9
-
-	return v, nil
+// CreateTable creates the table.
+func (tbl DbUserTable) CreateTable(ifNotExist bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExist))
 }
 
-// ScanDbUsers reads table records into a slice of values.
-func ScanDbUsers(rows *sql.Rows) ([]*User, error) {
-	var err error
-	var vv []*User
-
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 string
-	var v8 string
-	var v9 string
-
-	for rows.Next() {
-		err = rows.Scan(
-			&v0,
-			&v1,
-			&v2,
-			&v3,
-			&v4,
-			&v5,
-			&v6,
-			&v7,
-			&v8,
-			&v9,
-
-		)
-		if err != nil {
-			return vv, err
-		}
-
-		v := &User{}
-		v.Uid = v0
-		v.Login = v1
-		v.Email = v2
-		v.Avatar = v3
-		v.Active = v4
-		v.Admin = v5
-		err = json.Unmarshal(v6, &v.Fave)
-		if err != nil {
-			return nil, err
-		}
-		v.token = v7
-		v.secret = v8
-		v.hash = v9
-
-		vv = append(vv, v)
-	}
-	return vv, rows.Err()
+func (tbl DbUserTable) createTableSql(ifNotExist bool) string {
+	var stmt string
+	switch tbl.Dialect {
+	case sqlgen2.Sqlite: stmt = sqlCreateDbUserTableSqlite
+    case sqlgen2.Postgres: stmt = sqlCreateDbUserTablePostgres
+    case sqlgen2.Mysql: stmt = sqlCreateDbUserTableMysql
+    }
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	return query
 }
 
-func SliceDbUser(v *User) ([]interface{}, error) {
-	var err error
+func (tbl DbUserTable) ternary(flag bool, a, b string) string {
+	if flag {
+		return a
+	}
+	return b
+}
 
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 string
-	var v8 string
-	var v9 string
+const sqlCreateDbUserTableSqlite = `
+CREATE TABLE %s%s%s (
+ uid    bigint primary key,
+ login  text,
+ email  text,
+ avatar text,
+ active boolean,
+ admin  boolean,
+ fave   text,
+ token  text,
+ secret text,
+ hash   text
+)
+`
 
-	v0 = v.Uid
-	v1 = v.Login
-	v2 = v.Email
-	v3 = v.Avatar
-	v4 = v.Active
-	v5 = v.Admin
-	v6, err = json.Marshal(&v.Fave)
+const sqlCreateDbUserTablePostgres = `
+CREATE TABLE %s%s%s (
+ uid    bigserial primary key,
+ login  varchar(512),
+ email  varchar(512),
+ avatar varchar(512),
+ active boolean,
+ admin  boolean,
+ fave   json,
+ token  varchar(512),
+ secret varchar(512),
+ hash   varchar(512)
+)
+`
+
+const sqlCreateDbUserTableMysql = `
+CREATE TABLE %s%s%s (
+ uid    bigint primary key auto_increment,
+ login  varchar(512),
+ email  varchar(512),
+ avatar varchar(512),
+ active tinyint(1),
+ admin  tinyint(1),
+ fave   json,
+ token  varchar(512),
+ secret varchar(512),
+ hash   varchar(512)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+`
+
+//--------------------------------------------------------------------------------
+
+// CreateIndexes executes queries that create the indexes needed by the User table.
+func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	_, err = tbl.Exec(tbl.createDbUserLoginIndexSql(extra))
 	if err != nil {
-		return nil, err
+		return err
 	}
-	v7 = v.token
-	v8 = v.secret
-	v9 = v.hash
 
-	return []interface{}{
-		v0,
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
-		v6,
-		v7,
-		v8,
-		v9,
-
-	}, nil
-}
-
-func SliceDbUserWithoutPk(v *User) ([]interface{}, error) {
-	var err error
-
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 string
-	var v8 string
-	var v9 string
-
-	v1 = v.Login
-	v2 = v.Email
-	v3 = v.Avatar
-	v4 = v.Active
-	v5 = v.Admin
-	v6, err = json.Marshal(&v.Fave)
+	_, err = tbl.Exec(tbl.createDbUserEmailIndexSql(extra))
 	if err != nil {
-		return nil, err
+		return err
 	}
-	v7 = v.token
-	v8 = v.secret
-	v9 = v.hash
 
-	return []interface{}{
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
-		v6,
-		v7,
-		v8,
-		v9,
-
-	}, nil
+	return nil
 }
+
+
+func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	}
+	return fmt.Sprintf(sqlCreateDbUserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
+
+func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	}
+	return fmt.Sprintf(sqlCreateDbUserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
+
+
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ifNotExist)
+	if err != nil {
+		return err
+	}
+	return tbl.CreateIndexes(ifNotExist)
+}
+
+//--------------------------------------------------------------------------------
+
+const sqlCreateDbUserLoginIndex = `
+CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
+`
+
+const sqlCreateDbUserEmailIndex = `
+CREATE UNIQUE INDEX %s%suser_email ON %s%s (email)
+`
+
+//--------------------------------------------------------------------------------
+
+const NumDbUserColumns = 10
+
+const NumDbUserDataColumns = 9
+
+const DbUserPk = "Uid"
+
+const DbUserDataColumnNames = "login, email, avatar, active, admin, fave, token, secret, hash"
 
 //--------------------------------------------------------------------------------
 
@@ -538,144 +489,187 @@ func (tbl DbUserTable) deleteRows(where where.Expression) (string, []interface{}
 	return query, args
 }
 
-//--------------------------------------------------------------------------------
+// ScanDbUser reads a table record into a single value.
+func ScanDbUser(row *sql.Row) (*User, error) {
+	var v0 int64
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 bool
+	var v5 bool
+	var v6 []byte
+	var v7 string
+	var v8 string
+	var v9 string
 
-// CreateTable creates the table.
-func (tbl DbUserTable) CreateTable(ifNotExist bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExist))
-}
+	err := row.Scan(
+		&v0,
+		&v1,
+		&v2,
+		&v3,
+		&v4,
+		&v5,
+		&v6,
+		&v7,
+		&v8,
+		&v9,
 
-func (tbl DbUserTable) createTableSql(ifNotExist bool) string {
-	var stmt string
-	switch tbl.Dialect {
-	case sqlgen2.Sqlite: stmt = sqlCreateDbUserTableSqlite
-    case sqlgen2.Postgres: stmt = sqlCreateDbUserTablePostgres
-    case sqlgen2.Mysql: stmt = sqlCreateDbUserTableMysql
-    }
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
-	return query
-}
-
-func (tbl DbUserTable) ternary(flag bool, a, b string) string {
-	if flag {
-		return a
-	}
-	return b
-}
-
-//-------------------------------------------------------------------------------------------------
-
-// CreateIndexes executes queries that create the indexes needed by the User table.
-func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-    
-	_, err = tbl.Exec(tbl.createDbUserLoginIndexSql(extra))
+	)
 	if err != nil {
-		return err
+		return nil, err
 	}
-    
-	_, err = tbl.Exec(tbl.createDbUserEmailIndexSql(extra))
+
+	v := &User{}
+	v.Uid = v0
+	v.Login = v1
+	v.Email = v2
+	v.Avatar = v3
+	v.Active = v4
+	v.Admin = v5
+	err = json.Unmarshal(v6, &v.Fave)
 	if err != nil {
-		return err
+		return nil, err
 	}
-    
-	return nil
+	v.token = v7
+	v.secret = v8
+	v.hash = v9
+
+	return v, nil
 }
 
+// ScanDbUsers reads table records into a slice of values.
+func ScanDbUsers(rows *sql.Rows) ([]*User, error) {
+	var err error
+	var vv []*User
 
-func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	var v0 int64
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 bool
+	var v5 bool
+	var v6 []byte
+	var v7 string
+	var v8 string
+	var v9 string
+
+	for rows.Next() {
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+			&v3,
+			&v4,
+			&v5,
+			&v6,
+			&v7,
+			&v8,
+			&v9,
+
+		)
+		if err != nil {
+			return vv, err
+		}
+
+		v := &User{}
+		v.Uid = v0
+		v.Login = v1
+		v.Email = v2
+		v.Avatar = v3
+		v.Active = v4
+		v.Admin = v5
+		err = json.Unmarshal(v6, &v.Fave)
+		if err != nil {
+			return nil, err
+		}
+		v.token = v7
+		v.secret = v8
+		v.hash = v9
+
+		vv = append(vv, v)
 	}
-	return fmt.Sprintf(sqlCreateDbUserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+	return vv, rows.Err()
 }
 
-func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
-	}
-	return fmt.Sprintf(sqlCreateDbUserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
-}
+func SliceDbUser(v *User) ([]interface{}, error) {
+	var err error
 
+	var v0 int64
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 bool
+	var v5 bool
+	var v6 []byte
+	var v7 string
+	var v8 string
+	var v9 string
 
-// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ifNotExist)
+	v0 = v.Uid
+	v1 = v.Login
+	v2 = v.Email
+	v3 = v.Avatar
+	v4 = v.Active
+	v5 = v.Admin
+	v6, err = json.Marshal(&v.Fave)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return tbl.CreateIndexes(ifNotExist)
+	v7 = v.token
+	v8 = v.secret
+	v9 = v.hash
+
+	return []interface{}{
+		v0,
+		v1,
+		v2,
+		v3,
+		v4,
+		v5,
+		v6,
+		v7,
+		v8,
+		v9,
+
+	}, nil
 }
 
+func SliceDbUserWithoutPk(v *User) ([]interface{}, error) {
+	var err error
 
-//--------------------------------------------------------------------------------
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 bool
+	var v5 bool
+	var v6 []byte
+	var v7 string
+	var v8 string
+	var v9 string
 
-const sqlCreateDbUserTableSqlite = `
-CREATE TABLE %s%s%s (
- uid    bigint primary key,
- login  text,
- email  text,
- avatar text,
- active boolean,
- admin  boolean,
- fave   text,
- token  text,
- secret text,
- hash   text
-)
-`
+	v1 = v.Login
+	v2 = v.Email
+	v3 = v.Avatar
+	v4 = v.Active
+	v5 = v.Admin
+	v6, err = json.Marshal(&v.Fave)
+	if err != nil {
+		return nil, err
+	}
+	v7 = v.token
+	v8 = v.secret
+	v9 = v.hash
 
-const sqlCreateDbUserTablePostgres = `
-CREATE TABLE %s%s%s (
- uid    bigserial primary key,
- login  varchar(512),
- email  varchar(512),
- avatar varchar(512),
- active boolean,
- admin  boolean,
- fave   json,
- token  varchar(512),
- secret varchar(512),
- hash   varchar(512)
-)
-`
+	return []interface{}{
+		v1,
+		v2,
+		v3,
+		v4,
+		v5,
+		v6,
+		v7,
+		v8,
+		v9,
 
-const sqlCreateDbUserTableMysql = `
-CREATE TABLE %s%s%s (
- uid    bigint primary key auto_increment,
- login  varchar(512),
- email  varchar(512),
- avatar varchar(512),
- active tinyint(1),
- admin  tinyint(1),
- fave   json,
- token  varchar(512),
- secret varchar(512),
- hash   varchar(512)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-`
-
-//--------------------------------------------------------------------------------
-
-const sqlCreateDbUserLoginIndex = `
-CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
-`
-
-const sqlCreateDbUserEmailIndex = `
-CREATE UNIQUE INDEX %s%suser_email ON %s%s (email)
-`
-
-//--------------------------------------------------------------------------------
-
-const NumDbUserColumns = 10
-
-const NumDbUserDataColumns = 9
-
-const DbUserPk = "Uid"
-
-const DbUserDataColumnNames = "login, email, avatar, active, admin, fave, token, secret, hash"
-
-//--------------------------------------------------------------------------------
+	}, nil
+}

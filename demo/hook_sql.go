@@ -95,258 +95,107 @@ func (tbl HookTable) logQuery(query string, args ...interface{}) {
 }
 
 
-// ScanHook reads a table record into a single value.
-func ScanHook(row *sql.Row) (*Hook, error) {
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 Category
-	var v5 bool
-	var v6 bool
-	var v7 bool
-	var v8 string
-	var v9 string
-	var v10 string
-	var v11 string
-	var v12 Email
-	var v13 string
-	var v14 string
-	var v15 Email
-	var v16 string
+//--------------------------------------------------------------------------------
 
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
-		&v3,
-		&v4,
-		&v5,
-		&v6,
-		&v7,
-		&v8,
-		&v9,
-		&v10,
-		&v11,
-		&v12,
-		&v13,
-		&v14,
-		&v15,
-		&v16,
+// CreateTable creates the table.
+func (tbl HookTable) CreateTable(ifNotExist bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExist))
+}
 
-	)
-	if err != nil {
-		return nil, err
+func (tbl HookTable) createTableSql(ifNotExist bool) string {
+	var stmt string
+	switch tbl.Dialect {
+	case sqlgen2.Sqlite: stmt = sqlCreateHookTableSqlite
+    case sqlgen2.Postgres: stmt = sqlCreateHookTablePostgres
+    case sqlgen2.Mysql: stmt = sqlCreateHookTableMysql
+    }
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	return query
+}
+
+func (tbl HookTable) ternary(flag bool, a, b string) string {
+	if flag {
+		return a
 	}
-
-	v := &Hook{}
-	v.Id = v0
-	v.Sha = v1
-	v.Dates.After = v2
-	v.Dates.Before = v3
-	v.Category = v4
-	v.Created = v5
-	v.Deleted = v6
-	v.Forced = v7
-	v.HeadCommit.ID = v8
-	v.HeadCommit.Message = v9
-	v.HeadCommit.Timestamp = v10
-	v.HeadCommit.Author.Name = v11
-	v.HeadCommit.Author.Email = v12
-	v.HeadCommit.Author.Username = v13
-	v.HeadCommit.Committer.Name = v14
-	v.HeadCommit.Committer.Email = v15
-	v.HeadCommit.Committer.Username = v16
-
-	return v, nil
+	return b
 }
 
-// ScanHooks reads table records into a slice of values.
-func ScanHooks(rows *sql.Rows) (HookList, error) {
-	var err error
-	var vv HookList
+const sqlCreateHookTableSqlite = `
+CREATE TABLE %s%s%s (
+ id                             bigint primary key,
+ sha                            text,
+ after                          text,
+ before                         text,
+ category                       tinyint unsigned,
+ created                        boolean,
+ deleted                        boolean,
+ forced                         boolean,
+ commit_id                      text,
+ message                        text,
+ timestamp                      text,
+ head_commit_author_name        text,
+ head_commit_author_email       text,
+ head_commit_author_username    text,
+ head_commit_committer_name     text,
+ head_commit_committer_email    text,
+ head_commit_committer_username text
+)
+`
 
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 Category
-	var v5 bool
-	var v6 bool
-	var v7 bool
-	var v8 string
-	var v9 string
-	var v10 string
-	var v11 string
-	var v12 Email
-	var v13 string
-	var v14 string
-	var v15 Email
-	var v16 string
+const sqlCreateHookTablePostgres = `
+CREATE TABLE %s%s%s (
+ id                             bigserial primary key,
+ sha                            varchar(512),
+ after                          varchar(20),
+ before                         varchar(20),
+ category                       integer,
+ created                        boolean,
+ deleted                        boolean,
+ forced                         boolean,
+ commit_id                      varchar(512),
+ message                        varchar(512),
+ timestamp                      varchar(512),
+ head_commit_author_name        varchar(512),
+ head_commit_author_email       varchar(512),
+ head_commit_author_username    varchar(512),
+ head_commit_committer_name     varchar(512),
+ head_commit_committer_email    varchar(512),
+ head_commit_committer_username varchar(512)
+)
+`
 
-	for rows.Next() {
-		err = rows.Scan(
-			&v0,
-			&v1,
-			&v2,
-			&v3,
-			&v4,
-			&v5,
-			&v6,
-			&v7,
-			&v8,
-			&v9,
-			&v10,
-			&v11,
-			&v12,
-			&v13,
-			&v14,
-			&v15,
-			&v16,
+const sqlCreateHookTableMysql = `
+CREATE TABLE %s%s%s (
+ id                             bigint primary key auto_increment,
+ sha                            varchar(512),
+ after                          varchar(20),
+ before                         varchar(20),
+ category                       tinyint unsigned,
+ created                        tinyint(1),
+ deleted                        tinyint(1),
+ forced                         tinyint(1),
+ commit_id                      varchar(512),
+ message                        varchar(512),
+ timestamp                      varchar(512),
+ head_commit_author_name        varchar(512),
+ head_commit_author_email       varchar(512),
+ head_commit_author_username    varchar(512),
+ head_commit_committer_name     varchar(512),
+ head_commit_committer_email    varchar(512),
+ head_commit_committer_username varchar(512)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+`
 
-		)
-		if err != nil {
-			return vv, err
-		}
+//--------------------------------------------------------------------------------
 
-		v := &Hook{}
-		v.Id = v0
-		v.Sha = v1
-		v.Dates.After = v2
-		v.Dates.Before = v3
-		v.Category = v4
-		v.Created = v5
-		v.Deleted = v6
-		v.Forced = v7
-		v.HeadCommit.ID = v8
-		v.HeadCommit.Message = v9
-		v.HeadCommit.Timestamp = v10
-		v.HeadCommit.Author.Name = v11
-		v.HeadCommit.Author.Email = v12
-		v.HeadCommit.Author.Username = v13
-		v.HeadCommit.Committer.Name = v14
-		v.HeadCommit.Committer.Email = v15
-		v.HeadCommit.Committer.Username = v16
+const NumHookColumns = 17
 
-		vv = append(vv, v)
-	}
-	return vv, rows.Err()
-}
+const NumHookDataColumns = 16
 
-func SliceHook(v *Hook) ([]interface{}, error) {
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 Category
-	var v5 bool
-	var v6 bool
-	var v7 bool
-	var v8 string
-	var v9 string
-	var v10 string
-	var v11 string
-	var v12 Email
-	var v13 string
-	var v14 string
-	var v15 Email
-	var v16 string
+const HookPk = "Id"
 
-	v0 = v.Id
-	v1 = v.Sha
-	v2 = v.Dates.After
-	v3 = v.Dates.Before
-	v4 = v.Category
-	v5 = v.Created
-	v6 = v.Deleted
-	v7 = v.Forced
-	v8 = v.HeadCommit.ID
-	v9 = v.HeadCommit.Message
-	v10 = v.HeadCommit.Timestamp
-	v11 = v.HeadCommit.Author.Name
-	v12 = v.HeadCommit.Author.Email
-	v13 = v.HeadCommit.Author.Username
-	v14 = v.HeadCommit.Committer.Name
-	v15 = v.HeadCommit.Committer.Email
-	v16 = v.HeadCommit.Committer.Username
-
-	return []interface{}{
-		v0,
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
-		v6,
-		v7,
-		v8,
-		v9,
-		v10,
-		v11,
-		v12,
-		v13,
-		v14,
-		v15,
-		v16,
-
-	}, nil
-}
-
-func SliceHookWithoutPk(v *Hook) ([]interface{}, error) {
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 Category
-	var v5 bool
-	var v6 bool
-	var v7 bool
-	var v8 string
-	var v9 string
-	var v10 string
-	var v11 string
-	var v12 Email
-	var v13 string
-	var v14 string
-	var v15 Email
-	var v16 string
-
-	v1 = v.Sha
-	v2 = v.Dates.After
-	v3 = v.Dates.Before
-	v4 = v.Category
-	v5 = v.Created
-	v6 = v.Deleted
-	v7 = v.Forced
-	v8 = v.HeadCommit.ID
-	v9 = v.HeadCommit.Message
-	v10 = v.HeadCommit.Timestamp
-	v11 = v.HeadCommit.Author.Name
-	v12 = v.HeadCommit.Author.Email
-	v13 = v.HeadCommit.Author.Username
-	v14 = v.HeadCommit.Committer.Name
-	v15 = v.HeadCommit.Committer.Email
-	v16 = v.HeadCommit.Committer.Username
-
-	return []interface{}{
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
-		v6,
-		v7,
-		v8,
-		v9,
-		v10,
-		v11,
-		v12,
-		v13,
-		v14,
-		v15,
-		v16,
-
-	}, nil
-}
+const HookDataColumnNames = "sha, after, before, category, created, deleted, forced, commit_id, message, timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
 
 //--------------------------------------------------------------------------------
 
@@ -633,128 +482,255 @@ func (tbl HookTable) deleteRows(where where.Expression) (string, []interface{}) 
 	return query, args
 }
 
-//--------------------------------------------------------------------------------
+// ScanHook reads a table record into a single value.
+func ScanHook(row *sql.Row) (*Hook, error) {
+	var v0 int64
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 Category
+	var v5 bool
+	var v6 bool
+	var v7 bool
+	var v8 string
+	var v9 string
+	var v10 string
+	var v11 string
+	var v12 Email
+	var v13 string
+	var v14 string
+	var v15 Email
+	var v16 string
 
-// CreateTable creates the table.
-func (tbl HookTable) CreateTable(ifNotExist bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExist))
-}
+	err := row.Scan(
+		&v0,
+		&v1,
+		&v2,
+		&v3,
+		&v4,
+		&v5,
+		&v6,
+		&v7,
+		&v8,
+		&v9,
+		&v10,
+		&v11,
+		&v12,
+		&v13,
+		&v14,
+		&v15,
+		&v16,
 
-func (tbl HookTable) createTableSql(ifNotExist bool) string {
-	var stmt string
-	switch tbl.Dialect {
-	case sqlgen2.Sqlite: stmt = sqlCreateHookTableSqlite
-    case sqlgen2.Postgres: stmt = sqlCreateHookTablePostgres
-    case sqlgen2.Mysql: stmt = sqlCreateHookTableMysql
-    }
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
-	return query
-}
-
-func (tbl HookTable) ternary(flag bool, a, b string) string {
-	if flag {
-		return a
-	}
-	return b
-}
-
-//-------------------------------------------------------------------------------------------------
-
-// CreateIndexes executes queries that create the indexes needed by the Hook table.
-func (tbl HookTable) CreateIndexes(ifNotExist bool) (err error) {
-	
-	return nil
-}
-
-
-
-// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl HookTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ifNotExist)
+	)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return tbl.CreateIndexes(ifNotExist)
+
+	v := &Hook{}
+	v.Id = v0
+	v.Sha = v1
+	v.Dates.After = v2
+	v.Dates.Before = v3
+	v.Category = v4
+	v.Created = v5
+	v.Deleted = v6
+	v.Forced = v7
+	v.HeadCommit.ID = v8
+	v.HeadCommit.Message = v9
+	v.HeadCommit.Timestamp = v10
+	v.HeadCommit.Author.Name = v11
+	v.HeadCommit.Author.Email = v12
+	v.HeadCommit.Author.Username = v13
+	v.HeadCommit.Committer.Name = v14
+	v.HeadCommit.Committer.Email = v15
+	v.HeadCommit.Committer.Username = v16
+
+	return v, nil
 }
 
+// ScanHooks reads table records into a slice of values.
+func ScanHooks(rows *sql.Rows) (HookList, error) {
+	var err error
+	var vv HookList
 
-//--------------------------------------------------------------------------------
+	var v0 int64
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 Category
+	var v5 bool
+	var v6 bool
+	var v7 bool
+	var v8 string
+	var v9 string
+	var v10 string
+	var v11 string
+	var v12 Email
+	var v13 string
+	var v14 string
+	var v15 Email
+	var v16 string
 
-const sqlCreateHookTableSqlite = `
-CREATE TABLE %s%s%s (
- id                             bigint primary key,
- sha                            text,
- after                          text,
- before                         text,
- category                       tinyint unsigned,
- created                        boolean,
- deleted                        boolean,
- forced                         boolean,
- commit_id                      text,
- message                        text,
- timestamp                      text,
- head_commit_author_name        text,
- head_commit_author_email       text,
- head_commit_author_username    text,
- head_commit_committer_name     text,
- head_commit_committer_email    text,
- head_commit_committer_username text
-)
-`
+	for rows.Next() {
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+			&v3,
+			&v4,
+			&v5,
+			&v6,
+			&v7,
+			&v8,
+			&v9,
+			&v10,
+			&v11,
+			&v12,
+			&v13,
+			&v14,
+			&v15,
+			&v16,
 
-const sqlCreateHookTablePostgres = `
-CREATE TABLE %s%s%s (
- id                             bigserial primary key,
- sha                            varchar(512),
- after                          varchar(20),
- before                         varchar(20),
- category                       integer,
- created                        boolean,
- deleted                        boolean,
- forced                         boolean,
- commit_id                      varchar(512),
- message                        varchar(512),
- timestamp                      varchar(512),
- head_commit_author_name        varchar(512),
- head_commit_author_email       varchar(512),
- head_commit_author_username    varchar(512),
- head_commit_committer_name     varchar(512),
- head_commit_committer_email    varchar(512),
- head_commit_committer_username varchar(512)
-)
-`
+		)
+		if err != nil {
+			return vv, err
+		}
 
-const sqlCreateHookTableMysql = `
-CREATE TABLE %s%s%s (
- id                             bigint primary key auto_increment,
- sha                            varchar(512),
- after                          varchar(20),
- before                         varchar(20),
- category                       tinyint unsigned,
- created                        tinyint(1),
- deleted                        tinyint(1),
- forced                         tinyint(1),
- commit_id                      varchar(512),
- message                        varchar(512),
- timestamp                      varchar(512),
- head_commit_author_name        varchar(512),
- head_commit_author_email       varchar(512),
- head_commit_author_username    varchar(512),
- head_commit_committer_name     varchar(512),
- head_commit_committer_email    varchar(512),
- head_commit_committer_username varchar(512)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-`
+		v := &Hook{}
+		v.Id = v0
+		v.Sha = v1
+		v.Dates.After = v2
+		v.Dates.Before = v3
+		v.Category = v4
+		v.Created = v5
+		v.Deleted = v6
+		v.Forced = v7
+		v.HeadCommit.ID = v8
+		v.HeadCommit.Message = v9
+		v.HeadCommit.Timestamp = v10
+		v.HeadCommit.Author.Name = v11
+		v.HeadCommit.Author.Email = v12
+		v.HeadCommit.Author.Username = v13
+		v.HeadCommit.Committer.Name = v14
+		v.HeadCommit.Committer.Email = v15
+		v.HeadCommit.Committer.Username = v16
 
-//--------------------------------------------------------------------------------
+		vv = append(vv, v)
+	}
+	return vv, rows.Err()
+}
 
-const NumHookColumns = 17
+func SliceHook(v *Hook) ([]interface{}, error) {
+	var v0 int64
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 Category
+	var v5 bool
+	var v6 bool
+	var v7 bool
+	var v8 string
+	var v9 string
+	var v10 string
+	var v11 string
+	var v12 Email
+	var v13 string
+	var v14 string
+	var v15 Email
+	var v16 string
 
-const NumHookDataColumns = 16
+	v0 = v.Id
+	v1 = v.Sha
+	v2 = v.Dates.After
+	v3 = v.Dates.Before
+	v4 = v.Category
+	v5 = v.Created
+	v6 = v.Deleted
+	v7 = v.Forced
+	v8 = v.HeadCommit.ID
+	v9 = v.HeadCommit.Message
+	v10 = v.HeadCommit.Timestamp
+	v11 = v.HeadCommit.Author.Name
+	v12 = v.HeadCommit.Author.Email
+	v13 = v.HeadCommit.Author.Username
+	v14 = v.HeadCommit.Committer.Name
+	v15 = v.HeadCommit.Committer.Email
+	v16 = v.HeadCommit.Committer.Username
 
-const HookPk = "Id"
+	return []interface{}{
+		v0,
+		v1,
+		v2,
+		v3,
+		v4,
+		v5,
+		v6,
+		v7,
+		v8,
+		v9,
+		v10,
+		v11,
+		v12,
+		v13,
+		v14,
+		v15,
+		v16,
 
-const HookDataColumnNames = "sha, after, before, category, created, deleted, forced, commit_id, message, timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
+	}, nil
+}
 
-//--------------------------------------------------------------------------------
+func SliceHookWithoutPk(v *Hook) ([]interface{}, error) {
+	var v1 string
+	var v2 string
+	var v3 string
+	var v4 Category
+	var v5 bool
+	var v6 bool
+	var v7 bool
+	var v8 string
+	var v9 string
+	var v10 string
+	var v11 string
+	var v12 Email
+	var v13 string
+	var v14 string
+	var v15 Email
+	var v16 string
+
+	v1 = v.Sha
+	v2 = v.Dates.After
+	v3 = v.Dates.Before
+	v4 = v.Category
+	v5 = v.Created
+	v6 = v.Deleted
+	v7 = v.Forced
+	v8 = v.HeadCommit.ID
+	v9 = v.HeadCommit.Message
+	v10 = v.HeadCommit.Timestamp
+	v11 = v.HeadCommit.Author.Name
+	v12 = v.HeadCommit.Author.Email
+	v13 = v.HeadCommit.Author.Username
+	v14 = v.HeadCommit.Committer.Name
+	v15 = v.HeadCommit.Committer.Email
+	v16 = v.HeadCommit.Committer.Username
+
+	return []interface{}{
+		v1,
+		v2,
+		v3,
+		v4,
+		v5,
+		v6,
+		v7,
+		v8,
+		v9,
+		v10,
+		v11,
+		v12,
+		v13,
+		v14,
+		v15,
+		v16,
+
+	}, nil
+}

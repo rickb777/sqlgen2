@@ -27,10 +27,11 @@ func NewView(name, prefix, list string) View {
 		list = fmt.Sprintf("[]*%s", name)
 	}
 	return View{
-		Prefix: prefix,
-		Type:   name,
-		Types:  Pluralize(name),
-		List:   list,
+		Prefix:   prefix,
+		Type:     name,
+		Types:    Pluralize(name),
+		List:     list,
+		Dialects: schema.Dialects,
 	}
 }
 

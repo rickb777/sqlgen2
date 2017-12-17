@@ -96,166 +96,118 @@ func (tbl IssueTable) logQuery(query string, args ...interface{}) {
 }
 
 
-// ScanIssue reads a table record into a single value.
-func ScanIssue(row *sql.Row) (*Issue, error) {
-	var v0 int64
-	var v1 int
-	var v2 Date
-	var v3 string
-	var v4 string
-	var v5 string
-	var v6 string
-	var v7 []byte
+//--------------------------------------------------------------------------------
 
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
-		&v3,
-		&v4,
-		&v5,
-		&v6,
-		&v7,
-
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	v := &Issue{}
-	v.Id = v0
-	v.Number = v1
-	v.Date = v2
-	v.Title = v3
-	v.Body = v4
-	v.Assignee = v5
-	v.State = v6
-	err = json.Unmarshal(v7, &v.Labels)
-	if err != nil {
-		return nil, err
-	}
-
-	return v, nil
+// CreateTable creates the table.
+func (tbl IssueTable) CreateTable(ifNotExist bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExist))
 }
 
-// ScanIssues reads table records into a slice of values.
-func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
-	var err error
-	var vv []*Issue
-
-	var v0 int64
-	var v1 int
-	var v2 Date
-	var v3 string
-	var v4 string
-	var v5 string
-	var v6 string
-	var v7 []byte
-
-	for rows.Next() {
-		err = rows.Scan(
-			&v0,
-			&v1,
-			&v2,
-			&v3,
-			&v4,
-			&v5,
-			&v6,
-			&v7,
-
-		)
-		if err != nil {
-			return vv, err
-		}
-
-		v := &Issue{}
-		v.Id = v0
-		v.Number = v1
-		v.Date = v2
-		v.Title = v3
-		v.Body = v4
-		v.Assignee = v5
-		v.State = v6
-		err = json.Unmarshal(v7, &v.Labels)
-		if err != nil {
-			return nil, err
-		}
-
-		vv = append(vv, v)
-	}
-	return vv, rows.Err()
+func (tbl IssueTable) createTableSql(ifNotExist bool) string {
+	var stmt string
+	switch tbl.Dialect {
+	case sqlgen2.Sqlite: stmt = sqlCreateIssueTableSqlite
+    case sqlgen2.Postgres: stmt = sqlCreateIssueTablePostgres
+    case sqlgen2.Mysql: stmt = sqlCreateIssueTableMysql
+    }
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	return query
 }
 
-func SliceIssue(v *Issue) ([]interface{}, error) {
-	var err error
+func (tbl IssueTable) ternary(flag bool, a, b string) string {
+	if flag {
+		return a
+	}
+	return b
+}
 
-	var v0 int64
-	var v1 int
-	var v2 Date
-	var v3 string
-	var v4 string
-	var v5 string
-	var v6 string
-	var v7 []byte
+const sqlCreateIssueTableSqlite = `
+CREATE TABLE %s%s%s (
+ id       bigint primary key,
+ number   bigint,
+ date     blob,
+ title    text,
+ bigbody  text,
+ assignee text,
+ state    text,
+ labels   text
+)
+`
 
-	v0 = v.Id
-	v1 = v.Number
-	v2 = v.Date
-	v3 = v.Title
-	v4 = v.Body
-	v5 = v.Assignee
-	v6 = v.State
-	v7, err = json.Marshal(&v.Labels)
+const sqlCreateIssueTablePostgres = `
+CREATE TABLE %s%s%s (
+ id       bigserial primary key,
+ number   integer,
+ date     byteaa,
+ title    varchar(512),
+ bigbody  varchar(2048),
+ assignee varchar(512),
+ state    varchar(50),
+ labels   json
+)
+`
+
+const sqlCreateIssueTableMysql = `
+CREATE TABLE %s%s%s (
+ id       bigint primary key auto_increment,
+ number   bigint,
+ date     mediumblob,
+ title    varchar(512),
+ bigbody  varchar(2048),
+ assignee varchar(512),
+ state    varchar(50),
+ labels   json
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+`
+
+//--------------------------------------------------------------------------------
+
+// CreateIndexes executes queries that create the indexes needed by the Issue table.
+func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
+	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	_, err = tbl.Exec(tbl.createIssueAssigneeIndexSql(extra))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return []interface{}{
-		v0,
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
-		v6,
-		v7,
-
-	}, nil
+	return nil
 }
 
-func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
-	var err error
 
-	var v1 int
-	var v2 Date
-	var v3 string
-	var v4 string
-	var v5 string
-	var v6 string
-	var v7 []byte
+func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	}
+	return fmt.Sprintf(sqlCreateIssueAssigneeIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
 
-	v1 = v.Number
-	v2 = v.Date
-	v3 = v.Title
-	v4 = v.Body
-	v5 = v.Assignee
-	v6 = v.State
-	v7, err = json.Marshal(&v.Labels)
+
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl IssueTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ifNotExist)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	return []interface{}{
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
-		v6,
-		v7,
-
-	}, nil
+	return tbl.CreateIndexes(ifNotExist)
 }
+
+//--------------------------------------------------------------------------------
+
+const sqlCreateIssueAssigneeIndex = `
+CREATE INDEX %s%sissue_assignee ON %s%s (assignee)
+`
+
+//--------------------------------------------------------------------------------
+
+const NumIssueColumns = 8
+
+const NumIssueDataColumns = 7
+
+const IssuePk = "Id"
+
+const IssueDataColumnNames = "number, date, title, bigbody, assignee, state, labels"
 
 //--------------------------------------------------------------------------------
 
@@ -506,121 +458,163 @@ func (tbl IssueTable) deleteRows(where where.Expression) (string, []interface{})
 	return query, args
 }
 
-//--------------------------------------------------------------------------------
+// ScanIssue reads a table record into a single value.
+func ScanIssue(row *sql.Row) (*Issue, error) {
+	var v0 int64
+	var v1 int
+	var v2 Date
+	var v3 string
+	var v4 string
+	var v5 string
+	var v6 string
+	var v7 []byte
 
-// CreateTable creates the table.
-func (tbl IssueTable) CreateTable(ifNotExist bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExist))
-}
+	err := row.Scan(
+		&v0,
+		&v1,
+		&v2,
+		&v3,
+		&v4,
+		&v5,
+		&v6,
+		&v7,
 
-func (tbl IssueTable) createTableSql(ifNotExist bool) string {
-	var stmt string
-	switch tbl.Dialect {
-	case sqlgen2.Sqlite: stmt = sqlCreateIssueTableSqlite
-    case sqlgen2.Postgres: stmt = sqlCreateIssueTablePostgres
-    case sqlgen2.Mysql: stmt = sqlCreateIssueTableMysql
-    }
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
-	return query
-}
-
-func (tbl IssueTable) ternary(flag bool, a, b string) string {
-	if flag {
-		return a
-	}
-	return b
-}
-
-//-------------------------------------------------------------------------------------------------
-
-// CreateIndexes executes queries that create the indexes needed by the Issue table.
-func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-    
-	_, err = tbl.Exec(tbl.createIssueAssigneeIndexSql(extra))
+	)
 	if err != nil {
-		return err
+		return nil, err
 	}
-    
-	return nil
-}
 
-
-func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
-	}
-	return fmt.Sprintf(sqlCreateIssueAssigneeIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
-}
-
-
-// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl IssueTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ifNotExist)
+	v := &Issue{}
+	v.Id = v0
+	v.Number = v1
+	v.Date = v2
+	v.Title = v3
+	v.Body = v4
+	v.Assignee = v5
+	v.State = v6
+	err = json.Unmarshal(v7, &v.Labels)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return tbl.CreateIndexes(ifNotExist)
+
+	return v, nil
 }
 
+// ScanIssues reads table records into a slice of values.
+func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
+	var err error
+	var vv []*Issue
 
-//--------------------------------------------------------------------------------
+	var v0 int64
+	var v1 int
+	var v2 Date
+	var v3 string
+	var v4 string
+	var v5 string
+	var v6 string
+	var v7 []byte
 
-const sqlCreateIssueTableSqlite = `
-CREATE TABLE %s%s%s (
- id       bigint primary key,
- number   bigint,
- date     blob,
- title    text,
- bigbody  text,
- assignee text,
- state    text,
- labels   text
-)
-`
+	for rows.Next() {
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+			&v3,
+			&v4,
+			&v5,
+			&v6,
+			&v7,
 
-const sqlCreateIssueTablePostgres = `
-CREATE TABLE %s%s%s (
- id       bigserial primary key,
- number   integer,
- date     byteaa,
- title    varchar(512),
- bigbody  varchar(2048),
- assignee varchar(512),
- state    varchar(50),
- labels   json
-)
-`
+		)
+		if err != nil {
+			return vv, err
+		}
 
-const sqlCreateIssueTableMysql = `
-CREATE TABLE %s%s%s (
- id       bigint primary key auto_increment,
- number   bigint,
- date     mediumblob,
- title    varchar(512),
- bigbody  varchar(2048),
- assignee varchar(512),
- state    varchar(50),
- labels   json
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-`
+		v := &Issue{}
+		v.Id = v0
+		v.Number = v1
+		v.Date = v2
+		v.Title = v3
+		v.Body = v4
+		v.Assignee = v5
+		v.State = v6
+		err = json.Unmarshal(v7, &v.Labels)
+		if err != nil {
+			return nil, err
+		}
 
-//--------------------------------------------------------------------------------
+		vv = append(vv, v)
+	}
+	return vv, rows.Err()
+}
 
-const sqlCreateIssueAssigneeIndex = `
-CREATE INDEX %s%sissue_assignee ON %s%s (assignee)
-`
+func SliceIssue(v *Issue) ([]interface{}, error) {
+	var err error
 
-//--------------------------------------------------------------------------------
+	var v0 int64
+	var v1 int
+	var v2 Date
+	var v3 string
+	var v4 string
+	var v5 string
+	var v6 string
+	var v7 []byte
 
-const NumIssueColumns = 8
+	v0 = v.Id
+	v1 = v.Number
+	v2 = v.Date
+	v3 = v.Title
+	v4 = v.Body
+	v5 = v.Assignee
+	v6 = v.State
+	v7, err = json.Marshal(&v.Labels)
+	if err != nil {
+		return nil, err
+	}
 
-const NumIssueDataColumns = 7
+	return []interface{}{
+		v0,
+		v1,
+		v2,
+		v3,
+		v4,
+		v5,
+		v6,
+		v7,
 
-const IssuePk = "Id"
+	}, nil
+}
 
-const IssueDataColumnNames = "number, date, title, bigbody, assignee, state, labels"
+func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
+	var err error
 
-//--------------------------------------------------------------------------------
+	var v1 int
+	var v2 Date
+	var v3 string
+	var v4 string
+	var v5 string
+	var v6 string
+	var v7 []byte
+
+	v1 = v.Number
+	v2 = v.Date
+	v3 = v.Title
+	v4 = v.Body
+	v5 = v.Assignee
+	v6 = v.State
+	v7, err = json.Marshal(&v.Labels)
+	if err != nil {
+		return nil, err
+	}
+
+	return []interface{}{
+		v1,
+		v2,
+		v3,
+		v4,
+		v5,
+		v6,
+		v7,
+
+	}, nil
+}
