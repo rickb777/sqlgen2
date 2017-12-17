@@ -413,7 +413,7 @@ type Commit struct {
 	commitMessage := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "text", VARCHAR, ENCNONE, Tag{Size: 2048, Name: "text"}}
 	//commitTimestamp := &Field{Node{"Timestamp", Type{"time", "Time", String}, p1}, "commit_timestamp", VARCHAR, ENCNONE, Tag{}}
 	authorName := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{Prefixed: true}}
-	authorEmail := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{Prefixed: true}}
+	authorEmail := &Field{Node{"Email", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Email", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{Prefixed: true}}
 	authorUser := &Field{Node{"Username", Type{"", "", "string", String}, p2}, "commit_author_username", VARCHAR, ENCNONE, Tag{Prefixed: true}}
 	title := &Field{Node{"Title", Type{"", "", "string", String}, nil}, "title", VARCHAR, ENCNONE, Tag{Index: "titleIdx"}}
 	////owner := &Field{"Owner", "team_owner", VARCHAR, Tag{}}

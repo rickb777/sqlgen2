@@ -16,6 +16,7 @@ type context struct {
 	pkgStore parse.PackageStore
 	indices  map[string]*Index
 	table    *TableDescription
+	mainPkg  string
 }
 
 func load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, error) {
@@ -29,7 +30,7 @@ func load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, err
 
 	nm := pkgStore.FindNamed(pkg, name)
 	tags := pkgStore.FindTags(pkg, name)
-	ctx := &context{pkgStore, indices, table}
+	ctx := &context{pkgStore, indices, table, pkg}
 	ctx.examineStruct(nm, pkg, name, tags, nil)
 
 	for _, idx := range ctx.indices {
@@ -228,11 +229,8 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 		//	tp.Name = nm.String()
 	case *types.Named:
 		tObj := nm.Obj()
-		if tObj.Pkg().Name() != pkg {
-			tp.PkgPath = tObj.Pkg().Path()
-			tp.PkgName = tObj.Pkg().Name()
-		}
-		tp.Name = tObj.Name()
+		setTypeName(&tp, tObj, pkg, ctx.mainPkg)
+		parse.DevInfo("named %+v\n", tp)
 
 		if str, ok := nm.Underlying().(*types.Struct); ok {
 			tp.Base = parse.Struct
@@ -251,12 +249,8 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 			tp.Name = nm.String()
 		case *types.Named:
 			tnObj := el.Obj()
-			parse.DevInfo("slice pkgname:%s pkgpath:%s name:%s\n", tnObj.Pkg().Name(), tnObj.Pkg().Path(), tnObj.Name())
-			if tnObj.Pkg().Name() != pkg {
-				tp.PkgPath = tnObj.Pkg().Path()
-				tp.PkgName = tnObj.Pkg().Name()
-			}
-			tp.Name = tnObj.Name()
+			setTypeName(&tp, tnObj, pkg, ctx.mainPkg)
+			parse.DevInfo("slice %+v\n", tp)
 		}
 	default:
 		panic(fmt.Sprintf("%#v", lt))
@@ -264,6 +258,16 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 
 	node.Type = tp
 	return node, true
+}
+
+func setTypeName(tp *Type, tn *types.TypeName, pkg, mainPkg string) {
+	if tn.Pkg().Name() != pkg {
+		tp.PkgPath = tn.Pkg().Path()
+		tp.PkgName = tn.Pkg().Name()
+	} else if pkg != mainPkg {
+		tp.PkgName = pkg
+	}
+	tp.Name = tn.Name()
 }
 
 func addStructTags(tags map[string]parse.Tag, str *types.Struct) {

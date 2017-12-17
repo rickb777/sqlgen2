@@ -34,6 +34,8 @@ type Commit struct {
 
 type Author struct {
 	Name     string `sql:"prefixed: true"`
-	Email    string `sql:"prefixed: true"`
+	Email    Email  `sql:"prefixed: true"`
 	Username string `sql:"prefixed: true"`
 }
+
+type Email string

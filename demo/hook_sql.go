@@ -109,10 +109,10 @@ func ScanHook(row *sql.Row) (*Hook, error) {
 	var v9 string
 	var v10 string
 	var v11 string
-	var v12 string
+	var v12 Email
 	var v13 string
 	var v14 string
-	var v15 string
+	var v15 Email
 	var v16 string
 
 	err := row.Scan(
@@ -178,10 +178,10 @@ func ScanHooks(rows *sql.Rows) (HookList, error) {
 	var v9 string
 	var v10 string
 	var v11 string
-	var v12 string
+	var v12 Email
 	var v13 string
 	var v14 string
-	var v15 string
+	var v15 Email
 	var v16 string
 
 	for rows.Next() {
@@ -246,10 +246,10 @@ func SliceHook(v *Hook) ([]interface{}, error) {
 	var v9 string
 	var v10 string
 	var v11 string
-	var v12 string
+	var v12 Email
 	var v13 string
 	var v14 string
-	var v15 string
+	var v15 Email
 	var v16 string
 
 	v0 = v.Id
@@ -304,10 +304,10 @@ func SliceHookWithoutPk(v *Hook) ([]interface{}, error) {
 	var v9 string
 	var v10 string
 	var v11 string
-	var v12 string
+	var v12 Email
 	var v13 string
 	var v14 string
-	var v15 string
+	var v15 Email
 	var v16 string
 
 	v1 = v.Sha
