@@ -18,43 +18,28 @@ func TestWriteSliceFuncWithPk(t *testing.T) {
 	code := buf.String()
 	expected := `
 func SliceXExample(v *Example) ([]interface{}, error) {
-	var err error
 
-	var v0 int64
-	var v1 Category
-	var v2 string
-	var v3 bool
-	var v4 []byte
-	var v5 []byte
-	var v6 []byte
-	var v7 []byte
-
-	v0 = v.Id
-	v1 = v.Cat
-	v2 = v.Name
-	v3 = v.Active
-	v4, err = json.Marshal(&v.Labels)
+	v4, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
 	}
-	v5, err = json.Marshal(&v.Fave)
+	v5, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
-	v6 = v.Avatar
-	v7, err = encoding.MarshalText(&v.Updated)
+	v7, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
 		return nil, err
 	}
 
 	return []interface{}{
-		v0,
-		v1,
-		v2,
-		v3,
+		v.Id,
+		v.Cat,
+		v.Name,
+		v.Active,
 		v4,
 		v5,
-		v6,
+		v.Avatar,
 		v7,
 
 	}, nil
@@ -79,40 +64,27 @@ func TestWriteSliceFuncWithoutPk(t *testing.T) {
 	code := buf.String()
 	expected := `
 func SliceXExampleWithoutPk(v *Example) ([]interface{}, error) {
-	var err error
 
-	var v1 Category
-	var v2 string
-	var v3 bool
-	var v4 []byte
-	var v5 []byte
-	var v6 []byte
-	var v7 []byte
-
-	v1 = v.Cat
-	v2 = v.Name
-	v3 = v.Active
-	v4, err = json.Marshal(&v.Labels)
+	v4, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
 	}
-	v5, err = json.Marshal(&v.Fave)
+	v5, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
-	v6 = v.Avatar
-	v7, err = encoding.MarshalText(&v.Updated)
+	v7, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
 		return nil, err
 	}
 
 	return []interface{}{
-		v1,
-		v2,
-		v3,
+		v.Cat,
+		v.Name,
+		v.Active,
 		v4,
 		v5,
-		v6,
+		v.Avatar,
 		v7,
 
 	}, nil

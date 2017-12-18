@@ -621,116 +621,50 @@ func ScanHooks(rows *sql.Rows) (HookList, error) {
 }
 
 func SliceHook(v *Hook) ([]interface{}, error) {
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 Category
-	var v5 bool
-	var v6 bool
-	var v7 bool
-	var v8 string
-	var v9 string
-	var v10 string
-	var v11 string
-	var v12 Email
-	var v13 string
-	var v14 string
-	var v15 Email
-	var v16 string
 
-	v0 = v.Id
-	v1 = v.Sha
-	v2 = v.Dates.After
-	v3 = v.Dates.Before
-	v4 = v.Category
-	v5 = v.Created
-	v6 = v.Deleted
-	v7 = v.Forced
-	v8 = v.HeadCommit.ID
-	v9 = v.HeadCommit.Message
-	v10 = v.HeadCommit.Timestamp
-	v11 = v.HeadCommit.Author.Name
-	v12 = v.HeadCommit.Author.Email
-	v13 = v.HeadCommit.Author.Username
-	v14 = v.HeadCommit.Committer.Name
-	v15 = v.HeadCommit.Committer.Email
-	v16 = v.HeadCommit.Committer.Username
 
 	return []interface{}{
-		v0,
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
-		v6,
-		v7,
-		v8,
-		v9,
-		v10,
-		v11,
-		v12,
-		v13,
-		v14,
-		v15,
-		v16,
+		v.Id,
+		v.Sha,
+		v.Dates.After,
+		v.Dates.Before,
+		v.Category,
+		v.Created,
+		v.Deleted,
+		v.Forced,
+		v.HeadCommit.ID,
+		v.HeadCommit.Message,
+		v.HeadCommit.Timestamp,
+		v.HeadCommit.Author.Name,
+		v.HeadCommit.Author.Email,
+		v.HeadCommit.Author.Username,
+		v.HeadCommit.Committer.Name,
+		v.HeadCommit.Committer.Email,
+		v.HeadCommit.Committer.Username,
 
 	}, nil
 }
 
 func SliceHookWithoutPk(v *Hook) ([]interface{}, error) {
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 Category
-	var v5 bool
-	var v6 bool
-	var v7 bool
-	var v8 string
-	var v9 string
-	var v10 string
-	var v11 string
-	var v12 Email
-	var v13 string
-	var v14 string
-	var v15 Email
-	var v16 string
 
-	v1 = v.Sha
-	v2 = v.Dates.After
-	v3 = v.Dates.Before
-	v4 = v.Category
-	v5 = v.Created
-	v6 = v.Deleted
-	v7 = v.Forced
-	v8 = v.HeadCommit.ID
-	v9 = v.HeadCommit.Message
-	v10 = v.HeadCommit.Timestamp
-	v11 = v.HeadCommit.Author.Name
-	v12 = v.HeadCommit.Author.Email
-	v13 = v.HeadCommit.Author.Username
-	v14 = v.HeadCommit.Committer.Name
-	v15 = v.HeadCommit.Committer.Email
-	v16 = v.HeadCommit.Committer.Username
 
 	return []interface{}{
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
-		v6,
-		v7,
-		v8,
-		v9,
-		v10,
-		v11,
-		v12,
-		v13,
-		v14,
-		v15,
-		v16,
+		v.Sha,
+		v.Dates.After,
+		v.Dates.Before,
+		v.Category,
+		v.Created,
+		v.Deleted,
+		v.Forced,
+		v.HeadCommit.ID,
+		v.HeadCommit.Message,
+		v.HeadCommit.Timestamp,
+		v.HeadCommit.Author.Name,
+		v.HeadCommit.Author.Email,
+		v.HeadCommit.Author.Username,
+		v.HeadCommit.Committer.Name,
+		v.HeadCommit.Committer.Email,
+		v.HeadCommit.Committer.Username,
 
 	}, nil
 }

@@ -404,35 +404,23 @@ func ScanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
 }
 
 func SliceDbCompound(v *Compound) ([]interface{}, error) {
-	var v0 string
-	var v1 string
-	var v2 Category
 
-	v0 = v.Alpha
-	v1 = v.Beta
-	v2 = v.Category
 
 	return []interface{}{
-		v0,
-		v1,
-		v2,
+		v.Alpha,
+		v.Beta,
+		v.Category,
 
 	}, nil
 }
 
 func SliceDbCompoundWithoutPk(v *Compound) ([]interface{}, error) {
-	var v0 string
-	var v1 string
-	var v2 Category
 
-	v0 = v.Alpha
-	v1 = v.Beta
-	v2 = v.Category
 
 	return []interface{}{
-		v0,
-		v1,
-		v2,
+		v.Alpha,
+		v.Beta,
+		v.Category,
 
 	}, nil
 }

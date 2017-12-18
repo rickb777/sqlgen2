@@ -592,84 +592,44 @@ func ScanDbUsers(rows *sql.Rows) ([]*User, error) {
 }
 
 func SliceDbUser(v *User) ([]interface{}, error) {
-	var err error
 
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 string
-	var v8 string
-	var v9 string
-
-	v0 = v.Uid
-	v1 = v.Login
-	v2 = v.Email
-	v3 = v.Avatar
-	v4 = v.Active
-	v5 = v.Admin
-	v6, err = json.Marshal(&v.Fave)
+	v6, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
-	v7 = v.token
-	v8 = v.secret
-	v9 = v.hash
 
 	return []interface{}{
-		v0,
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
+		v.Uid,
+		v.Login,
+		v.Email,
+		v.Avatar,
+		v.Active,
+		v.Admin,
 		v6,
-		v7,
-		v8,
-		v9,
+		v.token,
+		v.secret,
+		v.hash,
 
 	}, nil
 }
 
 func SliceDbUserWithoutPk(v *User) ([]interface{}, error) {
-	var err error
 
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 string
-	var v8 string
-	var v9 string
-
-	v1 = v.Login
-	v2 = v.Email
-	v3 = v.Avatar
-	v4 = v.Active
-	v5 = v.Admin
-	v6, err = json.Marshal(&v.Fave)
+	v6, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
-	v7 = v.token
-	v8 = v.secret
-	v9 = v.hash
 
 	return []interface{}{
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
+		v.Login,
+		v.Email,
+		v.Avatar,
+		v.Active,
+		v.Admin,
 		v6,
-		v7,
-		v8,
-		v9,
+		v.token,
+		v.secret,
+		v.hash,
 
 	}, nil
 }

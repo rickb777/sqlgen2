@@ -549,71 +549,39 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 }
 
 func SliceIssue(v *Issue) ([]interface{}, error) {
-	var err error
 
-	var v0 int64
-	var v1 int
-	var v2 Date
-	var v3 string
-	var v4 string
-	var v5 string
-	var v6 string
-	var v7 []byte
-
-	v0 = v.Id
-	v1 = v.Number
-	v2 = v.Date
-	v3 = v.Title
-	v4 = v.Body
-	v5 = v.Assignee
-	v6 = v.State
-	v7, err = json.Marshal(&v.Labels)
+	v7, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
 	}
 
 	return []interface{}{
-		v0,
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
-		v6,
+		v.Id,
+		v.Number,
+		v.Date,
+		v.Title,
+		v.Body,
+		v.Assignee,
+		v.State,
 		v7,
 
 	}, nil
 }
 
 func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
-	var err error
 
-	var v1 int
-	var v2 Date
-	var v3 string
-	var v4 string
-	var v5 string
-	var v6 string
-	var v7 []byte
-
-	v1 = v.Number
-	v2 = v.Date
-	v3 = v.Title
-	v4 = v.Body
-	v5 = v.Assignee
-	v6 = v.State
-	v7, err = json.Marshal(&v.Labels)
+	v7, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
 	}
 
 	return []interface{}{
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
-		v6,
+		v.Number,
+		v.Date,
+		v.Title,
+		v.Body,
+		v.Assignee,
+		v.State,
 		v7,
 
 	}, nil

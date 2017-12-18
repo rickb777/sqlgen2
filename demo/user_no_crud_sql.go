@@ -181,12 +181,12 @@ CREATE TABLE %s%s%s (
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-	_, err = tbl.Exec(tbl.createV3UserLoginIndexSql(extra))
+	_, err = tbl.Exec(tbl.createV3UserEmailIndexSql(extra))
 	if err != nil {
 		return err
 	}
 
-	_, err = tbl.Exec(tbl.createV3UserEmailIndexSql(extra))
+	_, err = tbl.Exec(tbl.createV3UserLoginIndexSql(extra))
 	if err != nil {
 		return err
 	}
@@ -195,20 +195,20 @@ func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 }
 
 
-func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
-	}
-	return fmt.Sprintf(sqlCreateV3UserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
-}
-
 func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
 	indexPrefix := tbl.Prefix
 	if strings.HasSuffix(indexPrefix, ".") {
 		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
 	}
 	return fmt.Sprintf(sqlCreateV3UserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
+
+func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.Prefix
+	if strings.HasSuffix(indexPrefix, ".") {
+		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+	}
+	return fmt.Sprintf(sqlCreateV3UserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
 
 
@@ -223,12 +223,12 @@ func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateV3UserLoginIndex = `
-CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
-`
-
 const sqlCreateV3UserEmailIndex = `
 CREATE UNIQUE INDEX %s%suser_email ON %s%s (email)
+`
+
+const sqlCreateV3UserLoginIndex = `
+CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
 `
 
 //--------------------------------------------------------------------------------
@@ -368,84 +368,44 @@ func ScanV3Users(rows *sql.Rows) ([]*User, error) {
 }
 
 func SliceV3User(v *User) ([]interface{}, error) {
-	var err error
 
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 string
-	var v8 string
-	var v9 string
-
-	v0 = v.Uid
-	v1 = v.Login
-	v2 = v.Email
-	v3 = v.Avatar
-	v4 = v.Active
-	v5 = v.Admin
-	v6, err = json.Marshal(&v.Fave)
+	v6, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
-	v7 = v.token
-	v8 = v.secret
-	v9 = v.hash
 
 	return []interface{}{
-		v0,
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
+		v.Uid,
+		v.Login,
+		v.Email,
+		v.Avatar,
+		v.Active,
+		v.Admin,
 		v6,
-		v7,
-		v8,
-		v9,
+		v.token,
+		v.secret,
+		v.hash,
 
 	}, nil
 }
 
 func SliceV3UserWithoutPk(v *User) ([]interface{}, error) {
-	var err error
 
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 string
-	var v8 string
-	var v9 string
-
-	v1 = v.Login
-	v2 = v.Email
-	v3 = v.Avatar
-	v4 = v.Active
-	v5 = v.Admin
-	v6, err = json.Marshal(&v.Fave)
+	v6, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
-	v7 = v.token
-	v8 = v.secret
-	v9 = v.hash
 
 	return []interface{}{
-		v1,
-		v2,
-		v3,
-		v4,
-		v5,
+		v.Login,
+		v.Email,
+		v.Avatar,
+		v.Active,
+		v.Admin,
 		v6,
-		v7,
-		v8,
-		v9,
+		v.token,
+		v.secret,
+		v.hash,
 
 	}, nil
 }
