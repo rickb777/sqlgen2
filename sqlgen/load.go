@@ -139,19 +139,13 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map
 	}
 
 	// Lookup the SQL column type
-	field.SqlType = BLOB
 	underlying := leaf.Type().Underlying()
 	switch u := underlying.(type) {
 	case *types.Basic:
-		field.SqlType = mapKindToSqlType[u.Kind()]
 		field.Type.Base = parse.Kind(u.Kind())
 
 	case *types.Slice:
 		field.Type.Base = parse.Slice
-	}
-
-	if tag.Encode == "json" {
-		field.SqlType = JSON
 	}
 
 	if tag.Primary {
@@ -186,9 +180,11 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map
 	}
 
 	if tag.Type != "" {
-		t, ok := mapStringToSqlType[tag.Type]
+		base, ok := mapStringToSqlType[tag.Type]
 		if ok {
-			field.SqlType = t
+			field.Type.Base = base
+		} else {
+			output.Info("%s.%s: Warning: unrecognised type %q\n  (allowed: %s)\n", pkg, leaf.Name(), tag.Type, allowedSqlTypeStrings())
 		}
 	}
 

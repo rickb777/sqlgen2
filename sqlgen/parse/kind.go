@@ -30,20 +30,29 @@ const (
 	Struct    = 105
 )
 
-//var SimpleTypes = map[string]Kind{
-//	"bool":        Bool,
-//	"int":         Int,
-//	"int8":        Int8,
-//	"int16":       Int16,
-//	"int32":       Int32,
-//	"int64":       Int64,
-//	"uint":        Uint,
-//	"uint8":       Uint8,
-//	"uint16":      Uint16,
-//	"uint32":      Uint32,
-//	"uint64":      Uint64,
-//	"string":      String,
-//}
+func (k Kind) IsShort() bool {
+	switch k {
+	case Int8,
+		Int16,
+		Uint8,
+		Uint16:
+		return true
+	}
+	return false
+}
+
+func (k Kind) IsInteger() bool {
+	switch k {
+	case Int,
+		Int32,
+		Int64,
+		Uint,
+		Uint32,
+		Uint64:
+		return true
+	}
+	return false
+}
 
 func (k Kind) IsSimpleType() bool {
 	switch k {

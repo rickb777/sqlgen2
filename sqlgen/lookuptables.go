@@ -1,8 +1,10 @@
 package main
 
 import (
-	"go/types"
 	. "github.com/rickb777/sqlgen2/schema"
+	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	"sort"
+	"strings"
 )
 
 var mapTagToEncoding = map[string]SqlEncode{
@@ -11,38 +13,39 @@ var mapTagToEncoding = map[string]SqlEncode{
 	"text": ENCTEXT,
 }
 
-// convert Go types to SQL types.
-var mapKindToSqlType = map[types.BasicKind]SqlType{
-	types.Bool:       BOOLEAN,
-	types.Int:        INTEGER,
-	types.Int8:       INTEGER,
-	types.Int16:      INTEGER,
-	types.Int32:      INTEGER,
-	types.Int64:      INTEGER,
-	types.Uint:       INTEGER,
-	types.Uint8:      INTEGER,
-	types.Uint16:     INTEGER,
-	types.Uint32:     INTEGER,
-	types.Uint64:     INTEGER,
-	types.Float32:    REAL,
-	types.Float64:    REAL,
-	types.Complex64:  BLOB,
-	types.Complex128: BLOB,
-	//types.Interface:  BLOB,
-	//types.Bytes:      BLOB,
-	types.String: VARCHAR,
-	//types.Map:        BLOB,
-	//types.Slice:      BLOB,
+var mapStringToSqlType = map[string]parse.Kind{
+	// Go-flavour names
+	"bool":       parse.Bool,
+	"int":        parse.Int,
+	"int8":       parse.Int8,
+	"int16":      parse.Int16,
+	"int32":      parse.Int32,
+	"int64":      parse.Int64,
+	"uint":       parse.Uint,
+	"uint8":      parse.Uint8,
+	"uint16":     parse.Uint16,
+	"uint32":     parse.Uint32,
+	"uint64":     parse.Uint64,
+	"float32":    parse.Float32,
+	"float64":    parse.Float64,
+	"string":     parse.String,
+
+	// SQL-flavour names
+	"text":       parse.String,
+	"json":       parse.String,
+	"varchar":    parse.String,
+	"varchar2":   parse.String,
+	"number":     parse.Int,
+	"integer":    parse.Int,
+	"blob":       parse.Struct,
+	"bytea":      parse.Struct,
 }
 
-var mapStringToSqlType = map[string]SqlType{
-	"text":     VARCHAR,
-	"varchar":  VARCHAR,
-	"varchar2": VARCHAR,
-	"number":   INTEGER,
-	"integer":  INTEGER,
-	"int":      INTEGER,
-	"blob":     BLOB,
-	"bytea":    BLOB,
-	"json":     JSON,
+func allowedSqlTypeStrings() string {
+	var s []string
+	for k, _ := range mapStringToSqlType {
+		s = append(s, k)
+	}
+	sort.Strings(s)
+	return strings.Join(s, ", ")
 }

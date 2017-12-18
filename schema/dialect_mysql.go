@@ -22,38 +22,13 @@ func (d *mysql) CreateTableSettings() string {
 // see https://dev.mysql.com/doc/refman/5.7/en/data-types.html
 
 func mysqlColumn(f *Field) string {
-	switch f.SqlType {
-	case INTEGER:
-		return mysqlIntegerColumn(f)
-
-	case REAL:
-		return mysqlRealColumn(f)
-
-	case BOOLEAN:
-		return "tinyint(1)"
-
-	case BLOB:
-		return "mediumblob"
-
-	case JSON:
+	switch f.Encode {
+	case ENCJSON:
 		return "json"
-
-	case VARCHAR:
-		// assigns an arbitrary size if
-		// none is provided.
-		size := f.Tags.Size
-		if size == 0 {
-			size = 512
-		}
-		return fmt.Sprintf("varchar(%d)", size)
+	case ENCTEXT:
+		return varchar(f.Tags.Size)
 	}
 
-	return "text"
-}
-
-// see https://dev.mysql.com/doc/refman/5.7/en/integer-types.html
-
-func mysqlIntegerColumn(f *Field) string {
 	switch f.Type.Base {
 	case parse.Int, parse.Int64:
 		return "bigint"
@@ -75,19 +50,25 @@ func mysqlIntegerColumn(f *Field) string {
 		return "float"
 	case parse.Float64:
 		return "double"
+	case parse.Bool:
+		return "tinyint(1)"
+	case parse.String:
+		return varchar(f.Tags.Size)
 	}
-	return ""
+
+	return "mediumblob"
 }
 
-func mysqlRealColumn(f *Field) string {
-	switch f.Type.Base {
-	case parse.Float32:
-		return "float"
-	case parse.Float64:
-		return "double"
+func varchar(size int) string {
+	// assigns an arbitrary size if
+	// none is provided.
+	if size == 0 {
+		size = 512
 	}
-	return ""
+	return fmt.Sprintf("varchar(%d)", size)
 }
+
+// see https://dev.mysql.com/doc/refman/5.7/en/integer-types.html
 
 func mysqlToken(v SqlToken) string {
 	switch v {

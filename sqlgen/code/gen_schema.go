@@ -33,6 +33,22 @@ func WriteSchema(w io.Writer, view View) {
 
 	tableName := view.Prefix + view.Table.Type
 
+	fmt.Fprintln(w, sectionBreak)
+
+	fmt.Fprintf(w, "\nconst %s = %d\n",
+		identifier("Num", tableName, "Columns"), view.Table.NumColumnNames(true))
+
+	fmt.Fprintf(w, "\nconst %s = %d\n",
+		identifier("Num", tableName, "DataColumns"), view.Table.NumColumnNames(false))
+
+	if view.Table.HasPrimaryKey() {
+		fmt.Fprintf(w, constStringQ,
+			identifier("", tableName, "Pk"), view.Table.Primary.Name)
+	}
+
+	fmt.Fprintf(w, constStringQ,
+		identifier("", tableName, "DataColumnNames"), Join(view.Table.ColumnNames(false), ", "))
+
 	writeCreateTableFunc(w, view)
 
 	for _, did := range schema.AllDialectIds {
@@ -54,22 +70,6 @@ func WriteSchema(w io.Writer, view View) {
 				identifier("sqlCreate"+view.Prefix, ix.Name, "Index"), sqlite.Index(view.Table, ix))
 		}
 	}
-
-	fmt.Fprintln(w, sectionBreak)
-
-	fmt.Fprintf(w, "\nconst %s = %d\n",
-		identifier("Num", tableName, "Columns"), view.Table.NumColumnNames(true))
-
-	fmt.Fprintf(w, "\nconst %s = %d\n",
-		identifier("Num", tableName, "DataColumns"), view.Table.NumColumnNames(false))
-
-	if view.Table.HasPrimaryKey() {
-		fmt.Fprintf(w, constStringQ,
-			identifier("", tableName, "Pk"), view.Table.Primary.Name)
-	}
-
-	fmt.Fprintf(w, constStringQ,
-		identifier("", tableName, "DataColumnNames"), Join(view.Table.ColumnNames(false), ", "))
 }
 
 func writeCreateTableFunc(w io.Writer, view View) {

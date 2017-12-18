@@ -21,5 +21,5 @@ func (t Type) Type() string {
 }
 
 func (t Type) String() string {
-	return fmt.Sprintf("%s (%s)", t.Type(), t.Base)
+	return fmt.Sprintf("%s (%v)", t.Type(), t.Base)
 }

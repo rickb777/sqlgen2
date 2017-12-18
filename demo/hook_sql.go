@@ -97,6 +97,16 @@ func (tbl HookTable) logQuery(query string, args ...interface{}) {
 
 //--------------------------------------------------------------------------------
 
+const NumHookColumns = 17
+
+const NumHookDataColumns = 16
+
+const HookPk = "Id"
+
+const HookDataColumnNames = "sha, after, before, category, created, deleted, forced, commit_id, message, timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
+
+//--------------------------------------------------------------------------------
+
 // CreateTable creates the table.
 func (tbl HookTable) CreateTable(ifNotExist bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExist))
@@ -149,7 +159,7 @@ CREATE TABLE %s%s%s (
  sha                            varchar(512),
  after                          varchar(20),
  before                         varchar(20),
- category                       integer,
+ category                       tinyint unsigned,
  created                        boolean,
  deleted                        boolean,
  forced                         boolean,
@@ -186,16 +196,6 @@ CREATE TABLE %s%s%s (
  head_commit_committer_username varchar(512)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
-
-//--------------------------------------------------------------------------------
-
-const NumHookColumns = 17
-
-const NumHookDataColumns = 16
-
-const HookPk = "Id"
-
-const HookDataColumnNames = "sha, after, before, category, created, deleted, forced, commit_id, message, timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
 
 //--------------------------------------------------------------------------------
 

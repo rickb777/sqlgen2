@@ -12,14 +12,14 @@ import (
 )
 
 func fixtureTable() *TableDescription {
-	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", INTEGER, ENCNONE, Tag{Primary: true, Auto: true}}
-	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
-	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "username", VARCHAR, ENCNONE, Tag{Size: 2048, Name: "username", Index: "nameIdx"}}
-	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", BOOLEAN, ENCNONE, Tag{}}
-	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", JSON, ENCJSON, Tag{Encode: "json"}}
-	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", BLOB, ENCJSON, Tag{Encode: "json"}}
-	avatar := &Field{Node{"Avatar", Type{"", "", "[]byte", Slice}, nil}, "avatar", BLOB, ENCNONE, Tag{}}
-	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", BLOB, ENCTEXT, Tag{Encode: "text"}}
+	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
+	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "username", ENCNONE, Tag{Size: 2048, Name: "username", Index: "nameIdx"}}
+	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", ENCNONE, Tag{}}
+	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
+	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
+	avatar := &Field{Node{"Avatar", Type{"", "", "[]byte", Slice}, nil}, "avatar", ENCNONE, Tag{}}
+	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", ENCTEXT, Tag{Encode: "text"}}
 
 	ititle := &Index{"nameIdx", false, []*Field{name}}
 
@@ -50,10 +50,10 @@ func xTestWriteRowFunc1(t *testing.T) {
 	p1 := &Node{Name: "Commit"}
 	p2 := &Node{Name: "Author", Parent: p1}
 
-	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", INTEGER, ENCNONE, Tag{}}
-	name := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", VARCHAR, ENCNONE, Tag{}}
-	email := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "commit_author_email", VARCHAR, ENCNONE, Tag{}}
-	message := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "commit_message", VARCHAR, ENCNONE, Tag{}}
+	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", ENCNONE, Tag{}}
+	email := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "commit_author_email", ENCNONE, Tag{}}
+	message := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "commit_message", ENCNONE, Tag{}}
 
 	table := &TableDescription{
 		Type: "Example",

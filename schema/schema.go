@@ -5,18 +5,6 @@ import (
 	"strings"
 )
 
-type SqlType int
-
-// List of basic types
-const (
-	INTEGER SqlType = iota
-	REAL
-	VARCHAR
-	BOOLEAN
-	BLOB
-	JSON
-)
-
 type SqlEncode int
 
 // List of vendor-specific keywords
@@ -52,7 +40,6 @@ type Node struct {
 type Field struct {
 	Node
 	SqlName string
-	SqlType SqlType
 	Encode  SqlEncode
 	Tags    parse.Tag
 }
@@ -65,7 +52,7 @@ type Index struct {
 }
 
 func (t *TableDescription) HasLastInsertId() bool {
-	return t.Primary != nil && t.Primary.SqlType == INTEGER
+	return t.Primary != nil && t.Primary.Type.Base.IsInteger()
 }
 
 func (t *TableDescription) HasPrimaryKey() bool {

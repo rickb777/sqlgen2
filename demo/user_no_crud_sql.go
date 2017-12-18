@@ -97,6 +97,16 @@ func (tbl V3UserTable) logQuery(query string, args ...interface{}) {
 
 //--------------------------------------------------------------------------------
 
+const NumV3UserColumns = 10
+
+const NumV3UserDataColumns = 9
+
+const V3UserPk = "Uid"
+
+const V3UserDataColumnNames = "login, email, avatar, active, admin, fave, token, secret, hash"
+
+//--------------------------------------------------------------------------------
+
 // CreateTable creates the table.
 func (tbl V3UserTable) CreateTable(ifNotExist bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExist))
@@ -220,16 +230,6 @@ CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
 const sqlCreateV3UserEmailIndex = `
 CREATE UNIQUE INDEX %s%suser_email ON %s%s (email)
 `
-
-//--------------------------------------------------------------------------------
-
-const NumV3UserColumns = 10
-
-const NumV3UserDataColumns = 9
-
-const V3UserPk = "Uid"
-
-const V3UserDataColumnNames = "login, email, avatar, active, admin, fave, token, secret, hash"
 
 //--------------------------------------------------------------------------------
 

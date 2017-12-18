@@ -97,6 +97,14 @@ func (tbl DbCompoundTable) logQuery(query string, args ...interface{}) {
 
 //--------------------------------------------------------------------------------
 
+const NumDbCompoundColumns = 3
+
+const NumDbCompoundDataColumns = 3
+
+const DbCompoundDataColumnNames = "alpha, beta, category"
+
+//--------------------------------------------------------------------------------
+
 // CreateTable creates the table.
 func (tbl DbCompoundTable) CreateTable(ifNotExist bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExist))
@@ -133,7 +141,7 @@ const sqlCreateDbCompoundTablePostgres = `
 CREATE TABLE %s%s%s (
  alpha    varchar(512),
  beta     varchar(512),
- category integer
+ category tinyint unsigned
 )
 `
 
@@ -182,14 +190,6 @@ func (tbl DbCompoundTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 const sqlCreateDbAlphaBetaIndex = `
 CREATE UNIQUE INDEX %s%salpha_beta ON %s%s (alpha, beta)
 `
-
-//--------------------------------------------------------------------------------
-
-const NumDbCompoundColumns = 3
-
-const NumDbCompoundDataColumns = 3
-
-const DbCompoundDataColumnNames = "alpha, beta, category"
 
 //--------------------------------------------------------------------------------
 

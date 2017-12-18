@@ -98,6 +98,16 @@ func (tbl DbUserTable) logQuery(query string, args ...interface{}) {
 
 //--------------------------------------------------------------------------------
 
+const NumDbUserColumns = 10
+
+const NumDbUserDataColumns = 9
+
+const DbUserPk = "Uid"
+
+const DbUserDataColumnNames = "login, email, avatar, active, admin, fave, token, secret, hash"
+
+//--------------------------------------------------------------------------------
+
 // CreateTable creates the table.
 func (tbl DbUserTable) CreateTable(ifNotExist bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExist))
@@ -221,16 +231,6 @@ CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
 const sqlCreateDbUserEmailIndex = `
 CREATE UNIQUE INDEX %s%suser_email ON %s%s (email)
 `
-
-//--------------------------------------------------------------------------------
-
-const NumDbUserColumns = 10
-
-const NumDbUserDataColumns = 9
-
-const DbUserPk = "Uid"
-
-const DbUserDataColumnNames = "login, email, avatar, active, admin, fave, token, secret, hash"
 
 //--------------------------------------------------------------------------------
 

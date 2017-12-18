@@ -20,6 +20,16 @@ func TestWriteSchema(t *testing.T) {
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
+const NumXExampleColumns = 8
+
+const NumXExampleDataColumns = 7
+
+const XExamplePk = "Id"
+
+const XExampleDataColumnNames = "cat, username, active, labels, fave, avatar, updated"
+
+//--------------------------------------------------------------------------------
+
 // CreateTable creates the table.
 func (tbl XExampleTable) CreateTable(ifNotExist bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExist))
@@ -51,22 +61,22 @@ CREATE TABLE %s%s%s (
  username text,
  active   boolean,
  labels   text,
- fave     blob,
+ fave     text,
  avatar   blob,
- updated  blob
+ updated  text
 )
 |
 
 const sqlCreateXExampleTablePostgres = |
 CREATE TABLE %s%s%s (
  id       bigserial primary key,
- cat      integer,
+ cat      int,
  username varchar(2048),
  active   boolean,
  labels   json,
- fave     byteaa,
+ fave     json,
  avatar   byteaa,
- updated  byteaa
+ updated  varchar(512)
 )
 |
 
@@ -77,9 +87,9 @@ CREATE TABLE %s%s%s (
  username varchar(2048),
  active   tinyint(1),
  labels   json,
- fave     mediumblob,
+ fave     json,
  avatar   mediumblob,
- updated  mediumblob
+ updated  varchar(512)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 |
 
@@ -120,16 +130,6 @@ func (tbl XExampleTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 const sqlCreateXNameIdxIndex = |
 CREATE INDEX %s%snameIdx ON %s%s (username)
 |
-
-//--------------------------------------------------------------------------------
-
-const NumXExampleColumns = 8
-
-const NumXExampleDataColumns = 7
-
-const XExamplePk = "Id"
-
-const XExampleDataColumnNames = "cat, username, active, labels, fave, avatar, updated"
 `, "|", "`", -1)
 
 	if code != expected {

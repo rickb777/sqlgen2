@@ -98,6 +98,16 @@ func (tbl IssueTable) logQuery(query string, args ...interface{}) {
 
 //--------------------------------------------------------------------------------
 
+const NumIssueColumns = 8
+
+const NumIssueDataColumns = 7
+
+const IssuePk = "Id"
+
+const IssueDataColumnNames = "number, date, title, bigbody, assignee, state, labels"
+
+//--------------------------------------------------------------------------------
+
 // CreateTable creates the table.
 func (tbl IssueTable) CreateTable(ifNotExist bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExist))
@@ -138,7 +148,7 @@ CREATE TABLE %s%s%s (
 const sqlCreateIssueTablePostgres = `
 CREATE TABLE %s%s%s (
  id       bigserial primary key,
- number   integer,
+ number   bigint,
  date     byteaa,
  title    varchar(512),
  bigbody  varchar(2048),
@@ -198,16 +208,6 @@ func (tbl IssueTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 const sqlCreateIssueAssigneeIndex = `
 CREATE INDEX %s%sissue_assignee ON %s%s (assignee)
 `
-
-//--------------------------------------------------------------------------------
-
-const NumIssueColumns = 8
-
-const NumIssueDataColumns = 7
-
-const IssuePk = "Id"
-
-const IssueDataColumnNames = "number, date, title, bigbody, assignee, state, labels"
 
 //--------------------------------------------------------------------------------
 
