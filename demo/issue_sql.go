@@ -28,7 +28,7 @@ type IssueTable struct {
 }
 
 // Type conformance check
-var _ sqlgen2.Table = IssueTable{}
+var _ sqlgen2.Table = &IssueTable{}
 
 // NewIssueTable returns a new table instance.
 // If a blank table name is supplied, the default name "issues" will be used instead.
@@ -46,16 +46,31 @@ func (tbl IssueTable) WithPrefix(pfx string) IssueTable {
 	return tbl
 }
 
+// SetPrefix sets the prefix for subsequent queries.
+func (tbl *IssueTable) SetPrefix(pfx string) {
+	tbl.Prefix = pfx
+}
+
 // WithContext sets the context for subsequent queries.
 func (tbl IssueTable) WithContext(ctx context.Context) IssueTable {
 	tbl.Ctx = ctx
 	return tbl
 }
 
+// SetContext sets the context for subsequent queries.
+func (tbl *IssueTable) SetContext(ctx context.Context) {
+	tbl.Ctx = ctx
+}
+
 // WithLogger sets the logger for subsequent queries.
 func (tbl IssueTable) WithLogger(logger *log.Logger) IssueTable {
 	tbl.Logger = logger
 	return tbl
+}
+
+// SetLogger sets the logger for subsequent queries.
+func (tbl *IssueTable) SetLogger(logger *log.Logger) {
+	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.

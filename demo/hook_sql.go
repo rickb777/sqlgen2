@@ -27,7 +27,7 @@ type HookTable struct {
 }
 
 // Type conformance check
-var _ sqlgen2.Table = HookTable{}
+var _ sqlgen2.Table = &HookTable{}
 
 // NewHookTable returns a new table instance.
 // If a blank table name is supplied, the default name "hooks" will be used instead.
@@ -45,16 +45,31 @@ func (tbl HookTable) WithPrefix(pfx string) HookTable {
 	return tbl
 }
 
+// SetPrefix sets the prefix for subsequent queries.
+func (tbl *HookTable) SetPrefix(pfx string) {
+	tbl.Prefix = pfx
+}
+
 // WithContext sets the context for subsequent queries.
 func (tbl HookTable) WithContext(ctx context.Context) HookTable {
 	tbl.Ctx = ctx
 	return tbl
 }
 
+// SetContext sets the context for subsequent queries.
+func (tbl *HookTable) SetContext(ctx context.Context) {
+	tbl.Ctx = ctx
+}
+
 // WithLogger sets the logger for subsequent queries.
 func (tbl HookTable) WithLogger(logger *log.Logger) HookTable {
 	tbl.Logger = logger
 	return tbl
+}
+
+// SetLogger sets the logger for subsequent queries.
+func (tbl *HookTable) SetLogger(logger *log.Logger) {
+	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.

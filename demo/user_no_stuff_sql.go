@@ -25,7 +25,7 @@ type V4UserTable struct {
 }
 
 // Type conformance check
-var _ sqlgen2.Table = V4UserTable{}
+var _ sqlgen2.Table = &V4UserTable{}
 
 // NewV4UserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
@@ -43,16 +43,31 @@ func (tbl V4UserTable) WithPrefix(pfx string) V4UserTable {
 	return tbl
 }
 
+// SetPrefix sets the prefix for subsequent queries.
+func (tbl *V4UserTable) SetPrefix(pfx string) {
+	tbl.Prefix = pfx
+}
+
 // WithContext sets the context for subsequent queries.
 func (tbl V4UserTable) WithContext(ctx context.Context) V4UserTable {
 	tbl.Ctx = ctx
 	return tbl
 }
 
+// SetContext sets the context for subsequent queries.
+func (tbl *V4UserTable) SetContext(ctx context.Context) {
+	tbl.Ctx = ctx
+}
+
 // WithLogger sets the logger for subsequent queries.
 func (tbl V4UserTable) WithLogger(logger *log.Logger) V4UserTable {
 	tbl.Logger = logger
 	return tbl
+}
+
+// SetLogger sets the logger for subsequent queries.
+func (tbl *V4UserTable) SetLogger(logger *log.Logger) {
+	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.

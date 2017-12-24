@@ -3,6 +3,7 @@ package sqlgen2
 import (
 	"database/sql"
 	"context"
+	"log"
 )
 
 // Execer describes the methods of the core database API. See database/sql/DB and database/sql/Tx.
@@ -35,6 +36,15 @@ type Table interface {
 	// FullName gets the concatenated prefix and table name.
 	FullName() string
 
+	// SetPrefix sets the table name prefix.
+	SetPrefix(pfx string)
+
+	// SetContext sets the context for subsequent queries.
+	SetContext(ctx context.Context)
+
+	// SetLogger sets the logger used for diagnostics.
+	SetLogger(logger *log.Logger)
+
 	// DB gets the wrapped database handle, provided this is not within a transaction.
 	// Panics if it is in the wrong state - use IsTx() if necessary.
 	DB() *sql.DB
@@ -47,10 +57,18 @@ type Table interface {
 	IsTx() bool
 }
 
-type TableWithDDL interface {
+type TableCreator interface {
 	Table
 	CreateTable(ifNotExist bool) (int64, error)
+}
+
+type TableWithIndexes interface {
+	TableCreator
 	CreateIndexes(ifNotExist bool) (err error)
+}
+
+type TableWithDDL interface {
+	TableWithIndexes
 	CreateTableWithIndexes(ifNotExist bool) (err error)
 }
 

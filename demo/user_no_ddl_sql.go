@@ -28,7 +28,7 @@ type V2UserTable struct {
 }
 
 // Type conformance check
-var _ sqlgen2.Table = V2UserTable{}
+var _ sqlgen2.Table = &V2UserTable{}
 
 // NewV2UserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
@@ -46,16 +46,31 @@ func (tbl V2UserTable) WithPrefix(pfx string) V2UserTable {
 	return tbl
 }
 
+// SetPrefix sets the prefix for subsequent queries.
+func (tbl *V2UserTable) SetPrefix(pfx string) {
+	tbl.Prefix = pfx
+}
+
 // WithContext sets the context for subsequent queries.
 func (tbl V2UserTable) WithContext(ctx context.Context) V2UserTable {
 	tbl.Ctx = ctx
 	return tbl
 }
 
+// SetContext sets the context for subsequent queries.
+func (tbl *V2UserTable) SetContext(ctx context.Context) {
+	tbl.Ctx = ctx
+}
+
 // WithLogger sets the logger for subsequent queries.
 func (tbl V2UserTable) WithLogger(logger *log.Logger) V2UserTable {
 	tbl.Logger = logger
 	return tbl
+}
+
+// SetLogger sets the logger for subsequent queries.
+func (tbl *V2UserTable) SetLogger(logger *log.Logger) {
+	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.

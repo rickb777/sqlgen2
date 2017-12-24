@@ -27,7 +27,7 @@ type DbCompoundTable struct {
 }
 
 // Type conformance check
-var _ sqlgen2.Table = DbCompoundTable{}
+var _ sqlgen2.Table = &DbCompoundTable{}
 
 // NewDbCompoundTable returns a new table instance.
 // If a blank table name is supplied, the default name "compounds" will be used instead.
@@ -45,16 +45,31 @@ func (tbl DbCompoundTable) WithPrefix(pfx string) DbCompoundTable {
 	return tbl
 }
 
+// SetPrefix sets the prefix for subsequent queries.
+func (tbl *DbCompoundTable) SetPrefix(pfx string) {
+	tbl.Prefix = pfx
+}
+
 // WithContext sets the context for subsequent queries.
 func (tbl DbCompoundTable) WithContext(ctx context.Context) DbCompoundTable {
 	tbl.Ctx = ctx
 	return tbl
 }
 
+// SetContext sets the context for subsequent queries.
+func (tbl *DbCompoundTable) SetContext(ctx context.Context) {
+	tbl.Ctx = ctx
+}
+
 // WithLogger sets the logger for subsequent queries.
 func (tbl DbCompoundTable) WithLogger(logger *log.Logger) DbCompoundTable {
 	tbl.Logger = logger
 	return tbl
+}
+
+// SetLogger sets the logger for subsequent queries.
+func (tbl *DbCompoundTable) SetLogger(logger *log.Logger) {
+	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.
