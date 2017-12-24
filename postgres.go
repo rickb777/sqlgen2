@@ -12,6 +12,9 @@ const postgresPlaceholders = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 // PostgresDialect provides specialisations needed for working with PostgreSQL.
 type PostgresDialect struct{}
 
+// type conformance
+var _ Dialect = PostgresDialect{}
+
 // Postgres implements specialisations needed for working with PostgreSQL.
 var Postgres PostgresDialect
 

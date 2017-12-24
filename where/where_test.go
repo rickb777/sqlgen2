@@ -1,9 +1,10 @@
-package where
+package where_test
 
 import (
 	"reflect"
 	"testing"
 	"github.com/rickb777/sqlgen2"
+	. "github.com/rickb777/sqlgen2/where"
 )
 
 func TestBuildWhereClause_happyCases(t *testing.T) {

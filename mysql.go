@@ -11,6 +11,9 @@ const mysqlPlaceholders = "?,?,?,?,?,?,?,?,?,?"
 // This is also compatible with SQLite.
 type MySQLDialect struct{}
 
+// type conformance
+var _ Dialect = MySQLDialect{}
+
 // Mysql implements specialisations needed for working with MySQL.
 // This is also compatible with SQLite.
 var Mysql MySQLDialect
