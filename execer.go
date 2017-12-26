@@ -3,7 +3,6 @@ package sqlgen2
 import (
 	"database/sql"
 	"context"
-	"log"
 	"github.com/rickb777/sqlgen2/where"
 )
 
@@ -36,15 +35,6 @@ type CanPreUpdate interface {
 type Table interface {
 	// FullName gets the concatenated prefix and table name.
 	FullName() string
-
-	// SetPrefix sets the table name prefix.
-	SetPrefix(pfx string)
-
-	// SetContext sets the context for subsequent queries.
-	SetContext(ctx context.Context)
-
-	// SetLogger sets the logger used for diagnostics.
-	SetLogger(logger *log.Logger)
 
 	// DB gets the wrapped database handle, provided this is not within a transaction.
 	// Panics if it is in the wrong state - use IsTx() if necessary.

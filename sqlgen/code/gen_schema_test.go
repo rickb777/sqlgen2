@@ -56,7 +56,7 @@ func (tbl XExampleTable) ternary(flag bool, a, b string) string {
 
 const sqlCreateXExampleTableSqlite = |
 CREATE TABLE %s%s%s (
- id       bigint primary key,
+ id       integer primary key autoincrement,
  cat      int,
  username text,
  active   boolean,
@@ -106,15 +106,18 @@ func (tbl XExampleTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
-
-func (tbl XExampleTable) createXNameIdxIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+func (tbl XExampleTable) prefixWithoutDot() string {
+	last := len(tbl.Prefix)-1
+	if last > 0 && tbl.Prefix[last] == '.' {
+		return tbl.Prefix[0:last]
 	}
-	return fmt.Sprintf(sqlCreateXNameIdxIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+	return tbl.Prefix
 }
 
+func (tbl XExampleTable) createXNameIdxIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf(sqlCreateXNameIdxIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 func (tbl XExampleTable) CreateTableWithIndexes(ifNotExist bool) (err error) {

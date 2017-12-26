@@ -17,7 +17,7 @@ func TestWriteSliceFuncWithPk(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-func SliceXExample(v *Example) ([]interface{}, error) {
+func sliceXExample(v *Example) ([]interface{}, error) {
 
 	v4, err := json.Marshal(&v.Labels)
 	if err != nil {
@@ -63,7 +63,7 @@ func TestWriteSliceFuncWithoutPk(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-func SliceXExampleWithoutPk(v *Example) ([]interface{}, error) {
+func sliceXExampleWithoutPk(v *Example) ([]interface{}, error) {
 
 	v4, err := json.Marshal(&v.Labels)
 	if err != nil {

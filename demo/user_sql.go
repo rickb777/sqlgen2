@@ -46,31 +46,16 @@ func (tbl DbUserTable) WithPrefix(pfx string) DbUserTable {
 	return tbl
 }
 
-// SetPrefix sets the prefix for subsequent queries.
-func (tbl *DbUserTable) SetPrefix(pfx string) {
-	tbl.Prefix = pfx
-}
-
 // WithContext sets the context for subsequent queries.
 func (tbl DbUserTable) WithContext(ctx context.Context) DbUserTable {
 	tbl.Ctx = ctx
 	return tbl
 }
 
-// SetContext sets the context for subsequent queries.
-func (tbl *DbUserTable) SetContext(ctx context.Context) {
-	tbl.Ctx = ctx
-}
-
 // WithLogger sets the logger for subsequent queries.
 func (tbl DbUserTable) WithLogger(logger *log.Logger) DbUserTable {
 	tbl.Logger = logger
 	return tbl
-}
-
-// SetLogger sets the logger for subsequent queries.
-func (tbl *DbUserTable) SetLogger(logger *log.Logger) {
-	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.
@@ -105,9 +90,7 @@ func (tbl DbUserTable) BeginTx(opts *sql.TxOptions) (DbUserTable, error) {
 }
 
 func (tbl DbUserTable) logQuery(query string, args ...interface{}) {
-	if tbl.Logger != nil {
-		tbl.Logger.Printf(query + " %v\n", args)
-	}
+	sqlgen2.LogQuery(tbl.Logger, query, args...)
 }
 
 
@@ -149,7 +132,7 @@ func (tbl DbUserTable) ternary(flag bool, a, b string) string {
 
 const sqlCreateDbUserTableSqlite = `
 CREATE TABLE %s%s%s (
- uid    bigint primary key,
+ uid    integer primary key autoincrement,
  login  text,
  email  text,
  avatar text,
@@ -210,23 +193,23 @@ func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
+func (tbl DbUserTable) prefixWithoutDot() string {
+	last := len(tbl.Prefix)-1
+	if last > 0 && tbl.Prefix[last] == '.' {
+		return tbl.Prefix[0:last]
+	}
+	return tbl.Prefix
+}
 
 func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
-	}
+	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf(sqlCreateDbUserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
 
 func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
-	}
+	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf(sqlCreateDbUserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
-
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
@@ -267,7 +250,7 @@ func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
 func (tbl DbUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return ScanDbUser(row)
+	return scanDbUser(row)
 }
 
 // Query is the low-level access function for Users.
@@ -278,7 +261,7 @@ func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error)
 		return nil, err
 	}
 	defer rows.Close()
-	return ScanDbUsers(rows)
+	return scanDbUsers(rows)
 }
 
 //--------------------------------------------------------------------------------
@@ -357,7 +340,7 @@ func (tbl DbUserTable) Insert(vv ...*User) error {
 			hook.PreInsert(tbl.Db)
 		}
 
-		fields, err := SliceDbUserWithoutPk(v)
+		fields, err := sliceDbUserWithoutPk(v)
 		if err != nil {
 			return err
 		}
@@ -446,7 +429,7 @@ func (tbl DbUserTable) Update(vv ...*User) (int64, error) {
 
 		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 
-		args, err := SliceDbUserWithoutPk(v)
+		args, err := sliceDbUserWithoutPk(v)
 		if err != nil {
 			return count, err
 		}
@@ -504,8 +487,8 @@ func (tbl DbUserTable) deleteRows(where where.Expression) (string, []interface{}
 	return query, args
 }
 
-// ScanDbUser reads a table record into a single value.
-func ScanDbUser(row *sql.Row) (*User, error) {
+// scanDbUser reads a table record into a single value.
+func scanDbUser(row *sql.Row) (*User, error) {
 	var v0 int64
 	var v1 string
 	var v2 string
@@ -552,8 +535,8 @@ func ScanDbUser(row *sql.Row) (*User, error) {
 	return v, nil
 }
 
-// ScanDbUsers reads table records into a slice of values.
-func ScanDbUsers(rows *sql.Rows) ([]*User, error) {
+// scanDbUsers reads table records into a slice of values.
+func scanDbUsers(rows *sql.Rows) ([]*User, error) {
 	var err error
 	var vv []*User
 
@@ -606,7 +589,7 @@ func ScanDbUsers(rows *sql.Rows) ([]*User, error) {
 	return vv, rows.Err()
 }
 
-func SliceDbUser(v *User) ([]interface{}, error) {
+func sliceDbUser(v *User) ([]interface{}, error) {
 
 	v6, err := json.Marshal(&v.Fave)
 	if err != nil {
@@ -628,7 +611,7 @@ func SliceDbUser(v *User) ([]interface{}, error) {
 	}, nil
 }
 
-func SliceDbUserWithoutPk(v *User) ([]interface{}, error) {
+func sliceDbUserWithoutPk(v *User) ([]interface{}, error) {
 
 	v6, err := json.Marshal(&v.Fave)
 	if err != nil {

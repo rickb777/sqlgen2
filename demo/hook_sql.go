@@ -45,31 +45,16 @@ func (tbl HookTable) WithPrefix(pfx string) HookTable {
 	return tbl
 }
 
-// SetPrefix sets the prefix for subsequent queries.
-func (tbl *HookTable) SetPrefix(pfx string) {
-	tbl.Prefix = pfx
-}
-
 // WithContext sets the context for subsequent queries.
 func (tbl HookTable) WithContext(ctx context.Context) HookTable {
 	tbl.Ctx = ctx
 	return tbl
 }
 
-// SetContext sets the context for subsequent queries.
-func (tbl *HookTable) SetContext(ctx context.Context) {
-	tbl.Ctx = ctx
-}
-
 // WithLogger sets the logger for subsequent queries.
 func (tbl HookTable) WithLogger(logger *log.Logger) HookTable {
 	tbl.Logger = logger
 	return tbl
-}
-
-// SetLogger sets the logger for subsequent queries.
-func (tbl *HookTable) SetLogger(logger *log.Logger) {
-	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.
@@ -104,9 +89,7 @@ func (tbl HookTable) BeginTx(opts *sql.TxOptions) (HookTable, error) {
 }
 
 func (tbl HookTable) logQuery(query string, args ...interface{}) {
-	if tbl.Logger != nil {
-		tbl.Logger.Printf(query + " %v\n", args)
-	}
+	sqlgen2.LogQuery(tbl.Logger, query, args...)
 }
 
 
@@ -148,7 +131,7 @@ func (tbl HookTable) ternary(flag bool, a, b string) string {
 
 const sqlCreateHookTableSqlite = `
 CREATE TABLE %s%s%s (
- id                             bigint primary key,
+ id                             integer primary key autoincrement,
  sha                            text,
  after                          text,
  before                         text,
@@ -232,7 +215,7 @@ func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
 func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) {
 	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return ScanHook(row)
+	return scanHook(row)
 }
 
 // Query is the low-level access function for Hooks.
@@ -243,7 +226,7 @@ func (tbl HookTable) Query(query string, args ...interface{}) (HookList, error) 
 		return nil, err
 	}
 	defer rows.Close()
-	return ScanHooks(rows)
+	return scanHooks(rows)
 }
 
 //--------------------------------------------------------------------------------
@@ -322,7 +305,7 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 			hook.PreInsert(tbl.Db)
 		}
 
-		fields, err := SliceHookWithoutPk(v)
+		fields, err := sliceHookWithoutPk(v)
 		if err != nil {
 			return err
 		}
@@ -425,7 +408,7 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 
 		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 
-		args, err := SliceHookWithoutPk(v)
+		args, err := sliceHookWithoutPk(v)
 		if err != nil {
 			return count, err
 		}
@@ -497,8 +480,8 @@ func (tbl HookTable) deleteRows(where where.Expression) (string, []interface{}) 
 	return query, args
 }
 
-// ScanHook reads a table record into a single value.
-func ScanHook(row *sql.Row) (*Hook, error) {
+// scanHook reads a table record into a single value.
+func scanHook(row *sql.Row) (*Hook, error) {
 	var v0 int64
 	var v1 string
 	var v2 string
@@ -563,8 +546,8 @@ func ScanHook(row *sql.Row) (*Hook, error) {
 	return v, nil
 }
 
-// ScanHooks reads table records into a slice of values.
-func ScanHooks(rows *sql.Rows) (HookList, error) {
+// scanHooks reads table records into a slice of values.
+func scanHooks(rows *sql.Rows) (HookList, error) {
 	var err error
 	var vv HookList
 
@@ -635,7 +618,7 @@ func ScanHooks(rows *sql.Rows) (HookList, error) {
 	return vv, rows.Err()
 }
 
-func SliceHook(v *Hook) ([]interface{}, error) {
+func sliceHook(v *Hook) ([]interface{}, error) {
 
 
 	return []interface{}{
@@ -660,7 +643,7 @@ func SliceHook(v *Hook) ([]interface{}, error) {
 	}, nil
 }
 
-func SliceHookWithoutPk(v *Hook) ([]interface{}, error) {
+func sliceHookWithoutPk(v *Hook) ([]interface{}, error) {
 
 
 	return []interface{}{

@@ -45,14 +45,6 @@ func (b *base) Table(t *TableDescription, did DialectId) string {
 
 		io.WriteString(tab, "\t")
 		io.WriteString(tab, field.AsColumn(did))
-
-		if field.Tags.Primary {
-			io.WriteString(tab, PRIMARY_KEY.AsToken(did))
-		}
-
-		if field.Tags.Auto {
-			io.WriteString(tab, AUTO_INCREMENT.AsToken(did))
-		}
 	}
 
 	// flush the tab writer to write to the buffer

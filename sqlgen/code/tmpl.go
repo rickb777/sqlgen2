@@ -44,31 +44,16 @@ func (tbl {{.Prefix}}{{.Type}}Table) WithPrefix(pfx string) {{.Prefix}}{{.Type}}
 	return tbl
 }
 
-// SetPrefix sets the prefix for subsequent queries.
-func (tbl *{{.Prefix}}{{.Type}}Table) SetPrefix(pfx string) {
-	tbl.Prefix = pfx
-}
-
 // WithContext sets the context for subsequent queries.
 func (tbl {{.Prefix}}{{.Type}}Table) WithContext(ctx context.Context) {{.Prefix}}{{.Type}}Table {
 	tbl.Ctx = ctx
 	return tbl
 }
 
-// SetContext sets the context for subsequent queries.
-func (tbl *{{.Prefix}}{{.Type}}Table) SetContext(ctx context.Context) {
-	tbl.Ctx = ctx
-}
-
 // WithLogger sets the logger for subsequent queries.
 func (tbl {{.Prefix}}{{.Type}}Table) WithLogger(logger *log.Logger) {{.Prefix}}{{.Type}}Table {
 	tbl.Logger = logger
 	return tbl
-}
-
-// SetLogger sets the logger for subsequent queries.
-func (tbl *{{.Prefix}}{{.Type}}Table) SetLogger(logger *log.Logger) {
-	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.
@@ -103,9 +88,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) BeginTx(opts *sql.TxOptions) ({{.Prefix}}{{
 }
 
 func (tbl {{.Prefix}}{{.Type}}Table) logQuery(query string, args ...interface{}) {
-	if tbl.Logger != nil {
-		tbl.Logger.Printf(query + " %v\n", args)
-	}
+	sqlgen2.LogQuery(tbl.Logger, query, args...)
 }
 
 `
@@ -116,8 +99,8 @@ var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
 
 // function template to scan a single row.
 const sScanRow = `
-// Scan{{.Prefix}}{{.Type}} reads a table record into a single value.
-func Scan{{.Prefix}}{{.Type}}(row *sql.Row) (*{{.Type}}, error) {
+// scan{{.Prefix}}{{.Type}} reads a table record into a single value.
+func scan{{.Prefix}}{{.Type}}(row *sql.Row) (*{{.Type}}, error) {
 {{range .Body1}}{{.}}{{- end}}
 	err := row.Scan(
 {{range .Body2}}{{.}}{{- end}}
@@ -138,8 +121,8 @@ var tScanRow = template.Must(template.New("ScanRow").Funcs(funcMap).Parse(sScanR
 
 // function template to scan multiple rows.
 const sScanRows = `
-// Scan{{.Prefix}}{{.Types}} reads table records into a slice of values.
-func Scan{{.Prefix}}{{.Types}}(rows *sql.Rows) ({{.List}}, error) {
+// scan{{.Prefix}}{{.Types}} reads table records into a slice of values.
+func scan{{.Prefix}}{{.Types}}(rows *sql.Rows) ({{.List}}, error) {
 	var err error
 	var vv {{.List}}
 
@@ -165,7 +148,7 @@ var tScanRows = template.Must(template.New("ScanRows").Funcs(funcMap).Parse(sSca
 //-------------------------------------------------------------------------------------------------
 
 const sSliceRow = `
-func Slice{{.Prefix}}{{.Type}}{{.Suffix}}(v *{{.Type}}) ([]interface{}, error) {
+func slice{{.Prefix}}{{.Type}}{{.Suffix}}(v *{{.Type}}) ([]interface{}, error) {
 {{range .Body1}}{{.}}{{- end}}
 {{range .Body2}}{{.}}{{- end}}
 	return []interface{}{
@@ -183,7 +166,7 @@ const sQueryRow = `
 func (tbl {{.Prefix}}{{.Type}}Table) QueryOne(query string, args ...interface{}) (*{{.Type}}, error) {
 	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return Scan{{.Prefix}}{{.Type}}(row)
+	return scan{{.Prefix}}{{.Type}}(row)
 }
 `
 
@@ -200,7 +183,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Query(query string, args ...interface{}) ({
 		return nil, err
 	}
 	defer rows.Close()
-	return Scan{{.Prefix}}{{.Types}}(rows)
+	return scan{{.Prefix}}{{.Types}}(rows)
 }
 `
 
@@ -299,7 +282,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 			hook.PreInsert(tbl.Db)
 		}
 
-		fields, err := Slice{{.Prefix}}{{.Type}}WithoutPk(v)
+		fields, err := slice{{.Prefix}}{{.Type}}WithoutPk(v)
 		if err != nil {
 			return err
 		}
@@ -357,7 +340,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 			hook.PreInsert(tbl.Db)
 		}
 
-		fields, err := Slice{{.Prefix}}{{.Type}}(v)
+		fields, err := slice{{.Prefix}}{{.Type}}(v)
 		if err != nil {
 			return err
 		}
@@ -414,7 +397,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Update(vv ...*{{.Type}}) (int64, error) {
 
 		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 
-		args, err := Slice{{.Prefix}}{{.Type}}WithoutPk(v)
+		args, err := slice{{.Prefix}}{{.Type}}WithoutPk(v)
 		if err != nil {
 			return count, err
 		}
@@ -516,16 +499,19 @@ func (tbl {{.Prefix}}{{.Type}}Table) CreateIndexes(ifNotExist bool) (err error) 
 	return nil
 }
 
+func (tbl {{.Prefix}}{{.Type}}Table) prefixWithoutDot() string {
+	last := len(tbl.Prefix)-1
+	if last > 0 && tbl.Prefix[last] == '.' {
+		return tbl.Prefix[0:last]
+	}
+	return tbl.Prefix
+}
 {{range .Body1}}{{$n := .}}
 func (tbl {{$.Prefix}}{{$.Type}}Table) create{{$.Prefix}}{{$n}}IndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
-	}
+	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf(sqlCreate{{$.Prefix}}{{$n}}Index, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
 {{end}}
-
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 func (tbl {{.Prefix}}{{.Type}}Table) CreateTableWithIndexes(ifNotExist bool) (err error) {
 	_, err = tbl.CreateTable(ifNotExist)

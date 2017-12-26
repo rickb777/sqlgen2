@@ -46,31 +46,16 @@ func (tbl IssueTable) WithPrefix(pfx string) IssueTable {
 	return tbl
 }
 
-// SetPrefix sets the prefix for subsequent queries.
-func (tbl *IssueTable) SetPrefix(pfx string) {
-	tbl.Prefix = pfx
-}
-
 // WithContext sets the context for subsequent queries.
 func (tbl IssueTable) WithContext(ctx context.Context) IssueTable {
 	tbl.Ctx = ctx
 	return tbl
 }
 
-// SetContext sets the context for subsequent queries.
-func (tbl *IssueTable) SetContext(ctx context.Context) {
-	tbl.Ctx = ctx
-}
-
 // WithLogger sets the logger for subsequent queries.
 func (tbl IssueTable) WithLogger(logger *log.Logger) IssueTable {
 	tbl.Logger = logger
 	return tbl
-}
-
-// SetLogger sets the logger for subsequent queries.
-func (tbl *IssueTable) SetLogger(logger *log.Logger) {
-	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.
@@ -105,9 +90,7 @@ func (tbl IssueTable) BeginTx(opts *sql.TxOptions) (IssueTable, error) {
 }
 
 func (tbl IssueTable) logQuery(query string, args ...interface{}) {
-	if tbl.Logger != nil {
-		tbl.Logger.Printf(query + " %v\n", args)
-	}
+	sqlgen2.LogQuery(tbl.Logger, query, args...)
 }
 
 
@@ -149,7 +132,7 @@ func (tbl IssueTable) ternary(flag bool, a, b string) string {
 
 const sqlCreateIssueTableSqlite = `
 CREATE TABLE %s%s%s (
- id       bigint primary key,
+ id       integer primary key autoincrement,
  number   bigint,
  date     blob,
  title    text,
@@ -199,15 +182,18 @@ func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
-
-func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+func (tbl IssueTable) prefixWithoutDot() string {
+	last := len(tbl.Prefix)-1
+	if last > 0 && tbl.Prefix[last] == '.' {
+		return tbl.Prefix[0:last]
 	}
-	return fmt.Sprintf(sqlCreateIssueAssigneeIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+	return tbl.Prefix
 }
 
+func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf(sqlCreateIssueAssigneeIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 func (tbl IssueTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
@@ -244,7 +230,7 @@ func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
 func (tbl IssueTable) QueryOne(query string, args ...interface{}) (*Issue, error) {
 	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return ScanIssue(row)
+	return scanIssue(row)
 }
 
 // Query is the low-level access function for Issues.
@@ -255,7 +241,7 @@ func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error)
 		return nil, err
 	}
 	defer rows.Close()
-	return ScanIssues(rows)
+	return scanIssues(rows)
 }
 
 //--------------------------------------------------------------------------------
@@ -334,7 +320,7 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 			hook.PreInsert(tbl.Db)
 		}
 
-		fields, err := SliceIssueWithoutPk(v)
+		fields, err := sliceIssueWithoutPk(v)
 		if err != nil {
 			return err
 		}
@@ -419,7 +405,7 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 
 		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 
-		args, err := SliceIssueWithoutPk(v)
+		args, err := sliceIssueWithoutPk(v)
 		if err != nil {
 			return count, err
 		}
@@ -473,8 +459,8 @@ func (tbl IssueTable) deleteRows(where where.Expression) (string, []interface{})
 	return query, args
 }
 
-// ScanIssue reads a table record into a single value.
-func ScanIssue(row *sql.Row) (*Issue, error) {
+// scanIssue reads a table record into a single value.
+func scanIssue(row *sql.Row) (*Issue, error) {
 	var v0 int64
 	var v1 int
 	var v2 Date
@@ -515,8 +501,8 @@ func ScanIssue(row *sql.Row) (*Issue, error) {
 	return v, nil
 }
 
-// ScanIssues reads table records into a slice of values.
-func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
+// scanIssues reads table records into a slice of values.
+func scanIssues(rows *sql.Rows) ([]*Issue, error) {
 	var err error
 	var vv []*Issue
 
@@ -563,7 +549,7 @@ func ScanIssues(rows *sql.Rows) ([]*Issue, error) {
 	return vv, rows.Err()
 }
 
-func SliceIssue(v *Issue) ([]interface{}, error) {
+func sliceIssue(v *Issue) ([]interface{}, error) {
 
 	v7, err := json.Marshal(&v.Labels)
 	if err != nil {
@@ -583,7 +569,7 @@ func SliceIssue(v *Issue) ([]interface{}, error) {
 	}, nil
 }
 
-func SliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
+func sliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 
 	v7, err := json.Marshal(&v.Labels)
 	if err != nil {

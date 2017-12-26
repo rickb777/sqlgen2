@@ -1,5 +1,7 @@
 package schema
 
+import "fmt"
+
 type DialectId int
 
 const (
@@ -36,20 +38,6 @@ func (f *Field) AsColumn(dialect DialectId) string {
 		return postgresColumn(f)
 	case Sqlite:
 		return sqliteColumn(f)
-	default:
-		return ""
 	}
-}
-
-func (st SqlToken) AsToken(dialect DialectId) string {
-	switch dialect {
-	case Mysql:
-		return mysqlToken(st)
-	case Postgres:
-		return postgresToken(st)
-	case Sqlite:
-		return sqliteToken(st)
-	default:
-		return ""
-	}
+	panic(fmt.Errorf("%s is not implemented", dialect))
 }

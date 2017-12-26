@@ -46,31 +46,16 @@ func (tbl V2UserTable) WithPrefix(pfx string) V2UserTable {
 	return tbl
 }
 
-// SetPrefix sets the prefix for subsequent queries.
-func (tbl *V2UserTable) SetPrefix(pfx string) {
-	tbl.Prefix = pfx
-}
-
 // WithContext sets the context for subsequent queries.
 func (tbl V2UserTable) WithContext(ctx context.Context) V2UserTable {
 	tbl.Ctx = ctx
 	return tbl
 }
 
-// SetContext sets the context for subsequent queries.
-func (tbl *V2UserTable) SetContext(ctx context.Context) {
-	tbl.Ctx = ctx
-}
-
 // WithLogger sets the logger for subsequent queries.
 func (tbl V2UserTable) WithLogger(logger *log.Logger) V2UserTable {
 	tbl.Logger = logger
 	return tbl
-}
-
-// SetLogger sets the logger for subsequent queries.
-func (tbl *V2UserTable) SetLogger(logger *log.Logger) {
-	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.
@@ -105,9 +90,7 @@ func (tbl V2UserTable) BeginTx(opts *sql.TxOptions) (V2UserTable, error) {
 }
 
 func (tbl V2UserTable) logQuery(query string, args ...interface{}) {
-	if tbl.Logger != nil {
-		tbl.Logger.Printf(query + " %v\n", args)
-	}
+	sqlgen2.LogQuery(tbl.Logger, query, args...)
 }
 
 
@@ -131,7 +114,7 @@ func (tbl V2UserTable) Exec(query string, args ...interface{}) (int64, error) {
 func (tbl V2UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return ScanV2User(row)
+	return scanV2User(row)
 }
 
 // Query is the low-level access function for Users.
@@ -142,7 +125,7 @@ func (tbl V2UserTable) Query(query string, args ...interface{}) ([]*User, error)
 		return nil, err
 	}
 	defer rows.Close()
-	return ScanV2Users(rows)
+	return scanV2Users(rows)
 }
 
 //--------------------------------------------------------------------------------
@@ -221,7 +204,7 @@ func (tbl V2UserTable) Insert(vv ...*User) error {
 			hook.PreInsert(tbl.Db)
 		}
 
-		fields, err := SliceV2UserWithoutPk(v)
+		fields, err := sliceV2UserWithoutPk(v)
 		if err != nil {
 			return err
 		}
@@ -310,7 +293,7 @@ func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 
 		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 
-		args, err := SliceV2UserWithoutPk(v)
+		args, err := sliceV2UserWithoutPk(v)
 		if err != nil {
 			return count, err
 		}
@@ -368,8 +351,8 @@ func (tbl V2UserTable) deleteRows(where where.Expression) (string, []interface{}
 	return query, args
 }
 
-// ScanV2User reads a table record into a single value.
-func ScanV2User(row *sql.Row) (*User, error) {
+// scanV2User reads a table record into a single value.
+func scanV2User(row *sql.Row) (*User, error) {
 	var v0 int64
 	var v1 string
 	var v2 string
@@ -416,8 +399,8 @@ func ScanV2User(row *sql.Row) (*User, error) {
 	return v, nil
 }
 
-// ScanV2Users reads table records into a slice of values.
-func ScanV2Users(rows *sql.Rows) ([]*User, error) {
+// scanV2Users reads table records into a slice of values.
+func scanV2Users(rows *sql.Rows) ([]*User, error) {
 	var err error
 	var vv []*User
 
@@ -470,7 +453,7 @@ func ScanV2Users(rows *sql.Rows) ([]*User, error) {
 	return vv, rows.Err()
 }
 
-func SliceV2User(v *User) ([]interface{}, error) {
+func sliceV2User(v *User) ([]interface{}, error) {
 
 	v6, err := json.Marshal(&v.Fave)
 	if err != nil {
@@ -492,7 +475,7 @@ func SliceV2User(v *User) ([]interface{}, error) {
 	}, nil
 }
 
-func SliceV2UserWithoutPk(v *User) ([]interface{}, error) {
+func sliceV2UserWithoutPk(v *User) ([]interface{}, error) {
 
 	v6, err := json.Marshal(&v.Fave)
 	if err != nil {

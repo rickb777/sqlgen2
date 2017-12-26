@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"log"
-	"strings"
 )
 
 // V3UserTableName is the default name for this table.
@@ -45,31 +44,16 @@ func (tbl V3UserTable) WithPrefix(pfx string) V3UserTable {
 	return tbl
 }
 
-// SetPrefix sets the prefix for subsequent queries.
-func (tbl *V3UserTable) SetPrefix(pfx string) {
-	tbl.Prefix = pfx
-}
-
 // WithContext sets the context for subsequent queries.
 func (tbl V3UserTable) WithContext(ctx context.Context) V3UserTable {
 	tbl.Ctx = ctx
 	return tbl
 }
 
-// SetContext sets the context for subsequent queries.
-func (tbl *V3UserTable) SetContext(ctx context.Context) {
-	tbl.Ctx = ctx
-}
-
 // WithLogger sets the logger for subsequent queries.
 func (tbl V3UserTable) WithLogger(logger *log.Logger) V3UserTable {
 	tbl.Logger = logger
 	return tbl
-}
-
-// SetLogger sets the logger for subsequent queries.
-func (tbl *V3UserTable) SetLogger(logger *log.Logger) {
-	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.
@@ -104,9 +88,7 @@ func (tbl V3UserTable) BeginTx(opts *sql.TxOptions) (V3UserTable, error) {
 }
 
 func (tbl V3UserTable) logQuery(query string, args ...interface{}) {
-	if tbl.Logger != nil {
-		tbl.Logger.Printf(query + " %v\n", args)
-	}
+	sqlgen2.LogQuery(tbl.Logger, query, args...)
 }
 
 
@@ -148,7 +130,7 @@ func (tbl V3UserTable) ternary(flag bool, a, b string) string {
 
 const sqlCreateV3UserTableSqlite = `
 CREATE TABLE %s%s%s (
- uid    bigint primary key,
+ uid    integer primary key autoincrement,
  login  text,
  email  text,
  avatar text,
@@ -209,23 +191,23 @@ func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
+func (tbl V3UserTable) prefixWithoutDot() string {
+	last := len(tbl.Prefix)-1
+	if last > 0 && tbl.Prefix[last] == '.' {
+		return tbl.Prefix[0:last]
+	}
+	return tbl.Prefix
+}
 
 func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
-	}
+	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf(sqlCreateV3UserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
 
 func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
-	}
+	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf(sqlCreateV3UserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
-
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
@@ -266,7 +248,7 @@ func (tbl V3UserTable) Exec(query string, args ...interface{}) (int64, error) {
 func (tbl V3UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return ScanV3User(row)
+	return scanV3User(row)
 }
 
 // Query is the low-level access function for Users.
@@ -277,11 +259,11 @@ func (tbl V3UserTable) Query(query string, args ...interface{}) ([]*User, error)
 		return nil, err
 	}
 	defer rows.Close()
-	return ScanV3Users(rows)
+	return scanV3Users(rows)
 }
 
-// ScanV3User reads a table record into a single value.
-func ScanV3User(row *sql.Row) (*User, error) {
+// scanV3User reads a table record into a single value.
+func scanV3User(row *sql.Row) (*User, error) {
 	var v0 int64
 	var v1 string
 	var v2 string
@@ -328,8 +310,8 @@ func ScanV3User(row *sql.Row) (*User, error) {
 	return v, nil
 }
 
-// ScanV3Users reads table records into a slice of values.
-func ScanV3Users(rows *sql.Rows) ([]*User, error) {
+// scanV3Users reads table records into a slice of values.
+func scanV3Users(rows *sql.Rows) ([]*User, error) {
 	var err error
 	var vv []*User
 
@@ -382,7 +364,7 @@ func ScanV3Users(rows *sql.Rows) ([]*User, error) {
 	return vv, rows.Err()
 }
 
-func SliceV3User(v *User) ([]interface{}, error) {
+func sliceV3User(v *User) ([]interface{}, error) {
 
 	v6, err := json.Marshal(&v.Fave)
 	if err != nil {
@@ -404,7 +386,7 @@ func SliceV3User(v *User) ([]interface{}, error) {
 	}, nil
 }
 
-func SliceV3UserWithoutPk(v *User) ([]interface{}, error) {
+func sliceV3UserWithoutPk(v *User) ([]interface{}, error) {
 
 	v6, err := json.Marshal(&v.Fave)
 	if err != nil {

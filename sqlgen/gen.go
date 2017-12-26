@@ -48,47 +48,20 @@ func main() {
 
 	o := NewOutput(oFile)
 
-	packagesToImport := NewStringSet(
-		"context",
-		"database/sql",
-		"log",
-		"github.com/rickb777/sqlgen2",
-	)
-
-	if genSchema {
-		packagesToImport.Add("strings")
-	}
-	if genFuncs || genSchema {
-		packagesToImport.Add("fmt")
-	}
-	if genFuncs {
-		packagesToImport.Add("github.com/rickb777/sqlgen2/where", "strings")
-	}
-
-	// if the code is generated in a different folder
-	// that the struct we need to set the package name and import the struct
-	//pkg := o.Pkg()
-	//if pkg == "" {
-	//	pkg = pkgStore.Type.Pkg
-	//} else {
-	//	fmt.Fprintf(os.Stderr, "%s: sub-directories are not yet supported.\n", oFile)
-	//	os.Exit(1)
-	//}
-
 	// load the Tree into a schema Object
 	table, err := load(pkgStore, pkg, name)
 	if parse.Debug {
 		utter.Dump(table)
 	}
 
+	view := NewView(name, prefix, list)
+	view.Table = table
+
 	buf := &bytes.Buffer{}
 
 	WritePackage(buf, pkg)
 
-	view := NewView(name, prefix, list)
-	view.Table = table
-
-	WriteImports(buf, table, packagesToImport)
+	WriteImports(buf, table, packagesToImport(genFuncs, genSchema, view.Table.HasPrimaryKey()))
 
 	WriteType(buf, view)
 
@@ -119,4 +92,24 @@ func main() {
 	}
 
 	o.Write(pretty, os.Stdout)
+}
+
+func packagesToImport(genFuncs, genSchema, hasPrimaryKey bool) StringSet {
+	imports := NewStringSet(
+		"context",
+		"database/sql",
+		"log",
+		"github.com/rickb777/sqlgen2",
+	)
+
+	if genFuncs || genSchema {
+		imports.Add("fmt")
+	}
+	if genFuncs {
+		imports.Add("github.com/rickb777/sqlgen2/where")
+	}
+	if genFuncs && hasPrimaryKey {
+		imports.Add("strings")
+	}
+	return imports
 }

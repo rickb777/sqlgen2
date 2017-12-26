@@ -9,7 +9,6 @@ import (
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
-	"strings"
 )
 
 // DbCompoundTableName is the default name for this table.
@@ -45,31 +44,16 @@ func (tbl DbCompoundTable) WithPrefix(pfx string) DbCompoundTable {
 	return tbl
 }
 
-// SetPrefix sets the prefix for subsequent queries.
-func (tbl *DbCompoundTable) SetPrefix(pfx string) {
-	tbl.Prefix = pfx
-}
-
 // WithContext sets the context for subsequent queries.
 func (tbl DbCompoundTable) WithContext(ctx context.Context) DbCompoundTable {
 	tbl.Ctx = ctx
 	return tbl
 }
 
-// SetContext sets the context for subsequent queries.
-func (tbl *DbCompoundTable) SetContext(ctx context.Context) {
-	tbl.Ctx = ctx
-}
-
 // WithLogger sets the logger for subsequent queries.
 func (tbl DbCompoundTable) WithLogger(logger *log.Logger) DbCompoundTable {
 	tbl.Logger = logger
 	return tbl
-}
-
-// SetLogger sets the logger for subsequent queries.
-func (tbl *DbCompoundTable) SetLogger(logger *log.Logger) {
-	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.
@@ -104,9 +88,7 @@ func (tbl DbCompoundTable) BeginTx(opts *sql.TxOptions) (DbCompoundTable, error)
 }
 
 func (tbl DbCompoundTable) logQuery(query string, args ...interface{}) {
-	if tbl.Logger != nil {
-		tbl.Logger.Printf(query + " %v\n", args)
-	}
+	sqlgen2.LogQuery(tbl.Logger, query, args...)
 }
 
 
@@ -181,15 +163,18 @@ func (tbl DbCompoundTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
-
-func (tbl DbCompoundTable) createDbAlphaBetaIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.Prefix
-	if strings.HasSuffix(indexPrefix, ".") {
-		indexPrefix = tbl.Prefix[0:len(indexPrefix)-1]
+func (tbl DbCompoundTable) prefixWithoutDot() string {
+	last := len(tbl.Prefix)-1
+	if last > 0 && tbl.Prefix[last] == '.' {
+		return tbl.Prefix[0:last]
 	}
-	return fmt.Sprintf(sqlCreateDbAlphaBetaIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+	return tbl.Prefix
 }
 
+func (tbl DbCompoundTable) createDbAlphaBetaIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf(sqlCreateDbAlphaBetaIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 func (tbl DbCompoundTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
@@ -226,7 +211,7 @@ func (tbl DbCompoundTable) Exec(query string, args ...interface{}) (int64, error
 func (tbl DbCompoundTable) QueryOne(query string, args ...interface{}) (*Compound, error) {
 	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return ScanDbCompound(row)
+	return scanDbCompound(row)
 }
 
 // Query is the low-level access function for Compounds.
@@ -237,7 +222,7 @@ func (tbl DbCompoundTable) Query(query string, args ...interface{}) ([]*Compound
 		return nil, err
 	}
 	defer rows.Close()
-	return ScanDbCompounds(rows)
+	return scanDbCompounds(rows)
 }
 
 //--------------------------------------------------------------------------------
@@ -315,7 +300,7 @@ func (tbl DbCompoundTable) Insert(vv ...*Compound) error {
 			hook.PreInsert(tbl.Db)
 		}
 
-		fields, err := SliceDbCompound(v)
+		fields, err := sliceDbCompound(v)
 		if err != nil {
 			return err
 		}
@@ -364,8 +349,8 @@ func (tbl DbCompoundTable) deleteRows(where where.Expression) (string, []interfa
 	return query, args
 }
 
-// ScanDbCompound reads a table record into a single value.
-func ScanDbCompound(row *sql.Row) (*Compound, error) {
+// scanDbCompound reads a table record into a single value.
+func scanDbCompound(row *sql.Row) (*Compound, error) {
 	var v0 string
 	var v1 string
 	var v2 Category
@@ -388,8 +373,8 @@ func ScanDbCompound(row *sql.Row) (*Compound, error) {
 	return v, nil
 }
 
-// ScanDbCompounds reads table records into a slice of values.
-func ScanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
+// scanDbCompounds reads table records into a slice of values.
+func scanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
 	var err error
 	var vv []*Compound
 
@@ -418,7 +403,7 @@ func ScanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
 	return vv, rows.Err()
 }
 
-func SliceDbCompound(v *Compound) ([]interface{}, error) {
+func sliceDbCompound(v *Compound) ([]interface{}, error) {
 
 
 	return []interface{}{
@@ -429,7 +414,7 @@ func SliceDbCompound(v *Compound) ([]interface{}, error) {
 	}, nil
 }
 
-func SliceDbCompoundWithoutPk(v *Compound) ([]interface{}, error) {
+func sliceDbCompoundWithoutPk(v *Compound) ([]interface{}, error) {
 
 
 	return []interface{}{

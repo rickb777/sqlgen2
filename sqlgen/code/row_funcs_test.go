@@ -75,8 +75,8 @@ func xTestWriteRowFunc1(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-// ScanXExample reads a table record into a single value.
-func ScanXExample(row *sql.Row) (*Example, error) {
+// scanXExample reads a table record into a single value.
+func scanXExample(row *sql.Row) (*Example, error) {
 	var v0 int64
 	var v1 Category
 	var v2 string
@@ -125,8 +125,8 @@ func TestWriteRowFunc2(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-// ScanXExample reads a table record into a single value.
-func ScanXExample(row *sql.Row) (*Example, error) {
+// scanXExample reads a table record into a single value.
+func scanXExample(row *sql.Row) (*Example, error) {
 	var v0 int64
 	var v1 Category
 	var v2 string
@@ -191,8 +191,8 @@ func TestWriteRowsFunc2(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-// ScanXExamples reads table records into a slice of values.
-func ScanXExamples(rows *sql.Rows) ([]*Example, error) {
+// scanXExamples reads table records into a slice of values.
+func scanXExamples(rows *sql.Rows) ([]*Example, error) {
 	var err error
 	var vv []*Example
 

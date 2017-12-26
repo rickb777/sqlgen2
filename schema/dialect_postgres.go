@@ -17,64 +17,59 @@ func newPostgres() SDialect {
 
 // https://www.postgresql.org/docs/9.5/static/datatype.html
 
-func postgresColumn(f *Field) string {
-	// posgres uses a special column type
-	// for autoincrementing keys.
-	if f.Tags.Auto {
-		switch f.Type.Base {
-		case parse.Int64, parse.Uint64:
-			return "bigserial"
-		}
-		return "serial"
-	}
-
-	switch f.Encode {
+func postgresColumn(field *Field) string {
+	switch field.Encode {
 	case ENCJSON:
 		return "json"
 	case ENCTEXT:
-		return varchar(f.Tags.Size)
+		return varchar(field.Tags.Size)
 	}
 
-	switch f.Type.Base {
+	column := "byteaa"
+
+	switch field.Type.Base {
 	case parse.Int, parse.Int64:
-		return "bigint"
+		column = "bigint"
 	case parse.Int8:
-		return "tinyint"
+		column = "tinyint"
 	case parse.Int16:
-		return "smallint"
+		column = "smallint"
 	case parse.Int32:
-		return "int"
+		column = "int"
 	case parse.Uint, parse.Uint64:
-		return "bigint unsigned"
+		column = "bigint unsigned"
 	case parse.Uint8:
-		return "tinyint unsigned"
+		column = "tinyint unsigned"
 	case parse.Uint16:
-		return "smallint unsigned"
+		column = "smallint unsigned"
 	case parse.Uint32:
-		return "int unsigned"
+		column = "int unsigned"
 	case parse.Float32:
-		return "float"
+		column = "float"
 	case parse.Float64:
-		return "double"
+		column = "double"
 	case parse.Bool:
-		return "boolean"
+		column = "boolean"
 	case parse.String:
-		return varchar(f.Tags.Size)
+		column = varchar(field.Tags.Size)
 	}
 
-	return "byteaa"
-}
-
-func postgresToken(v SqlToken) string {
-	switch v {
-	case AUTO_INCREMENT:
-		// postgres does not support the auto-increment keyword.
-		return ""
-	case PRIMARY_KEY:
-		return " primary key"
-	default:
-		return ""
+	// posgres uses a special column type
+	// for autoincrementing keys.
+	if field.Tags.Auto {
+		switch field.Type.Base {
+		case parse.Int, parse.Int64, parse.Uint64:
+			column = "bigserial"
+		default:
+			column = "serial"
+		}
 	}
+
+	if field.Tags.Primary {
+		column += " primary key"
+	}
+
+	return column
 }
 
 func (d *posgres) Param(i int) string {

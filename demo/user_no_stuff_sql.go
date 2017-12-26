@@ -43,31 +43,16 @@ func (tbl V4UserTable) WithPrefix(pfx string) V4UserTable {
 	return tbl
 }
 
-// SetPrefix sets the prefix for subsequent queries.
-func (tbl *V4UserTable) SetPrefix(pfx string) {
-	tbl.Prefix = pfx
-}
-
 // WithContext sets the context for subsequent queries.
 func (tbl V4UserTable) WithContext(ctx context.Context) V4UserTable {
 	tbl.Ctx = ctx
 	return tbl
 }
 
-// SetContext sets the context for subsequent queries.
-func (tbl *V4UserTable) SetContext(ctx context.Context) {
-	tbl.Ctx = ctx
-}
-
 // WithLogger sets the logger for subsequent queries.
 func (tbl V4UserTable) WithLogger(logger *log.Logger) V4UserTable {
 	tbl.Logger = logger
 	return tbl
-}
-
-// SetLogger sets the logger for subsequent queries.
-func (tbl *V4UserTable) SetLogger(logger *log.Logger) {
-	tbl.Logger = logger
 }
 
 // FullName gets the concatenated prefix and table name.
@@ -102,9 +87,7 @@ func (tbl V4UserTable) BeginTx(opts *sql.TxOptions) (V4UserTable, error) {
 }
 
 func (tbl V4UserTable) logQuery(query string, args ...interface{}) {
-	if tbl.Logger != nil {
-		tbl.Logger.Printf(query + " %v\n", args)
-	}
+	sqlgen2.LogQuery(tbl.Logger, query, args...)
 }
 
 
@@ -128,7 +111,7 @@ func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
 func (tbl V4UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return ScanV4User(row)
+	return scanV4User(row)
 }
 
 // Query is the low-level access function for Users.
@@ -139,11 +122,11 @@ func (tbl V4UserTable) Query(query string, args ...interface{}) ([]*User, error)
 		return nil, err
 	}
 	defer rows.Close()
-	return ScanV4Users(rows)
+	return scanV4Users(rows)
 }
 
-// ScanV4User reads a table record into a single value.
-func ScanV4User(row *sql.Row) (*User, error) {
+// scanV4User reads a table record into a single value.
+func scanV4User(row *sql.Row) (*User, error) {
 	var v0 int64
 	var v1 string
 	var v2 string
@@ -190,8 +173,8 @@ func ScanV4User(row *sql.Row) (*User, error) {
 	return v, nil
 }
 
-// ScanV4Users reads table records into a slice of values.
-func ScanV4Users(rows *sql.Rows) ([]*User, error) {
+// scanV4Users reads table records into a slice of values.
+func scanV4Users(rows *sql.Rows) ([]*User, error) {
 	var err error
 	var vv []*User
 
@@ -244,7 +227,7 @@ func ScanV4Users(rows *sql.Rows) ([]*User, error) {
 	return vv, rows.Err()
 }
 
-func SliceV4User(v *User) ([]interface{}, error) {
+func sliceV4User(v *User) ([]interface{}, error) {
 
 	v6, err := json.Marshal(&v.Fave)
 	if err != nil {
@@ -266,7 +249,7 @@ func SliceV4User(v *User) ([]interface{}, error) {
 	}, nil
 }
 
-func SliceV4UserWithoutPk(v *User) ([]interface{}, error) {
+func sliceV4UserWithoutPk(v *User) ([]interface{}, error) {
 
 	v6, err := json.Marshal(&v.Fave)
 	if err != nil {
