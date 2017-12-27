@@ -27,8 +27,7 @@ type Condition struct {
 
 // Clause is a compound expression.
 type Clause struct {
-	wheres      []Condition
-	subclause   *Clause
+	wheres      []Expression
 	conjunction string
 }
 
@@ -45,7 +44,7 @@ func (not not) build(args []interface{}, dialect Dialect) (string, []interface{}
 
 // Build builds the SQL WHERE clause.
 func (not not) Build(dialect Dialect) (string, []interface{}) {
-	sql, args := not.build(nil,  dialect)
+	sql, args := not.build(nil, dialect)
 	sql = dialect.ReplacePlaceholders(sql)
 	return where + sql, args
 }
@@ -71,25 +70,20 @@ func (cl Condition) build(args []interface{}, dialect Dialect) (string, []interf
 
 // Build builds the SQL WHERE clause on a condition.
 func (cl Condition) Build(dialect Dialect) (string, []interface{}) {
-	wh := Clause{[]Condition{cl}, nil, and}
-	sql, args := wh.Build(dialect)
+	sql, args := cl.build(nil, dialect)
 	sql = dialect.ReplacePlaceholders(sql)
-	return sql, args
+	return where + sql, args
 }
 
 //-------------------------------------------------------------------------------------------------
 
 func (wh Clause) build(args []interface{}, dialect Dialect) (string, []interface{}) {
-	if len(wh.wheres) == 0 {
-		return "", args
-	}
-
 	var sqls []string
 
 	for _, where := range wh.wheres {
 		var sql string
 		sql, args = where.build(args, dialect)
-		sqls = append(sqls, sql)
+		sqls = append(sqls, "("+sql+")")
 	}
 
 	sql := strings.Join(sqls, wh.conjunction)

@@ -8,121 +8,207 @@ import (
 )
 
 func TestBuildWhereClause_happyCases(t *testing.T) {
+	nameEqFred := Eq("name", "Fred")
+	nameEqJohn := Eq("name", "John")
+	ageLt10 := Lt("age", 10)
+	ageGt5 := Gt("age", 5)
+
 	cases := []struct {
-		di     Dialect
-		wh     Expression
-		expSql string
-		args   []interface{}
+		wh          Expression
+		expMysql    string
+		expPostgres string
+		args        []interface{}
 	}{
-		{sqlgen2.Mysql, Clause{}, "", nil},
-		{sqlgen2.Mysql, Condition{"name not nil", nil}, "WHERE name not nil", nil},
+		{Clause{}, "", "", nil},
 
-		{sqlgen2.Mysql,
+		{
+			Condition{"name not nil", nil},
+			"WHERE name not nil",
+			"WHERE name not nil",
+			nil,
+		},
+
+		{
+			Null("name"),
+			"WHERE name ISNULL",
+			"WHERE name ISNULL",
+			nil,
+		},
+
+		{
 			Condition{"name <>?", []interface{}{"Boo"}},
-			"WHERE name <>?", []interface{}{"Boo"},
+			"WHERE name <>?",
+			"WHERE name <>$1",
+			[]interface{}{"Boo"},
 		},
 
-		{sqlgen2.Mysql,
-			Eq("name", "Fred"),
-			"WHERE name=?", []interface{}{"Fred"},
+		{
+			nameEqFred,
+			"WHERE name=?",
+			"WHERE name=$1",
+			[]interface{}{"Fred"},
 		},
 
-		{sqlgen2.Mysql,
-			Eq("name", "Fred").And(Gt("age", 10)),
-			"WHERE name=? AND age>?", []interface{}{"Fred", 10},
+		{
+			nameEqFred.And(Gt("age", 10)),
+			"WHERE (name=?) AND (age>?)",
+			"WHERE (name=$1) AND (age>$2)",
+			[]interface{}{"Fred", 10},
 		},
 
-		{sqlgen2.Mysql,
-			Eq("name", "Fred").Or(Gt("age", 10)),
-			"WHERE name=? OR age>?", []interface{}{"Fred", 10},
+		{
+			nameEqFred.Or(Gt("age", 10)),
+			"WHERE (name=?) OR (age>?)",
+			"WHERE (name=$1) OR (age>$2)",
+			[]interface{}{"Fred", 10},
 		},
 
-		{sqlgen2.Mysql,
-			Eq("name", "Fred").And(Gt("age", 10)).And(Gt("weight", 15)),
-			"WHERE name=? AND age>? AND weight>?",
-			[]interface{}{"Fred", 10, 15},
+		{
+			nameEqFred.And(ageGt5).And(Gt("weight", 15)),
+			"WHERE (name=?) AND (age>?) AND (weight>?)",
+			"WHERE (name=$1) AND (age>$2) AND (weight>$3)",
+			[]interface{}{"Fred", 5, 15},
 		},
 
-		{sqlgen2.Mysql,
-			Eq("name", "Fred").Or(Gt("age", 10)).Or(Gt("weight", 15)),
-			"WHERE name=? OR age>? OR weight>?",
-			[]interface{}{"Fred", 10, 15},
+		{
+			nameEqFred.Or(ageGt5).Or(Gt("weight", 15)),
+			"WHERE (name=?) OR (age>?) OR (weight>?)",
+			"WHERE (name=$1) OR (age>$2) OR (weight>$3)",
+			[]interface{}{"Fred", 5, 15},
 		},
 
-		{sqlgen2.Mysql,
-			Between("age", 10, 15).Or(Gt("weight", 17)),
-			"WHERE age BETWEEN ? AND ? OR weight>?",
-			[]interface{}{10, 15, 17},
+		{
+			Between("age", 12, 18).Or(Gt("weight", 45)),
+			"WHERE (age BETWEEN ? AND ?) OR (weight>?)",
+			"WHERE (age BETWEEN $1 AND $2) OR (weight>$3)",
+			[]interface{}{12, 18, 45},
 		},
 
-		{sqlgen2.Mysql, GtEq("age", 10), "WHERE age>=?", []interface{}{10}},
-		{sqlgen2.Mysql, LtEq("age", 10), "WHERE age<=?", []interface{}{10}},
-		{sqlgen2.Mysql, NotEq("age", 10), "WHERE age<>?", []interface{}{10}},
-		{sqlgen2.Mysql, In("age", 10, 12, 14), "WHERE age IN (?,?,?)", []interface{}{10, 12, 14}},
-
-		{sqlgen2.Mysql, Not(Eq("name", "Fred")), "WHERE NOT (name=?)", []interface{}{"Fred"}},
-		{sqlgen2.Mysql, Not(Eq("name", "Fred").And(Lt("age", 10))), "WHERE NOT (name=? AND age<?)", []interface{}{"Fred", 10}},
-		{sqlgen2.Mysql, Not(Eq("name", "Fred").Or(Lt("age", 10))), "WHERE NOT (name=? OR age<?)", []interface{}{"Fred", 10}},
-
-		//-----------------------------------------------------------------------------------------
-
-		{sqlgen2.Postgres,
-			Condition{"name <>?", []interface{}{"Boo"}},
-			"WHERE name <>$1", []interface{}{"Boo"},
+		{
+			GtEq("age", 10),
+			"WHERE age>=?",
+			"WHERE age>=$1",
+			[]interface{}{10},
 		},
 
-		{sqlgen2.Postgres,
-			Eq("name", "Fred"),
-			"WHERE name=$1", []interface{}{"Fred"},
+		{
+			LtEq("age", 10),
+			"WHERE age<=?",
+			"WHERE age<=$1",
+			[]interface{}{10},
 		},
 
-		{sqlgen2.Postgres,
-			Eq("name", "Fred").And(Gt("age", 10)),
-			"WHERE name=$1 AND age>$2", []interface{}{"Fred", 10},
+		{
+			NotEq("age", 10),
+			"WHERE age<>?",
+			"WHERE age<>$1",
+			[]interface{}{10},
 		},
 
-		{sqlgen2.Postgres,
-			Eq("name", "Fred").Or(Gt("age", 10)),
-			"WHERE name=$1 OR age>$2", []interface{}{"Fred", 10},
+		{
+			In("age", 10, 12, 14),
+			"WHERE age IN (?,?,?)",
+			"WHERE age IN ($1,$2,$3)",
+			[]interface{}{10, 12, 14},
 		},
 
-		{sqlgen2.Postgres,
-			Eq("name", "Fred").And(Gt("age", 10)).And(Gt("weight", 15)),
-			"WHERE name=$1 AND age>$2 AND weight>$3",
-			[]interface{}{"Fred", 10, 15},
+		{
+			In("age", []int{10, 12, 14}),
+			"WHERE age IN (?,?,?)",
+			"WHERE age IN ($1,$2,$3)",
+			[]interface{}{10, 12, 14},
 		},
 
-		{sqlgen2.Postgres,
-			Eq("name", "Fred").Or(Gt("age", 10)).Or(Gt("weight", 15)),
-			"WHERE name=$1 OR age>$2 OR weight>$3",
-			[]interface{}{"Fred", 10, 15},
+		{
+			Not(nameEqFred),
+			"WHERE NOT (name=?)",
+			"WHERE NOT (name=$1)",
+			[]interface{}{"Fred"},
 		},
 
-		{sqlgen2.Postgres,
-			Between("age", 10, 15).Or(Gt("weight", 17)),
-			"WHERE age BETWEEN $1 AND $2 OR weight>$3",
-			[]interface{}{10, 15, 17},
+		{
+			Not(nameEqFred.And(ageLt10)),
+			"WHERE NOT ((name=?) AND (age<?))",
+			"WHERE NOT ((name=$1) AND (age<$2))",
+			[]interface{}{"Fred", 10},
 		},
 
-		{sqlgen2.Postgres, GtEq("age", 10), "WHERE age>=$1", []interface{}{10}},
-		{sqlgen2.Postgres, LtEq("age", 10), "WHERE age<=$1", []interface{}{10}},
-		{sqlgen2.Postgres, NotEq("age", 10), "WHERE age<>$1", []interface{}{10}},
-		{sqlgen2.Postgres, In("age", 10, 12, 14), "WHERE age IN ($1,$2,$3)", []interface{}{10, 12, 14}},
+		{
+			Not(nameEqFred.Or(ageLt10)),
+			"WHERE NOT ((name=?) OR (age<?))",
+			"WHERE NOT ((name=$1) OR (age<$2))",
+			[]interface{}{"Fred", 10},
+		},
 
-		{sqlgen2.Postgres, Not(Eq("name", "Fred")), "WHERE NOT (name=$1)", []interface{}{"Fred"}},
-		{sqlgen2.Postgres, Not(Eq("name", "Fred").And(Lt("age", 10))), "WHERE NOT (name=$1 AND age<$2)", []interface{}{"Fred", 10}},
-		{sqlgen2.Postgres, Not(Eq("name", "Fred").Or(Lt("age", 10))), "WHERE NOT (name=$1 OR age<$2)", []interface{}{"Fred", 10}},
+		{
+			And(nameEqFred, ageLt10),
+			"WHERE (name=?) AND (age<?)",
+			"WHERE (name=$1) AND (age<$2)",
+			[]interface{}{"Fred", 10},
+		},
+
+		{
+			Or(nameEqFred, ageLt10),
+			"WHERE (name=?) OR (age<?)",
+			"WHERE (name=$1) OR (age<$2)",
+			[]interface{}{"Fred", 10},
+		},
+
+		{
+			And(nameEqFred.Or(nameEqJohn), ageLt10),
+			"WHERE ((name=?) OR (name=?)) AND (age<?)",
+			"WHERE ((name=$1) OR (name=$2)) AND (age<$3)",
+			[]interface{}{"Fred", "John", 10},
+		},
+
+		{
+			Or(nameEqFred, ageLt10.And(ageGt5)),
+			"WHERE (name=?) OR ((age<?) AND (age>?))",
+			"WHERE (name=$1) OR ((age<$2) AND (age>$3))",
+			[]interface{}{"Fred", 10, 5},
+		},
+
+		{
+			Or(nameEqFred, nameEqJohn).And(ageGt5),
+			"WHERE ((name=?) OR (name=?)) AND (age>?)",
+			"WHERE ((name=$1) OR (name=$2)) AND (age>$3)",
+			[]interface{}{"Fred", "John", 5},
+		},
+
+		{
+			Or(nameEqFred, nameEqJohn, And(ageGt5)),
+			"WHERE (name=?) OR (name=?) OR ((age>?))",
+			"WHERE (name=$1) OR (name=$2) OR ((age>$3))",
+			[]interface{}{"Fred", "John", 5},
+		},
+
+		{
+			Or(),
+			"",
+			"",
+			nil,
+		},
 	}
 
 	for i, c := range cases {
-		sql, args := c.wh.Build(c.di)
+		sql, args := c.wh.Build(sqlgen2.Mysql)
 
-		if sql != c.expSql {
-			t.Errorf("%d: Wanted %s\nGot %s", i, c.expSql, sql)
+		if sql != c.expMysql {
+			t.Errorf("%d Mysql: Wanted %s\nGot %s", i, c.expMysql, sql)
 		}
 
 		if !reflect.DeepEqual(args, c.args) {
-			t.Errorf("%d: Wanted %v\nGot %v", i, c.args, args)
+			t.Errorf("%d Mysql: Wanted %v\nGot %v", i, c.args, args)
+		}
+
+		sql, args = c.wh.Build(sqlgen2.Postgres)
+
+		if sql != c.expPostgres {
+			t.Errorf("%d Postgres: Wanted %s\nGot %s", i, c.expPostgres, sql)
+		}
+
+		if !reflect.DeepEqual(args, c.args) {
+			t.Errorf("%d Postgres: Wanted %v\nGot %v", i, c.args, args)
 		}
 	}
 }
