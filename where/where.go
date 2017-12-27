@@ -13,7 +13,7 @@ type Dialect interface {
 	ReplacePlaceholders(sql string) string
 }
 
-// Expression is an element in a WHERE clause. Expressions may be nested in certain ways.
+// Expression is an element in a WHERE clause. Expressions may be nested in various ways.
 type Expression interface {
 	Build(dialect Dialect) (string, []interface{})
 	build(args []interface{}, dialect Dialect) (string, []interface{})
@@ -42,7 +42,6 @@ func (not not) build(args []interface{}, dialect Dialect) (string, []interface{}
 	return "NOT (" + sql + ")", args
 }
 
-// Build builds the SQL WHERE clause.
 func (not not) Build(dialect Dialect) (string, []interface{}) {
 	sql, args := not.build(nil, dialect)
 	sql = dialect.ReplacePlaceholders(sql)
@@ -68,7 +67,6 @@ func (cl Condition) build(args []interface{}, dialect Dialect) (string, []interf
 	return sql, args
 }
 
-// Build builds the SQL WHERE clause on a condition.
 func (cl Condition) Build(dialect Dialect) (string, []interface{}) {
 	sql, args := cl.build(nil, dialect)
 	sql = dialect.ReplacePlaceholders(sql)
@@ -90,7 +88,6 @@ func (wh Clause) build(args []interface{}, dialect Dialect) (string, []interface
 	return sql, args
 }
 
-// Build builds the SQL WHERE clause on the conditions it contains.
 func (wh Clause) Build(dialect Dialect) (string, []interface{}) {
 	if len(wh.wheres) == 0 {
 		return "", nil

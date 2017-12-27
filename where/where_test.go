@@ -19,7 +19,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 		expPostgres string
 		args        []interface{}
 	}{
-		{Clause{}, "", "", nil},
+		{NoOp(), "", "", nil},
 
 		{
 			Condition{"name not nil", nil},
@@ -46,6 +46,13 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			nameEqFred,
 			"WHERE name=?",
 			"WHERE name=$1",
+			[]interface{}{"Fred"},
+		},
+
+		{
+			nameEqFred.And(NoOp()),
+			"WHERE (name=?)",
+			"WHERE (name=$1)",
 			[]interface{}{"Fred"},
 		},
 
@@ -148,6 +155,13 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 		},
 
 		{
+			And(nameEqFred).And(And(ageLt10)),
+			"WHERE (name=?) AND (age<?)",
+			"WHERE (name=$1) AND (age<$2)",
+			[]interface{}{"Fred", 10},
+		},
+
+		{
 			Or(nameEqFred, ageLt10),
 			"WHERE (name=?) OR (age<?)",
 			"WHERE (name=$1) OR (age<$2)",
@@ -183,7 +197,14 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 		},
 
 		{
-			Or(),
+			Or().Or(NoOp()).And(NoOp()),
+			"",
+			"",
+			nil,
+		},
+
+		{
+			And(Or(NoOp())),
 			"",
 			"",
 			nil,

@@ -85,48 +85,72 @@ func Not(el Expression) Expression {
 	return not{el}
 }
 
+// NoOp creates an empty expression.
+func NoOp() Expression {
+	return Clause{}
+}
+
 //-------------------------------------------------------------------------------------------------
 
 // And combines two conditions into a clause that requires they are both true.
-func (cl Condition) And(c2 Condition) Clause {
-	return Clause{[]Expression{cl, c2}, and}
+func (cl Condition) And(c2 Expression) Clause {
+	return Clause{[]Expression{cl}, and}.And(c2)
 }
 
 // Or combines two conditions into a clause that requires either is true.
-func (cl Condition) Or(c2 Condition) Clause {
-	return Clause{[]Expression{cl, c2}, or}
+func (cl Condition) Or(c2 Expression) Clause {
+	return Clause{[]Expression{cl}, or}.Or(c2)
+}
+
+// And combines two clauses into a clause that requires they are both true.
+// SQL implementation note: AND has higher precedence than OR.
+func (wh Clause) conjoin(exp Expression, conj string) Clause {
+	cl, isClause := exp.(Clause)
+	if isClause {
+		if len(wh.wheres) == 0 {
+			return cl
+		} else if len(cl.wheres) == 0 {
+			return wh
+		} else if wh.conjunction == conj && cl.conjunction == conj {
+			return Clause{append(wh.wheres, cl.wheres...), conj}
+		}
+	} else {
+		if wh.conjunction == conj {
+			return Clause{append(wh.wheres, exp), conj}
+		}
+	}
+	return Clause{[]Expression{wh, exp}, conj}
 }
 
 // And combines two clauses into a clause that requires they are both true.
 // SQL implementation note: AND has higher precedence than OR.
 func (wh Clause) And(exp Expression) Clause {
-	cl, isClause := exp.(Clause)
-	if isClause && wh.conjunction == and && cl.conjunction == and {
-		return Clause{append(wh.wheres, cl.wheres...), and}
-	} else if !isClause && wh.conjunction == and {
-		return Clause{append(wh.wheres, exp), and}
-	}
-	return Clause{[]Expression{wh, exp}, and}
+	return wh.conjoin(exp, and)
 }
 
 // Or combines two clauses into a clause that requires either is true.
 // SQL implementation note: AND has higher precedence than OR.
 func (wh Clause) Or(exp Expression) Clause {
-	cl, isClause := exp.(Clause)
-	if isClause && wh.conjunction == or && cl.conjunction == or {
-		return Clause{append(wh.wheres, cl.wheres...), or}
-	} else if !isClause && wh.conjunction == or {
-		return Clause{append(wh.wheres, exp), or}
-	}
-	return Clause{[]Expression{wh, exp}, or}
+	return wh.conjoin(exp, or)
 }
 
 // And combines some expressions into a clause that requires they are all true.
 func And(exp ...Expression) Clause {
-	return Clause{exp, and}
+	return newClause(and, exp...)
 }
 
 // Or combines some expressions into a clause that requires that any is true.
 func Or(exp ...Expression) Clause {
-	return Clause{exp, or}
+	return newClause(or, exp...)
+}
+
+func newClause(conj string, exp ...Expression) Clause {
+	clause := Clause{nil, conj}
+	for _, e := range exp {
+		cl, isClause := e.(Clause)
+		if !isClause || len(cl.wheres) > 0 {
+			clause.wheres = append(clause.wheres, e)
+		}
+	}
+	return clause
 }
