@@ -56,6 +56,12 @@ func (tbl DbCompoundTable) WithLogger(logger *log.Logger) DbCompoundTable {
 	return tbl
 }
 
+// SetLogger sets the logger for subsequent queries, returning the interface.
+func (tbl DbCompoundTable) SetLogger(logger *log.Logger) sqlgen2.Table {
+	tbl.Logger = logger
+	return tbl
+}
+
 // FullName gets the concatenated prefix and table name.
 func (tbl DbCompoundTable) FullName() string {
 	return tbl.Prefix + tbl.Name
@@ -404,17 +410,6 @@ func scanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
 }
 
 func sliceDbCompound(v *Compound) ([]interface{}, error) {
-
-
-	return []interface{}{
-		v.Alpha,
-		v.Beta,
-		v.Category,
-
-	}, nil
-}
-
-func sliceDbCompoundWithoutPk(v *Compound) ([]interface{}, error) {
 
 
 	return []interface{}{

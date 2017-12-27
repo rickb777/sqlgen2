@@ -56,6 +56,12 @@ func (tbl V3UserTable) WithLogger(logger *log.Logger) V3UserTable {
 	return tbl
 }
 
+// SetLogger sets the logger for subsequent queries, returning the interface.
+func (tbl V3UserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
+	tbl.Logger = logger
+	return tbl
+}
+
 // FullName gets the concatenated prefix and table name.
 func (tbl V3UserTable) FullName() string {
 	return tbl.Prefix + tbl.Name
@@ -181,12 +187,12 @@ CREATE TABLE %s%s%s (
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-	_, err = tbl.Exec(tbl.createV3UserLoginIndexSql(extra))
+	_, err = tbl.Exec(tbl.createV3UserEmailIndexSql(extra))
 	if err != nil {
 		return err
 	}
 
-	_, err = tbl.Exec(tbl.createV3UserEmailIndexSql(extra))
+	_, err = tbl.Exec(tbl.createV3UserLoginIndexSql(extra))
 	if err != nil {
 		return err
 	}
@@ -202,14 +208,14 @@ func (tbl V3UserTable) prefixWithoutDot() string {
 	return tbl.Prefix
 }
 
-func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf(sqlCreateV3UserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
-}
-
 func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf(sqlCreateV3UserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
+
+func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf(sqlCreateV3UserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
@@ -223,12 +229,12 @@ func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateV3UserLoginIndex = `
-CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
-`
-
 const sqlCreateV3UserEmailIndex = `
 CREATE UNIQUE INDEX %s%suser_email ON %s%s (emailaddress)
+`
+
+const sqlCreateV3UserLoginIndex = `
+CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
 `
 
 //--------------------------------------------------------------------------------
@@ -371,29 +377,6 @@ func scanV3Users(rows *sql.Rows) ([]*User, error) {
 		vv = append(vv, v)
 	}
 	return vv, rows.Err()
-}
-
-func sliceV3User(v *User) ([]interface{}, error) {
-
-	v6, err := json.Marshal(&v.Fave)
-	if err != nil {
-		return nil, err
-	}
-
-	return []interface{}{
-		v.Uid,
-		v.Login,
-		v.EmailAddress,
-		v.Avatar,
-		v.Active,
-		v.Admin,
-		v6,
-		v.LastUpdated,
-		v.token,
-		v.secret,
-		v.hash,
-
-	}, nil
 }
 
 func sliceV3UserWithoutPk(v *User) ([]interface{}, error) {

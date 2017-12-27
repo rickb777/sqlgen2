@@ -57,6 +57,12 @@ func (tbl HookTable) WithLogger(logger *log.Logger) HookTable {
 	return tbl
 }
 
+// SetLogger sets the logger for subsequent queries, returning the interface.
+func (tbl HookTable) SetLogger(logger *log.Logger) sqlgen2.Table {
+	tbl.Logger = logger
+	return tbl
+}
+
 // FullName gets the concatenated prefix and table name.
 func (tbl HookTable) FullName() string {
 	return tbl.Prefix + tbl.Name
@@ -616,31 +622,6 @@ func scanHooks(rows *sql.Rows) (HookList, error) {
 		vv = append(vv, v)
 	}
 	return vv, rows.Err()
-}
-
-func sliceHook(v *Hook) ([]interface{}, error) {
-
-
-	return []interface{}{
-		v.Id,
-		v.Sha,
-		v.Dates.After,
-		v.Dates.Before,
-		v.Category,
-		v.Created,
-		v.Deleted,
-		v.Forced,
-		v.HeadCommit.ID,
-		v.HeadCommit.Message,
-		v.HeadCommit.Timestamp,
-		v.HeadCommit.Author.Name,
-		v.HeadCommit.Author.Email,
-		v.HeadCommit.Author.Username,
-		v.HeadCommit.Committer.Name,
-		v.HeadCommit.Committer.Email,
-		v.HeadCommit.Committer.Username,
-
-	}, nil
 }
 
 func sliceHookWithoutPk(v *Hook) ([]interface{}, error) {

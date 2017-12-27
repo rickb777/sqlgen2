@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"context"
 	"github.com/rickb777/sqlgen2/where"
+	"log"
 )
 
 // Execer describes the methods of the core database API. See database/sql/DB and database/sql/Tx.
@@ -46,6 +47,8 @@ type Table interface {
 
 	// IsTx tests whether this is within a transaction.
 	IsTx() bool
+
+	SetLogger(logger *log.Logger) Table
 }
 
 type TableCreator interface {

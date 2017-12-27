@@ -56,6 +56,12 @@ func (tbl {{.Prefix}}{{.Type}}Table) WithLogger(logger *log.Logger) {{.Prefix}}{
 	return tbl
 }
 
+// SetLogger sets the logger for subsequent queries, returning the interface.
+func (tbl {{.Prefix}}{{.Type}}Table) SetLogger(logger *log.Logger) sqlgen2.Table {
+	tbl.Logger = logger
+	return tbl
+}
+
 // FullName gets the concatenated prefix and table name.
 func (tbl {{.Prefix}}{{.Type}}Table) FullName() string {
 	return tbl.Prefix + tbl.Name

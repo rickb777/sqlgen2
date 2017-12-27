@@ -81,8 +81,7 @@ func main() {
 
 	WriteRowFunc(buf, view)
 	WriteRowsFunc(buf, view)
-	WriteSliceFunc(buf, view, false)
-	WriteSliceFunc(buf, view, true)
+	WriteSliceFunc(buf, view, view.Table.HasLastInsertId())
 
 	// formats the generated file using gofmt
 	var pretty io.Reader = buf

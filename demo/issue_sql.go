@@ -58,6 +58,12 @@ func (tbl IssueTable) WithLogger(logger *log.Logger) IssueTable {
 	return tbl
 }
 
+// SetLogger sets the logger for subsequent queries, returning the interface.
+func (tbl IssueTable) SetLogger(logger *log.Logger) sqlgen2.Table {
+	tbl.Logger = logger
+	return tbl
+}
+
 // FullName gets the concatenated prefix and table name.
 func (tbl IssueTable) FullName() string {
 	return tbl.Prefix + tbl.Name
@@ -547,26 +553,6 @@ func scanIssues(rows *sql.Rows) ([]*Issue, error) {
 		vv = append(vv, v)
 	}
 	return vv, rows.Err()
-}
-
-func sliceIssue(v *Issue) ([]interface{}, error) {
-
-	v7, err := json.Marshal(&v.Labels)
-	if err != nil {
-		return nil, err
-	}
-
-	return []interface{}{
-		v.Id,
-		v.Number,
-		v.Date,
-		v.Title,
-		v.Body,
-		v.Assignee,
-		v.State,
-		v7,
-
-	}, nil
 }
 
 func sliceIssueWithoutPk(v *Issue) ([]interface{}, error) {

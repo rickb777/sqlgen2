@@ -58,6 +58,12 @@ func (tbl V2UserTable) WithLogger(logger *log.Logger) V2UserTable {
 	return tbl
 }
 
+// SetLogger sets the logger for subsequent queries, returning the interface.
+func (tbl V2UserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
+	tbl.Logger = logger
+	return tbl
+}
+
 // FullName gets the concatenated prefix and table name.
 func (tbl V2UserTable) FullName() string {
 	return tbl.Prefix + tbl.Name
@@ -461,29 +467,6 @@ func scanV2Users(rows *sql.Rows) ([]*User, error) {
 		vv = append(vv, v)
 	}
 	return vv, rows.Err()
-}
-
-func sliceV2User(v *User) ([]interface{}, error) {
-
-	v6, err := json.Marshal(&v.Fave)
-	if err != nil {
-		return nil, err
-	}
-
-	return []interface{}{
-		v.Uid,
-		v.Login,
-		v.EmailAddress,
-		v.Avatar,
-		v.Active,
-		v.Admin,
-		v6,
-		v.LastUpdated,
-		v.token,
-		v.secret,
-		v.hash,
-
-	}, nil
 }
 
 func sliceV2UserWithoutPk(v *User) ([]interface{}, error) {
