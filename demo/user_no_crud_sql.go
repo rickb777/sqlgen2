@@ -31,7 +31,7 @@ var _ sqlgen2.Table = &V3UserTable{}
 // NewV3UserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewV3UserTable(name string, d *sql.DB, dialect sqlgen2.Dialect) V3UserTable {
+func NewV3UserTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) V3UserTable {
 	if name == "" {
 		name = V3UserTableName
 	}
@@ -94,13 +94,13 @@ func (tbl V3UserTable) logQuery(query string, args ...interface{}) {
 
 //--------------------------------------------------------------------------------
 
-const NumV3UserColumns = 10
+const NumV3UserColumns = 11
 
-const NumV3UserDataColumns = 9
+const NumV3UserDataColumns = 10
 
 const V3UserPk = "Uid"
 
-const V3UserDataColumnNames = "login, email, avatar, active, admin, fave, token, secret, hash"
+const V3UserDataColumnNames = "login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret, hash"
 
 //--------------------------------------------------------------------------------
 
@@ -130,46 +130,49 @@ func (tbl V3UserTable) ternary(flag bool, a, b string) string {
 
 const sqlCreateV3UserTableSqlite = `
 CREATE TABLE %s%s%s (
- uid    integer primary key autoincrement,
- login  text,
- email  text,
- avatar text,
- active boolean,
- admin  boolean,
- fave   text,
- token  text,
- secret text,
- hash   text
+ uid          integer primary key autoincrement,
+ login        text,
+ emailaddress text,
+ avatar       text,
+ active       boolean,
+ admin        boolean,
+ fave         text,
+ lastupdated  bigint,
+ token        text,
+ secret       text,
+ hash         text
 )
 `
 
 const sqlCreateV3UserTablePostgres = `
 CREATE TABLE %s%s%s (
- uid    bigserial primary key,
- login  varchar(512),
- email  varchar(512),
- avatar varchar(512),
- active boolean,
- admin  boolean,
- fave   json,
- token  varchar(512),
- secret varchar(512),
- hash   varchar(512)
+ uid          bigserial primary key,
+ login        varchar(512),
+ emailaddress varchar(512),
+ avatar       varchar(512),
+ active       boolean,
+ admin        boolean,
+ fave         json,
+ lastupdated  bigint,
+ token        varchar(512),
+ secret       varchar(512),
+ hash         varchar(512)
 )
 `
 
 const sqlCreateV3UserTableMysql = `
 CREATE TABLE %s%s%s (
- uid    bigint primary key auto_increment,
- login  varchar(512),
- email  varchar(512),
- avatar varchar(512),
- active tinyint(1),
- admin  tinyint(1),
- fave   json,
- token  varchar(512),
- secret varchar(512),
- hash   varchar(512)
+ uid          bigint primary key auto_increment,
+ login        varchar(512),
+ emailaddress varchar(512),
+ avatar       varchar(512),
+ active       tinyint(1),
+ admin        tinyint(1),
+ fave         json,
+ lastupdated  bigint,
+ token        varchar(512),
+ secret       varchar(512),
+ hash         varchar(512)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 
@@ -225,7 +228,7 @@ CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
 `
 
 const sqlCreateV3UserEmailIndex = `
-CREATE UNIQUE INDEX %s%suser_email ON %s%s (email)
+CREATE UNIQUE INDEX %s%suser_email ON %s%s (emailaddress)
 `
 
 //--------------------------------------------------------------------------------
@@ -271,9 +274,10 @@ func scanV3User(row *sql.Row) (*User, error) {
 	var v4 bool
 	var v5 bool
 	var v6 []byte
-	var v7 string
+	var v7 int64
 	var v8 string
 	var v9 string
+	var v10 string
 
 	err := row.Scan(
 		&v0,
@@ -286,6 +290,7 @@ func scanV3User(row *sql.Row) (*User, error) {
 		&v7,
 		&v8,
 		&v9,
+		&v10,
 
 	)
 	if err != nil {
@@ -295,7 +300,7 @@ func scanV3User(row *sql.Row) (*User, error) {
 	v := &User{}
 	v.Uid = v0
 	v.Login = v1
-	v.Email = v2
+	v.EmailAddress = v2
 	v.Avatar = v3
 	v.Active = v4
 	v.Admin = v5
@@ -303,9 +308,10 @@ func scanV3User(row *sql.Row) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	v.token = v7
-	v.secret = v8
-	v.hash = v9
+	v.LastUpdated = v7
+	v.token = v8
+	v.secret = v9
+	v.hash = v10
 
 	return v, nil
 }
@@ -322,9 +328,10 @@ func scanV3Users(rows *sql.Rows) ([]*User, error) {
 	var v4 bool
 	var v5 bool
 	var v6 []byte
-	var v7 string
+	var v7 int64
 	var v8 string
 	var v9 string
+	var v10 string
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -338,6 +345,7 @@ func scanV3Users(rows *sql.Rows) ([]*User, error) {
 			&v7,
 			&v8,
 			&v9,
+			&v10,
 
 		)
 		if err != nil {
@@ -347,7 +355,7 @@ func scanV3Users(rows *sql.Rows) ([]*User, error) {
 		v := &User{}
 		v.Uid = v0
 		v.Login = v1
-		v.Email = v2
+		v.EmailAddress = v2
 		v.Avatar = v3
 		v.Active = v4
 		v.Admin = v5
@@ -355,9 +363,10 @@ func scanV3Users(rows *sql.Rows) ([]*User, error) {
 		if err != nil {
 			return nil, err
 		}
-		v.token = v7
-		v.secret = v8
-		v.hash = v9
+		v.LastUpdated = v7
+		v.token = v8
+		v.secret = v9
+		v.hash = v10
 
 		vv = append(vv, v)
 	}
@@ -374,11 +383,12 @@ func sliceV3User(v *User) ([]interface{}, error) {
 	return []interface{}{
 		v.Uid,
 		v.Login,
-		v.Email,
+		v.EmailAddress,
 		v.Avatar,
 		v.Active,
 		v.Admin,
 		v6,
+		v.LastUpdated,
 		v.token,
 		v.secret,
 		v.hash,
@@ -395,11 +405,12 @@ func sliceV3UserWithoutPk(v *User) ([]interface{}, error) {
 
 	return []interface{}{
 		v.Login,
-		v.Email,
+		v.EmailAddress,
 		v.Avatar,
 		v.Active,
 		v.Admin,
 		v6,
+		v.LastUpdated,
 		v.token,
 		v.secret,
 		v.hash,

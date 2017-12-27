@@ -31,7 +31,7 @@ var _ sqlgen2.Table = &{{.Prefix}}{{.Type}}Table{}
 // New{{.Prefix}}{{.Type}}Table returns a new table instance.
 // If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func New{{.Prefix}}{{.Type}}Table(name string, d *sql.DB, dialect sqlgen2.Dialect) {{.Prefix}}{{.Type}}Table {
+func New{{.Prefix}}{{.Type}}Table(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) {{.Prefix}}{{.Type}}Table {
 	if name == "" {
 		name = {{.Prefix}}{{.Type}}TableName
 	}

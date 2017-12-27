@@ -30,7 +30,7 @@ var _ sqlgen2.Table = &V4UserTable{}
 // NewV4UserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewV4UserTable(name string, d *sql.DB, dialect sqlgen2.Dialect) V4UserTable {
+func NewV4UserTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) V4UserTable {
 	if name == "" {
 		name = V4UserTableName
 	}
@@ -134,9 +134,10 @@ func scanV4User(row *sql.Row) (*User, error) {
 	var v4 bool
 	var v5 bool
 	var v6 []byte
-	var v7 string
+	var v7 int64
 	var v8 string
 	var v9 string
+	var v10 string
 
 	err := row.Scan(
 		&v0,
@@ -149,6 +150,7 @@ func scanV4User(row *sql.Row) (*User, error) {
 		&v7,
 		&v8,
 		&v9,
+		&v10,
 
 	)
 	if err != nil {
@@ -158,7 +160,7 @@ func scanV4User(row *sql.Row) (*User, error) {
 	v := &User{}
 	v.Uid = v0
 	v.Login = v1
-	v.Email = v2
+	v.EmailAddress = v2
 	v.Avatar = v3
 	v.Active = v4
 	v.Admin = v5
@@ -166,9 +168,10 @@ func scanV4User(row *sql.Row) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	v.token = v7
-	v.secret = v8
-	v.hash = v9
+	v.LastUpdated = v7
+	v.token = v8
+	v.secret = v9
+	v.hash = v10
 
 	return v, nil
 }
@@ -185,9 +188,10 @@ func scanV4Users(rows *sql.Rows) ([]*User, error) {
 	var v4 bool
 	var v5 bool
 	var v6 []byte
-	var v7 string
+	var v7 int64
 	var v8 string
 	var v9 string
+	var v10 string
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -201,6 +205,7 @@ func scanV4Users(rows *sql.Rows) ([]*User, error) {
 			&v7,
 			&v8,
 			&v9,
+			&v10,
 
 		)
 		if err != nil {
@@ -210,7 +215,7 @@ func scanV4Users(rows *sql.Rows) ([]*User, error) {
 		v := &User{}
 		v.Uid = v0
 		v.Login = v1
-		v.Email = v2
+		v.EmailAddress = v2
 		v.Avatar = v3
 		v.Active = v4
 		v.Admin = v5
@@ -218,9 +223,10 @@ func scanV4Users(rows *sql.Rows) ([]*User, error) {
 		if err != nil {
 			return nil, err
 		}
-		v.token = v7
-		v.secret = v8
-		v.hash = v9
+		v.LastUpdated = v7
+		v.token = v8
+		v.secret = v9
+		v.hash = v10
 
 		vv = append(vv, v)
 	}
@@ -237,11 +243,12 @@ func sliceV4User(v *User) ([]interface{}, error) {
 	return []interface{}{
 		v.Uid,
 		v.Login,
-		v.Email,
+		v.EmailAddress,
 		v.Avatar,
 		v.Active,
 		v.Admin,
 		v6,
+		v.LastUpdated,
 		v.token,
 		v.secret,
 		v.hash,
@@ -258,11 +265,12 @@ func sliceV4UserWithoutPk(v *User) ([]interface{}, error) {
 
 	return []interface{}{
 		v.Login,
-		v.Email,
+		v.EmailAddress,
 		v.Avatar,
 		v.Active,
 		v.Admin,
 		v6,
+		v.LastUpdated,
 		v.token,
 		v.secret,
 		v.hash,

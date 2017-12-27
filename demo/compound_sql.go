@@ -31,7 +31,7 @@ var _ sqlgen2.Table = &DbCompoundTable{}
 // NewDbCompoundTable returns a new table instance.
 // If a blank table name is supplied, the default name "compounds" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewDbCompoundTable(name string, d *sql.DB, dialect sqlgen2.Dialect) DbCompoundTable {
+func NewDbCompoundTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) DbCompoundTable {
 	if name == "" {
 		name = DbCompoundTableName
 	}

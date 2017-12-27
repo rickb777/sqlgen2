@@ -33,7 +33,7 @@ var _ sqlgen2.Table = &V2UserTable{}
 // NewV2UserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewV2UserTable(name string, d *sql.DB, dialect sqlgen2.Dialect) V2UserTable {
+func NewV2UserTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) V2UserTable {
 	if name == "" {
 		name = V2UserTableName
 	}
@@ -173,7 +173,7 @@ func (tbl V2UserTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(wh, args...)
 }
 
-const V2UserColumnNames = "uid, login, email, avatar, active, admin, fave, token, secret, hash"
+const V2UserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret, hash"
 
 //--------------------------------------------------------------------------------
 
@@ -227,11 +227,12 @@ func (tbl V2UserTable) Insert(vv ...*User) error {
 const sqlInsertV2UserSimple = `
 INSERT INTO %s%s (
 	login, 
-	email, 
+	emailaddress, 
 	avatar, 
 	active, 
 	admin, 
 	fave, 
+	lastupdated, 
 	token, 
 	secret, 
 	hash
@@ -241,20 +242,21 @@ INSERT INTO %s%s (
 const sqlInsertV2UserPostgres = `
 INSERT INTO %s%s (
 	login, 
-	email, 
+	emailaddress, 
 	avatar, 
 	active, 
 	admin, 
 	fave, 
+	lastupdated, 
 	token, 
 	secret, 
 	hash
 ) VALUES (%s)
 `
 
-const sV2UserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?"
+const sV2UserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?,?"
 
-const sV2UserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
+const sV2UserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10"
 
 //--------------------------------------------------------------------------------
 
@@ -312,11 +314,12 @@ func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 const sqlUpdateV2UserByPkSimple = `
 UPDATE %s%s SET 
 	login=?, 
-	email=?, 
+	emailaddress=?, 
 	avatar=?, 
 	active=?, 
 	admin=?, 
 	fave=?, 
+	lastupdated=?, 
 	token=?, 
 	secret=?, 
 	hash=? 
@@ -326,15 +329,16 @@ UPDATE %s%s SET
 const sqlUpdateV2UserByPkPostgres = `
 UPDATE %s%s SET 
 	login=$2, 
-	email=$3, 
+	emailaddress=$3, 
 	avatar=$4, 
 	active=$5, 
 	admin=$6, 
 	fave=$7, 
-	token=$8, 
-	secret=$9, 
-	hash=$10 
- WHERE uid=$11
+	lastupdated=$8, 
+	token=$9, 
+	secret=$10, 
+	hash=$11 
+ WHERE uid=$12
 `
 
 //--------------------------------------------------------------------------------
@@ -360,9 +364,10 @@ func scanV2User(row *sql.Row) (*User, error) {
 	var v4 bool
 	var v5 bool
 	var v6 []byte
-	var v7 string
+	var v7 int64
 	var v8 string
 	var v9 string
+	var v10 string
 
 	err := row.Scan(
 		&v0,
@@ -375,6 +380,7 @@ func scanV2User(row *sql.Row) (*User, error) {
 		&v7,
 		&v8,
 		&v9,
+		&v10,
 
 	)
 	if err != nil {
@@ -384,7 +390,7 @@ func scanV2User(row *sql.Row) (*User, error) {
 	v := &User{}
 	v.Uid = v0
 	v.Login = v1
-	v.Email = v2
+	v.EmailAddress = v2
 	v.Avatar = v3
 	v.Active = v4
 	v.Admin = v5
@@ -392,9 +398,10 @@ func scanV2User(row *sql.Row) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	v.token = v7
-	v.secret = v8
-	v.hash = v9
+	v.LastUpdated = v7
+	v.token = v8
+	v.secret = v9
+	v.hash = v10
 
 	return v, nil
 }
@@ -411,9 +418,10 @@ func scanV2Users(rows *sql.Rows) ([]*User, error) {
 	var v4 bool
 	var v5 bool
 	var v6 []byte
-	var v7 string
+	var v7 int64
 	var v8 string
 	var v9 string
+	var v10 string
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -427,6 +435,7 @@ func scanV2Users(rows *sql.Rows) ([]*User, error) {
 			&v7,
 			&v8,
 			&v9,
+			&v10,
 
 		)
 		if err != nil {
@@ -436,7 +445,7 @@ func scanV2Users(rows *sql.Rows) ([]*User, error) {
 		v := &User{}
 		v.Uid = v0
 		v.Login = v1
-		v.Email = v2
+		v.EmailAddress = v2
 		v.Avatar = v3
 		v.Active = v4
 		v.Admin = v5
@@ -444,9 +453,10 @@ func scanV2Users(rows *sql.Rows) ([]*User, error) {
 		if err != nil {
 			return nil, err
 		}
-		v.token = v7
-		v.secret = v8
-		v.hash = v9
+		v.LastUpdated = v7
+		v.token = v8
+		v.secret = v9
+		v.hash = v10
 
 		vv = append(vv, v)
 	}
@@ -463,11 +473,12 @@ func sliceV2User(v *User) ([]interface{}, error) {
 	return []interface{}{
 		v.Uid,
 		v.Login,
-		v.Email,
+		v.EmailAddress,
 		v.Avatar,
 		v.Active,
 		v.Admin,
 		v6,
+		v.LastUpdated,
 		v.token,
 		v.secret,
 		v.hash,
@@ -484,11 +495,12 @@ func sliceV2UserWithoutPk(v *User) ([]interface{}, error) {
 
 	return []interface{}{
 		v.Login,
-		v.Email,
+		v.EmailAddress,
 		v.Avatar,
 		v.Active,
 		v.Admin,
 		v6,
+		v.LastUpdated,
 		v.token,
 		v.secret,
 		v.hash,

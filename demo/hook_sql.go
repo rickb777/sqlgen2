@@ -32,7 +32,7 @@ var _ sqlgen2.Table = &HookTable{}
 // NewHookTable returns a new table instance.
 // If a blank table name is supplied, the default name "hooks" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewHookTable(name string, d *sql.DB, dialect sqlgen2.Dialect) HookTable {
+func NewHookTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) HookTable {
 	if name == "" {
 		name = HookTableName
 	}

@@ -33,7 +33,7 @@ var _ sqlgen2.Table = &DbUserTable{}
 // NewDbUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewDbUserTable(name string, d *sql.DB, dialect sqlgen2.Dialect) DbUserTable {
+func NewDbUserTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) DbUserTable {
 	if name == "" {
 		name = DbUserTableName
 	}
@@ -96,13 +96,13 @@ func (tbl DbUserTable) logQuery(query string, args ...interface{}) {
 
 //--------------------------------------------------------------------------------
 
-const NumDbUserColumns = 10
+const NumDbUserColumns = 11
 
-const NumDbUserDataColumns = 9
+const NumDbUserDataColumns = 10
 
 const DbUserPk = "Uid"
 
-const DbUserDataColumnNames = "login, email, avatar, active, admin, fave, token, secret, hash"
+const DbUserDataColumnNames = "login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret, hash"
 
 //--------------------------------------------------------------------------------
 
@@ -132,46 +132,49 @@ func (tbl DbUserTable) ternary(flag bool, a, b string) string {
 
 const sqlCreateDbUserTableSqlite = `
 CREATE TABLE %s%s%s (
- uid    integer primary key autoincrement,
- login  text,
- email  text,
- avatar text,
- active boolean,
- admin  boolean,
- fave   text,
- token  text,
- secret text,
- hash   text
+ uid          integer primary key autoincrement,
+ login        text,
+ emailaddress text,
+ avatar       text,
+ active       boolean,
+ admin        boolean,
+ fave         text,
+ lastupdated  bigint,
+ token        text,
+ secret       text,
+ hash         text
 )
 `
 
 const sqlCreateDbUserTablePostgres = `
 CREATE TABLE %s%s%s (
- uid    bigserial primary key,
- login  varchar(512),
- email  varchar(512),
- avatar varchar(512),
- active boolean,
- admin  boolean,
- fave   json,
- token  varchar(512),
- secret varchar(512),
- hash   varchar(512)
+ uid          bigserial primary key,
+ login        varchar(512),
+ emailaddress varchar(512),
+ avatar       varchar(512),
+ active       boolean,
+ admin        boolean,
+ fave         json,
+ lastupdated  bigint,
+ token        varchar(512),
+ secret       varchar(512),
+ hash         varchar(512)
 )
 `
 
 const sqlCreateDbUserTableMysql = `
 CREATE TABLE %s%s%s (
- uid    bigint primary key auto_increment,
- login  varchar(512),
- email  varchar(512),
- avatar varchar(512),
- active tinyint(1),
- admin  tinyint(1),
- fave   json,
- token  varchar(512),
- secret varchar(512),
- hash   varchar(512)
+ uid          bigint primary key auto_increment,
+ login        varchar(512),
+ emailaddress varchar(512),
+ avatar       varchar(512),
+ active       tinyint(1),
+ admin        tinyint(1),
+ fave         json,
+ lastupdated  bigint,
+ token        varchar(512),
+ secret       varchar(512),
+ hash         varchar(512)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 
@@ -227,7 +230,7 @@ CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
 `
 
 const sqlCreateDbUserEmailIndex = `
-CREATE UNIQUE INDEX %s%suser_email ON %s%s (email)
+CREATE UNIQUE INDEX %s%suser_email ON %s%s (emailaddress)
 `
 
 //--------------------------------------------------------------------------------
@@ -309,7 +312,7 @@ func (tbl DbUserTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(wh, args...)
 }
 
-const DbUserColumnNames = "uid, login, email, avatar, active, admin, fave, token, secret, hash"
+const DbUserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret, hash"
 
 //--------------------------------------------------------------------------------
 
@@ -363,11 +366,12 @@ func (tbl DbUserTable) Insert(vv ...*User) error {
 const sqlInsertDbUserSimple = `
 INSERT INTO %s%s (
 	login, 
-	email, 
+	emailaddress, 
 	avatar, 
 	active, 
 	admin, 
 	fave, 
+	lastupdated, 
 	token, 
 	secret, 
 	hash
@@ -377,20 +381,21 @@ INSERT INTO %s%s (
 const sqlInsertDbUserPostgres = `
 INSERT INTO %s%s (
 	login, 
-	email, 
+	emailaddress, 
 	avatar, 
 	active, 
 	admin, 
 	fave, 
+	lastupdated, 
 	token, 
 	secret, 
 	hash
 ) VALUES (%s)
 `
 
-const sDbUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?"
+const sDbUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?,?"
 
-const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
+const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10"
 
 //--------------------------------------------------------------------------------
 
@@ -448,11 +453,12 @@ func (tbl DbUserTable) Update(vv ...*User) (int64, error) {
 const sqlUpdateDbUserByPkSimple = `
 UPDATE %s%s SET 
 	login=?, 
-	email=?, 
+	emailaddress=?, 
 	avatar=?, 
 	active=?, 
 	admin=?, 
 	fave=?, 
+	lastupdated=?, 
 	token=?, 
 	secret=?, 
 	hash=? 
@@ -462,15 +468,16 @@ UPDATE %s%s SET
 const sqlUpdateDbUserByPkPostgres = `
 UPDATE %s%s SET 
 	login=$2, 
-	email=$3, 
+	emailaddress=$3, 
 	avatar=$4, 
 	active=$5, 
 	admin=$6, 
 	fave=$7, 
-	token=$8, 
-	secret=$9, 
-	hash=$10 
- WHERE uid=$11
+	lastupdated=$8, 
+	token=$9, 
+	secret=$10, 
+	hash=$11 
+ WHERE uid=$12
 `
 
 //--------------------------------------------------------------------------------
@@ -496,9 +503,10 @@ func scanDbUser(row *sql.Row) (*User, error) {
 	var v4 bool
 	var v5 bool
 	var v6 []byte
-	var v7 string
+	var v7 int64
 	var v8 string
 	var v9 string
+	var v10 string
 
 	err := row.Scan(
 		&v0,
@@ -511,6 +519,7 @@ func scanDbUser(row *sql.Row) (*User, error) {
 		&v7,
 		&v8,
 		&v9,
+		&v10,
 
 	)
 	if err != nil {
@@ -520,7 +529,7 @@ func scanDbUser(row *sql.Row) (*User, error) {
 	v := &User{}
 	v.Uid = v0
 	v.Login = v1
-	v.Email = v2
+	v.EmailAddress = v2
 	v.Avatar = v3
 	v.Active = v4
 	v.Admin = v5
@@ -528,9 +537,10 @@ func scanDbUser(row *sql.Row) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	v.token = v7
-	v.secret = v8
-	v.hash = v9
+	v.LastUpdated = v7
+	v.token = v8
+	v.secret = v9
+	v.hash = v10
 
 	return v, nil
 }
@@ -547,9 +557,10 @@ func scanDbUsers(rows *sql.Rows) ([]*User, error) {
 	var v4 bool
 	var v5 bool
 	var v6 []byte
-	var v7 string
+	var v7 int64
 	var v8 string
 	var v9 string
+	var v10 string
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -563,6 +574,7 @@ func scanDbUsers(rows *sql.Rows) ([]*User, error) {
 			&v7,
 			&v8,
 			&v9,
+			&v10,
 
 		)
 		if err != nil {
@@ -572,7 +584,7 @@ func scanDbUsers(rows *sql.Rows) ([]*User, error) {
 		v := &User{}
 		v.Uid = v0
 		v.Login = v1
-		v.Email = v2
+		v.EmailAddress = v2
 		v.Avatar = v3
 		v.Active = v4
 		v.Admin = v5
@@ -580,9 +592,10 @@ func scanDbUsers(rows *sql.Rows) ([]*User, error) {
 		if err != nil {
 			return nil, err
 		}
-		v.token = v7
-		v.secret = v8
-		v.hash = v9
+		v.LastUpdated = v7
+		v.token = v8
+		v.secret = v9
+		v.hash = v10
 
 		vv = append(vv, v)
 	}
@@ -599,11 +612,12 @@ func sliceDbUser(v *User) ([]interface{}, error) {
 	return []interface{}{
 		v.Uid,
 		v.Login,
-		v.Email,
+		v.EmailAddress,
 		v.Avatar,
 		v.Active,
 		v.Admin,
 		v6,
+		v.LastUpdated,
 		v.token,
 		v.secret,
 		v.hash,
@@ -620,11 +634,12 @@ func sliceDbUserWithoutPk(v *User) ([]interface{}, error) {
 
 	return []interface{}{
 		v.Login,
-		v.Email,
+		v.EmailAddress,
 		v.Avatar,
 		v.Active,
 		v.Admin,
 		v6,
+		v.LastUpdated,
 		v.token,
 		v.secret,
 		v.hash,

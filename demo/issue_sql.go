@@ -33,7 +33,7 @@ var _ sqlgen2.Table = &IssueTable{}
 // NewIssueTable returns a new table instance.
 // If a blank table name is supplied, the default name "issues" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewIssueTable(name string, d *sql.DB, dialect sqlgen2.Dialect) IssueTable {
+func NewIssueTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) IssueTable {
 	if name == "" {
 		name = IssueTableName
 	}
