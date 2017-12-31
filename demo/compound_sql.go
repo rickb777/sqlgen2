@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
 )
@@ -21,7 +22,7 @@ type DbCompoundTable struct {
 	Prefix, Name string
 	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      sqlgen2.Dialect
+	Dialect      schema.Dialect
 	Logger       *log.Logger
 }
 
@@ -31,7 +32,7 @@ var _ sqlgen2.Table = &DbCompoundTable{}
 // NewDbCompoundTable returns a new table instance.
 // If a blank table name is supplied, the default name "compounds" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewDbCompoundTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) DbCompoundTable {
+func NewDbCompoundTable(name string, d sqlgen2.Execer, dialect schema.Dialect) DbCompoundTable {
 	if name == "" {
 		name = DbCompoundTableName
 	}
@@ -116,9 +117,9 @@ func (tbl DbCompoundTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl DbCompoundTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case sqlgen2.Sqlite: stmt = sqlCreateDbCompoundTableSqlite
-    case sqlgen2.Postgres: stmt = sqlCreateDbCompoundTablePostgres
-    case sqlgen2.Mysql: stmt = sqlCreateDbCompoundTableMysql
+	case schema.Sqlite: stmt = sqlCreateDbCompoundTableSqlite
+    case schema.Postgres: stmt = sqlCreateDbCompoundTablePostgres
+    case schema.Mysql: stmt = sqlCreateDbCompoundTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
@@ -285,7 +286,7 @@ const DbCompoundColumnNames = "alpha, beta, category"
 func (tbl DbCompoundTable) Insert(vv ...*Compound) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case sqlgen2.Postgres:
+	case schema.Postgres:
 		stmt = sqlInsertDbCompoundPostgres
 		params = sDbCompoundDataColumnParamsPostgres
 	default:

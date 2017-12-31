@@ -6,20 +6,18 @@ import "github.com/rickb777/sqlgen2/sqlgen/parse"
 //	_ "github.com/mattn/go-sqlite3"
 //)
 
-type sqlite struct {
-	base
-}
+type sqlite struct{}
 
-func newSQLite() SDialect {
-	d := &sqlite{}
-	d.base.SDialect = d
-	return d
+var Sqlite Dialect = sqlite{}
+
+func (d sqlite) String() string {
+	return "Sqlite"
 }
 
 // For integers, the value is a signed integer, stored in 1, 2, 3, 4, 6, or 8 bytes depending on the magnitude of the value
 // For reals, the value is a floating point value, stored as an 8-byte IEEE floating point number.
 
-func sqliteColumn(field *Field) string {
+func (dialect sqlite) FieldAsColumn(field *Field) string {
 	if field.Tags.Auto {
 		// In sqlite, "autoincrement" is less efficient than built-in "rowid"
 		// and the datatype must be "integer" (https://sqlite.org/autoinc.html).
@@ -67,4 +65,40 @@ func sqliteColumn(field *Field) string {
 	}
 
 	return column
+}
+
+func (dialect sqlite) TableDDL(t *TableDescription) string {
+	return baseTableDDL(t, dialect)
+}
+
+func (dialect sqlite) IndexDDL(table *TableDescription, index *Index) string {
+	return baseIndexDDL(table, index)
+}
+
+func (dialect sqlite) InsertDML(table *TableDescription) string {
+	return baseInsertDML(table)
+}
+
+func (dialect sqlite) UpdateDML(table *TableDescription, fields []*Field) string {
+	return baseUpdateDML(table, fields, paramIsQuery)
+}
+
+func (dialect sqlite) DeleteDML(table *TableDescription, fields []*Field) string {
+	return baseDeleteDML(table, fields, paramIsQuery)
+}
+
+// Placeholders returns a string containing the requested number of placeholders
+// in the form used by MySQL and SQLite.
+func (dialect sqlite) Placeholders(n int) string {
+	return queryPlaceholders(n)
+}
+
+// ReplacePlaceholders converts a string containing '?' placeholders to
+// the form used by MySQL and SQLite - i.e. unchanged.
+func (dialect sqlite) ReplacePlaceholders(sql string) string {
+	return sql
+}
+
+func (dialect sqlite) CreateTableSettings() string {
+	return ""
 }

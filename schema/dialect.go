@@ -1,43 +1,33 @@
 package schema
 
-import "fmt"
+type Dialect interface {
+	TableDDL(*TableDescription) string
+	IndexDDL(*TableDescription, *Index) string
+	InsertDML(*TableDescription) string
+	UpdateDML(*TableDescription, []*Field) string
+	DeleteDML(*TableDescription, []*Field) string
+	//Param(int) string
+	CreateTableSettings() string
+	FieldAsColumn(*Field) string
 
-type DialectId int
+	ReplacePlaceholders(sql string) string
+	Placeholders(n int) string
+	String() string
+}
 
-const (
-	Sqlite   DialectId = iota
-	Postgres
-	Mysql
-)
+//-------------------------------------------------------------------------------------------------
+
+var AllDialects = []Dialect{Sqlite, Postgres, Mysql}
 
 var Dialects []string
 
 func init() {
-	Dialects = make([]string, len(AllDialectIds))
-	for i, d := range AllDialectIds {
+	Dialects = make([]string, len(AllDialects))
+	for i, d := range AllDialects {
 		Dialects[i] = d.String()
 	}
 }
 
-func New(dialect DialectId) SDialect {
-	switch dialect {
-	case Postgres:
-		return newPostgres()
-	case Mysql:
-		return newMySQL()
-	default:
-		return newSQLite()
-	}
-}
-
-func (f *Field) AsColumn(dialect DialectId) string {
-	switch dialect {
-	case Mysql:
-		return mysqlColumn(f)
-	case Postgres:
-		return postgresColumn(f)
-	case Sqlite:
-		return sqliteColumn(f)
-	}
-	panic(fmt.Errorf("%s is not implemented", dialect))
+func (f *Field) AsColumn(dialect Dialect) string {
+	return dialect.FieldAsColumn(f)
 }

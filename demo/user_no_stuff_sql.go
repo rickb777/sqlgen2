@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/schema"
 	"log"
 )
 
@@ -20,7 +21,7 @@ type V4UserTable struct {
 	Prefix, Name string
 	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      sqlgen2.Dialect
+	Dialect      schema.Dialect
 	Logger       *log.Logger
 }
 
@@ -30,7 +31,7 @@ var _ sqlgen2.Table = &V4UserTable{}
 // NewV4UserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewV4UserTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) V4UserTable {
+func NewV4UserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) V4UserTable {
 	if name == "" {
 		name = V4UserTableName
 	}

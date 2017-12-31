@@ -2,7 +2,6 @@ package code
 
 import (
 	"io"
-	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/sqlgen/output"
 	"fmt"
@@ -43,22 +42,22 @@ func WriteInsertFunc(w io.Writer, view View) {
 
 	tableName := view.Prefix + view.Table.Type
 	fmt.Fprintf(w, constStringWithTicks,
-		identifier("sqlInsert", tableName, "Simple"), schema.New(schema.Sqlite).Insert(view.Table))
+		identifier("sqlInsert", tableName, "Simple"), schema.Sqlite.InsertDML(view.Table))
 
 	fmt.Fprintf(w, constStringWithTicks,
-		identifier("sqlInsert", tableName, "Postgres"), schema.New(schema.Postgres).Insert(view.Table))
+		identifier("sqlInsert", tableName, "Postgres"), schema.Postgres.InsertDML(view.Table))
 
 	//fmt.Fprintf(w, constStringQ,
 	//	identifier("s", tableName, "ColumnParamsSimple"), sqlgen2.Sqlite.Placeholders(table.NumColumnNames(true)))
 
 	fmt.Fprintf(w, constStringQ,
-		identifier("s", tableName, "DataColumnParamsSimple"), sqlgen2.Sqlite.Placeholders(view.Table.NumColumnNames(false)))
+		identifier("s", tableName, "DataColumnParamsSimple"), schema.Sqlite.Placeholders(view.Table.NumColumnNames(false)))
 
 	//fmt.Fprintf(w, constStringQ,
 	//	identifier("s", tableName, "ColumnParamsPostgres"), sqlgen2.Postgres.Placeholders(table.NumColumnNames(true)))
 
 	fmt.Fprintf(w, constStringQ,
-		identifier("s", tableName, "DataColumnParamsPostgres"), sqlgen2.Postgres.Placeholders(view.Table.NumColumnNames(false)))
+		identifier("s", tableName, "DataColumnParamsPostgres"), schema.Postgres.Placeholders(view.Table.NumColumnNames(false)))
 
 }
 
@@ -70,10 +69,10 @@ func WriteUpdateFunc(w io.Writer, view View) {
 
 		tableName := view.Prefix + view.Table.Type
 		fmt.Fprintf(w, constStringWithTicks,
-			identifier("sqlUpdate", tableName, "ByPkSimple"), schema.New(schema.Sqlite).Update(view.Table, []*schema.Field{view.Table.Primary}))
+			identifier("sqlUpdate", tableName, "ByPkSimple"), schema.Sqlite.UpdateDML(view.Table, []*schema.Field{view.Table.Primary}))
 
 		fmt.Fprintf(w, constStringWithTicks,
-			identifier("sqlUpdate", tableName, "ByPkPostgres"), schema.New(schema.Postgres).Update(view.Table, []*schema.Field{view.Table.Primary}))
+			identifier("sqlUpdate", tableName, "ByPkPostgres"), schema.Postgres.UpdateDML(view.Table, []*schema.Field{view.Table.Primary}))
 	}
 }
 

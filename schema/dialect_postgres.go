@@ -3,21 +3,21 @@ package schema
 import (
 	"fmt"
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	"bytes"
+	"strconv"
 )
 
-type posgres struct {
-	base
-}
+type postgres struct{}
 
-func newPostgres() SDialect {
-	d := &posgres{}
-	d.base.SDialect = d
-	return d
+var Postgres Dialect = postgres{}
+
+func (d postgres) String() string {
+	return "Postgres"
 }
 
 // https://www.postgresql.org/docs/9.5/static/datatype.html
 
-func postgresColumn(field *Field) string {
+func (dialect postgres) FieldAsColumn(field *Field) string {
 	switch field.Encode {
 	case ENCJSON:
 		return "json"
@@ -54,7 +54,7 @@ func postgresColumn(field *Field) string {
 		column = varchar(field.Tags.Size)
 	}
 
-	// posgres uses a special column type
+	// postgres uses a special column type
 	// for autoincrementing keys.
 	if field.Tags.Auto {
 		switch field.Type.Base {
@@ -72,6 +72,69 @@ func postgresColumn(field *Field) string {
 	return column
 }
 
-func (d *posgres) Param(i int) string {
+func (dialect postgres) TableDDL(t *TableDescription) string {
+	return baseTableDDL(t, dialect)
+}
+
+func (dialect postgres) IndexDDL(table *TableDescription, index *Index) string {
+	return baseIndexDDL(table, index)
+}
+
+func (dialect postgres) InsertDML(table *TableDescription) string {
+	return baseInsertDML(table)
+}
+
+func (dialect postgres) UpdateDML(table *TableDescription, fields []*Field) string {
+	return baseUpdateDML(table, fields, postgresParam)
+}
+
+func (dialect postgres) DeleteDML(table *TableDescription, fields []*Field) string {
+	return baseDeleteDML(table, fields, postgresParam)
+}
+
+func postgresParam(i int) string {
 	return fmt.Sprintf("$%d", i+1)
 }
+
+const postgresPlaceholders = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
+
+// Placeholders returns a string containing the requested number of placeholders
+// in the form used by PostgreSQL.
+func (dialect postgres) Placeholders(n int) string {
+	if n == 0 {
+		return ""
+	} else if n <= 9 {
+		return postgresPlaceholders[:n*3-1]
+	}
+	buf := bytes.NewBufferString(postgresPlaceholders)
+	for idx := 10; idx <= n; idx++ {
+		if idx > 1 {
+			buf.WriteByte(',')
+		}
+		buf.WriteByte('$')
+		buf.WriteString(strconv.Itoa(idx))
+	}
+	return buf.String()
+}
+
+// ReplacePlaceholders converts a string containing '?' placeholders to
+// the form used by PostgreSQL.
+func (dialect postgres) ReplacePlaceholders(sql string) string {
+	buf := &bytes.Buffer{}
+	idx := 1
+	for _, r := range sql {
+		if r == '?' {
+			buf.WriteByte('$')
+			buf.WriteString(strconv.Itoa(idx))
+			idx++
+		} else {
+			buf.WriteRune(r)
+		}
+	}
+	return buf.String()
+}
+
+func (dialect postgres) CreateTableSettings() string {
+	return ""
+}
+

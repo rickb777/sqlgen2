@@ -2,27 +2,12 @@ package schema
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"text/tabwriter"
 )
 
-type SDialect interface {
-	Table(*TableDescription, DialectId) string
-	Index(*TableDescription, *Index) string
-	Insert(*TableDescription) string
-	Update(*TableDescription, []*Field) string
-	Delete(*TableDescription, []*Field) string
-	Param(int) string
-	CreateTableSettings() string
-}
-
-type base struct {
-	SDialect SDialect
-}
-
 // Table returns a SQL statement to create the table.
-func (b *base) Table(t *TableDescription, did DialectId) string {
+func baseTableDDL(t *TableDescription, did Dialect) string {
 
 	// use a large default buffer size of so that
 	// the tabbing doesn't get prematurely flushed
@@ -53,71 +38,99 @@ func (b *base) Table(t *TableDescription, did DialectId) string {
 	return buf.String()
 }
 
-// Index returns a SQL statement to create the index.
-func (b *base) Index(table *TableDescription, index *Index) string {
-	var obj = "INDEX"
+// IndexDDL returns a SQL statement to create the index.
+func baseIndexDDL(table *TableDescription, index *Index) string {
+	w := &bytes.Buffer{}
+
+	w.WriteString("CREATE ")
 	if index.Unique {
-		obj = "UNIQUE INDEX"
+		w.WriteString("UNIQUE ")
 	}
-	return fmt.Sprintf("CREATE %s %%s%%s%s ON %%s%%s (%s)", obj, index.Name,
-		b.columns(index.Fields, true, true, false))
+	w.WriteString("INDEX %s%s")
+	w.WriteString(index.Name)
+	w.WriteString(" ON %s%s (")
+
+	comma := ""
+	for _, field := range index.Fields {
+		w.WriteString(comma)
+		w.WriteString(field.SqlName)
+		comma = ", "
+	}
+
+	w.WriteString(")")
+	return w.String()
 }
 
-func (b *base) Insert(t *TableDescription) string {
-	var fields []*Field
-	var params []string
-	var i int
+func baseInsertDML(t *TableDescription) string {
+	w := &bytes.Buffer{}
+	w.WriteString("INSERT INTO %s%s (")
 
+	comma := ""
 	for _, field := range t.Fields {
 		if !field.Tags.Auto {
-			fields = append(fields, field)
-			params = append(params, b.SDialect.Param(i))
-			i++
+			w.WriteString(comma)
+			w.WriteString("\n")
+			w.WriteString(fieldIndentation)
+			w.WriteString(field.SqlName)
+			comma = ", "
 		}
 	}
 
-	return fmt.Sprintf("INSERT INTO %%s%%s (%s\n) VALUES (%%s)",
-		b.columns(fields, false, false, false))
+	w.WriteString("\n) VALUES (%s)")
+	return w.String()
 }
 
-func (b *base) Update(t *TableDescription, fields []*Field) string {
-	return fmt.Sprintf("UPDATE %%s%%s SET %s %s",
-		b.columns(t.Fields, false, false, true),
-		b.whereClause(fields, len(t.Fields)))
+func baseUpdateDML(t *TableDescription, fields []*Field, param func(int) string) string {
+	w := &bytes.Buffer{}
+	w.WriteString("UPDATE %%s%%s SET ")
+
+	comma := ""
+	for i, field := range fields {
+		if !field.Tags.Auto {
+			w.WriteString(comma)
+			w.WriteString("\n")
+			w.WriteString(fieldIndentation)
+			w.WriteString(field.SqlName)
+			w.WriteString("=")
+			w.WriteString(param(i + 1))
+			comma = ", "
+		}
+	}
+
+	w.WriteString(baseWhereClause(fields, len(t.Fields), param))
+	return w.String()
 }
 
-func (b *base) Delete(t *TableDescription, fields []*Field) string {
-	return fmt.Sprintf("DELETE FROM %%s%%s%s",
-		b.whereClause(fields, 0))
+func baseDeleteDML(t *TableDescription, fields []*Field, param func(int) string) string {
+	w := &bytes.Buffer{}
+	w.WriteString("DELETE FROM %s%s")
+	w.WriteString(baseWhereClause(fields, 0, param))
+	return w.String()
 }
 
 // Param returns the parameters symbol used in prepared sql statements.
-func (b *base) Param(i int) string {
+func baseParam(i int) string {
 	return "?"
 }
 
-// helper function to generate a block of columns. You
-// can optionally generate in inline list of columns,
-// include an assignment operator, and include column
-// definitions.
-func (b *base) columns(fields []*Field, withAuto, inline, assign bool) string {
+func baseColumns(fields []*Field, withAuto, inline, assign bool, param func(int) string) string {
 	w := &bytes.Buffer{}
 	comma := ""
 	for i, field := range fields {
 		if withAuto || !field.Tags.Auto {
-			io.WriteString(w, comma)
+			w.WriteString(comma)
 			comma = ", "
 
 			if !inline {
-				io.WriteString(w, "\n")
-				io.WriteString(w, fieldIndentation)
+				w.WriteString("\n")
+				w.WriteString(fieldIndentation)
 			}
 
-			io.WriteString(w, field.SqlName)
+			w.WriteString(field.SqlName)
 
 			if assign {
-				io.WriteString(w, "=")
-				io.WriteString(w, b.SDialect.Param(i))
+				w.WriteString("=")
+				w.WriteString(param(i + 1))
 			}
 		}
 	}
@@ -128,7 +141,7 @@ const fieldIndentation = "\t"
 
 // helper function to generate the Where clause
 // section of a SQL statement
-func (b *base) whereClause(fields []*Field, pos int) string {
+func baseWhereClause(fields []*Field, pos int, param func(int) string) string {
 	var buf bytes.Buffer
 
 	var i int
@@ -144,13 +157,13 @@ func (b *base) whereClause(fields []*Field, pos int) string {
 		buf.WriteString(" ")
 		buf.WriteString(field.SqlName)
 		buf.WriteString("=")
-		buf.WriteString(b.SDialect.Param(i + pos))
+		buf.WriteString(param(i + pos))
 
 		i++
 	}
 	return buf.String()
 }
 
-func (b *base) CreateTableSettings() string {
-	return ""
-}
+//func (b *base) CreateTableSettings() string {
+//	return ""
+//}

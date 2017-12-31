@@ -29,8 +29,6 @@ func WritePackage(w io.Writer, name string) {
 // writeSchema writes SQL statements to CREATE, INSERT,
 // UPDATE and DELETE values from Table t.
 func WriteSchema(w io.Writer, view View) {
-	sqlite := schema.New(schema.Sqlite)
-
 	tableName := view.Prefix + view.Table.Type
 
 	fmt.Fprintln(w, sectionBreak)
@@ -51,13 +49,12 @@ func WriteSchema(w io.Writer, view View) {
 
 	writeCreateTableFunc(w, view)
 
-	for _, did := range schema.AllDialectIds {
-		d := schema.New(did)
-		ds := did.String()
+	for _, d := range schema.AllDialects {
+		ds := d.String()
 
 		fmt.Fprintf(w, constStringWithTicks,
 			identifier("sqlCreate", tableName, "Table"+ds),
-			"CREATE TABLE %s%s%s ("+d.Table(view.Table, did)+"\n)"+d.CreateTableSettings())
+			"CREATE TABLE %s%s%s ("+d.TableDDL(view.Table)+"\n)"+d.CreateTableSettings())
 	}
 
 	if len(view.Table.Index) > 0 {
@@ -67,7 +64,7 @@ func WriteSchema(w io.Writer, view View) {
 
 		for _, ix := range view.Table.Index {
 			fmt.Fprintf(w, constStringWithTicks,
-				identifier("sqlCreate"+view.Prefix, ix.Name, "Index"), sqlite.Index(view.Table, ix))
+				identifier("sqlCreate"+view.Prefix, ix.Name, "Index"), schema.Sqlite.IndexDDL(view.Table, ix))
 		}
 	}
 }

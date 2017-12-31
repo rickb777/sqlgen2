@@ -3,8 +3,8 @@ package where_test
 import (
 	"reflect"
 	"testing"
-	"github.com/rickb777/sqlgen2"
 	. "github.com/rickb777/sqlgen2/where"
+	"github.com/rickb777/sqlgen2/schema"
 )
 
 func TestBuildWhereClause_happyCases(t *testing.T) {
@@ -212,7 +212,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		sql, args := c.wh.Build(sqlgen2.Mysql)
+		sql, args := c.wh.Build(schema.Mysql)
 
 		if sql != c.expMysql {
 			t.Errorf("%d Mysql: Wanted %s\nGot %s", i, c.expMysql, sql)
@@ -222,7 +222,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			t.Errorf("%d Mysql: Wanted %v\nGot %v", i, c.args, args)
 		}
 
-		sql, args = c.wh.Build(sqlgen2.Postgres)
+		sql, args = c.wh.Build(schema.Postgres)
 
 		if sql != c.expPostgres {
 			t.Errorf("%d Postgres: Wanted %s\nGot %s", i, c.expPostgres, sql)

@@ -21,7 +21,7 @@ type {{.Prefix}}{{.Type}}Table struct {
 	Prefix, Name string
 	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      sqlgen2.Dialect
+	Dialect      schema.Dialect
 	Logger       *log.Logger
 }
 
@@ -31,7 +31,7 @@ var _ sqlgen2.Table = &{{.Prefix}}{{.Type}}Table{}
 // New{{.Prefix}}{{.Type}}Table returns a new table instance.
 // If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func New{{.Prefix}}{{.Type}}Table(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) {{.Prefix}}{{.Type}}Table {
+func New{{.Prefix}}{{.Type}}Table(name string, d sqlgen2.Execer, dialect schema.Dialect) {{.Prefix}}{{.Type}}Table {
 	if name == "" {
 		name = {{.Prefix}}{{.Type}}TableName
 	}
@@ -267,7 +267,7 @@ const sInsertAndGetLastId = `
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case sqlgen2.Postgres:
+	case schema.Postgres:
 		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsPostgres
 	default:
@@ -325,7 +325,7 @@ const sInsertSimple = `
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case sqlgen2.Postgres:
+	case schema.Postgres:
 		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsPostgres
 	default:
@@ -388,7 +388,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) updateFields(where where.Expression, fields
 func (tbl {{.Prefix}}{{.Type}}Table) Update(vv ...*{{.Type}}) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case sqlgen2.Postgres:
+	case schema.Postgres:
 		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkPostgres
 	default:
 		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkSimple
@@ -472,7 +472,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
 	{{range .Dialects -}}
-	case sqlgen2.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$.Type}}Table{{.}}
+	case schema.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$.Type}}Table{{.}}
     {{end -}}
 	}
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")

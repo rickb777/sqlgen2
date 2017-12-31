@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
 	"strings"
@@ -23,7 +24,7 @@ type IssueTable struct {
 	Prefix, Name string
 	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      sqlgen2.Dialect
+	Dialect      schema.Dialect
 	Logger       *log.Logger
 }
 
@@ -33,7 +34,7 @@ var _ sqlgen2.Table = &IssueTable{}
 // NewIssueTable returns a new table instance.
 // If a blank table name is supplied, the default name "issues" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewIssueTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) IssueTable {
+func NewIssueTable(name string, d sqlgen2.Execer, dialect schema.Dialect) IssueTable {
 	if name == "" {
 		name = IssueTableName
 	}
@@ -120,9 +121,9 @@ func (tbl IssueTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl IssueTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case sqlgen2.Sqlite: stmt = sqlCreateIssueTableSqlite
-    case sqlgen2.Postgres: stmt = sqlCreateIssueTablePostgres
-    case sqlgen2.Mysql: stmt = sqlCreateIssueTableMysql
+	case schema.Sqlite: stmt = sqlCreateIssueTableSqlite
+    case schema.Postgres: stmt = sqlCreateIssueTablePostgres
+    case schema.Mysql: stmt = sqlCreateIssueTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
@@ -305,7 +306,7 @@ const IssueColumnNames = "id, number, date, title, bigbody, assignee, state, lab
 func (tbl IssueTable) Insert(vv ...*Issue) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case sqlgen2.Postgres:
+	case schema.Postgres:
 		stmt = sqlInsertIssuePostgres
 		params = sIssueDataColumnParamsPostgres
 	default:
@@ -396,7 +397,7 @@ func (tbl IssueTable) updateFields(where where.Expression, fields ...sql.NamedAr
 func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case sqlgen2.Postgres:
+	case schema.Postgres:
 		stmt = sqlUpdateIssueByPkPostgres
 	default:
 		stmt = sqlUpdateIssueByPkSimple
@@ -428,26 +429,12 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 }
 
 const sqlUpdateIssueByPkSimple = `
-UPDATE %s%s SET 
-	number=?, 
-	date=?, 
-	title=?, 
-	bigbody=?, 
-	assignee=?, 
-	state=?, 
-	labels=? 
+UPDATE %%s%%s SET 
  WHERE id=?
 `
 
 const sqlUpdateIssueByPkPostgres = `
-UPDATE %s%s SET 
-	number=$2, 
-	date=$3, 
-	title=$4, 
-	bigbody=$5, 
-	assignee=$6, 
-	state=$7, 
-	labels=$8 
+UPDATE %%s%%s SET 
  WHERE id=$9
 `
 

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"github.com/rickb777/sqlgen2/schema"
 )
 
 // Named creates NamedArg values; it is synonymous with sql.Named().
@@ -97,10 +98,10 @@ func (list NamedArgList) Values() []interface{} {
 }
 
 // Assignments gets the assignment expressions.
-func (list NamedArgList) Assignments(d Dialect, from int) []string {
+func (list NamedArgList) Assignments(d schema.Dialect, from int) []string {
 	ss := make([]string, len(list))
 	switch d {
-	case Postgres:
+	case schema.Postgres:
 		for i, v := range list {
 			ss[i] = fmt.Sprintf("%s=$%d", v.Name, i+from)
 		}

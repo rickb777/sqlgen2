@@ -38,9 +38,9 @@ func (tbl XExampleTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl XExampleTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case sqlgen2.Sqlite: stmt = sqlCreateXExampleTableSqlite
-    case sqlgen2.Postgres: stmt = sqlCreateXExampleTablePostgres
-    case sqlgen2.Mysql: stmt = sqlCreateXExampleTableMysql
+	case schema.Sqlite: stmt = sqlCreateXExampleTableSqlite
+    case schema.Postgres: stmt = sqlCreateXExampleTablePostgres
+    case schema.Mysql: stmt = sqlCreateXExampleTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)

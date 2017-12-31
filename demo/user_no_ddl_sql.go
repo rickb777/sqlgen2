@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
 	"strings"
@@ -23,7 +24,7 @@ type V2UserTable struct {
 	Prefix, Name string
 	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      sqlgen2.Dialect
+	Dialect      schema.Dialect
 	Logger       *log.Logger
 }
 
@@ -33,7 +34,7 @@ var _ sqlgen2.Table = &V2UserTable{}
 // NewV2UserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewV2UserTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) V2UserTable {
+func NewV2UserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) V2UserTable {
 	if name == "" {
 		name = V2UserTableName
 	}
@@ -189,7 +190,7 @@ const V2UserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave
 func (tbl V2UserTable) Insert(vv ...*User) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case sqlgen2.Postgres:
+	case schema.Postgres:
 		stmt = sqlInsertV2UserPostgres
 		params = sV2UserDataColumnParamsPostgres
 	default:
@@ -286,7 +287,7 @@ func (tbl V2UserTable) updateFields(where where.Expression, fields ...sql.NamedA
 func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case sqlgen2.Postgres:
+	case schema.Postgres:
 		stmt = sqlUpdateV2UserByPkPostgres
 	default:
 		stmt = sqlUpdateV2UserByPkSimple
@@ -318,32 +319,12 @@ func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 }
 
 const sqlUpdateV2UserByPkSimple = `
-UPDATE %s%s SET 
-	login=?, 
-	emailaddress=?, 
-	avatar=?, 
-	active=?, 
-	admin=?, 
-	fave=?, 
-	lastupdated=?, 
-	token=?, 
-	secret=?, 
-	hash=? 
+UPDATE %%s%%s SET 
  WHERE uid=?
 `
 
 const sqlUpdateV2UserByPkPostgres = `
-UPDATE %s%s SET 
-	login=$2, 
-	emailaddress=$3, 
-	avatar=$4, 
-	active=$5, 
-	admin=$6, 
-	fave=$7, 
-	lastupdated=$8, 
-	token=$9, 
-	secret=$10, 
-	hash=$11 
+UPDATE %%s%%s SET 
  WHERE uid=$12
 `
 

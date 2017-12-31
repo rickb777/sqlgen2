@@ -3,25 +3,20 @@ package schema
 import (
 	"fmt"
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	"strings"
 )
 
-type mysql struct {
-	base
-}
+type mysql struct{}
 
-func newMySQL() SDialect {
-	d := &mysql{}
-	d.base.SDialect = d
-	return d
-}
+var Mysql Dialect = mysql{}
 
-func (d *mysql) CreateTableSettings() string {
-	return " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+func (d mysql) String() string {
+	return "Mysql"
 }
 
 // see https://dev.mysql.com/doc/refman/5.7/en/data-types.html
 
-func mysqlColumn(field *Field) string {
+func (dialect mysql) FieldAsColumn(field *Field) string {
 	switch field.Encode {
 	case ENCJSON:
 		return "json"
@@ -79,3 +74,56 @@ func varchar(size int) string {
 }
 
 // see https://dev.mysql.com/doc/refman/5.7/en/integer-types.html
+
+const mysqlPlaceholders = "?,?,?,?,?,?,?,?,?,?"
+
+func queryPlaceholders(n int) string {
+	if n == 0 {
+		return ""
+	} else if n <= 10 {
+		m := (n * 2) - 1
+		return mysqlPlaceholders[:m]
+	}
+	return strings.Repeat("?,", n-1) + "?"
+}
+
+func paramIsQuery(i int) string {
+	return "?"
+}
+
+func (dialect mysql) TableDDL(t *TableDescription) string {
+	return baseTableDDL(t, dialect)
+}
+
+func (dialect mysql) IndexDDL(table *TableDescription, index *Index) string {
+	return baseIndexDDL(table, index)
+}
+
+func (dialect mysql) InsertDML(table *TableDescription) string {
+	return baseInsertDML(table)
+}
+
+func (dialect mysql) UpdateDML(table *TableDescription, fields []*Field) string {
+	return baseUpdateDML(table, fields, paramIsQuery)
+}
+
+func (dialect mysql) DeleteDML(table *TableDescription, fields []*Field) string {
+	return baseDeleteDML(table, fields, paramIsQuery)
+}
+
+// Placeholders returns a string containing the requested number of placeholders
+// in the form used by MySQL and SQLite.
+func (dialect mysql) Placeholders(n int) string {
+	return queryPlaceholders(n)
+}
+
+// ReplacePlaceholders converts a string containing '?' placeholders to
+// the form used by MySQL and SQLite - i.e. unchanged.
+func (dialect mysql) ReplacePlaceholders(sql string) string {
+	return sql
+}
+
+func (dialect mysql) CreateTableSettings() string {
+	return " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+}
+

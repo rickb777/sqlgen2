@@ -99,6 +99,7 @@ func packagesToImport(genFuncs, genSchema, hasPrimaryKey bool) StringSet {
 		"database/sql",
 		"log",
 		"github.com/rickb777/sqlgen2",
+		"github.com/rickb777/sqlgen2/schema",
 	)
 
 	if genFuncs || genSchema {

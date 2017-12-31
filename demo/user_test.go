@@ -11,6 +11,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"syscall"
+	"github.com/rickb777/sqlgen2/schema"
 )
 
 const dbDriver = "sqlite3"
@@ -35,7 +36,7 @@ func cleanup() {
 }
 
 func TestCreateTable_postgres(t *testing.T) {
-	tbl := NewDbUserTable("users", nil, sqlgen2.Postgres).WithPrefix("prefix_")
+	tbl := NewDbUserTable("users", nil, schema.Postgres).WithPrefix("prefix_")
 	sql := tbl.createTableSql(true)
 	expected := `
 CREATE TABLE IF NOT EXISTS prefix_users (
@@ -58,7 +59,7 @@ CREATE TABLE IF NOT EXISTS prefix_users (
 }
 
 func TestCreateIndexSql(t *testing.T) {
-	tbl := NewDbUserTable("users", nil, sqlgen2.Postgres).WithPrefix("prefix_")
+	tbl := NewDbUserTable("users", nil, schema.Postgres).WithPrefix("prefix_")
 	sql := tbl.createDbUserEmailIndexSql("IF NOT EXISTS ")
 	expected := `
 CREATE UNIQUE INDEX IF NOT EXISTS prefix_user_email ON prefix_users (emailaddress)
@@ -70,11 +71,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS prefix_user_email ON prefix_users (emailaddres
 
 func TestUpdateFieldsSql(t *testing.T) {
 	cases := []struct {
-		d        sqlgen2.Dialect
+		d        schema.Dialect
 		expected string
 	}{
-		{sqlgen2.Mysql, `UPDATE prefix_users SET EmailAddress=?, Hash=? WHERE EmailAddress ISNULL`},
-		{sqlgen2.Postgres, `UPDATE prefix_users SET EmailAddress=$1, Hash=$2 WHERE EmailAddress ISNULL`},
+		{schema.Sqlite, `UPDATE prefix_users SET EmailAddress=?, Hash=? WHERE EmailAddress ISNULL`},
+		{schema.Mysql, `UPDATE prefix_users SET EmailAddress=?, Hash=? WHERE EmailAddress ISNULL`},
+		{schema.Postgres, `UPDATE prefix_users SET EmailAddress=$1, Hash=$2 WHERE EmailAddress ISNULL`},
 	}
 
 	for _, c := range cases {
@@ -95,7 +97,7 @@ func TestUpdateFieldsSql(t *testing.T) {
 func TestUpdateFields_ok(t *testing.T) {
 	mockDb := mockExecer{RowsAffected: 1}
 
-	tbl := NewDbUserTable("users", mockDb, sqlgen2.Mysql)
+	tbl := NewDbUserTable("users", mockDb, schema.Mysql)
 
 	n, err := tbl.UpdateFields(where.NoOp(),
 		sqlgen2.Named("EmailAddress", "foo@x.com"),
@@ -112,7 +114,7 @@ func TestUpdateFields_error(t *testing.T) {
 	exp := fmt.Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
-	tbl := NewDbUserTable("users", mockDb, sqlgen2.Mysql)
+	tbl := NewDbUserTable("users", mockDb, schema.Mysql)
 
 	_, err := tbl.UpdateFields(where.NoOp(),
 		sqlgen2.Named("EmailAddress", "foo@x.com"),
@@ -126,7 +128,7 @@ func TestUpdateFields_error(t *testing.T) {
 func TestUpdate_ok(t *testing.T) {
 	mockDb := mockExecer{RowsAffected: 1}
 
-	tbl := NewDbUserTable("users", mockDb, sqlgen2.Mysql)
+	tbl := NewDbUserTable("users", mockDb, schema.Mysql)
 
 	n, err := tbl.Update(&User{})
 
@@ -141,7 +143,7 @@ func TestUpdate_error(t *testing.T) {
 	exp := fmt.Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
-	tbl := NewDbUserTable("users", mockDb, sqlgen2.Mysql)
+	tbl := NewDbUserTable("users", mockDb, schema.Mysql)
 
 	_, err := tbl.Update(&User{})
 
@@ -155,7 +157,7 @@ func TestUpdate_error(t *testing.T) {
 func TestCrudUsingSqlite(t *testing.T) {
 	defer cleanup()
 
-	tbl := NewDbUserTable("users", connect(), sqlgen2.Mysql)
+	tbl := NewDbUserTable("users", connect(), schema.Sqlite)
 
 	err := tbl.CreateTableWithIndexes(false)
 	if err != nil {

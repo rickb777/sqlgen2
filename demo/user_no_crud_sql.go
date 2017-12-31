@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/schema"
 	"log"
 )
 
@@ -21,7 +22,7 @@ type V3UserTable struct {
 	Prefix, Name string
 	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      sqlgen2.Dialect
+	Dialect      schema.Dialect
 	Logger       *log.Logger
 }
 
@@ -31,7 +32,7 @@ var _ sqlgen2.Table = &V3UserTable{}
 // NewV3UserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewV3UserTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) V3UserTable {
+func NewV3UserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) V3UserTable {
 	if name == "" {
 		name = V3UserTableName
 	}
@@ -118,9 +119,9 @@ func (tbl V3UserTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl V3UserTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case sqlgen2.Sqlite: stmt = sqlCreateV3UserTableSqlite
-    case sqlgen2.Postgres: stmt = sqlCreateV3UserTablePostgres
-    case sqlgen2.Mysql: stmt = sqlCreateV3UserTableMysql
+	case schema.Sqlite: stmt = sqlCreateV3UserTableSqlite
+    case schema.Postgres: stmt = sqlCreateV3UserTablePostgres
+    case schema.Mysql: stmt = sqlCreateV3UserTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
@@ -187,12 +188,12 @@ CREATE TABLE %s%s%s (
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-	_, err = tbl.Exec(tbl.createV3UserEmailIndexSql(extra))
+	_, err = tbl.Exec(tbl.createV3UserLoginIndexSql(extra))
 	if err != nil {
 		return err
 	}
 
-	_, err = tbl.Exec(tbl.createV3UserLoginIndexSql(extra))
+	_, err = tbl.Exec(tbl.createV3UserEmailIndexSql(extra))
 	if err != nil {
 		return err
 	}
@@ -208,14 +209,14 @@ func (tbl V3UserTable) prefixWithoutDot() string {
 	return tbl.Prefix
 }
 
-func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf(sqlCreateV3UserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
-}
-
 func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf(sqlCreateV3UserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+}
+
+func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf(sqlCreateV3UserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
 }
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
@@ -229,12 +230,12 @@ func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateV3UserEmailIndex = `
-CREATE UNIQUE INDEX %s%suser_email ON %s%s (emailaddress)
-`
-
 const sqlCreateV3UserLoginIndex = `
 CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
+`
+
+const sqlCreateV3UserEmailIndex = `
+CREATE UNIQUE INDEX %s%suser_email ON %s%s (emailaddress)
 `
 
 //--------------------------------------------------------------------------------

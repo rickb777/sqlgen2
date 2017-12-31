@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
 	"strings"
@@ -22,7 +23,7 @@ type HookTable struct {
 	Prefix, Name string
 	Db           sqlgen2.Execer
 	Ctx          context.Context
-	Dialect      sqlgen2.Dialect
+	Dialect      schema.Dialect
 	Logger       *log.Logger
 }
 
@@ -32,7 +33,7 @@ var _ sqlgen2.Table = &HookTable{}
 // NewHookTable returns a new table instance.
 // If a blank table name is supplied, the default name "hooks" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewHookTable(name string, d sqlgen2.Execer, dialect sqlgen2.Dialect) HookTable {
+func NewHookTable(name string, d sqlgen2.Execer, dialect schema.Dialect) HookTable {
 	if name == "" {
 		name = HookTableName
 	}
@@ -119,9 +120,9 @@ func (tbl HookTable) CreateTable(ifNotExist bool) (int64, error) {
 func (tbl HookTable) createTableSql(ifNotExist bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case sqlgen2.Sqlite: stmt = sqlCreateHookTableSqlite
-    case sqlgen2.Postgres: stmt = sqlCreateHookTablePostgres
-    case sqlgen2.Mysql: stmt = sqlCreateHookTableMysql
+	case schema.Sqlite: stmt = sqlCreateHookTableSqlite
+    case schema.Postgres: stmt = sqlCreateHookTablePostgres
+    case schema.Mysql: stmt = sqlCreateHookTableMysql
     }
 	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
@@ -290,7 +291,7 @@ const HookColumnNames = "id, sha, after, before, category, created, deleted, for
 func (tbl HookTable) Insert(vv ...*Hook) error {
 	var stmt, params string
 	switch tbl.Dialect {
-	case sqlgen2.Postgres:
+	case schema.Postgres:
 		stmt = sqlInsertHookPostgres
 		params = sHookDataColumnParamsPostgres
 	default:
@@ -399,7 +400,7 @@ func (tbl HookTable) updateFields(where where.Expression, fields ...sql.NamedArg
 func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
-	case sqlgen2.Postgres:
+	case schema.Postgres:
 		stmt = sqlUpdateHookByPkPostgres
 	default:
 		stmt = sqlUpdateHookByPkSimple
@@ -431,44 +432,12 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 }
 
 const sqlUpdateHookByPkSimple = `
-UPDATE %s%s SET 
-	sha=?, 
-	after=?, 
-	before=?, 
-	category=?, 
-	created=?, 
-	deleted=?, 
-	forced=?, 
-	commit_id=?, 
-	message=?, 
-	timestamp=?, 
-	head_commit_author_name=?, 
-	head_commit_author_email=?, 
-	head_commit_author_username=?, 
-	head_commit_committer_name=?, 
-	head_commit_committer_email=?, 
-	head_commit_committer_username=? 
+UPDATE %%s%%s SET 
  WHERE id=?
 `
 
 const sqlUpdateHookByPkPostgres = `
-UPDATE %s%s SET 
-	sha=$2, 
-	after=$3, 
-	before=$4, 
-	category=$5, 
-	created=$6, 
-	deleted=$7, 
-	forced=$8, 
-	commit_id=$9, 
-	message=$10, 
-	timestamp=$11, 
-	head_commit_author_name=$12, 
-	head_commit_author_email=$13, 
-	head_commit_author_username=$14, 
-	head_commit_committer_name=$15, 
-	head_commit_committer_email=$16, 
-	head_commit_committer_username=$17 
+UPDATE %%s%%s SET 
  WHERE id=$18
 `
 
