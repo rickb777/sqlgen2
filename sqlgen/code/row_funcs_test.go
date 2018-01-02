@@ -19,7 +19,7 @@ func fixtureTable() *TableDescription {
 	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
 	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
 	avatar := &Field{Node{"Avatar", Type{"", "", "[]byte", Slice}, nil}, "avatar", ENCNONE, Tag{}}
-	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", ENCTEXT, Tag{Encode: "text"}}
+	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", ENCTEXT, Tag{Size: 100, Encode: "text"}}
 
 	icat := &Index{"catIdx", false, []*Field{category}}
 	iname := &Index{"nameIdx", true, []*Field{name}}

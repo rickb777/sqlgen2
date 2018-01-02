@@ -76,7 +76,7 @@ CREATE TABLE %s%s%s (
  labels   json,
  fave     json,
  avatar   byteaa,
- updated  varchar(255)
+ updated  varchar(100)
 )
 |
 
@@ -89,7 +89,7 @@ CREATE TABLE %s%s%s (
  labels   json,
  fave     json,
  avatar   mediumblob,
- updated  varchar(size: 255)
+ updated  varchar(100)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 |
 
