@@ -195,11 +195,6 @@ CREATE TABLE %s%s%s (
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	if ifNotExist && tbl.Dialect == schema.Mysql {
-		// Mysql workaround: use Drop Index first and ignore an error returned if the index didn't exist.
-		tbl.DropIndexes(false)
-	}
-
 	_, err = tbl.CreateTable(ifNotExist)
 	if err != nil {
 		return err
@@ -210,9 +205,16 @@ func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
+	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
-	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+
+	if ifNotExist && tbl.Dialect == schema.Mysql {
+		tbl.DropIndexes(false)
+		ine = ""
+	}
+
 	_, err = tbl.Exec(tbl.createV3UserLoginIndexSql(ine))
 	if err != nil {
 		return err

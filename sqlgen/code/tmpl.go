@@ -501,11 +501,6 @@ var tCreateTableFunc = template.Must(template.New("CreateTable").Funcs(funcMap).
 const sCreateIndexesFunc = `
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 func (tbl {{.Prefix}}{{.Type}}Table) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	if ifNotExist && tbl.Dialect == schema.Mysql {
-		// Mysql workaround: use Drop Index first and ignore an error returned if the index didn't exist.
-		tbl.DropIndexes(false)
-	}
-
 	_, err = tbl.CreateTable(ifNotExist)
 	if err != nil {
 		return err
@@ -517,10 +512,16 @@ func (tbl {{.Prefix}}{{.Type}}Table) CreateTableWithIndexes(ifNotExist bool) (er
 // CreateIndexes executes queries that create the indexes needed by the {{.Type}} table.
 func (tbl {{.Prefix}}{{.Type}}Table) CreateIndexes(ifNotExist bool) (err error) {
 	{{if gt (len .Table.Index) 0 -}}
+	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
-	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
-{{- end -}}
+
+	if ifNotExist && tbl.Dialect == schema.Mysql {
+		tbl.DropIndexes(false)
+		ine = ""
+	}
+{{end -}}
 {{range .Table.Index}}
 	_, err = tbl.Exec(tbl.create{{$.Prefix}}{{camel .Name}}IndexSql(ine))
 	if err != nil {
