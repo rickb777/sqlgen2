@@ -67,12 +67,12 @@ func (dialect sqlite) FieldAsColumn(field *Field) string {
 	return column
 }
 
-func (dialect sqlite) TableDDL(t *TableDescription) string {
-	return baseTableDDL(t, dialect)
+func (dialect sqlite) TableDDL(table *TableDescription) string {
+	return baseTableDDL(table, dialect)
 }
 
 func (dialect sqlite) IndexDDL(table *TableDescription, index *Index) string {
-	return baseIndexDDL(table, index)
+	return baseIndexDDL(index)
 }
 
 func (dialect sqlite) InsertDML(table *TableDescription) string {

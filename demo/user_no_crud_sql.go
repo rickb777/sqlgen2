@@ -68,6 +68,14 @@ func (tbl V3UserTable) FullName() string {
 	return tbl.Prefix + tbl.Name
 }
 
+func (tbl V3UserTable) prefixWithoutDot() string {
+	last := len(tbl.Prefix)-1
+	if last > 0 && tbl.Prefix[last] == '.' {
+		return tbl.Prefix[0:last]
+	}
+	return tbl.Prefix
+}
+
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl V3UserTable) DB() *sql.DB {
@@ -185,15 +193,32 @@ CREATE TABLE %s%s%s (
 
 //--------------------------------------------------------------------------------
 
-// CreateIndexes executes queries that create the indexes needed by the User table.
-func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-	_, err = tbl.Exec(tbl.createV3UserLoginIndexSql(extra))
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	if ifNotExist && tbl.Dialect == schema.Mysql {
+		// Mysql workaround: use Drop Index first and ignore an error returned if the index didn't exist.
+		tbl.DropIndexes(false)
+	}
+
+	_, err = tbl.CreateTable(ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	_, err = tbl.Exec(tbl.createV3UserEmailIndexSql(extra))
+	return tbl.CreateIndexes(ifNotExist)
+}
+
+// CreateIndexes executes queries that create the indexes needed by the User table.
+func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+	_, err = tbl.Exec(tbl.createV3UserLoginIndexSql(ine))
+	if err != nil {
+		return err
+	}
+
+	_, err = tbl.Exec(tbl.createV3UserEmailIndexSql(ine))
 	if err != nil {
 		return err
 	}
@@ -201,42 +226,52 @@ func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
-func (tbl V3UserTable) prefixWithoutDot() string {
-	last := len(tbl.Prefix)-1
-	if last > 0 && tbl.Prefix[last] == '.' {
-		return tbl.Prefix[0:last]
-	}
-	return tbl.Prefix
-}
-
-func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExist string) string {
+func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf(sqlCreateV3UserLoginIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.Prefix, tbl.Name, sqlV3UserLoginIndexColumns)
 }
 
-func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExist string) string {
+func (tbl V3UserTable) dropV3UserLoginIndexSql(ifExists, onTbl string) string {
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf(sqlCreateV3UserEmailIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ifExists, indexPrefix, tbl.Prefix, tbl.Name, onTbl)
 }
 
-// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ifNotExist)
+func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExists string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.Prefix, tbl.Name, sqlV3UserEmailIndexColumns)
+}
+
+func (tbl V3UserTable) dropV3UserEmailIndexSql(ifExists, onTbl string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ifExists, indexPrefix, tbl.Prefix, tbl.Name, onTbl)
+}
+
+// DropIndexes executes queries that drops the indexes on by the User table.
+func (tbl V3UserTable) DropIndexes(ifExist bool) (err error) {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
+
+	_, err = tbl.Exec(tbl.dropV3UserLoginIndexSql(ie, onTbl))
 	if err != nil {
 		return err
 	}
-	return tbl.CreateIndexes(ifNotExist)
+
+	_, err = tbl.Exec(tbl.dropV3UserEmailIndexSql(ie, onTbl))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateV3UserLoginIndex = `
-CREATE UNIQUE INDEX %s%suser_login ON %s%s (login)
-`
+const sqlV3UserLoginIndexColumns = "login"
 
-const sqlCreateV3UserEmailIndex = `
-CREATE UNIQUE INDEX %s%suser_email ON %s%s (emailaddress)
-`
+const sqlV3UserEmailIndexColumns = "emailaddress"
 
 //--------------------------------------------------------------------------------
 

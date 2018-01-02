@@ -39,16 +39,20 @@ func baseTableDDL(t *TableDescription, did Dialect) string {
 }
 
 // IndexDDL returns a SQL statement to create the index.
-func baseIndexDDL(table *TableDescription, index *Index) string {
+func baseIndexDDL(index *Index) string {
 	w := &bytes.Buffer{}
 
-	w.WriteString("CREATE ")
-	if index.Unique {
-		w.WriteString("UNIQUE ")
-	}
-	w.WriteString("INDEX %s%s")
-	w.WriteString(index.Name)
-	w.WriteString(" ON %s%s (")
+	//if create {
+	//	w.WriteString("CREATE ")
+	//	if index.Unique {
+	//		w.WriteString("UNIQUE ")
+	//	}
+	//} else {
+	//	w.WriteString("DROP ")
+	//}
+	//w.WriteString("INDEX %s%s")
+	//w.WriteString(index.Name)
+	//w.WriteString(" ON %s%s (")
 
 	comma := ""
 	for _, field := range index.Fields {
@@ -57,7 +61,7 @@ func baseIndexDDL(table *TableDescription, index *Index) string {
 		comma = ", "
 	}
 
-	w.WriteString(")")
+	//w.WriteString(")")
 	return w.String()
 }
 

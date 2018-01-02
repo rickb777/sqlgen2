@@ -67,6 +67,14 @@ func (tbl {{.Prefix}}{{.Type}}Table) FullName() string {
 	return tbl.Prefix + tbl.Name
 }
 
+func (tbl {{.Prefix}}{{.Type}}Table) prefixWithoutDot() string {
+	last := len(tbl.Prefix)-1
+	if last > 0 && tbl.Prefix[last] == '.' {
+		return tbl.Prefix[0:last]
+	}
+	return tbl.Prefix
+}
+
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl {{.Prefix}}{{.Type}}Table) DB() *sql.DB {
@@ -491,41 +499,63 @@ var tCreateTableFunc = template.Must(template.New("CreateTable").Funcs(funcMap).
 
 // function template to create DDL for indexes
 const sCreateIndexesFunc = `
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl {{.Prefix}}{{.Type}}Table) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	if ifNotExist && tbl.Dialect == schema.Mysql {
+		// Mysql workaround: use Drop Index first and ignore an error returned if the index didn't exist.
+		tbl.DropIndexes(false)
+	}
+
+	_, err = tbl.CreateTable(ifNotExist)
+	if err != nil {
+		return err
+	}
+
+	return tbl.CreateIndexes(ifNotExist)
+}
+
 // CreateIndexes executes queries that create the indexes needed by the {{.Type}} table.
 func (tbl {{.Prefix}}{{.Type}}Table) CreateIndexes(ifNotExist bool) (err error) {
-	{{if gt (len .Body1) 0 -}}
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	{{if gt (len .Table.Index) 0 -}}
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
 {{- end -}}
-{{range .Body1}}{{$n := .}}
-	_, err = tbl.Exec(tbl.create{{$.Prefix}}{{$n}}IndexSql(extra))
+{{range .Table.Index}}
+	_, err = tbl.Exec(tbl.create{{$.Prefix}}{{camel .Name}}IndexSql(ine))
 	if err != nil {
 		return err
 	}
 {{end}}
 	return nil
 }
-
-func (tbl {{.Prefix}}{{.Type}}Table) prefixWithoutDot() string {
-	last := len(tbl.Prefix)-1
-	if last > 0 && tbl.Prefix[last] == '.' {
-		return tbl.Prefix[0:last]
-	}
-	return tbl.Prefix
-}
-{{range .Body1}}{{$n := .}}
-func (tbl {{$.Prefix}}{{$.Type}}Table) create{{$.Prefix}}{{$n}}IndexSql(ifNotExist string) string {
+{{range .Table.Index}}
+func (tbl {{$.Prefix}}{{$.Type}}Table) create{{$.Prefix}}{{camel .Name}}IndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf(sqlCreate{{$.Prefix}}{{$n}}Index, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+	return fmt.Sprintf("CREATE {{.UniqueStr}}INDEX %s%s{{.Name}} ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.Prefix, tbl.Name, sql{{$.Prefix}}{{camel .Name}}IndexColumns)
+}
+
+func (tbl {{$.Prefix}}{{$.Type}}Table) drop{{$.Prefix}}{{camel .Name}}IndexSql(ifExists, onTbl string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%s{{.Name}}%s", ifExists, indexPrefix, tbl.Prefix, tbl.Name, onTbl)
 }
 {{end}}
-// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl {{.Prefix}}{{.Type}}Table) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ifNotExist)
+// DropIndexes executes queries that drops the indexes on by the {{.Type}} table.
+func (tbl {{.Prefix}}{{.Type}}Table) DropIndexes(ifExist bool) (err error) {
+	{{if gt (len .Table.Index) 0 -}}
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
+{{- end}}
+{{range .Table.Index}}
+	_, err = tbl.Exec(tbl.drop{{$.Prefix}}{{camel .Name}}IndexSql(ie, onTbl))
 	if err != nil {
 		return err
 	}
-	return tbl.CreateIndexes(ifNotExist)
+{{end}}
+	return nil
 }
 `
 
-var tCreateIndexesFunc = template.Must(template.New("CreateTable").Funcs(funcMap).Parse(sCreateIndexesFunc))
+var tCreateIndexesFunc = template.Must(template.New("CreateIndex").Funcs(funcMap).Parse(sCreateIndexesFunc))

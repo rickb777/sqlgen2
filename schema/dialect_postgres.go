@@ -72,12 +72,12 @@ func (dialect postgres) FieldAsColumn(field *Field) string {
 	return column
 }
 
-func (dialect postgres) TableDDL(t *TableDescription) string {
-	return baseTableDDL(t, dialect)
+func (dialect postgres) TableDDL(table *TableDescription) string {
+	return baseTableDDL(table, dialect)
 }
 
 func (dialect postgres) IndexDDL(table *TableDescription, index *Index) string {
-	return baseIndexDDL(table, index)
+	return baseIndexDDL(index)
 }
 
 func (dialect postgres) InsertDML(table *TableDescription) string {

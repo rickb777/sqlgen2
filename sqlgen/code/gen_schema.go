@@ -47,7 +47,9 @@ func WriteSchema(w io.Writer, view View) {
 	fmt.Fprintf(w, constStringQ,
 		identifier("", tableName, "DataColumnNames"), Join(view.Table.ColumnNames(false), ", "))
 
-	writeCreateTableFunc(w, view)
+	fmt.Fprintln(w, sectionBreak)
+
+	must(tCreateTableFunc.Execute(w, view))
 
 	for _, d := range schema.AllDialects {
 		ds := d.String()
@@ -58,31 +60,17 @@ func WriteSchema(w io.Writer, view View) {
 	}
 
 	if len(view.Table.Index) > 0 {
-		writeCreateIndexesFunc(w, view)
+		fmt.Fprintln(w, sectionBreak)
+
+		must(tCreateIndexesFunc.Execute(w, view))
 
 		fmt.Fprintln(w, sectionBreak)
 
 		for _, ix := range view.Table.Index {
-			fmt.Fprintf(w, constStringWithTicks,
-				identifier("sqlCreate"+view.Prefix, ix.Name, "Index"), schema.Sqlite.IndexDDL(view.Table, ix))
+			fmt.Fprintf(w, constStringQ,
+				identifier("sql"+view.Prefix, ix.Name, "IndexColumns"), schema.Sqlite.IndexDDL(view.Table, ix))
 		}
 	}
-}
-
-func writeCreateTableFunc(w io.Writer, view View) {
-	fmt.Fprintln(w, sectionBreak)
-
-	must(tCreateTableFunc.Execute(w, view))
-}
-
-func writeCreateIndexesFunc(w io.Writer, view View) {
-	fmt.Fprintln(w, sectionBreak)
-
-	for _, ix := range view.Table.Index {
-		view.Body1 = append(view.Body1, inflect.Camelize(ix.Name))
-	}
-
-	must(tCreateIndexesFunc.Execute(w, view))
 }
 
 func identifier(prefix, id, suffix string) string {

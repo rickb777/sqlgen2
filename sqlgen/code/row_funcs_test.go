@@ -13,15 +13,16 @@ import (
 
 func fixtureTable() *TableDescription {
 	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
-	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", ENCNONE, Tag{}}
-	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "username", ENCNONE, Tag{Size: 2048, Name: "username", Index: "nameIdx"}}
+	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", ENCNONE, Tag{Index: "catIdx"}}
+	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "username", ENCNONE, Tag{Size: 2048, Name: "username", Unique: "nameIdx"}}
 	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", ENCNONE, Tag{}}
 	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
 	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
 	avatar := &Field{Node{"Avatar", Type{"", "", "[]byte", Slice}, nil}, "avatar", ENCNONE, Tag{}}
 	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", ENCTEXT, Tag{Encode: "text"}}
 
-	ititle := &Index{"nameIdx", false, []*Field{name}}
+	icat := &Index{"catIdx", false, []*Field{category}}
+	iname := &Index{"nameIdx", true, []*Field{name}}
 
 	return &TableDescription{
 		Type: "Example",
@@ -37,7 +38,8 @@ func fixtureTable() *TableDescription {
 			updated,
 		},
 		Index: []*Index{
-			ititle,
+			icat,
+			iname,
 		},
 		Primary: id,
 	}

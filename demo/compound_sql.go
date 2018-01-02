@@ -68,6 +68,14 @@ func (tbl DbCompoundTable) FullName() string {
 	return tbl.Prefix + tbl.Name
 }
 
+func (tbl DbCompoundTable) prefixWithoutDot() string {
+	last := len(tbl.Prefix)-1
+	if last > 0 && tbl.Prefix[last] == '.' {
+		return tbl.Prefix[0:last]
+	}
+	return tbl.Prefix
+}
+
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl DbCompoundTable) DB() *sql.DB {
@@ -159,10 +167,27 @@ CREATE TABLE %s%s%s (
 
 //--------------------------------------------------------------------------------
 
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl DbCompoundTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	if ifNotExist && tbl.Dialect == schema.Mysql {
+		// Mysql workaround: use Drop Index first and ignore an error returned if the index didn't exist.
+		tbl.DropIndexes(false)
+	}
+
+	_, err = tbl.CreateTable(ifNotExist)
+	if err != nil {
+		return err
+	}
+
+	return tbl.CreateIndexes(ifNotExist)
+}
+
 // CreateIndexes executes queries that create the indexes needed by the Compound table.
 func (tbl DbCompoundTable) CreateIndexes(ifNotExist bool) (err error) {
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-	_, err = tbl.Exec(tbl.createDbAlphaBetaIndexSql(extra))
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+	_, err = tbl.Exec(tbl.createDbAlphaBetaIndexSql(ine))
 	if err != nil {
 		return err
 	}
@@ -170,33 +195,34 @@ func (tbl DbCompoundTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
-func (tbl DbCompoundTable) prefixWithoutDot() string {
-	last := len(tbl.Prefix)-1
-	if last > 0 && tbl.Prefix[last] == '.' {
-		return tbl.Prefix[0:last]
-	}
-	return tbl.Prefix
-}
-
-func (tbl DbCompoundTable) createDbAlphaBetaIndexSql(ifNotExist string) string {
+func (tbl DbCompoundTable) createDbAlphaBetaIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf(sqlCreateDbAlphaBetaIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%salpha_beta ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.Prefix, tbl.Name, sqlDbAlphaBetaIndexColumns)
 }
 
-// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl DbCompoundTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ifNotExist)
+func (tbl DbCompoundTable) dropDbAlphaBetaIndexSql(ifExists, onTbl string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%salpha_beta%s", ifExists, indexPrefix, tbl.Prefix, tbl.Name, onTbl)
+}
+
+// DropIndexes executes queries that drops the indexes on by the Compound table.
+func (tbl DbCompoundTable) DropIndexes(ifExist bool) (err error) {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
+
+	_, err = tbl.Exec(tbl.dropDbAlphaBetaIndexSql(ie, onTbl))
 	if err != nil {
 		return err
 	}
-	return tbl.CreateIndexes(ifNotExist)
+
+	return nil
 }
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateDbAlphaBetaIndex = `
-CREATE UNIQUE INDEX %s%salpha_beta ON %s%s (alpha, beta)
-`
+const sqlDbAlphaBetaIndexColumns = "alpha, beta"
 
 //--------------------------------------------------------------------------------
 

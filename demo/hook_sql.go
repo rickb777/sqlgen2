@@ -69,6 +69,14 @@ func (tbl HookTable) FullName() string {
 	return tbl.Prefix + tbl.Name
 }
 
+func (tbl HookTable) prefixWithoutDot() string {
+	last := len(tbl.Prefix)-1
+	if last > 0 && tbl.Prefix[last] == '.' {
+		return tbl.Prefix[0:last]
+	}
+	return tbl.Prefix
+}
+
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl HookTable) DB() *sql.DB {

@@ -70,6 +70,14 @@ func (tbl IssueTable) FullName() string {
 	return tbl.Prefix + tbl.Name
 }
 
+func (tbl IssueTable) prefixWithoutDot() string {
+	last := len(tbl.Prefix)-1
+	if last > 0 && tbl.Prefix[last] == '.' {
+		return tbl.Prefix[0:last]
+	}
+	return tbl.Prefix
+}
+
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl IssueTable) DB() *sql.DB {
@@ -178,10 +186,27 @@ CREATE TABLE %s%s%s (
 
 //--------------------------------------------------------------------------------
 
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl IssueTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	if ifNotExist && tbl.Dialect == schema.Mysql {
+		// Mysql workaround: use Drop Index first and ignore an error returned if the index didn't exist.
+		tbl.DropIndexes(false)
+	}
+
+	_, err = tbl.CreateTable(ifNotExist)
+	if err != nil {
+		return err
+	}
+
+	return tbl.CreateIndexes(ifNotExist)
+}
+
 // CreateIndexes executes queries that create the indexes needed by the Issue table.
 func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-	_, err = tbl.Exec(tbl.createIssueAssigneeIndexSql(extra))
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+	_, err = tbl.Exec(tbl.createIssueAssigneeIndexSql(ine))
 	if err != nil {
 		return err
 	}
@@ -189,33 +214,34 @@ func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
-func (tbl IssueTable) prefixWithoutDot() string {
-	last := len(tbl.Prefix)-1
-	if last > 0 && tbl.Prefix[last] == '.' {
-		return tbl.Prefix[0:last]
-	}
-	return tbl.Prefix
-}
-
-func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExist string) string {
+func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf(sqlCreateIssueAssigneeIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+	return fmt.Sprintf("CREATE INDEX %s%sissue_assignee ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.Prefix, tbl.Name, sqlIssueAssigneeIndexColumns)
 }
 
-// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl IssueTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ifNotExist)
+func (tbl IssueTable) dropIssueAssigneeIndexSql(ifExists, onTbl string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%sissue_assignee%s", ifExists, indexPrefix, tbl.Prefix, tbl.Name, onTbl)
+}
+
+// DropIndexes executes queries that drops the indexes on by the Issue table.
+func (tbl IssueTable) DropIndexes(ifExist bool) (err error) {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
+
+	_, err = tbl.Exec(tbl.dropIssueAssigneeIndexSql(ie, onTbl))
 	if err != nil {
 		return err
 	}
-	return tbl.CreateIndexes(ifNotExist)
+
+	return nil
 }
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateIssueAssigneeIndex = `
-CREATE INDEX %s%sissue_assignee ON %s%s (assignee)
-`
+const sqlIssueAssigneeIndexColumns = "assignee"
 
 //--------------------------------------------------------------------------------
 

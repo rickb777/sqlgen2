@@ -67,6 +67,14 @@ func (tbl V4UserTable) FullName() string {
 	return tbl.Prefix + tbl.Name
 }
 
+func (tbl V4UserTable) prefixWithoutDot() string {
+	last := len(tbl.Prefix)-1
+	if last > 0 && tbl.Prefix[last] == '.' {
+		return tbl.Prefix[0:last]
+	}
+	return tbl.Prefix
+}
+
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl V4UserTable) DB() *sql.DB {

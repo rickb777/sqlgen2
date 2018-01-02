@@ -7,6 +7,7 @@ import (
 
 	. "github.com/acsellers/inflections"
 	"github.com/rickb777/sqlgen2/schema"
+	"bitbucket.org/pkg/inflect"
 )
 
 type View struct {
@@ -42,6 +43,9 @@ func (v View) DbName() string {
 var funcMap = template.FuncMap{
 	"q": func(s interface{}) string {
 		return fmt.Sprintf("%q", s)
+	},
+	"camel": func(s interface{}) string {
+		return inflect.Camelize(fmt.Sprintf("%s", s))
 	},
 	"ticked": func(s interface{}) string {
 		return fmt.Sprintf("`\n%s\n`", s)

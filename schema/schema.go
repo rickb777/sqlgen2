@@ -81,6 +81,15 @@ func (t *TableDescription) ColumnNames(withAuto bool) []string {
 
 //-------------------------------------------------------------------------------------------------
 
+func (i *Index) UniqueStr() string {
+	if i.Unique {
+		return "UNIQUE "
+	}
+	return ""
+}
+
+//-------------------------------------------------------------------------------------------------
+
 // Parts gets the node containment chain as a sequence of names of parts.
 func (node *Node) Parts() []string {
 	d := 0

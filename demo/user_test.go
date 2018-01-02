@@ -61,9 +61,7 @@ CREATE TABLE IF NOT EXISTS prefix_users (
 func TestCreateIndexSql(t *testing.T) {
 	tbl := NewDbUserTable("users", nil, schema.Postgres).WithPrefix("prefix_")
 	sql := tbl.createDbUserEmailIndexSql("IF NOT EXISTS ")
-	expected := `
-CREATE UNIQUE INDEX IF NOT EXISTS prefix_user_email ON prefix_users (emailaddress)
-`
+	expected := `CREATE UNIQUE INDEX IF NOT EXISTS prefix_user_email ON prefix_users (emailaddress)`
 	if sql != expected {
 		t.Errorf("got %s", sql)
 	}

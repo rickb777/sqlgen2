@@ -91,12 +91,12 @@ func paramIsQuery(i int) string {
 	return "?"
 }
 
-func (dialect mysql) TableDDL(t *TableDescription) string {
-	return baseTableDDL(t, dialect)
+func (dialect mysql) TableDDL(table *TableDescription) string {
+	return baseTableDDL(table, dialect)
 }
 
 func (dialect mysql) IndexDDL(table *TableDescription, index *Index) string {
-	return baseIndexDDL(table, index)
+	return baseIndexDDL(index)
 }
 
 func (dialect mysql) InsertDML(table *TableDescription) string {

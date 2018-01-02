@@ -95,10 +95,32 @@ CREATE TABLE %s%s%s (
 
 //--------------------------------------------------------------------------------
 
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl XExampleTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	if ifNotExist && tbl.Dialect == schema.Mysql {
+		// Mysql workaround: use Drop Index first and ignore an error returned if the index didn't exist.
+		tbl.DropIndexes(false)
+	}
+
+	_, err = tbl.CreateTable(ifNotExist)
+	if err != nil {
+		return err
+	}
+
+	return tbl.CreateIndexes(ifNotExist)
+}
+
 // CreateIndexes executes queries that create the indexes needed by the Example table.
 func (tbl XExampleTable) CreateIndexes(ifNotExist bool) (err error) {
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
-	_, err = tbl.Exec(tbl.createXNameIdxIndexSql(extra))
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+	_, err = tbl.Exec(tbl.createXCatIdxIndexSql(ine))
+	if err != nil {
+		return err
+	}
+
+	_, err = tbl.Exec(tbl.createXNameIdxIndexSql(ine))
 	if err != nil {
 		return err
 	}
@@ -106,33 +128,52 @@ func (tbl XExampleTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
-func (tbl XExampleTable) prefixWithoutDot() string {
-	last := len(tbl.Prefix)-1
-	if last > 0 && tbl.Prefix[last] == '.' {
-		return tbl.Prefix[0:last]
-	}
-	return tbl.Prefix
-}
-
-func (tbl XExampleTable) createXNameIdxIndexSql(ifNotExist string) string {
+func (tbl XExampleTable) createXCatIdxIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf(sqlCreateXNameIdxIndex, ifNotExist, indexPrefix, tbl.Prefix, tbl.Name)
+	return fmt.Sprintf("CREATE INDEX %s%scatIdx ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.Prefix, tbl.Name, sqlXCatIdxIndexColumns)
 }
 
-// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl XExampleTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ifNotExist)
+func (tbl XExampleTable) dropXCatIdxIndexSql(ifExists, onTbl string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%scatIdx%s", ifExists, indexPrefix, tbl.Prefix, tbl.Name, onTbl)
+}
+
+func (tbl XExampleTable) createXNameIdxIndexSql(ifNotExists string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%snameIdx ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.Prefix, tbl.Name, sqlXNameIdxIndexColumns)
+}
+
+func (tbl XExampleTable) dropXNameIdxIndexSql(ifExists, onTbl string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%snameIdx%s", ifExists, indexPrefix, tbl.Prefix, tbl.Name, onTbl)
+}
+
+// DropIndexes executes queries that drops the indexes on by the Example table.
+func (tbl XExampleTable) DropIndexes(ifExist bool) (err error) {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
+
+	_, err = tbl.Exec(tbl.dropXCatIdxIndexSql(ie, onTbl))
 	if err != nil {
 		return err
 	}
-	return tbl.CreateIndexes(ifNotExist)
+
+	_, err = tbl.Exec(tbl.dropXNameIdxIndexSql(ie, onTbl))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateXNameIdxIndex = |
-CREATE INDEX %s%snameIdx ON %s%s (username)
-|
+const sqlXCatIdxIndexColumns = "cat"
+
+const sqlXNameIdxIndexColumns = "username"
 `, "|", "`", -1)
 
 	if code != expected {
