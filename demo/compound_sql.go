@@ -151,16 +151,16 @@ CREATE TABLE %s%s%s (
 
 const sqlCreateDbCompoundTablePostgres = `
 CREATE TABLE %s%s%s (
- alpha    varchar(512),
- beta     varchar(512),
+ alpha    varchar(255),
+ beta     varchar(255),
  category tinyint unsigned
 )
 `
 
 const sqlCreateDbCompoundTableMysql = `
 CREATE TABLE %s%s%s (
- alpha    varchar(512),
- beta     varchar(512),
+ alpha    varchar(255),
+ beta     varchar(255),
  category tinyint unsigned
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `

@@ -162,32 +162,32 @@ CREATE TABLE %s%s%s (
 const sqlCreateV3UserTablePostgres = `
 CREATE TABLE %s%s%s (
  uid          bigserial primary key,
- login        varchar(512),
- emailaddress varchar(512),
- avatar       varchar(512),
+ login        varchar(255),
+ emailaddress varchar(255),
+ avatar       varchar(255),
  active       boolean,
  admin        boolean,
  fave         json,
  lastupdated  bigint,
- token        varchar(512),
- secret       varchar(512),
- hash         varchar(512)
+ token        varchar(255),
+ secret       varchar(255),
+ hash         varchar(255)
 )
 `
 
 const sqlCreateV3UserTableMysql = `
 CREATE TABLE %s%s%s (
  uid          bigint primary key auto_increment,
- login        varchar(512),
- emailaddress varchar(512),
- avatar       varchar(512),
+ login        varchar(255),
+ emailaddress varchar(255),
+ avatar       varchar(255),
  active       tinyint(1),
  admin        tinyint(1),
  fave         json,
  lastupdated  bigint,
- token        varchar(512),
- secret       varchar(512),
- hash         varchar(512)
+ token        varchar(255),
+ secret       varchar(255),
+ hash         varchar(255)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 

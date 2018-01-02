@@ -41,16 +41,16 @@ func TestCreateTable_postgres(t *testing.T) {
 	expected := `
 CREATE TABLE IF NOT EXISTS prefix_users (
  uid          bigserial primary key,
- login        varchar(512),
- emailaddress varchar(512),
- avatar       varchar(512),
+ login        varchar(255),
+ emailaddress varchar(255),
+ avatar       varchar(255),
  active       boolean,
  admin        boolean,
  fave         json,
  lastupdated  bigint,
- token        varchar(512),
- secret       varchar(512),
- hash         varchar(512)
+ token        varchar(255),
+ secret       varchar(255),
+ hash         varchar(255)
 )
 `
 	if sql != expected {

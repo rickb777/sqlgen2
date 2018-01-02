@@ -165,7 +165,7 @@ CREATE TABLE %s%s%s (
  date     byteaa,
  title    varchar(512),
  bigbody  varchar(2048),
- assignee varchar(512),
+ assignee varchar(255),
  state    varchar(50),
  labels   json
 )
@@ -178,7 +178,7 @@ CREATE TABLE %s%s%s (
  date     mediumblob,
  title    varchar(512),
  bigbody  varchar(2048),
- assignee varchar(512),
+ assignee varchar(255),
  state    varchar(50),
  labels   json
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8

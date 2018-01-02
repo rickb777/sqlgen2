@@ -169,44 +169,44 @@ CREATE TABLE %s%s%s (
 const sqlCreateHookTablePostgres = `
 CREATE TABLE %s%s%s (
  id                             bigserial primary key,
- sha                            varchar(512),
+ sha                            varchar(255),
  after                          varchar(20),
  before                         varchar(20),
  category                       tinyint unsigned,
  created                        boolean,
  deleted                        boolean,
  forced                         boolean,
- commit_id                      varchar(512),
- message                        varchar(512),
- timestamp                      varchar(512),
- head_commit_author_name        varchar(512),
- head_commit_author_email       varchar(512),
- head_commit_author_username    varchar(512),
- head_commit_committer_name     varchar(512),
- head_commit_committer_email    varchar(512),
- head_commit_committer_username varchar(512)
+ commit_id                      varchar(255),
+ message                        varchar(255),
+ timestamp                      varchar(255),
+ head_commit_author_name        varchar(255),
+ head_commit_author_email       varchar(255),
+ head_commit_author_username    varchar(255),
+ head_commit_committer_name     varchar(255),
+ head_commit_committer_email    varchar(255),
+ head_commit_committer_username varchar(255)
 )
 `
 
 const sqlCreateHookTableMysql = `
 CREATE TABLE %s%s%s (
  id                             bigint primary key auto_increment,
- sha                            varchar(512),
+ sha                            varchar(255),
  after                          varchar(20),
  before                         varchar(20),
  category                       tinyint unsigned,
  created                        tinyint(1),
  deleted                        tinyint(1),
  forced                         tinyint(1),
- commit_id                      varchar(512),
- message                        varchar(512),
- timestamp                      varchar(512),
- head_commit_author_name        varchar(512),
- head_commit_author_email       varchar(512),
- head_commit_author_username    varchar(512),
- head_commit_committer_name     varchar(512),
- head_commit_committer_email    varchar(512),
- head_commit_committer_username varchar(512)
+ commit_id                      varchar(255),
+ message                        varchar(255),
+ timestamp                      varchar(255),
+ head_commit_author_name        varchar(255),
+ head_commit_author_email       varchar(255),
+ head_commit_author_username    varchar(255),
+ head_commit_committer_name     varchar(255),
+ head_commit_committer_email    varchar(255),
+ head_commit_committer_username varchar(255)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 

@@ -65,10 +65,10 @@ func (dialect mysql) FieldAsColumn(field *Field) string {
 }
 
 func varchar(size int) string {
-	// assigns an arbitrary size if
-	// none is provided.
+	// Assigns an arbitrary size if none is provided.
+	// 255 is chosen because the max. index key length is 767 and UTF8 might use up to three bytes per character.
 	if size == 0 {
-		size = 512
+		size = 255
 	}
 	return fmt.Sprintf("varchar(%d)", size)
 }
