@@ -538,7 +538,7 @@ func (tbl {{$.Prefix}}{{$.Type}}Table) create{{$.Prefix}}{{camel .Name}}IndexSql
 
 func (tbl {{$.Prefix}}{{$.Type}}Table) drop{{$.Prefix}}{{camel .Name}}IndexSql(ifExists, onTbl string) string {
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%s{{.Name}}%s", ifExists, indexPrefix, tbl.Prefix, tbl.Name, onTbl)
+	return fmt.Sprintf("DROP INDEX %s%s{{.Name}}%s", ifExists, indexPrefix, onTbl)
 }
 {{end}}
 // DropIndexes executes queries that drops the indexes on by the {{.Type}} table.

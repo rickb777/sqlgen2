@@ -203,7 +203,7 @@ func (tbl DbCompoundTable) createDbAlphaBetaIndexSql(ifNotExists string) string 
 
 func (tbl DbCompoundTable) dropDbAlphaBetaIndexSql(ifExists, onTbl string) string {
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%salpha_beta%s", ifExists, indexPrefix, tbl.Prefix, tbl.Name, onTbl)
+	return fmt.Sprintf("DROP INDEX %s%salpha_beta%s", ifExists, indexPrefix, onTbl)
 }
 
 // DropIndexes executes queries that drops the indexes on by the Compound table.

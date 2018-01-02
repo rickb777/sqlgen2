@@ -67,6 +67,15 @@ func TestCreateIndexSql(t *testing.T) {
 	}
 }
 
+func TestDropIndexSql(t *testing.T) {
+	tbl := NewDbUserTable("users", nil, schema.Postgres).WithPrefix("prefix_")
+	sql := tbl.dropDbUserEmailIndexSql("IF EXISTS ", " ON prefix_users")
+	expected := `DROP INDEX IF EXISTS prefix_user_email ON prefix_users`
+	if sql != expected {
+		t.Errorf("got %s", sql)
+	}
+}
+
 func TestUpdateFieldsSql(t *testing.T) {
 	cases := []struct {
 		d        schema.Dialect

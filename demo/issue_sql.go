@@ -222,7 +222,7 @@ func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExists string) string {
 
 func (tbl IssueTable) dropIssueAssigneeIndexSql(ifExists, onTbl string) string {
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%sissue_assignee%s", ifExists, indexPrefix, tbl.Prefix, tbl.Name, onTbl)
+	return fmt.Sprintf("DROP INDEX %s%sissue_assignee%s", ifExists, indexPrefix, onTbl)
 }
 
 // DropIndexes executes queries that drops the indexes on by the Issue table.

@@ -215,28 +215,17 @@ func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
-	_, err = tbl.Exec(tbl.createDbUserLoginIndexSql(ine))
-	if err != nil {
-		return err
-	}
-
 	_, err = tbl.Exec(tbl.createDbUserEmailIndexSql(ine))
 	if err != nil {
 		return err
 	}
 
+	_, err = tbl.Exec(tbl.createDbUserLoginIndexSql(ine))
+	if err != nil {
+		return err
+	}
+
 	return nil
-}
-
-func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.Prefix, tbl.Name, sqlDbUserLoginIndexColumns)
-}
-
-func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists, onTbl string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ifExists, indexPrefix, tbl.Prefix, tbl.Name, onTbl)
 }
 
 func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExists string) string {
@@ -247,7 +236,18 @@ func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExists string) string {
 
 func (tbl DbUserTable) dropDbUserEmailIndexSql(ifExists, onTbl string) string {
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ifExists, indexPrefix, tbl.Prefix, tbl.Name, onTbl)
+	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ifExists, indexPrefix, onTbl)
+}
+
+func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExists string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.Prefix, tbl.Name, sqlDbUserLoginIndexColumns)
+}
+
+func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists, onTbl string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ifExists, indexPrefix, onTbl)
 }
 
 // DropIndexes executes queries that drops the indexes on by the User table.
@@ -256,12 +256,12 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
 	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
 
-	_, err = tbl.Exec(tbl.dropDbUserLoginIndexSql(ie, onTbl))
+	_, err = tbl.Exec(tbl.dropDbUserEmailIndexSql(ie, onTbl))
 	if err != nil {
 		return err
 	}
 
-	_, err = tbl.Exec(tbl.dropDbUserEmailIndexSql(ie, onTbl))
+	_, err = tbl.Exec(tbl.dropDbUserLoginIndexSql(ie, onTbl))
 	if err != nil {
 		return err
 	}
@@ -271,9 +271,9 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-const sqlDbUserLoginIndexColumns = "login"
-
 const sqlDbUserEmailIndexColumns = "emailaddress"
+
+const sqlDbUserLoginIndexColumns = "login"
 
 //--------------------------------------------------------------------------------
 
