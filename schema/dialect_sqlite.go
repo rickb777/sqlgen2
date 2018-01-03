@@ -82,7 +82,7 @@ func (dialect sqlite) UpdateDML(table *TableDescription) string {
 	return baseUpdateDML(table, table.Fields, paramIsQuery)
 }
 
-func (dialect sqlite) DeleteDML(table *TableDescription, fields []*Field) string {
+func (dialect sqlite) DeleteDML(table *TableDescription, fields FieldList) string {
 	return baseDeleteDML(table, fields, paramIsQuery)
 }
 

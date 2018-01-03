@@ -289,6 +289,148 @@ func (tbl IssueTable) Get(id int64) (*Issue, error) {
 
 //--------------------------------------------------------------------------------
 
+// GetId gets the Id column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl IssueTable) GetId(where where.Expression, orderBy string) ([]int64, error) {
+	return tbl.getint64list("id", where, orderBy)
+}
+
+// GetNumber gets the Number column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl IssueTable) GetNumber(where where.Expression, orderBy string) ([]int, error) {
+	return tbl.getintlist("number", where, orderBy)
+}
+
+// GetDate gets the Date column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl IssueTable) GetDate(where where.Expression, orderBy string) ([]Date, error) {
+	return tbl.getDatelist("date", where, orderBy)
+}
+
+// GetTitle gets the Title column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl IssueTable) GetTitle(where where.Expression, orderBy string) ([]string, error) {
+	return tbl.getstringlist("title", where, orderBy)
+}
+
+// GetBody gets the Body column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl IssueTable) GetBody(where where.Expression, orderBy string) ([]string, error) {
+	return tbl.getstringlist("bigbody", where, orderBy)
+}
+
+// GetAssignee gets the Assignee column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl IssueTable) GetAssignee(where where.Expression, orderBy string) ([]string, error) {
+	return tbl.getstringlist("assignee", where, orderBy)
+}
+
+// GetState gets the State column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl IssueTable) GetState(where where.Expression, orderBy string) ([]string, error) {
+	return tbl.getstringlist("state", where, orderBy)
+}
+
+
+// Getint64 gets the int64 column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl IssueTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v int64
+	list := make([]int64, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+// Getint gets the int column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl IssueTable) getintlist(sqlname string, where where.Expression, orderBy string) ([]int, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v int
+	list := make([]int, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+// GetDate gets the Date column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl IssueTable) getDatelist(sqlname string, where where.Expression, orderBy string) ([]Date, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v Date
+	list := make([]Date, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+// Getstring gets the string column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl IssueTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v string
+	list := make([]string, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+
+//--------------------------------------------------------------------------------
+
 // SelectOneSA allows a single Issue to be obtained from the table that match a 'where' clause and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl IssueTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Issue, error) {

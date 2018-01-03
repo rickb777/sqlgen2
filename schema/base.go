@@ -56,7 +56,7 @@ func baseInsertDML(t *TableDescription) string {
 	return w.String()
 }
 
-func baseUpdateDML(t *TableDescription, fields []*Field, param func(int) string) string {
+func baseUpdateDML(t *TableDescription, fields FieldList, param func(int) string) string {
 	w := &bytes.Buffer{}
 	w.WriteString("UPDATE %%s%%s SET\n")
 
@@ -72,11 +72,11 @@ func baseUpdateDML(t *TableDescription, fields []*Field, param func(int) string)
 		}
 	}
 
-	w.WriteString(baseWhereClause([]*Field{t.Primary}, 0, param))
+	w.WriteString(baseWhereClause(FieldList{t.Primary}, 0, param))
 	return w.String()
 }
 
-func baseDeleteDML(t *TableDescription, fields []*Field, param func(int) string) string {
+func baseDeleteDML(t *TableDescription, fields FieldList, param func(int) string) string {
 	w := &bytes.Buffer{}
 	w.WriteString("DELETE FROM %s%s")
 	w.WriteString(baseWhereClause(fields, 0, param))
@@ -88,7 +88,7 @@ func baseParam(i int) string {
 	return "?"
 }
 
-func baseColumns(fields []*Field, withAuto, inline, assign bool, param func(int) string) string {
+func baseColumns(fields FieldList, withAuto, inline, assign bool, param func(int) string) string {
 	w := &bytes.Buffer{}
 	comma := ""
 	for i, field := range fields {
@@ -116,7 +116,7 @@ const fieldIndentation = "\t"
 
 // helper function to generate the Where clause
 // section of a SQL statement
-func baseWhereClause(fields []*Field, pos int, param func(int) string) string {
+func baseWhereClause(fields FieldList, pos int, param func(int) string) string {
 	var buf bytes.Buffer
 
 	var i int

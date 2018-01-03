@@ -153,6 +153,124 @@ func (tbl V2UserTable) Get(id int64) (*User, error) {
 
 //--------------------------------------------------------------------------------
 
+// GetUid gets the Uid column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl V2UserTable) GetUid(where where.Expression, orderBy string) ([]int64, error) {
+	return tbl.getint64list("uid", where, orderBy)
+}
+
+// GetLogin gets the Login column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl V2UserTable) GetLogin(where where.Expression, orderBy string) ([]string, error) {
+	return tbl.getstringlist("login", where, orderBy)
+}
+
+// GetEmailAddress gets the EmailAddress column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl V2UserTable) GetEmailAddress(where where.Expression, orderBy string) ([]string, error) {
+	return tbl.getstringlist("emailaddress", where, orderBy)
+}
+
+// GetAvatar gets the Avatar column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl V2UserTable) GetAvatar(where where.Expression, orderBy string) ([]string, error) {
+	return tbl.getstringlist("avatar", where, orderBy)
+}
+
+// GetActive gets the Active column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl V2UserTable) GetActive(where where.Expression, orderBy string) ([]bool, error) {
+	return tbl.getboollist("active", where, orderBy)
+}
+
+// GetAdmin gets the Admin column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl V2UserTable) GetAdmin(where where.Expression, orderBy string) ([]bool, error) {
+	return tbl.getboollist("admin", where, orderBy)
+}
+
+// GetLastUpdated gets the LastUpdated column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl V2UserTable) GetLastUpdated(where where.Expression, orderBy string) ([]int64, error) {
+	return tbl.getint64list("lastupdated", where, orderBy)
+}
+
+
+// Getint64 gets the int64 column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl V2UserTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v int64
+	list := make([]int64, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+// Getstring gets the string column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl V2UserTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v string
+	list := make([]string, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+// Getbool gets the bool column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl V2UserTable) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v bool
+	list := make([]bool, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+
+//--------------------------------------------------------------------------------
+
 // SelectOneSA allows a single User to be obtained from the table that match a 'where' clause and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl V2UserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {

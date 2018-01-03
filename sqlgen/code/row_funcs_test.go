@@ -21,13 +21,13 @@ func fixtureTable() *TableDescription {
 	avatar := &Field{Node{"Avatar", Type{"", "", "[]byte", Slice}, nil}, "avatar", ENCNONE, Tag{}}
 	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", ENCTEXT, Tag{Size: 100, Encode: "text"}}
 
-	icat := &Index{"catIdx", false, []*Field{category}}
-	iname := &Index{"nameIdx", true, []*Field{name}}
+	icat := &Index{"catIdx", false, FieldList{category}}
+	iname := &Index{"nameIdx", true, FieldList{name}}
 
 	return &TableDescription{
 		Type: "Example",
 		Name: "examples",
-		Fields: []*Field{
+		Fields: FieldList{
 			id,
 			category,
 			name,
@@ -59,7 +59,7 @@ func TestWriteRowFunc1(t *testing.T) {
 	table := &TableDescription{
 		Type: "Example",
 		Name: "examples",
-		Fields: []*Field{
+		Fields: FieldList{
 			category,
 			name,
 			email,

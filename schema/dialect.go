@@ -4,7 +4,7 @@ type Dialect interface {
 	TableDDL(*TableDescription) string
 	InsertDML(*TableDescription) string
 	UpdateDML(*TableDescription) string
-	DeleteDML(*TableDescription, []*Field) string
+	DeleteDML(*TableDescription, FieldList) string
 	TruncateDDL(tableName string, force bool) []string
 	//Param(int) string
 	CreateTableSettings() string

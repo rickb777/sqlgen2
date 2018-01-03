@@ -9,7 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
-	"fmt"
+	. "fmt"
 	"syscall"
 	"github.com/rickb777/sqlgen2/schema"
 )
@@ -118,7 +118,7 @@ func TestUpdateFields_ok(t *testing.T) {
 }
 
 func TestUpdateFields_error(t *testing.T) {
-	exp := fmt.Errorf("foo")
+	exp := Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
 	tbl := NewDbUserTable("users", mockDb, schema.Mysql)
@@ -147,7 +147,7 @@ func TestUpdate_ok(t *testing.T) {
 }
 
 func TestUpdate_error(t *testing.T) {
-	exp := fmt.Errorf("foo")
+	exp := Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
 	tbl := NewDbUserTable("users", mockDb, schema.Mysql)
@@ -214,6 +214,46 @@ func TestCrudUsingSqlite(t *testing.T) {
 	}
 	if n != 1 {
 		t.Errorf("expected 1, got %d", n)
+	}
+}
+
+func TestGettersUsingSqlite(t *testing.T) {
+	defer cleanup()
+
+	tbl := NewDbUserTable("users", connect(), schema.Sqlite)
+
+	err := tbl.CreateTableWithIndexes(false)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	err = tbl.Truncate(true)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	for i := 0; i < 20; i++ {
+		err = tbl.Insert(&User{
+			Login:        Sprintf("user%02d", i),
+			EmailAddress: Sprintf("foo%d@x.z", i),
+		})
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+	}
+
+	logins, err := tbl.GetLogin(where.NoOp(), "order by login")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if len(logins) != 20 {
+		t.Errorf("expected 20, got %d", len(logins))
+	}
+	for i := 0; i < 20; i++ {
+		exp := Sprintf("user%02d", i)
+		if logins[i] != exp {
+			t.Errorf("expected %s, got %s", exp, logins[i])
+		}
 	}
 }
 

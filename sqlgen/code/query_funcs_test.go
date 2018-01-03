@@ -17,7 +17,7 @@ func simpleFixtureTable() *TableDescription {
 	return &TableDescription{
 		Type: "Example",
 		Name: "examples",
-		Fields: []*Field{
+		Fields: FieldList{
 			id,
 			name,
 			age,
@@ -33,7 +33,7 @@ func simpleNoPKTable() *TableDescription {
 	return &TableDescription{
 		Type: "Example",
 		Name: "examples",
-		Fields: []*Field{
+		Fields: FieldList{
 			name,
 			age,
 		},
@@ -92,6 +92,35 @@ func TestWriteGetRow(t *testing.T) {
 	buf := &bytes.Buffer{}
 
 	WriteGetRow(buf, view)
+
+	code := buf.String()
+	expected := `
+//--------------------------------------------------------------------------------
+
+// Get gets the record with a given primary key value.
+func (tbl XExampleTable) Get(id int64) (*Example, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", XExampleColumnNames, tbl.Prefix, tbl.Name)
+	return tbl.QueryOne(query, id)
+}
+`
+	if code != expected {
+		outputDiff(expected, "expected.txt")
+		outputDiff(code, "got.txt")
+		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
+func xTestWriteSelectItem(t *testing.T) {
+	exit.TestableExit()
+
+	view := NewView("Example", "X", "")
+	view.Table = simpleFixtureTable()
+
+	buf := &bytes.Buffer{}
+
+	WriteSelectItem(buf, view)
 
 	code := buf.String()
 	expected := `

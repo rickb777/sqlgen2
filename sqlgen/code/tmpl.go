@@ -240,6 +240,46 @@ var tGetRow = template.Must(template.New("GetRow").Funcs(funcMap).Parse(sGetRow)
 
 //-------------------------------------------------------------------------------------------------
 
+const sSelectItem = `
+//--------------------------------------------------------------------------------
+{{range .Table.SimpleFields}}
+// Get{{.Name}} gets the {{.Name}} column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl {{$.Prefix}}{{$.Type}}Table) Get{{.Name}}(where where.Expression, orderBy string) ([]{{.Type.Name}}, error) {
+	return tbl.get{{.Type.Name}}list("{{.SqlName}}", where, orderBy)
+}
+{{end}}
+{{range .Table.SimpleFields.DistinctTypes}}
+// Get{{.Name}} gets the {{.Name}} column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl {{$.Prefix}}{{$.Type}}Table) get{{.Name}}list(sqlname string, where where.Expression, orderBy string) ([]{{.Name}}, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v {{.Name}}
+	list := make([]{{.Name}}, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+{{end}}
+`
+
+var tSelectItem = template.Must(template.New("SelectItem").Funcs(funcMap).Parse(sSelectItem))
+
+//-------------------------------------------------------------------------------------------------
+
 // function template to select multiple rows.
 const sSelectRows = `
 // SelectSA allows {{.Types}} to be obtained from the table that match a 'where' clause.

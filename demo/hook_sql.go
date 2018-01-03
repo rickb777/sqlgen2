@@ -254,6 +254,142 @@ func (tbl HookTable) Get(id int64) (*Hook, error) {
 
 //--------------------------------------------------------------------------------
 
+// GetId gets the Id column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl HookTable) GetId(where where.Expression, orderBy string) ([]int64, error) {
+	return tbl.getint64list("id", where, orderBy)
+}
+
+// GetSha gets the Sha column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl HookTable) GetSha(where where.Expression, orderBy string) ([]string, error) {
+	return tbl.getstringlist("sha", where, orderBy)
+}
+
+// GetCategory gets the Category column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl HookTable) GetCategory(where where.Expression, orderBy string) ([]Category, error) {
+	return tbl.getCategorylist("category", where, orderBy)
+}
+
+// GetCreated gets the Created column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl HookTable) GetCreated(where where.Expression, orderBy string) ([]bool, error) {
+	return tbl.getboollist("created", where, orderBy)
+}
+
+// GetDeleted gets the Deleted column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl HookTable) GetDeleted(where where.Expression, orderBy string) ([]bool, error) {
+	return tbl.getboollist("deleted", where, orderBy)
+}
+
+// GetForced gets the Forced column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl HookTable) GetForced(where where.Expression, orderBy string) ([]bool, error) {
+	return tbl.getboollist("forced", where, orderBy)
+}
+
+
+// Getint64 gets the int64 column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl HookTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v int64
+	list := make([]int64, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+// Getstring gets the string column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl HookTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v string
+	list := make([]string, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+// GetCategory gets the Category column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl HookTable) getCategorylist(sqlname string, where where.Expression, orderBy string) ([]Category, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v Category
+	list := make([]Category, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+// Getbool gets the bool column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl HookTable) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v bool
+	list := make([]bool, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+
+//--------------------------------------------------------------------------------
+
 // SelectOneSA allows a single Hook to be obtained from the table that match a 'where' clause and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Hook, error) {

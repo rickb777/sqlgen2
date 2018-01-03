@@ -27,7 +27,7 @@ type TableDescription struct {
 	Type string
 	Name string
 
-	Fields  []*Field
+	Fields  FieldList
 	Index   []*Index
 	Primary *Field // compound primaries are not supported
 }
@@ -49,7 +49,7 @@ type Index struct {
 	Name   string
 	Unique bool
 
-	Fields []*Field
+	Fields FieldList
 }
 
 func (t *TableDescription) HasLastInsertId() bool {
@@ -78,6 +78,23 @@ func (t *TableDescription) ColumnNames(withAuto bool) []string {
 		}
 	}
 	return names
+}
+
+func (t *TableDescription) SimpleFields() FieldList {
+	list := make(FieldList, 0, len(t.Fields))
+	for _, f := range t.Fields {
+		if f.Node.Parent == nil && f.Encode == ENCNONE && f.IsExported() {
+			list = append(list, f)
+		}
+	}
+	return list
+}
+
+//-------------------------------------------------------------------------------------------------
+
+func (f *Field) IsExported() bool {
+	name0 := f.Name[0]
+	return 'A' <= name0 && name0 <= 'Z'
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -126,4 +143,23 @@ func (node *Node) JoinParts(delta int, sep string) string {
 		parts = parts[:len(parts)-delta]
 	}
 	return strings.Join(parts, sep)
+}
+
+//-------------------------------------------------------------------------------------------------
+
+type FieldList []*Field
+
+func (list FieldList) DistinctTypes() []Type {
+	m := make(map[Type]struct{})
+	for _, field := range list {
+		if field.Type.PkgName == "" {
+			m[field.Type] = struct{}{}
+		}
+	}
+
+	types := make([]Type, 0, len(m))
+	for t, _ := range m {
+		types = append(types, t)
+	}
+	return types
 }

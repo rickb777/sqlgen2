@@ -23,6 +23,10 @@ func WriteGetRow(w io.Writer, view View) {
 	must(tGetRow.Execute(w, view))
 }
 
+func WriteSelectItem(w io.Writer, view View) {
+	must(tSelectItem.Execute(w, view))
+}
+
 func WriteSelectRow(w io.Writer, view View) {
 	fmt.Fprintln(w, sectionBreak)
 

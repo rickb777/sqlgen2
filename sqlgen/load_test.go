@@ -64,7 +64,7 @@ type Date struct {
 		expected := &TableDescription{
 			Type: "Example",
 			Name: "examples",
-			Fields: []*Field{
+			Fields: FieldList{
 				c.date,
 			},
 		}
@@ -117,7 +117,7 @@ type Author struct {
 	expected := &TableDescription{
 		Type: "Example",
 		Name: "examples",
-		Fields: []*Field{
+		Fields: FieldList{
 			author,
 		},
 	}
@@ -162,7 +162,7 @@ type Category int32
 	expected := &TableDescription{
 		Type: "Example",
 		Name: "examples",
-		Fields: []*Field{
+		Fields: FieldList{
 			labels,
 			categories,
 		},
@@ -202,12 +202,12 @@ type Example struct {
 	aaa := &Field{Node{"Aaa", Type{"", "", "string", String}, nil}, "aaa", ENCNONE, Tag{Size: 32, Index: "foo"}}
 	bbb := &Field{Node{"Bbb", Type{"", "", "string", String}, nil}, "bbb", ENCNONE, Tag{Size: 32, Index: "foo"}}
 
-	idx := &Index{"foo", false, []*Field{aaa, bbb}}
+	idx := &Index{"foo", false, FieldList{aaa, bbb}}
 
 	expected := &TableDescription{
 		Type: "Example",
 		Name: "examples",
-		Fields: []*Field{
+		Fields: FieldList{
 			aaa,
 			bbb,
 		},
@@ -282,7 +282,7 @@ type Author struct {
 	expected := &TableDescription{
 		Type: "Example",
 		Name: "examples",
-		Fields: []*Field{
+		Fields: FieldList{
 			category,
 			name,
 			email,
@@ -341,7 +341,7 @@ type Example struct {
 	expected := &TableDescription{
 		Type: "Example",
 		Name: "examples",
-		Fields: []*Field{
+		Fields: FieldList{
 			category,
 			after,
 			before,
@@ -424,12 +424,12 @@ type Commit struct {
 	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
 	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", ENCTEXT, Tag{Encode: "text"}}
 
-	ititle := &Index{"titleIdx", false, []*Field{title}}
+	ititle := &Index{"titleIdx", false, FieldList{title}}
 
 	expected := &TableDescription{
 		Type: "Example",
 		Name: "examples",
-		Fields: []*Field{
+		Fields: FieldList{
 			id,
 			number,
 			category,

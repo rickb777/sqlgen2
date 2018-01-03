@@ -103,7 +103,7 @@ func (dialect mysql) UpdateDML(table *TableDescription) string {
 	return baseUpdateDML(table, table.Fields, paramIsQuery)
 }
 
-func (dialect mysql) DeleteDML(table *TableDescription, fields []*Field) string {
+func (dialect mysql) DeleteDML(table *TableDescription, fields FieldList) string {
 	return baseDeleteDML(table, fields, paramIsQuery)
 }
 

@@ -84,7 +84,7 @@ func (dialect postgres) UpdateDML(table *TableDescription) string {
 	return baseUpdateDML(table, table.Fields, postgresParam)
 }
 
-func (dialect postgres) DeleteDML(table *TableDescription, fields []*Field) string {
+func (dialect postgres) DeleteDML(table *TableDescription, fields FieldList) string {
 	return baseDeleteDML(table, fields, postgresParam)
 }
 

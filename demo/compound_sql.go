@@ -263,6 +263,76 @@ func (tbl DbCompoundTable) Query(query string, args ...interface{}) ([]*Compound
 
 //--------------------------------------------------------------------------------
 
+// GetAlpha gets the Alpha column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl DbCompoundTable) GetAlpha(where where.Expression, orderBy string) ([]string, error) {
+	return tbl.getstringlist("alpha", where, orderBy)
+}
+
+// GetBeta gets the Beta column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl DbCompoundTable) GetBeta(where where.Expression, orderBy string) ([]string, error) {
+	return tbl.getstringlist("beta", where, orderBy)
+}
+
+// GetCategory gets the Category column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl DbCompoundTable) GetCategory(where where.Expression, orderBy string) ([]Category, error) {
+	return tbl.getCategorylist("category", where, orderBy)
+}
+
+
+// Getstring gets the string column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl DbCompoundTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v string
+	list := make([]string, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+// GetCategory gets the Category column for all rows that match the 'where' condition.
+// Use 'orderBy' to specify the order-by and limit parameters, as required.
+func (tbl DbCompoundTable) getCategorylist(sqlname string, where where.Expression, orderBy string) ([]Category, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v Category
+	list := make([]Category, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+
+//--------------------------------------------------------------------------------
+
 // SelectOneSA allows a single Compound to be obtained from the table that match a 'where' clause and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl DbCompoundTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Compound, error) {

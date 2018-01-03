@@ -74,6 +74,7 @@ func main() {
 
 	if genFuncs {
 		WriteGetRow(buf, view)
+		WriteSelectItem(buf, view)
 		WriteSelectRow(buf, view)
 		WriteInsertFunc(buf, view)
 		WriteUpdateFunc(buf, view)
