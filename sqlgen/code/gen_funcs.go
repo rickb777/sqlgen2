@@ -79,6 +79,7 @@ func WriteUpdateFunc(w io.Writer, view View) {
 func WriteDeleteFunc(w io.Writer, view View) {
 	fmt.Fprintln(w, sectionBreak)
 	must(tDelete.Execute(w, view))
+	fmt.Fprintln(w, sectionBreak)
 }
 
 func WriteExecFunc(w io.Writer, view View) {

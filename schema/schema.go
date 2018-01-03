@@ -3,6 +3,7 @@ package schema
 import (
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"strings"
+	"bytes"
 )
 
 type SqlEncode int
@@ -86,6 +87,19 @@ func (i *Index) UniqueStr() string {
 		return "UNIQUE "
 	}
 	return ""
+}
+
+func (i *Index) Columns() string {
+	w := &bytes.Buffer{}
+
+	comma := ""
+	for _, field := range i.Fields {
+		w.WriteString(comma)
+		w.WriteString(field.SqlName)
+		comma = ", "
+	}
+
+	return w.String()
 }
 
 //-------------------------------------------------------------------------------------------------

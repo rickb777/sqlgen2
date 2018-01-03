@@ -1,6 +1,9 @@
 package schema
 
-import "github.com/rickb777/sqlgen2/sqlgen/parse"
+import (
+	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	"fmt"
+)
 
 //import (
 //	_ "github.com/mattn/go-sqlite3"
@@ -71,10 +74,6 @@ func (dialect sqlite) TableDDL(table *TableDescription) string {
 	return baseTableDDL(table, dialect)
 }
 
-func (dialect sqlite) IndexDDL(table *TableDescription, index *Index) string {
-	return baseIndexDDL(index)
-}
-
 func (dialect sqlite) InsertDML(table *TableDescription) string {
 	return baseInsertDML(table)
 }
@@ -85,6 +84,11 @@ func (dialect sqlite) UpdateDML(table *TableDescription, fields []*Field) string
 
 func (dialect sqlite) DeleteDML(table *TableDescription, fields []*Field) string {
 	return baseDeleteDML(table, fields, paramIsQuery)
+}
+
+func (dialect sqlite) TruncateDDL(tableName string, force bool) []string {
+	truncate := fmt.Sprintf("DELETE FROM %s", tableName)
+	return []string{truncate}
 }
 
 // Placeholders returns a string containing the requested number of placeholders

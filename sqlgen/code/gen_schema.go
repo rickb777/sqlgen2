@@ -68,7 +68,7 @@ func WriteSchema(w io.Writer, view View) {
 
 		for _, ix := range view.Table.Index {
 			fmt.Fprintf(w, constStringQ,
-				identifier("sql"+view.Prefix, ix.Name, "IndexColumns"), schema.Sqlite.IndexDDL(view.Table, ix))
+				identifier("sql"+view.Prefix, ix.Name, "IndexColumns"), ix.Columns())
 		}
 	}
 }

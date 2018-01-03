@@ -250,7 +250,7 @@ func (tbl V3UserTable) dropV3UserEmailIndexSql(ifExists, onTbl string) string {
 	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ifExists, indexPrefix, onTbl)
 }
 
-// DropIndexes executes queries that drops the indexes on by the User table.
+// DropIndexes executes queries that drop the indexes on by the User table.
 func (tbl V3UserTable) DropIndexes(ifExist bool) (err error) {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")

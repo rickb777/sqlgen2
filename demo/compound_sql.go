@@ -208,7 +208,7 @@ func (tbl DbCompoundTable) dropDbAlphaBetaIndexSql(ifExists, onTbl string) strin
 	return fmt.Sprintf("DROP INDEX %s%salpha_beta%s", ifExists, indexPrefix, onTbl)
 }
 
-// DropIndexes executes queries that drops the indexes on by the Compound table.
+// DropIndexes executes queries that drop the indexes on by the Compound table.
 func (tbl DbCompoundTable) DropIndexes(ifExist bool) (err error) {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
@@ -383,6 +383,25 @@ func (tbl DbCompoundTable) deleteRows(where where.Expression) (string, []interfa
 	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
 	return query, args
 }
+
+// Truncate drops every record from the table, if possible. It might fail if constraints exist that
+// prevent some or all rows from being deleted; use the force option to override this.
+//
+// When 'force' is set true, be aware of the following consequences.
+// When using Mysql, foreign keys in other tables can be left dangling.
+// When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
+// are also truncated.
+func (tbl DbCompoundTable) Truncate(force bool) (err error) {
+	for _, query := range tbl.Dialect.TruncateDDL(tbl.FullName(), force) {
+		_, err = tbl.Exec(query)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//--------------------------------------------------------------------------------
 
 // scanDbCompound reads a table record into a single value.
 func scanDbCompound(row *sql.Row) (*Compound, error) {

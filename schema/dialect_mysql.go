@@ -95,10 +95,6 @@ func (dialect mysql) TableDDL(table *TableDescription) string {
 	return baseTableDDL(table, dialect)
 }
 
-func (dialect mysql) IndexDDL(table *TableDescription, index *Index) string {
-	return baseIndexDDL(index)
-}
-
 func (dialect mysql) InsertDML(table *TableDescription) string {
 	return baseInsertDML(table)
 }
@@ -109,6 +105,19 @@ func (dialect mysql) UpdateDML(table *TableDescription, fields []*Field) string 
 
 func (dialect mysql) DeleteDML(table *TableDescription, fields []*Field) string {
 	return baseDeleteDML(table, fields, paramIsQuery)
+}
+
+func (dialect mysql) TruncateDDL(tableName string, force bool) []string {
+	truncate := fmt.Sprintf("TRUNCATE %s", tableName)
+	if !force {
+		return []string{truncate}
+	}
+
+	return []string{
+		"SET FOREIGN_KEY_CHECKS=0",
+		truncate,
+		"SET FOREIGN_KEY_CHECKS=1",
+	}
 }
 
 // Placeholders returns a string containing the requested number of placeholders

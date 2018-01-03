@@ -29,40 +29,13 @@ func baseTableDDL(t *TableDescription, did Dialect) string {
 		io.WriteString(tab, field.SqlName)
 
 		io.WriteString(tab, "\t")
-		io.WriteString(tab, field.AsColumn(did))
+		io.WriteString(tab, did.FieldAsColumn(field))
 	}
 
 	// flush the tab writer to write to the buffer
 	tab.Flush()
 
 	return buf.String()
-}
-
-// IndexDDL returns a SQL statement to create the index.
-func baseIndexDDL(index *Index) string {
-	w := &bytes.Buffer{}
-
-	//if create {
-	//	w.WriteString("CREATE ")
-	//	if index.Unique {
-	//		w.WriteString("UNIQUE ")
-	//	}
-	//} else {
-	//	w.WriteString("DROP ")
-	//}
-	//w.WriteString("INDEX %s%s")
-	//w.WriteString(index.Name)
-	//w.WriteString(" ON %s%s (")
-
-	comma := ""
-	for _, field := range index.Fields {
-		w.WriteString(comma)
-		w.WriteString(field.SqlName)
-		comma = ", "
-	}
-
-	//w.WriteString(")")
-	return w.String()
 }
 
 func baseInsertDML(t *TableDescription) string {

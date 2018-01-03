@@ -76,10 +76,6 @@ func (dialect postgres) TableDDL(table *TableDescription) string {
 	return baseTableDDL(table, dialect)
 }
 
-func (dialect postgres) IndexDDL(table *TableDescription, index *Index) string {
-	return baseIndexDDL(index)
-}
-
 func (dialect postgres) InsertDML(table *TableDescription) string {
 	return baseInsertDML(table)
 }
@@ -90,6 +86,14 @@ func (dialect postgres) UpdateDML(table *TableDescription, fields []*Field) stri
 
 func (dialect postgres) DeleteDML(table *TableDescription, fields []*Field) string {
 	return baseDeleteDML(table, fields, postgresParam)
+}
+
+func (dialect postgres) TruncateDDL(tableName string, force bool) []string {
+	if force {
+		return []string{fmt.Sprintf("TRUNCATE %s CASCADE", tableName)}
+	}
+
+	return []string{fmt.Sprintf("TRUNCATE %s RESTRICT", tableName)}
 }
 
 func postgresParam(i int) string {

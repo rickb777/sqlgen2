@@ -152,7 +152,7 @@ func (tbl XExampleTable) dropXNameIdxIndexSql(ifExists, onTbl string) string {
 	return fmt.Sprintf("DROP INDEX %s%snameIdx%s", ifExists, indexPrefix, onTbl)
 }
 
-// DropIndexes executes queries that drops the indexes on by the Example table.
+// DropIndexes executes queries that drop the indexes on by the Example table.
 func (tbl XExampleTable) DropIndexes(ifExist bool) (err error) {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")

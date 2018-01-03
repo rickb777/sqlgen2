@@ -56,6 +56,9 @@ type TableCreator interface {
 
 	// CreateTable creates the database table using the current dialect.
 	CreateTable(ifNotExist bool) (int64, error)
+
+	// Truncate empties the table
+	Truncate(force bool) (err error)
 }
 
 type TableWithIndexes interface {
@@ -63,6 +66,9 @@ type TableWithIndexes interface {
 
 	// CreateIndexes creates the indexes for the database table using the current dialect.
 	CreateIndexes(ifNotExist bool) (err error)
+
+	// DropIndexes executes a query that drops the indexes on by the database table.
+	DropIndexes(ifExist bool) (err error)
 
 	// CreateTableWithIndexes creates the database table and its indexes using the current dialect.
 	CreateTableWithIndexes(ifNotExist bool) (err error)
