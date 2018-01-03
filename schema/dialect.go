@@ -3,7 +3,7 @@ package schema
 type Dialect interface {
 	TableDDL(*TableDescription) string
 	InsertDML(*TableDescription) string
-	UpdateDML(*TableDescription, []*Field) string
+	UpdateDML(*TableDescription) string
 	DeleteDML(*TableDescription, []*Field) string
 	TruncateDDL(tableName string, force bool) []string
 	//Param(int) string

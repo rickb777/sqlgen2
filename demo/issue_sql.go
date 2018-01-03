@@ -428,6 +428,8 @@ func (tbl IssueTable) updateFields(where where.Expression, fields ...sql.NamedAr
 	return query, args
 }
 
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Issue.PreUpdate(Execer) method will be called, if it exists.
 func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
@@ -464,14 +466,46 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 	return count, nil
 }
 
+// Upsert updates a record, matching it by primary key, or it inserts a new record if necessary.
+func (tbl IssueTable) Upsert(v *Issue) (isnew bool, err error) {
+	n, err := tbl.Update(v)
+	if err != nil {
+		return false, err
+	}
+
+	if n == 0 {
+		isnew = true
+		err = tbl.Insert(v)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 const sqlUpdateIssueByPkSimple = `
-UPDATE %%s%%s SET 
- WHERE id=?
+UPDATE %%s%%s SET
+	number=?,
+	date=?,
+	title=?,
+	bigbody=?,
+	assignee=?,
+	state=?,
+	labels=?
+WHERE id=?
 `
 
 const sqlUpdateIssueByPkPostgres = `
-UPDATE %%s%%s SET 
- WHERE id=$9
+UPDATE %%s%%s SET
+	number=$2,
+	date=$3,
+	title=$4,
+	bigbody=$5,
+	assignee=$6,
+	state=$7,
+	labels=$8
+WHERE id=$1
 `
 
 //--------------------------------------------------------------------------------

@@ -80,8 +80,8 @@ func (dialect postgres) InsertDML(table *TableDescription) string {
 	return baseInsertDML(table)
 }
 
-func (dialect postgres) UpdateDML(table *TableDescription, fields []*Field) string {
-	return baseUpdateDML(table, fields, postgresParam)
+func (dialect postgres) UpdateDML(table *TableDescription) string {
+	return baseUpdateDML(table, table.Fields, postgresParam)
 }
 
 func (dialect postgres) DeleteDML(table *TableDescription, fields []*Field) string {

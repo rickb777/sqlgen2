@@ -298,6 +298,8 @@ func (tbl V2UserTable) updateFields(where where.Expression, fields ...sql.NamedA
 	return query, args
 }
 
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The User.PreUpdate(Execer) method will be called, if it exists.
 func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
@@ -334,14 +336,52 @@ func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 	return count, nil
 }
 
+// Upsert updates a record, matching it by primary key, or it inserts a new record if necessary.
+func (tbl V2UserTable) Upsert(v *User) (isnew bool, err error) {
+	n, err := tbl.Update(v)
+	if err != nil {
+		return false, err
+	}
+
+	if n == 0 {
+		isnew = true
+		err = tbl.Insert(v)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 const sqlUpdateV2UserByPkSimple = `
-UPDATE %%s%%s SET 
- WHERE uid=?
+UPDATE %%s%%s SET
+	login=?,
+	emailaddress=?,
+	avatar=?,
+	active=?,
+	admin=?,
+	fave=?,
+	lastupdated=?,
+	token=?,
+	secret=?,
+	hash=?
+WHERE uid=?
 `
 
 const sqlUpdateV2UserByPkPostgres = `
-UPDATE %%s%%s SET 
- WHERE uid=$12
+UPDATE %%s%%s SET
+	login=$2,
+	emailaddress=$3,
+	avatar=$4,
+	active=$5,
+	admin=$6,
+	fave=$7,
+	lastupdated=$8,
+	token=$9,
+	secret=$10,
+	hash=$11
+WHERE uid=$1
 `
 
 //--------------------------------------------------------------------------------

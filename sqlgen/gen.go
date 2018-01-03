@@ -109,7 +109,7 @@ func packagesToImport(genFuncs, genSchema, hasPrimaryKey bool) StringSet {
 	if genFuncs {
 		imports.Add("github.com/rickb777/sqlgen2/where")
 	}
-	if genFuncs && hasPrimaryKey {
+	if genFuncs {
 		imports.Add("strings")
 	}
 	return imports

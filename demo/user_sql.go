@@ -217,28 +217,17 @@ func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 		ine = ""
 	}
 
-	_, err = tbl.Exec(tbl.createDbUserLoginIndexSql(ine))
-	if err != nil {
-		return err
-	}
-
 	_, err = tbl.Exec(tbl.createDbUserEmailIndexSql(ine))
 	if err != nil {
 		return err
 	}
 
+	_, err = tbl.Exec(tbl.createDbUserLoginIndexSql(ine))
+	if err != nil {
+		return err
+	}
+
 	return nil
-}
-
-func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.Prefix, tbl.Name, sqlDbUserLoginIndexColumns)
-}
-
-func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists, onTbl string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ifExists, indexPrefix, onTbl)
 }
 
 func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExists string) string {
@@ -252,18 +241,29 @@ func (tbl DbUserTable) dropDbUserEmailIndexSql(ifExists, onTbl string) string {
 	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ifExists, indexPrefix, onTbl)
 }
 
+func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExists string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.Prefix, tbl.Name, sqlDbUserLoginIndexColumns)
+}
+
+func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists, onTbl string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ifExists, indexPrefix, onTbl)
+}
+
 // DropIndexes executes queries that drop the indexes on by the User table.
 func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
 	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
 
-	_, err = tbl.Exec(tbl.dropDbUserLoginIndexSql(ie, onTbl))
+	_, err = tbl.Exec(tbl.dropDbUserEmailIndexSql(ie, onTbl))
 	if err != nil {
 		return err
 	}
 
-	_, err = tbl.Exec(tbl.dropDbUserEmailIndexSql(ie, onTbl))
+	_, err = tbl.Exec(tbl.dropDbUserLoginIndexSql(ie, onTbl))
 	if err != nil {
 		return err
 	}
@@ -273,9 +273,9 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-const sqlDbUserLoginIndexColumns = "login"
-
 const sqlDbUserEmailIndexColumns = "emailaddress"
+
+const sqlDbUserLoginIndexColumns = "login"
 
 //--------------------------------------------------------------------------------
 
@@ -466,6 +466,8 @@ func (tbl DbUserTable) updateFields(where where.Expression, fields ...sql.NamedA
 	return query, args
 }
 
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The User.PreUpdate(Execer) method will be called, if it exists.
 func (tbl DbUserTable) Update(vv ...*User) (int64, error) {
@@ -502,14 +504,52 @@ func (tbl DbUserTable) Update(vv ...*User) (int64, error) {
 	return count, nil
 }
 
+// Upsert updates a record, matching it by primary key, or it inserts a new record if necessary.
+func (tbl DbUserTable) Upsert(v *User) (isnew bool, err error) {
+	n, err := tbl.Update(v)
+	if err != nil {
+		return false, err
+	}
+
+	if n == 0 {
+		isnew = true
+		err = tbl.Insert(v)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 const sqlUpdateDbUserByPkSimple = `
-UPDATE %%s%%s SET 
- WHERE uid=?
+UPDATE %%s%%s SET
+	login=?,
+	emailaddress=?,
+	avatar=?,
+	active=?,
+	admin=?,
+	fave=?,
+	lastupdated=?,
+	token=?,
+	secret=?,
+	hash=?
+WHERE uid=?
 `
 
 const sqlUpdateDbUserByPkPostgres = `
-UPDATE %%s%%s SET 
- WHERE uid=$12
+UPDATE %%s%%s SET
+	login=$2,
+	emailaddress=$3,
+	avatar=$4,
+	active=$5,
+	admin=$6,
+	fave=$7,
+	lastupdated=$8,
+	token=$9,
+	secret=$10,
+	hash=$11
+WHERE uid=$1
 `
 
 //--------------------------------------------------------------------------------

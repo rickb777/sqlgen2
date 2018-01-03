@@ -10,8 +10,9 @@ import (
 )
 
 func simpleFixtureTable() *TableDescription {
-	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", ENCNONE, Tag{}}
+	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
 	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "name", ENCNONE, Tag{}}
+	age := &Field{Node{"Age", Type{"", "", "int", Int}, nil}, "age", ENCNONE, Tag{}}
 
 	return &TableDescription{
 		Type: "Example",
@@ -19,8 +20,23 @@ func simpleFixtureTable() *TableDescription {
 		Fields: []*Field{
 			id,
 			name,
+			age,
 		},
 		Primary: id,
+	}
+}
+
+func simpleNoPKTable() *TableDescription {
+	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "name", ENCNONE, Tag{}}
+	age := &Field{Node{"Age", Type{"", "", "int", Int}, nil}, "age", ENCNONE, Tag{}}
+
+	return &TableDescription{
+		Type: "Example",
+		Name: "examples",
+		Fields: []*Field{
+			name,
+			age,
+		},
 	}
 }
 
@@ -151,7 +167,7 @@ func (tbl XExampleTable) Count(where where.Expression) (count int64, err error) 
 	return tbl.CountSA(wh, args...)
 }
 
-const XExampleColumnNames = "id, name"
+const XExampleColumnNames = "id, name, age"
 `
 	if code != expected {
 		outputDiff(expected, "expected.txt")
@@ -166,8 +182,7 @@ func TestWriteInsertFunc_noPK(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
-	view.Table = simpleFixtureTable()
-	view.Table.Primary = nil
+	view.Table = simpleNoPKTable()
 
 	buf := &bytes.Buffer{}
 
@@ -220,15 +235,15 @@ func (tbl XExampleTable) Insert(vv ...*Example) error {
 
 const sqlInsertXExampleSimple = |
 INSERT INTO %s%s (
-	id,
-	name
+	name,
+	age
 ) VALUES (%s)
 |
 
 const sqlInsertXExamplePostgres = |
 INSERT INTO %s%s (
-	id,
-	name
+	name,
+	age
 ) VALUES (%s)
 |
 
@@ -306,21 +321,165 @@ func (tbl XExampleTable) Insert(vv ...*Example) error {
 
 const sqlInsertXExampleSimple = |
 INSERT INTO %s%s (
-	id,
-	name
+	name,
+	age
 ) VALUES (%s)
 |
 
 const sqlInsertXExamplePostgres = |
 INSERT INTO %s%s (
-	id,
-	name
+	name,
+	age
 ) VALUES (%s)
 |
 
 const sXExampleDataColumnParamsSimple = "?,?"
 
 const sXExampleDataColumnParamsPostgres = "$1,$2"
+`, "|", "`", -1)
+	if code != expected {
+		outputDiff(expected, "expected.txt")
+		outputDiff(code, "got.txt")
+		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
+func TestWriteUpdateFunc_noPK(t *testing.T) {
+	exit.TestableExit()
+
+	view := NewView("Example", "X", "")
+	view.Table = simpleNoPKTable()
+
+	buf := &bytes.Buffer{}
+
+	WriteUpdateFunc(buf, view)
+
+	code := buf.String()
+	expected := strings.Replace(`
+//--------------------------------------------------------------------------------
+
+// UpdateFields updates one or more columns, given a 'where' clause.
+func (tbl XExampleTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
+	query, args := tbl.updateFields(where, fields...)
+	return tbl.Exec(query, args...)
+}
+
+func (tbl XExampleTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+	list := sqlgen2.NamedArgList(fields)
+	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
+	whereClause, wargs := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	args := append(list.Values(), wargs...)
+	return query, args
+}
+`, "|", "`", -1)
+	if code != expected {
+		outputDiff(expected, "expected.txt")
+		outputDiff(code, "got.txt")
+		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
+	}
+}
+
+func TestWriteUpdateFunc_withPK(t *testing.T) {
+	exit.TestableExit()
+
+	view := NewView("Example", "X", "")
+	view.Table = simpleFixtureTable()
+
+	buf := &bytes.Buffer{}
+
+	WriteUpdateFunc(buf, view)
+
+	code := buf.String()
+	expected := strings.Replace(`
+//--------------------------------------------------------------------------------
+
+// UpdateFields updates one or more columns, given a 'where' clause.
+func (tbl XExampleTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
+	query, args := tbl.updateFields(where, fields...)
+	return tbl.Exec(query, args...)
+}
+
+func (tbl XExampleTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+	list := sqlgen2.NamedArgList(fields)
+	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
+	whereClause, wargs := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	args := append(list.Values(), wargs...)
+	return query, args
+}
+
+//--------------------------------------------------------------------------------
+
+// Update updates records, matching them by primary key. It returns the number of rows affected.
+// The Example.PreUpdate(Execer) method will be called, if it exists.
+func (tbl XExampleTable) Update(vv ...*Example) (int64, error) {
+	var stmt string
+	switch tbl.Dialect {
+	case schema.Postgres:
+		stmt = sqlUpdateXExampleByPkPostgres
+	default:
+		stmt = sqlUpdateXExampleByPkSimple
+	}
+
+	var count int64
+	for _, v := range vv {
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
+			hook.PreUpdate(tbl.Db)
+		}
+
+		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+
+		args, err := sliceXExampleWithoutPk(v)
+		if err != nil {
+			return count, err
+		}
+
+		args = append(args, v.Id)
+		tbl.logQuery(query, args...)
+		n, err := tbl.Exec(query, args...)
+		if err != nil {
+			return count, err
+		}
+		count += n
+	}
+	return count, nil
+}
+
+// Upsert updates a record, matching it by primary key, or it inserts a new record if necessary.
+func (tbl XExampleTable) Upsert(v *Example) (isnew bool, err error) {
+	n, err := tbl.Update(v)
+	if err != nil {
+		return false, err
+	}
+
+	if n == 0 {
+		isnew = true
+		err = tbl.Insert(v)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+const sqlUpdateXExampleByPkSimple = |
+UPDATE %%s%%s SET
+	name=?,
+	age=?
+WHERE id=?
+|
+
+const sqlUpdateXExampleByPkPostgres = |
+UPDATE %%s%%s SET
+	name=$2,
+	age=$3
+WHERE id=$1
+|
 `, "|", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")

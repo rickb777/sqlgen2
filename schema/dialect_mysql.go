@@ -99,8 +99,8 @@ func (dialect mysql) InsertDML(table *TableDescription) string {
 	return baseInsertDML(table)
 }
 
-func (dialect mysql) UpdateDML(table *TableDescription, fields []*Field) string {
-	return baseUpdateDML(table, fields, paramIsQuery)
+func (dialect mysql) UpdateDML(table *TableDescription) string {
+	return baseUpdateDML(table, table.Fields, paramIsQuery)
 }
 
 func (dialect mysql) DeleteDML(table *TableDescription, fields []*Field) string {

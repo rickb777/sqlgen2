@@ -236,7 +236,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Get(id {{.Table.Primary.Type.Base.Token}}) 
 {{end -}}
 `
 
-var tGetRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sGetRow))
+var tGetRow = template.Must(template.New("GetRow").Funcs(funcMap).Parse(sGetRow))
 
 //-------------------------------------------------------------------------------------------------
 
@@ -390,7 +390,7 @@ var tInsertSimple = template.Must(template.New("Insert").Funcs(funcMap).Parse(sI
 //-------------------------------------------------------------------------------------------------
 
 // function template to update a single row.
-const sUpdate = `
+const sUpdateFields = `
 // UpdateFields updates one or more columns, given a 'where' clause.
 func (tbl {{.Prefix}}{{.Type}}Table) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
 	query, args := tbl.updateFields(where, fields...)
@@ -405,6 +405,15 @@ func (tbl {{.Prefix}}{{.Type}}Table) updateFields(where where.Expression, fields
 	args := append(list.Values(), wargs...)
 	return query, args
 }
+`
+
+var tUpdateFields = template.Must(template.New("UpdateFields").Funcs(funcMap).Parse(sUpdateFields))
+
+//-------------------------------------------------------------------------------------------------
+
+// function template to update rows.
+const sUpdate = `{{if .Table.Primary}}
+//--------------------------------------------------------------------------------
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The {{.Type}}.PreUpdate(Execer) method will be called, if it exists.
@@ -441,6 +450,25 @@ func (tbl {{.Prefix}}{{.Type}}Table) Update(vv ...*{{.Type}}) (int64, error) {
 	}
 	return count, nil
 }
+
+// Upsert updates a record, matching it by primary key, or it inserts a new record if necessary.
+func (tbl {{.Prefix}}{{.Type}}Table) Upsert(v *{{.Type}}) (isnew bool, err error) {
+	n, err := tbl.Update(v)
+	if err != nil {
+		return false, err
+	}
+
+	if n == 0 {
+		isnew = true
+		err = tbl.Insert(v)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+{{end -}}
 `
 
 var tUpdate = template.Must(template.New("Update").Funcs(funcMap).Parse(sUpdate))

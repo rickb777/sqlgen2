@@ -60,17 +60,19 @@ func WriteInsertFunc(w io.Writer, view View) {
 }
 
 func WriteUpdateFunc(w io.Writer, view View) {
-	if view.Table.HasPrimaryKey() {
-		fmt.Fprintln(w, sectionBreak)
+	fmt.Fprintln(w, sectionBreak)
 
+	must(tUpdateFields.Execute(w, view))
+
+	if view.Table.HasPrimaryKey() {
 		must(tUpdate.Execute(w, view))
 
 		tableName := view.Prefix + view.Table.Type
 		fmt.Fprintf(w, constStringWithTicks,
-			identifier("sqlUpdate", tableName, "ByPkSimple"), schema.Sqlite.UpdateDML(view.Table, []*schema.Field{view.Table.Primary}))
+			identifier("sqlUpdate", tableName, "ByPkSimple"), schema.Sqlite.UpdateDML(view.Table))
 
 		fmt.Fprintf(w, constStringWithTicks,
-			identifier("sqlUpdate", tableName, "ByPkPostgres"), schema.Postgres.UpdateDML(view.Table, []*schema.Field{view.Table.Primary}))
+			identifier("sqlUpdate", tableName, "ByPkPostgres"), schema.Postgres.UpdateDML(view.Table))
 	}
 }
 

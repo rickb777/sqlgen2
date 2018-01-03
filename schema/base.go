@@ -58,22 +58,21 @@ func baseInsertDML(t *TableDescription) string {
 
 func baseUpdateDML(t *TableDescription, fields []*Field, param func(int) string) string {
 	w := &bytes.Buffer{}
-	w.WriteString("UPDATE %%s%%s SET ")
+	w.WriteString("UPDATE %%s%%s SET\n")
 
 	comma := ""
-	for i, field := range fields {
+	for i, field := range t.Fields {
 		if !field.Tags.Auto {
 			w.WriteString(comma)
-			w.WriteString("\n")
 			w.WriteString(fieldIndentation)
 			w.WriteString(field.SqlName)
 			w.WriteString("=")
-			w.WriteString(param(i + 1))
-			comma = ", "
+			w.WriteString(param(i))
+			comma = ",\n"
 		}
 	}
 
-	w.WriteString(baseWhereClause(fields, len(t.Fields), param))
+	w.WriteString(baseWhereClause([]*Field{t.Primary}, 0, param))
 	return w.String()
 }
 
@@ -122,12 +121,11 @@ func baseWhereClause(fields []*Field, pos int, param func(int) string) string {
 
 	var i int
 	for _, field := range fields {
-		buf.WriteString("\n ")
 		switch {
 		case i == 0:
-			buf.WriteString("WHERE")
+			buf.WriteString("\nWHERE")
 		default:
-			buf.WriteString("AND")
+			buf.WriteString("\nAND")
 		}
 
 		buf.WriteString(" ")

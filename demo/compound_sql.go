@@ -10,6 +10,7 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
+	"strings"
 )
 
 // DbCompoundTableName is the default name for this table.
@@ -369,6 +370,23 @@ INSERT INTO %s%s (
 const sDbCompoundDataColumnParamsSimple = "?,?,?"
 
 const sDbCompoundDataColumnParamsPostgres = "$1,$2,$3"
+
+//--------------------------------------------------------------------------------
+
+// UpdateFields updates one or more columns, given a 'where' clause.
+func (tbl DbCompoundTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
+	query, args := tbl.updateFields(where, fields...)
+	return tbl.Exec(query, args...)
+}
+
+func (tbl DbCompoundTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+	list := sqlgen2.NamedArgList(fields)
+	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
+	whereClause, wargs := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	args := append(list.Values(), wargs...)
+	return query, args
+}
 
 //--------------------------------------------------------------------------------
 

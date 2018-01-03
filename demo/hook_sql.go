@@ -411,6 +411,8 @@ func (tbl HookTable) updateFields(where where.Expression, fields ...sql.NamedArg
 	return query, args
 }
 
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Hook.PreUpdate(Execer) method will be called, if it exists.
 func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
@@ -447,14 +449,64 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 	return count, nil
 }
 
+// Upsert updates a record, matching it by primary key, or it inserts a new record if necessary.
+func (tbl HookTable) Upsert(v *Hook) (isnew bool, err error) {
+	n, err := tbl.Update(v)
+	if err != nil {
+		return false, err
+	}
+
+	if n == 0 {
+		isnew = true
+		err = tbl.Insert(v)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 const sqlUpdateHookByPkSimple = `
-UPDATE %%s%%s SET 
- WHERE id=?
+UPDATE %%s%%s SET
+	sha=?,
+	after=?,
+	before=?,
+	category=?,
+	created=?,
+	deleted=?,
+	forced=?,
+	commit_id=?,
+	message=?,
+	timestamp=?,
+	head_commit_author_name=?,
+	head_commit_author_email=?,
+	head_commit_author_username=?,
+	head_commit_committer_name=?,
+	head_commit_committer_email=?,
+	head_commit_committer_username=?
+WHERE id=?
 `
 
 const sqlUpdateHookByPkPostgres = `
-UPDATE %%s%%s SET 
- WHERE id=$18
+UPDATE %%s%%s SET
+	sha=$2,
+	after=$3,
+	before=$4,
+	category=$5,
+	created=$6,
+	deleted=$7,
+	forced=$8,
+	commit_id=$9,
+	message=$10,
+	timestamp=$11,
+	head_commit_author_name=$12,
+	head_commit_author_email=$13,
+	head_commit_author_username=$14,
+	head_commit_committer_name=$15,
+	head_commit_committer_email=$16,
+	head_commit_committer_username=$17
+WHERE id=$1
 `
 
 //--------------------------------------------------------------------------------
