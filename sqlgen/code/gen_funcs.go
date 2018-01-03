@@ -46,10 +46,7 @@ func WriteInsertFunc(w io.Writer, view View) {
 
 	tableName := view.Prefix + view.Table.Type
 	fmt.Fprintf(w, constStringWithTicks,
-		identifier("sqlInsert", tableName, "Simple"), schema.Sqlite.InsertDML(view.Table))
-
-	fmt.Fprintf(w, constStringWithTicks,
-		identifier("sqlInsert", tableName, "Postgres"), schema.Postgres.InsertDML(view.Table))
+		identifier("sqlInsert", tableName, ""), schema.Sqlite.InsertDML(view.Table))
 
 	fmt.Fprintf(w, constStringQ,
 		identifier("s", tableName, "DataColumnParamsSimple"), schema.Sqlite.Placeholders(view.Table.NumColumnNames(false)))

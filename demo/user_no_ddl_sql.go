@@ -204,17 +204,15 @@ const V2UserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave
 // set to the new record identifiers.
 // The User.PreInsert(Execer) method will be called, if it exists.
 func (tbl V2UserTable) Insert(vv ...*User) error {
-	var stmt, params string
+	var params string
 	switch tbl.Dialect {
 	case schema.Postgres:
-		stmt = sqlInsertV2UserPostgres
 		params = sV2UserDataColumnParamsPostgres
 	default:
-		stmt = sqlInsertV2UserSimple
 		params = sV2UserDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params)
+	query := fmt.Sprintf(sqlInsertV2User, tbl.Prefix, tbl.Name, params)
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
 	if err != nil {
 		return err
@@ -247,22 +245,7 @@ func (tbl V2UserTable) Insert(vv ...*User) error {
 	return nil
 }
 
-const sqlInsertV2UserSimple = `
-INSERT INTO %s%s (
-	login,
-	emailaddress,
-	avatar,
-	active,
-	admin,
-	fave,
-	lastupdated,
-	token,
-	secret,
-	hash
-) VALUES (%s)
-`
-
-const sqlInsertV2UserPostgres = `
+const sqlInsertV2User = `
 INSERT INTO %s%s (
 	login,
 	emailaddress,

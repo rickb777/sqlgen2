@@ -288,17 +288,15 @@ const sInsertAndGetLastId = `
 // set to the new record identifiers.
 // The {{.Type}}.PreInsert(Execer) method will be called, if it exists.
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
-	var stmt, params string
+	var params string
 	switch tbl.Dialect {
 	case schema.Postgres:
-		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsPostgres
 	default:
-		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Simple
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params)
+	query := fmt.Sprintf(sqlInsert{{$.Prefix}}{{$.Type}}, tbl.Prefix, tbl.Name, params)
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
 	if err != nil {
 		return err
@@ -346,17 +344,15 @@ const sInsertSimple = `
 // Insert adds new records for the {{.Types}}.
 // The {{.Type}}.PreInsert(Execer) method will be called, if it exists.
 func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
-	var stmt, params string
+	var params string
 	switch tbl.Dialect {
 	case schema.Postgres:
-		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsPostgres
 	default:
-		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Simple
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params)
+	query := fmt.Sprintf(sqlInsert{{$.Prefix}}{{$.Type}}, tbl.Prefix, tbl.Name, params)
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
 	if err != nil {
 		return err

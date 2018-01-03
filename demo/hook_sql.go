@@ -305,17 +305,15 @@ const HookColumnNames = "id, sha, after, before, category, created, deleted, for
 // set to the new record identifiers.
 // The Hook.PreInsert(Execer) method will be called, if it exists.
 func (tbl HookTable) Insert(vv ...*Hook) error {
-	var stmt, params string
+	var params string
 	switch tbl.Dialect {
 	case schema.Postgres:
-		stmt = sqlInsertHookPostgres
 		params = sHookDataColumnParamsPostgres
 	default:
-		stmt = sqlInsertHookSimple
 		params = sHookDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params)
+	query := fmt.Sprintf(sqlInsertHook, tbl.Prefix, tbl.Name, params)
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
 	if err != nil {
 		return err
@@ -348,28 +346,7 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 	return nil
 }
 
-const sqlInsertHookSimple = `
-INSERT INTO %s%s (
-	sha,
-	after,
-	before,
-	category,
-	created,
-	deleted,
-	forced,
-	commit_id,
-	message,
-	timestamp,
-	head_commit_author_name,
-	head_commit_author_email,
-	head_commit_author_username,
-	head_commit_committer_name,
-	head_commit_committer_email,
-	head_commit_committer_username
-) VALUES (%s)
-`
-
-const sqlInsertHookPostgres = `
+const sqlInsertHook = `
 INSERT INTO %s%s (
 	sha,
 	after,

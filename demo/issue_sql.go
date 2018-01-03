@@ -340,17 +340,15 @@ const IssueColumnNames = "id, number, date, title, bigbody, assignee, state, lab
 // set to the new record identifiers.
 // The Issue.PreInsert(Execer) method will be called, if it exists.
 func (tbl IssueTable) Insert(vv ...*Issue) error {
-	var stmt, params string
+	var params string
 	switch tbl.Dialect {
 	case schema.Postgres:
-		stmt = sqlInsertIssuePostgres
 		params = sIssueDataColumnParamsPostgres
 	default:
-		stmt = sqlInsertIssueSimple
 		params = sIssueDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params)
+	query := fmt.Sprintf(sqlInsertIssue, tbl.Prefix, tbl.Name, params)
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
 	if err != nil {
 		return err
@@ -383,19 +381,7 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 	return nil
 }
 
-const sqlInsertIssueSimple = `
-INSERT INTO %s%s (
-	number,
-	date,
-	title,
-	bigbody,
-	assignee,
-	state,
-	labels
-) VALUES (%s)
-`
-
-const sqlInsertIssuePostgres = `
+const sqlInsertIssue = `
 INSERT INTO %s%s (
 	number,
 	date,

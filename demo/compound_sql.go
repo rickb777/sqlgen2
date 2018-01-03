@@ -313,17 +313,15 @@ const DbCompoundColumnNames = "alpha, beta, category"
 // Insert adds new records for the Compounds.
 // The Compound.PreInsert(Execer) method will be called, if it exists.
 func (tbl DbCompoundTable) Insert(vv ...*Compound) error {
-	var stmt, params string
+	var params string
 	switch tbl.Dialect {
 	case schema.Postgres:
-		stmt = sqlInsertDbCompoundPostgres
 		params = sDbCompoundDataColumnParamsPostgres
 	default:
-		stmt = sqlInsertDbCompoundSimple
 		params = sDbCompoundDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params)
+	query := fmt.Sprintf(sqlInsertDbCompound, tbl.Prefix, tbl.Name, params)
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
 	if err != nil {
 		return err
@@ -351,15 +349,7 @@ func (tbl DbCompoundTable) Insert(vv ...*Compound) error {
 	return nil
 }
 
-const sqlInsertDbCompoundSimple = `
-INSERT INTO %s%s (
-	alpha,
-	beta,
-	category
-) VALUES (%s)
-`
-
-const sqlInsertDbCompoundPostgres = `
+const sqlInsertDbCompound = `
 INSERT INTO %s%s (
 	alpha,
 	beta,

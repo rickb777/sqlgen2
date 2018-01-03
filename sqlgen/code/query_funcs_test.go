@@ -195,17 +195,15 @@ func TestWriteInsertFunc_noPK(t *testing.T) {
 // Insert adds new records for the Examples.
 // The Example.PreInsert(Execer) method will be called, if it exists.
 func (tbl XExampleTable) Insert(vv ...*Example) error {
-	var stmt, params string
+	var params string
 	switch tbl.Dialect {
 	case schema.Postgres:
-		stmt = sqlInsertXExamplePostgres
 		params = sXExampleDataColumnParamsPostgres
 	default:
-		stmt = sqlInsertXExampleSimple
 		params = sXExampleDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params)
+	query := fmt.Sprintf(sqlInsertXExample, tbl.Prefix, tbl.Name, params)
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
 	if err != nil {
 		return err
@@ -233,14 +231,7 @@ func (tbl XExampleTable) Insert(vv ...*Example) error {
 	return nil
 }
 
-const sqlInsertXExampleSimple = |
-INSERT INTO %s%s (
-	name,
-	age
-) VALUES (%s)
-|
-
-const sqlInsertXExamplePostgres = |
+const sqlInsertXExample = |
 INSERT INTO %s%s (
 	name,
 	age
@@ -276,17 +267,15 @@ func TestWriteInsertFunc_withPK(t *testing.T) {
 // set to the new record identifiers.
 // The Example.PreInsert(Execer) method will be called, if it exists.
 func (tbl XExampleTable) Insert(vv ...*Example) error {
-	var stmt, params string
+	var params string
 	switch tbl.Dialect {
 	case schema.Postgres:
-		stmt = sqlInsertXExamplePostgres
 		params = sXExampleDataColumnParamsPostgres
 	default:
-		stmt = sqlInsertXExampleSimple
 		params = sXExampleDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name, params)
+	query := fmt.Sprintf(sqlInsertXExample, tbl.Prefix, tbl.Name, params)
 	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
 	if err != nil {
 		return err
@@ -319,14 +308,7 @@ func (tbl XExampleTable) Insert(vv ...*Example) error {
 	return nil
 }
 
-const sqlInsertXExampleSimple = |
-INSERT INTO %s%s (
-	name,
-	age
-) VALUES (%s)
-|
-
-const sqlInsertXExamplePostgres = |
+const sqlInsertXExample = |
 INSERT INTO %s%s (
 	name,
 	age
