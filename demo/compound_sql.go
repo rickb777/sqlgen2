@@ -352,16 +352,16 @@ func (tbl DbCompoundTable) Insert(vv ...*Compound) error {
 
 const sqlInsertDbCompoundSimple = `
 INSERT INTO %s%s (
-	alpha, 
-	beta, 
+	alpha,
+	beta,
 	category
 ) VALUES (%s)
 `
 
 const sqlInsertDbCompoundPostgres = `
 INSERT INTO %s%s (
-	alpha, 
-	beta, 
+	alpha,
+	beta,
 	category
 ) VALUES (%s)
 `

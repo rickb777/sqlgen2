@@ -281,6 +281,14 @@ func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error)
 
 //--------------------------------------------------------------------------------
 
+// Get gets the record with a given primary key value.
+func (tbl IssueTable) Get(id int64) (*Issue, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", IssueColumnNames, tbl.Prefix, tbl.Name)
+	return tbl.QueryOne(query, id)
+}
+
+//--------------------------------------------------------------------------------
+
 // SelectOneSA allows a single Issue to be obtained from the table that match a 'where' clause and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl IssueTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Issue, error) {
@@ -377,24 +385,24 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 
 const sqlInsertIssueSimple = `
 INSERT INTO %s%s (
-	number, 
-	date, 
-	title, 
-	bigbody, 
-	assignee, 
-	state, 
+	number,
+	date,
+	title,
+	bigbody,
+	assignee,
+	state,
 	labels
 ) VALUES (%s)
 `
 
 const sqlInsertIssuePostgres = `
 INSERT INTO %s%s (
-	number, 
-	date, 
-	title, 
-	bigbody, 
-	assignee, 
-	state, 
+	number,
+	date,
+	title,
+	bigbody,
+	assignee,
+	state,
 	labels
 ) VALUES (%s)
 `

@@ -145,6 +145,14 @@ func (tbl V2UserTable) Query(query string, args ...interface{}) ([]*User, error)
 
 //--------------------------------------------------------------------------------
 
+// Get gets the record with a given primary key value.
+func (tbl V2UserTable) Get(id int64) (*User, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", V2UserColumnNames, tbl.Prefix, tbl.Name)
+	return tbl.QueryOne(query, id)
+}
+
+//--------------------------------------------------------------------------------
+
 // SelectOneSA allows a single User to be obtained from the table that match a 'where' clause and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl V2UserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
@@ -241,30 +249,30 @@ func (tbl V2UserTable) Insert(vv ...*User) error {
 
 const sqlInsertV2UserSimple = `
 INSERT INTO %s%s (
-	login, 
-	emailaddress, 
-	avatar, 
-	active, 
-	admin, 
-	fave, 
-	lastupdated, 
-	token, 
-	secret, 
+	login,
+	emailaddress,
+	avatar,
+	active,
+	admin,
+	fave,
+	lastupdated,
+	token,
+	secret,
 	hash
 ) VALUES (%s)
 `
 
 const sqlInsertV2UserPostgres = `
 INSERT INTO %s%s (
-	login, 
-	emailaddress, 
-	avatar, 
-	active, 
-	admin, 
-	fave, 
-	lastupdated, 
-	token, 
-	secret, 
+	login,
+	emailaddress,
+	avatar,
+	active,
+	admin,
+	fave,
+	lastupdated,
+	token,
+	secret,
 	hash
 ) VALUES (%s)
 `

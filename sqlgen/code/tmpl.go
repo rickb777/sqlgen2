@@ -225,6 +225,21 @@ var tSelectRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sS
 
 //-------------------------------------------------------------------------------------------------
 
+const sGetRow = `{{if .Table.Primary}}
+//--------------------------------------------------------------------------------
+
+// Get gets the record with a given primary key value.
+func (tbl {{.Prefix}}{{.Type}}Table) Get(id {{.Table.Primary.Type.Base.Token}}) (*{{.Type}}, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE {{.Table.Primary.SqlName}}=?", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name)
+	return tbl.QueryOne(query, id)
+}
+{{end -}}
+`
+
+var tGetRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sGetRow))
+
+//-------------------------------------------------------------------------------------------------
+
 // function template to select multiple rows.
 const sSelectRows = `
 // SelectSA allows {{.Types}} to be obtained from the table that match a 'where' clause.

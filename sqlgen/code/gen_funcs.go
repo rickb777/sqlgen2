@@ -19,6 +19,10 @@ func WriteQueryFuncs(w io.Writer, view View) {
 	must(tQueryRows.Execute(w, view))
 }
 
+func WriteGetRow(w io.Writer, view View) {
+	must(tGetRow.Execute(w, view))
+}
+
 func WriteSelectRow(w io.Writer, view View) {
 	fmt.Fprintln(w, sectionBreak)
 
@@ -47,14 +51,8 @@ func WriteInsertFunc(w io.Writer, view View) {
 	fmt.Fprintf(w, constStringWithTicks,
 		identifier("sqlInsert", tableName, "Postgres"), schema.Postgres.InsertDML(view.Table))
 
-	//fmt.Fprintf(w, constStringQ,
-	//	identifier("s", tableName, "ColumnParamsSimple"), sqlgen2.Sqlite.Placeholders(table.NumColumnNames(true)))
-
 	fmt.Fprintf(w, constStringQ,
 		identifier("s", tableName, "DataColumnParamsSimple"), schema.Sqlite.Placeholders(view.Table.NumColumnNames(false)))
-
-	//fmt.Fprintf(w, constStringQ,
-	//	identifier("s", tableName, "ColumnParamsPostgres"), sqlgen2.Postgres.Placeholders(table.NumColumnNames(true)))
 
 	fmt.Fprintf(w, constStringQ,
 		identifier("s", tableName, "DataColumnParamsPostgres"), schema.Postgres.Placeholders(view.Table.NumColumnNames(false)))

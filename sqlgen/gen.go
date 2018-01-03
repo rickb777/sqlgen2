@@ -73,6 +73,7 @@ func main() {
 	WriteQueryFuncs(buf, view)
 
 	if genFuncs {
+		WriteGetRow(buf, view)
 		WriteSelectRow(buf, view)
 		WriteInsertFunc(buf, view)
 		WriteUpdateFunc(buf, view)

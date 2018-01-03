@@ -40,16 +40,15 @@ func baseTableDDL(t *TableDescription, did Dialect) string {
 
 func baseInsertDML(t *TableDescription) string {
 	w := &bytes.Buffer{}
-	w.WriteString("INSERT INTO %s%s (")
+	w.WriteString("INSERT INTO %s%s (\n")
 
 	comma := ""
 	for _, field := range t.Fields {
 		if !field.Tags.Auto {
 			w.WriteString(comma)
-			w.WriteString("\n")
 			w.WriteString(fieldIndentation)
 			w.WriteString(field.SqlName)
-			comma = ", "
+			comma = ",\n"
 		}
 	}
 

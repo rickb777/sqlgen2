@@ -246,6 +246,14 @@ func (tbl HookTable) Query(query string, args ...interface{}) (HookList, error) 
 
 //--------------------------------------------------------------------------------
 
+// Get gets the record with a given primary key value.
+func (tbl HookTable) Get(id int64) (*Hook, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", HookColumnNames, tbl.Prefix, tbl.Name)
+	return tbl.QueryOne(query, id)
+}
+
+//--------------------------------------------------------------------------------
+
 // SelectOneSA allows a single Hook to be obtained from the table that match a 'where' clause and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Hook, error) {
@@ -342,42 +350,42 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 
 const sqlInsertHookSimple = `
 INSERT INTO %s%s (
-	sha, 
-	after, 
-	before, 
-	category, 
-	created, 
-	deleted, 
-	forced, 
-	commit_id, 
-	message, 
-	timestamp, 
-	head_commit_author_name, 
-	head_commit_author_email, 
-	head_commit_author_username, 
-	head_commit_committer_name, 
-	head_commit_committer_email, 
+	sha,
+	after,
+	before,
+	category,
+	created,
+	deleted,
+	forced,
+	commit_id,
+	message,
+	timestamp,
+	head_commit_author_name,
+	head_commit_author_email,
+	head_commit_author_username,
+	head_commit_committer_name,
+	head_commit_committer_email,
 	head_commit_committer_username
 ) VALUES (%s)
 `
 
 const sqlInsertHookPostgres = `
 INSERT INTO %s%s (
-	sha, 
-	after, 
-	before, 
-	category, 
-	created, 
-	deleted, 
-	forced, 
-	commit_id, 
-	message, 
-	timestamp, 
-	head_commit_author_name, 
-	head_commit_author_email, 
-	head_commit_author_username, 
-	head_commit_committer_name, 
-	head_commit_committer_email, 
+	sha,
+	after,
+	before,
+	category,
+	created,
+	deleted,
+	forced,
+	commit_id,
+	message,
+	timestamp,
+	head_commit_author_name,
+	head_commit_author_email,
+	head_commit_author_username,
+	head_commit_committer_name,
+	head_commit_committer_email,
 	head_commit_committer_username
 ) VALUES (%s)
 `

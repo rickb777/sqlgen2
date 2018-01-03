@@ -45,8 +45,7 @@ func fixtureTable() *TableDescription {
 	}
 }
 
-//TODO unfinished work based on this test
-func xTestWriteRowFunc1(t *testing.T) {
+func TestWriteRowFunc1(t *testing.T) {
 	exit.TestableExit()
 
 	p1 := &Node{Name: "Commit"}
@@ -79,18 +78,16 @@ func xTestWriteRowFunc1(t *testing.T) {
 	expected := `
 // scanXExample reads a table record into a single value.
 func scanXExample(row *sql.Row) (*Example, error) {
-	var v0 int64
-	var v1 Category
+	var v0 Category
+	var v1 string
 	var v2 string
 	var v3 string
-	var v4 string
 
 	err := row.Scan(
 		&v0,
 		&v1,
 		&v2,
 		&v3,
-		&v4,
 
 	)
 	if err != nil {
@@ -99,12 +96,9 @@ func scanXExample(row *sql.Row) (*Example, error) {
 
 	v := &Example{}
 	v.Cat = v0
-	v.Id = v1
-	v.Commit = &Commit{}
-	v.Commit.Author = &Author{}
-	v.Commit.Author.Name = v2
-	v.Commit.Author.Email = v3
-	v.Commit.Author.Message = v4
+	v.Commit.Author.Name = v1
+	v.Commit.Author.Email = v2
+	v.Commit.Message = v3
 
 	return v, nil
 }
@@ -276,16 +270,18 @@ func sideBySideDiff(a, b string) string {
 	i := 0
 
 	for _, ea := range aa {
-		ea := strings.Replace(ea, "\t", "    ", -1)
-		buf.WriteString(fmt.Sprintf("%-60s", truncate(ea, 60)))
+		eax := strings.Replace(ea, "    ", "˙˙˙˙", -1)
+		eax = strings.Replace(eax, "\t", "————", -1)
+		buf.WriteString(fmt.Sprintf("%-60s", truncate(eax, 60)))
 		if i < len(bb) {
-			eb := strings.Replace(bb[i], "\t", "    ", -1)
-			if ea != eb {
+			ebx := strings.Replace(bb[i], "    ", "˙˙˙˙", -1)
+			ebx = strings.Replace(ebx, "\t", "————", -1)
+			if ea != bb[i] {
 				buf.WriteString(" <> ")
 			} else {
 				buf.WriteString("    ")
 			}
-			buf.WriteString(truncate(eb, 60))
+			buf.WriteString(truncate(ebx, 60))
 		}
 		buf.WriteByte('\n')
 		i++
@@ -293,8 +289,9 @@ func sideBySideDiff(a, b string) string {
 
 	for ; i < len(bb); i++ {
 		buf.WriteString(fmt.Sprintf("%60s    ", ""))
-		eb := strings.Replace(bb[i], "\t", "    ", -1)
-		buf.WriteString(truncate(eb, 60))
+		ebx := strings.Replace(bb[i], "    ", "˙˙˙˙", -1)
+		ebx = strings.Replace(ebx, "\t", "————", -1)
+		buf.WriteString(truncate(ebx, 60))
 		buf.WriteByte('\n')
 	}
 
