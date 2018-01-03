@@ -245,14 +245,12 @@ const sSelectItem = `
 {{range .Table.SimpleFields}}
 // Get{{.Name}} gets the {{.Name}} column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl {{$.Prefix}}{{$.Type}}Table) Get{{.Name}}(where where.Expression, orderBy string) ([]{{.Type.Name}}, error) {
+func (tbl {{$.Prefix}}{{$.Type}}Table) Get{{.Name}}(where where.Expression, orderBy string) ([]{{.Type.Type}}, error) {
 	return tbl.get{{.Type.Name}}list("{{.SqlName}}", where, orderBy)
 }
 {{end}}
 {{range .Table.SimpleFields.DistinctTypes}}
-// Get{{.Name}} gets the {{.Name}} column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl {{$.Prefix}}{{$.Type}}Table) get{{.Name}}list(sqlname string, where where.Expression, orderBy string) ([]{{.Name}}, error) {
+func (tbl {{$.Prefix}}{{$.Type}}Table) get{{.Name}}list(sqlname string, where where.Expression, orderBy string) ([]{{.Type}}, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
 	tbl.logQuery(query, args...)
@@ -262,8 +260,8 @@ func (tbl {{$.Prefix}}{{$.Type}}Table) get{{.Name}}list(sqlname string, where wh
 	}
 	defer rows.Close()
 
-	var v {{.Name}}
-	list := make([]{{.Name}}, 0, 10)
+	var v {{.Type}}
+	list := make([]{{.Type}}, 0, 10)
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err != nil {

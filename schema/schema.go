@@ -152,9 +152,7 @@ type FieldList []*Field
 func (list FieldList) DistinctTypes() []Type {
 	m := make(map[Type]struct{})
 	for _, field := range list {
-		if field.Type.PkgName == "" {
-			m[field.Type] = struct{}{}
-		}
+		m[field.Type] = struct{}{}
 	}
 
 	types := make([]Type, 0, len(m))

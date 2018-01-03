@@ -364,8 +364,6 @@ func (tbl DbUserTable) GetLastUpdated(where where.Expression, orderBy string) ([
 }
 
 
-// Getint64 gets the int64 column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
 func (tbl DbUserTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
@@ -388,8 +386,6 @@ func (tbl DbUserTable) getint64list(sqlname string, where where.Expression, orde
 	return list, nil
 }
 
-// Getstring gets the string column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
 func (tbl DbUserTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
@@ -412,8 +408,6 @@ func (tbl DbUserTable) getstringlist(sqlname string, where where.Expression, ord
 	return list, nil
 }
 
-// Getbool gets the bool column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
 func (tbl DbUserTable) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
