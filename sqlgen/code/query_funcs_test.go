@@ -469,3 +469,88 @@ WHERE id=$1
 		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
 	}
 }
+
+func TestWriteDeleteFunc(t *testing.T) {
+	exit.TestableExit()
+
+	view := NewView("Example", "X", "")
+	view.Table = simpleFixtureTable()
+
+	buf := &bytes.Buffer{}
+
+	WriteDeleteFunc(buf, view)
+
+	code := buf.String()
+	expected := strings.Replace(`
+//--------------------------------------------------------------------------------
+
+// Delete deletes one or more rows from the table, given a 'where' clause.
+func (tbl XExampleTable) Delete(where where.Expression) (int64, error) {
+	query, args := tbl.deleteRows(where)
+	return tbl.Exec(query, args...)
+}
+
+func (tbl XExampleTable) deleteRows(where where.Expression) (string, []interface{}) {
+	whereClause, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
+	return query, args
+}
+
+// Truncate drops every record from the table, if possible. It might fail if constraints exist that
+// prevent some or all rows from being deleted; use the force option to override this.
+//
+// When 'force' is set true, be aware of the following consequences.
+// When using Mysql, foreign keys in other tables can be left dangling.
+// When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
+// are also truncated.
+func (tbl XExampleTable) Truncate(force bool) (err error) {
+	for _, query := range tbl.Dialect.TruncateDDL(tbl.FullName(), force) {
+		_, err = tbl.Exec(query)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//--------------------------------------------------------------------------------
+`, "|", "`", -1)
+	if code != expected {
+		outputDiff(expected, "expected.txt")
+		outputDiff(code, "got.txt")
+		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
+	}
+}
+
+func TestWriteExecFunc(t *testing.T) {
+	exit.TestableExit()
+
+	view := NewView("Example", "X", "")
+	view.Table = simpleFixtureTable()
+
+	buf := &bytes.Buffer{}
+
+	WriteExecFunc(buf, view)
+
+	code := buf.String()
+	expected := strings.Replace(`
+//--------------------------------------------------------------------------------
+
+// Exec executes a query without returning any rows.
+// The args are for any placeholder parameters in the query.
+// It returns the number of rows affected (of the database drive supports this).
+func (tbl XExampleTable) Exec(query string, args ...interface{}) (int64, error) {
+	tbl.logQuery(query, args...)
+	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+`, "|", "`", -1)
+	if code != expected {
+		outputDiff(expected, "expected.txt")
+		outputDiff(code, "got.txt")
+		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
+	}
+}
