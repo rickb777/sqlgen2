@@ -36,6 +36,8 @@ func Parse(paths []string) (PackageStore, error) {
 		}
 	}()
 
+	hasNamedFiles := false
+
 	for j, p := range paths {
 		s, err := os.Stat(p)
 		if err != nil {
@@ -70,15 +72,31 @@ func Parse(paths []string) (PackageStore, error) {
 			groups = append(groups, group)
 
 		} else {
-			group := Group{Owner: p}
-			DevInfo("Reading %s (%d of %d paths)\n", p, j, len(paths))
-			f, err := os.Open(p)
+			hasNamedFiles = true
+		}
+	}
+
+	if hasNamedFiles {
+		group := Group{}
+
+		for j, p := range paths {
+			s, err := os.Stat(p)
 			if err != nil {
 				return nil, err
 			}
-			group.Sources = append(group.Sources, Source{p, f})
-			groups = append(groups, group)
+
+			if !s.IsDir() {
+				DevInfo("Reading %s (%d of %d paths)\n", p, j, len(paths))
+				f, err := os.Open(p)
+				if err != nil {
+					return nil, err
+				}
+				group.Sources = append(group.Sources, Source{p, f})
+				group.Owner = p
+			}
 		}
+
+		groups = append(groups, group)
 	}
 
 	fset := token.NewFileSet()
