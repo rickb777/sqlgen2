@@ -462,14 +462,14 @@ func (tbl XExampleTable) Update(vv ...*Example) (int64, error) {
 }
 
 const sqlUpdateXExampleByPkSimple = |
-UPDATE %%s%%s SET
+UPDATE %s%s SET
 	name=?,
 	age=?
 WHERE id=?
 |
 
 const sqlUpdateXExampleByPkPostgres = |
-UPDATE %%s%%s SET
+UPDATE %s%s SET
 	name=$2,
 	age=$3
 WHERE id=$1

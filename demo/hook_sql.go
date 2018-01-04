@@ -556,7 +556,7 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 }
 
 const sqlUpdateHookByPkSimple = `
-UPDATE %%s%%s SET
+UPDATE %s%s SET
 	sha=?,
 	after=?,
 	before=?,
@@ -577,7 +577,7 @@ WHERE id=?
 `
 
 const sqlUpdateHookByPkPostgres = `
-UPDATE %%s%%s SET
+UPDATE %s%s SET
 	sha=$2,
 	after=$3,
 	before=$4,

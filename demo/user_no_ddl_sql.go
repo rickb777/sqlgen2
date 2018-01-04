@@ -433,7 +433,7 @@ func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 }
 
 const sqlUpdateV2UserByPkSimple = `
-UPDATE %%s%%s SET
+UPDATE %s%s SET
 	login=?,
 	emailaddress=?,
 	avatar=?,
@@ -448,7 +448,7 @@ WHERE uid=?
 `
 
 const sqlUpdateV2UserByPkPostgres = `
-UPDATE %%s%%s SET
+UPDATE %s%s SET
 	login=$2,
 	emailaddress=$3,
 	avatar=$4,

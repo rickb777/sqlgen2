@@ -332,50 +332,6 @@ func (tbl IssueTable) SliceState(where where.Expression, orderBy string) ([]stri
 }
 
 
-func (tbl IssueTable) getDatelist(sqlname string, where where.Expression, orderBy string) ([]Date, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v Date
-	list := make([]Date, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
-
-func (tbl IssueTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v string
-	list := make([]string, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
-
 func (tbl IssueTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
@@ -410,6 +366,50 @@ func (tbl IssueTable) getintlist(sqlname string, where where.Expression, orderBy
 
 	var v int
 	list := make([]int, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+func (tbl IssueTable) getDatelist(sqlname string, where where.Expression, orderBy string) ([]Date, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v Date
+	list := make([]Date, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+func (tbl IssueTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v string
+	list := make([]string, 0, 10)
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err != nil {
@@ -588,7 +588,7 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 }
 
 const sqlUpdateIssueByPkSimple = `
-UPDATE %%s%%s SET
+UPDATE %s%s SET
 	number=?,
 	date=?,
 	title=?,
@@ -600,7 +600,7 @@ WHERE id=?
 `
 
 const sqlUpdateIssueByPkPostgres = `
-UPDATE %%s%%s SET
+UPDATE %s%s SET
 	number=$2,
 	date=$3,
 	title=$4,

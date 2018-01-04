@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"github.com/rickb777/sqlgen2/schema"
 	"math/big"
+	"log"
+	"os"
 )
 
 const dbDriver = "sqlite3"
@@ -176,6 +178,9 @@ func TestCrudUsingSqlite(t *testing.T) {
 	defer cleanup()
 
 	tbl := NewDbUserTable("users", connect(), schema.Sqlite)
+	if testing.Verbose() {
+		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
+	}
 
 	err := tbl.CreateTableWithIndexes(false)
 	if err != nil {
@@ -211,6 +216,16 @@ func TestCrudUsingSqlite(t *testing.T) {
 		t.Errorf("expected 1, got %v", ul)
 	}
 
+	ul[0].EmailAddress = "bah0@zzz.com"
+
+	n, err := tbl.Update(ul[0])
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if n != 1 {
+		t.Errorf("expected 1, got %v", n)
+	}
+
 	u1, err := tbl.SelectOne(where.Eq("Login", "user1"), "")
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -219,7 +234,7 @@ func TestCrudUsingSqlite(t *testing.T) {
 		t.Errorf("expected 1, got %v", ul)
 	}
 
-	n, err := tbl.Delete(where.Eq("Login", "user1"))
+	n, err = tbl.Delete(where.Eq("Login", "user1"))
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -232,6 +247,9 @@ func TestGettersUsingSqlite(t *testing.T) {
 	defer cleanup()
 
 	tbl := NewDbUserTable("users", connect(), schema.Sqlite)
+	if testing.Verbose() {
+		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
+	}
 
 	err := tbl.CreateTableWithIndexes(false)
 	if err != nil {

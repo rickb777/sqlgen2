@@ -58,7 +58,7 @@ func baseInsertDML(t *TableDescription) string {
 
 func baseUpdateDML(t *TableDescription, fields FieldList, param func(int) string) string {
 	w := &bytes.Buffer{}
-	w.WriteString("UPDATE %%s%%s SET\n")
+	w.WriteString("UPDATE %s%s SET\n")
 
 	comma := ""
 	for i, field := range t.Fields {
