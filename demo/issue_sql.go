@@ -281,78 +281,56 @@ func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error)
 
 //--------------------------------------------------------------------------------
 
-// Get gets the record with a given primary key value.
-func (tbl IssueTable) Get(id int64) (*Issue, error) {
+// GetIssue gets the record with a given primary key value.
+func (tbl IssueTable) GetIssue(id int64) (*Issue, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", IssueColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
 }
 
 //--------------------------------------------------------------------------------
 
-// GetId gets the Id column for all rows that match the 'where' condition.
+// SliceId gets the Id column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl IssueTable) GetId(where where.Expression, orderBy string) ([]int64, error) {
+func (tbl IssueTable) SliceId(where where.Expression, orderBy string) ([]int64, error) {
 	return tbl.getint64list("id", where, orderBy)
 }
 
-// GetNumber gets the Number column for all rows that match the 'where' condition.
+// SliceNumber gets the Number column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl IssueTable) GetNumber(where where.Expression, orderBy string) ([]int, error) {
+func (tbl IssueTable) SliceNumber(where where.Expression, orderBy string) ([]int, error) {
 	return tbl.getintlist("number", where, orderBy)
 }
 
-// GetDate gets the Date column for all rows that match the 'where' condition.
+// SliceDate gets the Date column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl IssueTable) GetDate(where where.Expression, orderBy string) ([]Date, error) {
+func (tbl IssueTable) SliceDate(where where.Expression, orderBy string) ([]Date, error) {
 	return tbl.getDatelist("date", where, orderBy)
 }
 
-// GetTitle gets the Title column for all rows that match the 'where' condition.
+// SliceTitle gets the Title column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl IssueTable) GetTitle(where where.Expression, orderBy string) ([]string, error) {
+func (tbl IssueTable) SliceTitle(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("title", where, orderBy)
 }
 
-// GetBody gets the Body column for all rows that match the 'where' condition.
+// SliceBody gets the Body column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl IssueTable) GetBody(where where.Expression, orderBy string) ([]string, error) {
+func (tbl IssueTable) SliceBody(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("bigbody", where, orderBy)
 }
 
-// GetAssignee gets the Assignee column for all rows that match the 'where' condition.
+// SliceAssignee gets the Assignee column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl IssueTable) GetAssignee(where where.Expression, orderBy string) ([]string, error) {
+func (tbl IssueTable) SliceAssignee(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("assignee", where, orderBy)
 }
 
-// GetState gets the State column for all rows that match the 'where' condition.
+// SliceState gets the State column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl IssueTable) GetState(where where.Expression, orderBy string) ([]string, error) {
+func (tbl IssueTable) SliceState(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("state", where, orderBy)
 }
 
-
-func (tbl IssueTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v string
-	list := make([]string, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
 
 func (tbl IssueTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
 	wh, args := where.Build(tbl.Dialect)
@@ -410,6 +388,28 @@ func (tbl IssueTable) getDatelist(sqlname string, where where.Expression, orderB
 
 	var v Date
 	list := make([]Date, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+func (tbl IssueTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v string
+	list := make([]string, 0, 10)
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err != nil {

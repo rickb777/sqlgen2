@@ -246,47 +246,47 @@ func (tbl HookTable) Query(query string, args ...interface{}) (HookList, error) 
 
 //--------------------------------------------------------------------------------
 
-// Get gets the record with a given primary key value.
-func (tbl HookTable) Get(id int64) (*Hook, error) {
+// GetHook gets the record with a given primary key value.
+func (tbl HookTable) GetHook(id int64) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", HookColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
 }
 
 //--------------------------------------------------------------------------------
 
-// GetId gets the Id column for all rows that match the 'where' condition.
+// SliceId gets the Id column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl HookTable) GetId(where where.Expression, orderBy string) ([]int64, error) {
+func (tbl HookTable) SliceId(where where.Expression, orderBy string) ([]int64, error) {
 	return tbl.getint64list("id", where, orderBy)
 }
 
-// GetSha gets the Sha column for all rows that match the 'where' condition.
+// SliceSha gets the Sha column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl HookTable) GetSha(where where.Expression, orderBy string) ([]string, error) {
+func (tbl HookTable) SliceSha(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("sha", where, orderBy)
 }
 
-// GetCategory gets the Category column for all rows that match the 'where' condition.
+// SliceCategory gets the Category column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl HookTable) GetCategory(where where.Expression, orderBy string) ([]Category, error) {
+func (tbl HookTable) SliceCategory(where where.Expression, orderBy string) ([]Category, error) {
 	return tbl.getCategorylist("category", where, orderBy)
 }
 
-// GetCreated gets the Created column for all rows that match the 'where' condition.
+// SliceCreated gets the Created column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl HookTable) GetCreated(where where.Expression, orderBy string) ([]bool, error) {
+func (tbl HookTable) SliceCreated(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("created", where, orderBy)
 }
 
-// GetDeleted gets the Deleted column for all rows that match the 'where' condition.
+// SliceDeleted gets the Deleted column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl HookTable) GetDeleted(where where.Expression, orderBy string) ([]bool, error) {
+func (tbl HookTable) SliceDeleted(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("deleted", where, orderBy)
 }
 
-// GetForced gets the Forced column for all rows that match the 'where' condition.
+// SliceForced gets the Forced column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl HookTable) GetForced(where where.Expression, orderBy string) ([]bool, error) {
+func (tbl HookTable) SliceForced(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("forced", where, orderBy)
 }
 

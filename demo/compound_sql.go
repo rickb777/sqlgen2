@@ -263,21 +263,21 @@ func (tbl DbCompoundTable) Query(query string, args ...interface{}) ([]*Compound
 
 //--------------------------------------------------------------------------------
 
-// GetAlpha gets the Alpha column for all rows that match the 'where' condition.
+// SliceAlpha gets the Alpha column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl DbCompoundTable) GetAlpha(where where.Expression, orderBy string) ([]string, error) {
+func (tbl DbCompoundTable) SliceAlpha(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("alpha", where, orderBy)
 }
 
-// GetBeta gets the Beta column for all rows that match the 'where' condition.
+// SliceBeta gets the Beta column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl DbCompoundTable) GetBeta(where where.Expression, orderBy string) ([]string, error) {
+func (tbl DbCompoundTable) SliceBeta(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("beta", where, orderBy)
 }
 
-// GetCategory gets the Category column for all rows that match the 'where' condition.
+// SliceCategory gets the Category column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl DbCompoundTable) GetCategory(where where.Expression, orderBy string) ([]Category, error) {
+func (tbl DbCompoundTable) SliceCategory(where where.Expression, orderBy string) ([]Category, error) {
 	return tbl.getCategorylist("category", where, orderBy)
 }
 

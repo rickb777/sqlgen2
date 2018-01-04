@@ -313,53 +313,53 @@ func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error)
 
 //--------------------------------------------------------------------------------
 
-// Get gets the record with a given primary key value.
-func (tbl DbUserTable) Get(id int64) (*User, error) {
+// GetUser gets the record with a given primary key value.
+func (tbl DbUserTable) GetUser(id int64) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", DbUserColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
 }
 
 //--------------------------------------------------------------------------------
 
-// GetUid gets the Uid column for all rows that match the 'where' condition.
+// SliceUid gets the Uid column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl DbUserTable) GetUid(where where.Expression, orderBy string) ([]int64, error) {
+func (tbl DbUserTable) SliceUid(where where.Expression, orderBy string) ([]int64, error) {
 	return tbl.getint64list("uid", where, orderBy)
 }
 
-// GetLogin gets the Login column for all rows that match the 'where' condition.
+// SliceLogin gets the Login column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl DbUserTable) GetLogin(where where.Expression, orderBy string) ([]string, error) {
+func (tbl DbUserTable) SliceLogin(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("login", where, orderBy)
 }
 
-// GetEmailAddress gets the EmailAddress column for all rows that match the 'where' condition.
+// SliceEmailAddress gets the EmailAddress column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl DbUserTable) GetEmailAddress(where where.Expression, orderBy string) ([]string, error) {
+func (tbl DbUserTable) SliceEmailAddress(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("emailaddress", where, orderBy)
 }
 
-// GetAvatar gets the Avatar column for all rows that match the 'where' condition.
+// SliceAvatar gets the Avatar column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl DbUserTable) GetAvatar(where where.Expression, orderBy string) ([]string, error) {
+func (tbl DbUserTable) SliceAvatar(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("avatar", where, orderBy)
 }
 
-// GetActive gets the Active column for all rows that match the 'where' condition.
+// SliceActive gets the Active column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl DbUserTable) GetActive(where where.Expression, orderBy string) ([]bool, error) {
+func (tbl DbUserTable) SliceActive(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("active", where, orderBy)
 }
 
-// GetAdmin gets the Admin column for all rows that match the 'where' condition.
+// SliceAdmin gets the Admin column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl DbUserTable) GetAdmin(where where.Expression, orderBy string) ([]bool, error) {
+func (tbl DbUserTable) SliceAdmin(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("admin", where, orderBy)
 }
 
-// GetLastUpdated gets the LastUpdated column for all rows that match the 'where' condition.
+// SliceLastUpdated gets the LastUpdated column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl DbUserTable) GetLastUpdated(where where.Expression, orderBy string) ([]int64, error) {
+func (tbl DbUserTable) SliceLastUpdated(where where.Expression, orderBy string) ([]int64, error) {
 	return tbl.getint64list("lastupdated", where, orderBy)
 }
 

@@ -97,8 +97,8 @@ func TestWriteGetRow(t *testing.T) {
 	expected := `
 //--------------------------------------------------------------------------------
 
-// Get gets the record with a given primary key value.
-func (tbl XExampleTable) Get(id int64) (*Example, error) {
+// GetExample gets the record with a given primary key value.
+func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", XExampleColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
 }

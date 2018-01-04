@@ -228,8 +228,8 @@ var tSelectRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sS
 const sGetRow = `{{if .Table.Primary}}
 //--------------------------------------------------------------------------------
 
-// Get gets the record with a given primary key value.
-func (tbl {{.Prefix}}{{.Type}}Table) Get(id {{.Table.Primary.Type.Base.Token}}) (*{{.Type}}, error) {
+// Get{{.Type}} gets the record with a given primary key value.
+func (tbl {{.Prefix}}{{.Type}}Table) Get{{.Type}}(id {{.Table.Primary.Type.Base.Token}}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE {{.Table.Primary.SqlName}}=?", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
 }
@@ -243,9 +243,9 @@ var tGetRow = template.Must(template.New("GetRow").Funcs(funcMap).Parse(sGetRow)
 const sSelectItem = `
 //--------------------------------------------------------------------------------
 {{range .Table.SimpleFields}}
-// Get{{.Name}} gets the {{.Name}} column for all rows that match the 'where' condition.
+// Slice{{.Name}} gets the {{.Name}} column for all rows that match the 'where' condition.
 // Use 'orderBy' to specify the order-by and limit parameters, as required.
-func (tbl {{$.Prefix}}{{$.Type}}Table) Get{{.Name}}(where where.Expression, orderBy string) ([]{{.Type.Type}}, error) {
+func (tbl {{$.Prefix}}{{$.Type}}Table) Slice{{.Name}}(where where.Expression, orderBy string) ([]{{.Type.Type}}, error) {
 	return tbl.get{{.Type.Name}}list("{{.SqlName}}", where, orderBy)
 }
 {{end}}

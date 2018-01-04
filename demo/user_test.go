@@ -242,7 +242,7 @@ func TestGettersUsingSqlite(t *testing.T) {
 		}
 	}
 
-	logins, err := tbl.GetLogin(where.NoOp(), "order by login")
+	logins, err := tbl.SliceLogin(where.NoOp(), "order by login")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
