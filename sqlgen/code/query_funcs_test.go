@@ -153,29 +153,30 @@ func TestWriteSelectRow(t *testing.T) {
 	expected := `
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause
+// and some limit.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl XExampleTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", XExampleColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single Example to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl XExampleTable) SelectOne(where where.Expression, orderBy string) (*Example, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Examples to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl XExampleTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", XExampleColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Examples to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl XExampleTable) Select(where where.Expression, orderBy string) ([]*Example, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectSA(wh, orderBy, args...)
@@ -435,14 +436,14 @@ func (tbl XExampleTable) Update(vv ...*Example) (int64, error) {
 		stmt = sqlUpdateXExampleByPkSimple
 	}
 
+	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+
 	var count int64
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
 			hook.PreUpdate(tbl.Db)
 		}
-
-		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 
 		args, err := sliceXExampleWithoutPk(v)
 		if err != nil {
@@ -458,24 +459,6 @@ func (tbl XExampleTable) Update(vv ...*Example) (int64, error) {
 		count += n
 	}
 	return count, nil
-}
-
-// Upsert updates a record, matching it by primary key, or it inserts a new record if necessary.
-func (tbl XExampleTable) Upsert(v *Example) (isnew bool, err error) {
-	n, err := tbl.Update(v)
-	if err != nil {
-		return false, err
-	}
-
-	if n == 0 {
-		isnew = true
-		err = tbl.Insert(v)
-		if err != nil {
-			return
-		}
-	}
-
-	return
 }
 
 const sqlUpdateXExampleByPkSimple = |

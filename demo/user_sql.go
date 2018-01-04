@@ -322,43 +322,43 @@ func (tbl DbUserTable) GetUser(id int64) (*User, error) {
 //--------------------------------------------------------------------------------
 
 // SliceUid gets the Uid column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) SliceUid(where where.Expression, orderBy string) ([]int64, error) {
 	return tbl.getint64list("uid", where, orderBy)
 }
 
 // SliceLogin gets the Login column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) SliceLogin(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("login", where, orderBy)
 }
 
 // SliceEmailAddress gets the EmailAddress column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) SliceEmailAddress(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("emailaddress", where, orderBy)
 }
 
 // SliceAvatar gets the Avatar column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) SliceAvatar(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("avatar", where, orderBy)
 }
 
 // SliceActive gets the Active column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) SliceActive(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("active", where, orderBy)
 }
 
 // SliceAdmin gets the Admin column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) SliceAdmin(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("admin", where, orderBy)
 }
 
 // SliceLastUpdated gets the LastUpdated column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) SliceLastUpdated(where where.Expression, orderBy string) ([]int64, error) {
 	return tbl.getint64list("lastupdated", where, orderBy)
 }
@@ -433,29 +433,30 @@ func (tbl DbUserTable) getboollist(sqlname string, where where.Expression, order
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single User to be obtained from the table that match a 'where' clause and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// SelectOneSA allows a single User to be obtained from the table that match a 'where' clause
+// and some limit.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", DbUserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single User to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) SelectOne(where where.Expression, orderBy string) (*User, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Users to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", DbUserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Users to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) Select(where where.Expression, orderBy string) ([]*User, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectSA(wh, orderBy, args...)
@@ -574,14 +575,14 @@ func (tbl DbUserTable) Update(vv ...*User) (int64, error) {
 		stmt = sqlUpdateDbUserByPkSimple
 	}
 
+	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+
 	var count int64
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
 			hook.PreUpdate(tbl.Db)
 		}
-
-		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 
 		args, err := sliceDbUserWithoutPk(v)
 		if err != nil {
@@ -597,24 +598,6 @@ func (tbl DbUserTable) Update(vv ...*User) (int64, error) {
 		count += n
 	}
 	return count, nil
-}
-
-// Upsert updates a record, matching it by primary key, or it inserts a new record if necessary.
-func (tbl DbUserTable) Upsert(v *User) (isnew bool, err error) {
-	n, err := tbl.Update(v)
-	if err != nil {
-		return false, err
-	}
-
-	if n == 0 {
-		isnew = true
-		err = tbl.Insert(v)
-		if err != nil {
-			return
-		}
-	}
-
-	return
 }
 
 const sqlUpdateDbUserByPkSimple = `

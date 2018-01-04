@@ -24,7 +24,7 @@ func WriteGetRow(w io.Writer, view View) {
 }
 
 func WriteSelectItem(w io.Writer, view View) {
-	must(tSelectItem.Execute(w, view))
+	must(tSliceItem.Execute(w, view))
 }
 
 func WriteSelectRow(w io.Writer, view View) {

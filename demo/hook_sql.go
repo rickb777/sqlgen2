@@ -255,41 +255,63 @@ func (tbl HookTable) GetHook(id int64) (*Hook, error) {
 //--------------------------------------------------------------------------------
 
 // SliceId gets the Id column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl HookTable) SliceId(where where.Expression, orderBy string) ([]int64, error) {
 	return tbl.getint64list("id", where, orderBy)
 }
 
 // SliceSha gets the Sha column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl HookTable) SliceSha(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("sha", where, orderBy)
 }
 
 // SliceCategory gets the Category column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl HookTable) SliceCategory(where where.Expression, orderBy string) ([]Category, error) {
 	return tbl.getCategorylist("category", where, orderBy)
 }
 
 // SliceCreated gets the Created column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl HookTable) SliceCreated(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("created", where, orderBy)
 }
 
 // SliceDeleted gets the Deleted column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl HookTable) SliceDeleted(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("deleted", where, orderBy)
 }
 
 // SliceForced gets the Forced column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl HookTable) SliceForced(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("forced", where, orderBy)
 }
 
+
+func (tbl HookTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v int64
+	list := make([]int64, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
 
 func (tbl HookTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
 	wh, args := where.Build(tbl.Dialect)
@@ -357,54 +379,33 @@ func (tbl HookTable) getboollist(sqlname string, where where.Expression, orderBy
 	return list, nil
 }
 
-func (tbl HookTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v int64
-	list := make([]int64, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
-
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single Hook to be obtained from the table that match a 'where' clause and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// SelectOneSA allows a single Hook to be obtained from the table that match a 'where' clause
+// and some limit.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", HookColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single Hook to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl HookTable) SelectOne(where where.Expression, orderBy string) (*Hook, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Hooks to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl HookTable) SelectSA(where, orderBy string, args ...interface{}) (HookList, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", HookColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Hooks to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl HookTable) Select(where where.Expression, orderBy string) (HookList, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectSA(wh, orderBy, args...)
@@ -529,14 +530,14 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 		stmt = sqlUpdateHookByPkSimple
 	}
 
+	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+
 	var count int64
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
 			hook.PreUpdate(tbl.Db)
 		}
-
-		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 
 		args, err := sliceHookWithoutPk(v)
 		if err != nil {
@@ -552,24 +553,6 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 		count += n
 	}
 	return count, nil
-}
-
-// Upsert updates a record, matching it by primary key, or it inserts a new record if necessary.
-func (tbl HookTable) Upsert(v *Hook) (isnew bool, err error) {
-	n, err := tbl.Update(v)
-	if err != nil {
-		return false, err
-	}
-
-	if n == 0 {
-		isnew = true
-		err = tbl.Insert(v)
-		if err != nil {
-			return
-		}
-	}
-
-	return
 }
 
 const sqlUpdateHookByPkSimple = `

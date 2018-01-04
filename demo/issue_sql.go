@@ -290,91 +290,47 @@ func (tbl IssueTable) GetIssue(id int64) (*Issue, error) {
 //--------------------------------------------------------------------------------
 
 // SliceId gets the Id column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) SliceId(where where.Expression, orderBy string) ([]int64, error) {
 	return tbl.getint64list("id", where, orderBy)
 }
 
 // SliceNumber gets the Number column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) SliceNumber(where where.Expression, orderBy string) ([]int, error) {
 	return tbl.getintlist("number", where, orderBy)
 }
 
 // SliceDate gets the Date column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) SliceDate(where where.Expression, orderBy string) ([]Date, error) {
 	return tbl.getDatelist("date", where, orderBy)
 }
 
 // SliceTitle gets the Title column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) SliceTitle(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("title", where, orderBy)
 }
 
 // SliceBody gets the Body column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) SliceBody(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("bigbody", where, orderBy)
 }
 
 // SliceAssignee gets the Assignee column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) SliceAssignee(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("assignee", where, orderBy)
 }
 
 // SliceState gets the State column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) SliceState(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("state", where, orderBy)
 }
 
-
-func (tbl IssueTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v int64
-	list := make([]int64, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
-
-func (tbl IssueTable) getintlist(sqlname string, where where.Expression, orderBy string) ([]int, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v int
-	list := make([]int, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
 
 func (tbl IssueTable) getDatelist(sqlname string, where where.Expression, orderBy string) ([]Date, error) {
 	wh, args := where.Build(tbl.Dialect)
@@ -420,32 +376,77 @@ func (tbl IssueTable) getstringlist(sqlname string, where where.Expression, orde
 	return list, nil
 }
 
+func (tbl IssueTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v int64
+	list := make([]int64, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+func (tbl IssueTable) getintlist(sqlname string, where where.Expression, orderBy string) ([]int, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v int
+	list := make([]int, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single Issue to be obtained from the table that match a 'where' clause and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// SelectOneSA allows a single Issue to be obtained from the table that match a 'where' clause
+// and some limit.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Issue, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", IssueColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single Issue to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) SelectOne(where where.Expression, orderBy string) (*Issue, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Issues to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Issue, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", IssueColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Issues to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) Select(where where.Expression, orderBy string) ([]*Issue, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectSA(wh, orderBy, args...)
@@ -561,14 +562,14 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 		stmt = sqlUpdateIssueByPkSimple
 	}
 
+	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+
 	var count int64
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
 			hook.PreUpdate(tbl.Db)
 		}
-
-		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 
 		args, err := sliceIssueWithoutPk(v)
 		if err != nil {
@@ -584,24 +585,6 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 		count += n
 	}
 	return count, nil
-}
-
-// Upsert updates a record, matching it by primary key, or it inserts a new record if necessary.
-func (tbl IssueTable) Upsert(v *Issue) (isnew bool, err error) {
-	n, err := tbl.Update(v)
-	if err != nil {
-		return false, err
-	}
-
-	if n == 0 {
-		isnew = true
-		err = tbl.Insert(v)
-		if err != nil {
-			return
-		}
-	}
-
-	return
 }
 
 const sqlUpdateIssueByPkSimple = `

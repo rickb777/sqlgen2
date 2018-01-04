@@ -12,6 +12,7 @@ import (
 	. "fmt"
 	"syscall"
 	"github.com/rickb777/sqlgen2/schema"
+	"math/big"
 )
 
 const dbDriver = "sqlite3"
@@ -32,6 +33,16 @@ func cleanup() {
 	if db != nil {
 		db.Close()
 		syscall.Unlink(dsn)
+	}
+}
+
+func user(i int) *User {
+	fave := big.NewInt(int64(i))
+	return &User{
+		Login:        Sprintf("user%02d", i),
+		EmailAddress: Sprintf("foo%d@x.z", i),
+		Active:       true,
+		Fave:         *fave,
 	}
 }
 
@@ -233,10 +244,7 @@ func TestGettersUsingSqlite(t *testing.T) {
 	}
 
 	for i := 0; i < 20; i++ {
-		err = tbl.Insert(&User{
-			Login:        Sprintf("user%02d", i),
-			EmailAddress: Sprintf("foo%d@x.z", i),
-		})
+		err = tbl.Insert(user(i))
 		if err != nil {
 			t.Fatalf("%v", err)
 		}

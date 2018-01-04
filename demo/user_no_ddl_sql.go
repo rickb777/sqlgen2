@@ -154,47 +154,69 @@ func (tbl V2UserTable) GetUser(id int64) (*User, error) {
 //--------------------------------------------------------------------------------
 
 // SliceUid gets the Uid column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserTable) SliceUid(where where.Expression, orderBy string) ([]int64, error) {
 	return tbl.getint64list("uid", where, orderBy)
 }
 
 // SliceLogin gets the Login column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserTable) SliceLogin(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("login", where, orderBy)
 }
 
 // SliceEmailAddress gets the EmailAddress column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserTable) SliceEmailAddress(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("emailaddress", where, orderBy)
 }
 
 // SliceAvatar gets the Avatar column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserTable) SliceAvatar(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("avatar", where, orderBy)
 }
 
 // SliceActive gets the Active column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserTable) SliceActive(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("active", where, orderBy)
 }
 
 // SliceAdmin gets the Admin column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserTable) SliceAdmin(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("admin", where, orderBy)
 }
 
 // SliceLastUpdated gets the LastUpdated column for all rows that match the 'where' condition.
-// Use 'orderBy' to specify the order-by and limit parameters, as required.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserTable) SliceLastUpdated(where where.Expression, orderBy string) ([]int64, error) {
 	return tbl.getint64list("lastupdated", where, orderBy)
 }
 
+
+func (tbl V2UserTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v int64
+	list := make([]int64, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
 
 func (tbl V2UserTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
 	wh, args := where.Build(tbl.Dialect)
@@ -240,54 +262,33 @@ func (tbl V2UserTable) getboollist(sqlname string, where where.Expression, order
 	return list, nil
 }
 
-func (tbl V2UserTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v int64
-	list := make([]int64, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
-
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single User to be obtained from the table that match a 'where' clause and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// SelectOneSA allows a single User to be obtained from the table that match a 'where' clause
+// and some limit.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", V2UserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single User to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserTable) SelectOne(where where.Expression, orderBy string) (*User, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Users to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", V2UserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Users to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserTable) Select(where where.Expression, orderBy string) ([]*User, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectSA(wh, orderBy, args...)
@@ -406,14 +407,14 @@ func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 		stmt = sqlUpdateV2UserByPkSimple
 	}
 
+	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+
 	var count int64
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
 			hook.PreUpdate(tbl.Db)
 		}
-
-		query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
 
 		args, err := sliceV2UserWithoutPk(v)
 		if err != nil {
@@ -429,24 +430,6 @@ func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 		count += n
 	}
 	return count, nil
-}
-
-// Upsert updates a record, matching it by primary key, or it inserts a new record if necessary.
-func (tbl V2UserTable) Upsert(v *User) (isnew bool, err error) {
-	n, err := tbl.Update(v)
-	if err != nil {
-		return false, err
-	}
-
-	if n == 0 {
-		isnew = true
-		err = tbl.Insert(v)
-		if err != nil {
-			return
-		}
-	}
-
-	return
 }
 
 const sqlUpdateV2UserByPkSimple = `
