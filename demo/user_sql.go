@@ -363,6 +363,7 @@ func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error)
 //--------------------------------------------------------------------------------
 
 // GetUser gets the record with a given primary key value.
+// If not found, sql.ErrNoRows will result.
 func (tbl DbUserTable) GetUser(id int64) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", DbUserColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
@@ -413,6 +414,28 @@ func (tbl DbUserTable) SliceLastUpdated(where where.Expression, orderBy string) 
 }
 
 
+func (tbl DbUserTable) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v bool
+	list := make([]bool, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
 func (tbl DbUserTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
@@ -457,34 +480,13 @@ func (tbl DbUserTable) getstringlist(sqlname string, where where.Expression, ord
 	return list, nil
 }
 
-func (tbl DbUserTable) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v bool
-	list := make([]bool, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
-
 
 //--------------------------------------------------------------------------------
 
 // SelectOneSA allows a single User to be obtained from the table that match a 'where' clause
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, sql.ErrNoRows will result.
 func (tbl DbUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", DbUserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
@@ -492,6 +494,7 @@ func (tbl DbUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (
 
 // SelectOne allows a single User to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, sql.ErrNoRows will result.
 func (tbl DbUserTable) SelectOne(where where.Expression, orderBy string) (*User, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)

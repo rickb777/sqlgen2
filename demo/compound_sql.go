@@ -356,6 +356,7 @@ func (tbl DbCompoundTable) getCategorylist(sqlname string, where where.Expressio
 // SelectOneSA allows a single Compound to be obtained from the table that match a 'where' clause
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, sql.ErrNoRows will result.
 func (tbl DbCompoundTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Compound, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", DbCompoundColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
@@ -363,6 +364,7 @@ func (tbl DbCompoundTable) SelectOneSA(where, orderBy string, args ...interface{
 
 // SelectOne allows a single Compound to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, sql.ErrNoRows will result.
 func (tbl DbCompoundTable) SelectOne(where where.Expression, orderBy string) (*Compound, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)

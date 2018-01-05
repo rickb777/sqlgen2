@@ -258,6 +258,7 @@ func (tbl HookTable) Query(query string, args ...interface{}) (HookList, error) 
 //--------------------------------------------------------------------------------
 
 // GetHook gets the record with a given primary key value.
+// If not found, sql.ErrNoRows will result.
 func (tbl HookTable) GetHook(id int64) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", HookColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
@@ -396,6 +397,7 @@ func (tbl HookTable) getboollist(sqlname string, where where.Expression, orderBy
 // SelectOneSA allows a single Hook to be obtained from the table that match a 'where' clause
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, sql.ErrNoRows will result.
 func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", HookColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
@@ -403,6 +405,7 @@ func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*H
 
 // SelectOne allows a single Hook to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, sql.ErrNoRows will result.
 func (tbl HookTable) SelectOne(where where.Expression, orderBy string) (*Hook, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)

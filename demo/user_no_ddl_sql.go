@@ -146,6 +146,7 @@ func (tbl V2UserTable) Query(query string, args ...interface{}) ([]*User, error)
 //--------------------------------------------------------------------------------
 
 // GetUser gets the record with a given primary key value.
+// If not found, sql.ErrNoRows will result.
 func (tbl V2UserTable) GetUser(id int64) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", V2UserColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
@@ -268,6 +269,7 @@ func (tbl V2UserTable) getboollist(sqlname string, where where.Expression, order
 // SelectOneSA allows a single User to be obtained from the table that match a 'where' clause
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, sql.ErrNoRows will result.
 func (tbl V2UserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", V2UserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
@@ -275,6 +277,7 @@ func (tbl V2UserTable) SelectOneSA(where, orderBy string, args ...interface{}) (
 
 // SelectOne allows a single User to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, sql.ErrNoRows will result.
 func (tbl V2UserTable) SelectOne(where where.Expression, orderBy string) (*User, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)

@@ -217,53 +217,17 @@ func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 
-	err = tbl.CreateUserEmailIndex(ifNotExist)
-	if err != nil {
-		return err
-	}
-
 	err = tbl.CreateUserLoginIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-// CreateUserEmailIndex creates the user_email index.
-func (tbl V3UserTable) CreateUserEmailIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
-
-	// Mysql does not support 'if not exists' on indexes
-	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
-
-	if ifNotExist && tbl.Dialect == schema.Mysql {
-		tbl.DropUserEmailIndex(false)
-		ine = ""
+	err = tbl.CreateUserEmailIndex(ifNotExist)
+	if err != nil {
+		return err
 	}
 
-	_, err := tbl.Exec(tbl.createV3UserEmailIndexSql(ine))
-	return err
-}
-
-func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.Prefix, tbl.Name, sqlV3UserEmailIndexColumns)
-}
-
-// DropUserEmailIndex drops the user_email index.
-func (tbl V3UserTable) DropUserEmailIndex(ifExists bool) error {
-	_, err := tbl.Exec(tbl.dropV3UserEmailIndexSql(ifExists))
-	return err
-}
-
-func (tbl V3UserTable) dropV3UserEmailIndexSql(ifExists bool) string {
-	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ie, indexPrefix, onTbl)
+	return nil
 }
 
 // CreateUserLoginIndex creates the user_login index.
@@ -302,15 +266,51 @@ func (tbl V3UserTable) dropV3UserLoginIndexSql(ifExists bool) string {
 	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ie, indexPrefix, onTbl)
 }
 
+// CreateUserEmailIndex creates the user_email index.
+func (tbl V3UserTable) CreateUserEmailIndex(ifNotExist bool) error {
+	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+
+	if ifNotExist && tbl.Dialect == schema.Mysql {
+		tbl.DropUserEmailIndex(false)
+		ine = ""
+	}
+
+	_, err := tbl.Exec(tbl.createV3UserEmailIndexSql(ine))
+	return err
+}
+
+func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExists string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.Prefix, tbl.Name, sqlV3UserEmailIndexColumns)
+}
+
+// DropUserEmailIndex drops the user_email index.
+func (tbl V3UserTable) DropUserEmailIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropV3UserEmailIndexSql(ifExists))
+	return err
+}
+
+func (tbl V3UserTable) dropV3UserEmailIndexSql(ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ie, indexPrefix, onTbl)
+}
+
 // DropIndexes executes queries that drop the indexes on by the User table.
 func (tbl V3UserTable) DropIndexes(ifExist bool) (err error) {
 
-	err = tbl.DropUserEmailIndex(ifExist)
+	err = tbl.DropUserLoginIndex(ifExist)
 	if err != nil {
 		return err
 	}
 
-	err = tbl.DropUserLoginIndex(ifExist)
+	err = tbl.DropUserEmailIndex(ifExist)
 	if err != nil {
 		return err
 	}
@@ -320,9 +320,9 @@ func (tbl V3UserTable) DropIndexes(ifExist bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-const sqlV3UserEmailIndexColumns = "emailaddress"
-
 const sqlV3UserLoginIndexColumns = "login"
+
+const sqlV3UserEmailIndexColumns = "emailaddress"
 
 //--------------------------------------------------------------------------------
 

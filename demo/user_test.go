@@ -205,8 +205,22 @@ func TestCrudUsingSqlite(t *testing.T) {
 		t.Errorf("expected 0, got %d", c1)
 	}
 
-	err = tbl.Insert(&User{Login: "user1", EmailAddress: "foo@x.z"})
+	user1 := &User{Login: "user1", EmailAddress: "foo@x.z"}
+	err = tbl.Insert(user1)
 	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	user2, err := tbl.GetUser(user1.Uid)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if !reflect.DeepEqual(user1, user2) {
+		t.Errorf("expected %#v, got %#v", user1, user2)
+	}
+
+	_, err = tbl.GetUser(user1.Uid + 100000)
+	if err != sql.ErrNoRows {
 		t.Fatalf("%v", err)
 	}
 

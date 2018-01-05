@@ -209,6 +209,7 @@ const sSelectRow = `
 // SelectOneSA allows a single {{.Type}} to be obtained from the table that match a 'where' clause
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, sql.ErrNoRows will result.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
@@ -216,6 +217,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where, orderBy string, args ...
 
 // SelectOne allows a single {{.Type}} to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, sql.ErrNoRows will result.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectOne(where where.Expression, orderBy string) (*{{.Type}}, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
@@ -230,6 +232,7 @@ const sGetRow = `{{if .Table.Primary}}
 //--------------------------------------------------------------------------------
 
 // Get{{.Type}} gets the record with a given primary key value.
+// If not found, sql.ErrNoRows will result.
 func (tbl {{.Prefix}}{{.Type}}Table) Get{{.Type}}(id {{.Table.Primary.Type.Base.Token}}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE {{.Table.Primary.SqlName}}=?", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
