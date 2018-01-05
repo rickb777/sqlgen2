@@ -122,18 +122,18 @@ const DbUserDataColumnNames = "login, emailaddress, avatar, active, admin, fave,
 //--------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl DbUserTable) CreateTable(ifNotExist bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExist))
+func (tbl DbUserTable) CreateTable(ifNotExists bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExists))
 }
 
-func (tbl DbUserTable) createTableSql(ifNotExist bool) string {
+func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
 	var stmt string
 	switch tbl.Dialect {
 	case schema.Sqlite: stmt = sqlCreateDbUserTableSqlite
     case schema.Postgres: stmt = sqlCreateDbUserTablePostgres
     case schema.Mysql: stmt = sqlCreateDbUserTableMysql
     }
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
 	return query
 }
@@ -143,6 +143,17 @@ func (tbl DbUserTable) ternary(flag bool, a, b string) string {
 		return a
 	}
 	return b
+}
+
+// DropTable drops the table, destroying all its data.
+func (tbl DbUserTable) DropTable(ifExists bool) (int64, error) {
+	return tbl.Exec(tbl.dropTableSql(ifExists))
+}
+
+func (tbl DbUserTable) dropTableSql(ifExists bool) string {
+	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.Prefix, tbl.Name)
+	return query
 }
 
 const sqlCreateDbUserTableSqlite = `
@@ -207,27 +218,34 @@ func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
+
+	err = tbl.CreateUserLoginIndex(ifNotExist)
+	if err != nil {
+		return err
+	}
+
+	err = tbl.CreateUserEmailIndex(ifNotExist)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CreateUserLoginIndex creates the user_login index.
+func (tbl DbUserTable) CreateUserLoginIndex(ifNotExist bool) error {
 	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect == schema.Mysql {
-		tbl.DropIndexes(false)
+		tbl.DropUserLoginIndex(false)
 		ine = ""
 	}
 
-	_, err = tbl.Exec(tbl.createDbUserLoginIndexSql(ine))
-	if err != nil {
-		return err
-	}
-
-	_, err = tbl.Exec(tbl.createDbUserEmailIndexSql(ine))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := tbl.Exec(tbl.createDbUserLoginIndexSql(ine))
+	return err
 }
 
 func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExists string) string {
@@ -236,9 +254,34 @@ func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExists string) string {
 		tbl.Prefix, tbl.Name, sqlDbUserLoginIndexColumns)
 }
 
-func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists, onTbl string) string {
+// DropUserLoginIndex drops the user_login index.
+func (tbl DbUserTable) DropUserLoginIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropDbUserLoginIndexSql(ifExists))
+	return err
+}
+
+func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ifExists, indexPrefix, onTbl)
+	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ie, indexPrefix, onTbl)
+}
+
+// CreateUserEmailIndex creates the user_email index.
+func (tbl DbUserTable) CreateUserEmailIndex(ifNotExist bool) error {
+	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+
+	if ifNotExist && tbl.Dialect == schema.Mysql {
+		tbl.DropUserEmailIndex(false)
+		ine = ""
+	}
+
+	_, err := tbl.Exec(tbl.createDbUserEmailIndexSql(ine))
+	return err
 }
 
 func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExists string) string {
@@ -247,23 +290,29 @@ func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExists string) string {
 		tbl.Prefix, tbl.Name, sqlDbUserEmailIndexColumns)
 }
 
-func (tbl DbUserTable) dropDbUserEmailIndexSql(ifExists, onTbl string) string {
+// DropUserEmailIndex drops the user_email index.
+func (tbl DbUserTable) DropUserEmailIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropDbUserEmailIndexSql(ifExists))
+	return err
+}
+
+func (tbl DbUserTable) dropDbUserEmailIndexSql(ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ifExists, indexPrefix, onTbl)
+	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ie, indexPrefix, onTbl)
 }
 
 // DropIndexes executes queries that drop the indexes on by the User table.
 func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
-	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
 
-	_, err = tbl.Exec(tbl.dropDbUserLoginIndexSql(ie, onTbl))
+	err = tbl.DropUserLoginIndex(ifExist)
 	if err != nil {
 		return err
 	}
 
-	_, err = tbl.Exec(tbl.dropDbUserEmailIndexSql(ie, onTbl))
+	err = tbl.DropUserEmailIndex(ifExist)
 	if err != nil {
 		return err
 	}
@@ -364,6 +413,28 @@ func (tbl DbUserTable) SliceLastUpdated(where where.Expression, orderBy string) 
 }
 
 
+func (tbl DbUserTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v int64
+	list := make([]int64, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
 func (tbl DbUserTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
@@ -398,28 +469,6 @@ func (tbl DbUserTable) getboollist(sqlname string, where where.Expression, order
 
 	var v bool
 	list := make([]bool, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
-
-func (tbl DbUserTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v int64
-	list := make([]int64, 0, 10)
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err != nil {

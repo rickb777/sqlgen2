@@ -122,18 +122,18 @@ const IssueDataColumnNames = "number, date, title, bigbody, assignee, state, lab
 //--------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl IssueTable) CreateTable(ifNotExist bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExist))
+func (tbl IssueTable) CreateTable(ifNotExists bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExists))
 }
 
-func (tbl IssueTable) createTableSql(ifNotExist bool) string {
+func (tbl IssueTable) createTableSql(ifNotExists bool) string {
 	var stmt string
 	switch tbl.Dialect {
 	case schema.Sqlite: stmt = sqlCreateIssueTableSqlite
     case schema.Postgres: stmt = sqlCreateIssueTablePostgres
     case schema.Mysql: stmt = sqlCreateIssueTableMysql
     }
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
 	return query
 }
@@ -143,6 +143,17 @@ func (tbl IssueTable) ternary(flag bool, a, b string) string {
 		return a
 	}
 	return b
+}
+
+// DropTable drops the table, destroying all its data.
+func (tbl IssueTable) DropTable(ifExists bool) (int64, error) {
+	return tbl.Exec(tbl.dropTableSql(ifExists))
+}
+
+func (tbl IssueTable) dropTableSql(ifExists bool) string {
+	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.Prefix, tbl.Name)
+	return query
 }
 
 const sqlCreateIssueTableSqlite = `
@@ -198,22 +209,29 @@ func (tbl IssueTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 
 // CreateIndexes executes queries that create the indexes needed by the Issue table.
 func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
+
+	err = tbl.CreateIssueAssigneeIndex(ifNotExist)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CreateIssueAssigneeIndex creates the issue_assignee index.
+func (tbl IssueTable) CreateIssueAssigneeIndex(ifNotExist bool) error {
 	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect == schema.Mysql {
-		tbl.DropIndexes(false)
+		tbl.DropIssueAssigneeIndex(false)
 		ine = ""
 	}
 
-	_, err = tbl.Exec(tbl.createIssueAssigneeIndexSql(ine))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := tbl.Exec(tbl.createIssueAssigneeIndexSql(ine))
+	return err
 }
 
 func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExists string) string {
@@ -222,18 +240,24 @@ func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExists string) string {
 		tbl.Prefix, tbl.Name, sqlIssueAssigneeIndexColumns)
 }
 
-func (tbl IssueTable) dropIssueAssigneeIndexSql(ifExists, onTbl string) string {
+// DropIssueAssigneeIndex drops the issue_assignee index.
+func (tbl IssueTable) DropIssueAssigneeIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropIssueAssigneeIndexSql(ifExists))
+	return err
+}
+
+func (tbl IssueTable) dropIssueAssigneeIndexSql(ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%sissue_assignee%s", ifExists, indexPrefix, onTbl)
+	return fmt.Sprintf("DROP INDEX %s%sissue_assignee%s", ie, indexPrefix, onTbl)
 }
 
 // DropIndexes executes queries that drop the indexes on by the Issue table.
 func (tbl IssueTable) DropIndexes(ifExist bool) (err error) {
-	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
 
-	_, err = tbl.Exec(tbl.dropIssueAssigneeIndexSql(ie, onTbl))
+	err = tbl.DropIssueAssigneeIndex(ifExist)
 	if err != nil {
 		return err
 	}
@@ -332,50 +356,6 @@ func (tbl IssueTable) SliceState(where where.Expression, orderBy string) ([]stri
 }
 
 
-func (tbl IssueTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v int64
-	list := make([]int64, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
-
-func (tbl IssueTable) getintlist(sqlname string, where where.Expression, orderBy string) ([]int, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v int
-	list := make([]int, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
-
 func (tbl IssueTable) getDatelist(sqlname string, where where.Expression, orderBy string) ([]Date, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
@@ -410,6 +390,50 @@ func (tbl IssueTable) getstringlist(sqlname string, where where.Expression, orde
 
 	var v string
 	list := make([]string, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+func (tbl IssueTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v int64
+	list := make([]int64, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+func (tbl IssueTable) getintlist(sqlname string, where where.Expression, orderBy string) ([]int, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v int
+	list := make([]int, 0, 10)
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err != nil {

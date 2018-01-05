@@ -81,11 +81,21 @@ func TestCreateIndexSql(t *testing.T) {
 }
 
 func TestDropIndexSql(t *testing.T) {
-	tbl := NewDbUserTable("users", nil, schema.Postgres).WithPrefix("prefix_")
-	sql := tbl.dropDbUserEmailIndexSql("IF EXISTS ", " ON prefix_users")
-	expected := `DROP INDEX IF EXISTS prefix_user_email ON prefix_users`
-	if sql != expected {
-		t.Errorf("got %s", sql)
+	cases := []struct {
+		d        schema.Dialect
+		expected string
+	}{
+		{schema.Sqlite, `DROP INDEX IF EXISTS prefix_user_email`},
+		{schema.Mysql, `DROP INDEX prefix_user_email ON prefix_users`},
+		{schema.Postgres, `DROP INDEX IF EXISTS prefix_user_email`},
+	}
+
+	for _, c := range cases {
+		tbl := NewDbUserTable("users", nil, c.d).WithPrefix("prefix_")
+		sql := tbl.dropDbUserEmailIndexSql(true)
+		if sql != c.expected {
+			t.Errorf("got %s", sql)
+		}
 	}
 }
 

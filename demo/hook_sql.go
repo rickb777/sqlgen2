@@ -121,18 +121,18 @@ const HookDataColumnNames = "sha, after, before, category, created, deleted, for
 //--------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl HookTable) CreateTable(ifNotExist bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExist))
+func (tbl HookTable) CreateTable(ifNotExists bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExists))
 }
 
-func (tbl HookTable) createTableSql(ifNotExist bool) string {
+func (tbl HookTable) createTableSql(ifNotExists bool) string {
 	var stmt string
 	switch tbl.Dialect {
 	case schema.Sqlite: stmt = sqlCreateHookTableSqlite
     case schema.Postgres: stmt = sqlCreateHookTablePostgres
     case schema.Mysql: stmt = sqlCreateHookTableMysql
     }
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
 	return query
 }
@@ -142,6 +142,17 @@ func (tbl HookTable) ternary(flag bool, a, b string) string {
 		return a
 	}
 	return b
+}
+
+// DropTable drops the table, destroying all its data.
+func (tbl HookTable) DropTable(ifExists bool) (int64, error) {
+	return tbl.Exec(tbl.dropTableSql(ifExists))
+}
+
+func (tbl HookTable) dropTableSql(ifExists bool) string {
+	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.Prefix, tbl.Name)
+	return query
 }
 
 const sqlCreateHookTableSqlite = `
@@ -291,50 +302,6 @@ func (tbl HookTable) SliceForced(where where.Expression, orderBy string) ([]bool
 }
 
 
-func (tbl HookTable) getCategorylist(sqlname string, where where.Expression, orderBy string) ([]Category, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v Category
-	list := make([]Category, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
-
-func (tbl HookTable) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v bool
-	list := make([]bool, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
-
 func (tbl HookTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
@@ -369,6 +336,50 @@ func (tbl HookTable) getstringlist(sqlname string, where where.Expression, order
 
 	var v string
 	list := make([]string, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+func (tbl HookTable) getCategorylist(sqlname string, where where.Expression, orderBy string) ([]Category, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v Category
+	list := make([]Category, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+func (tbl HookTable) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v bool
+	list := make([]bool, 0, 10)
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err != nil {

@@ -549,18 +549,18 @@ var tExec = template.Must(template.New("Exec").Funcs(funcMap).Parse(sExec))
 // function template to create a table
 const sCreateTableFunc = `
 // CreateTable creates the table.
-func (tbl {{.Prefix}}{{.Type}}Table) CreateTable(ifNotExist bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExist))
+func (tbl {{.Prefix}}{{.Type}}Table) CreateTable(ifNotExists bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExists))
 }
 
-func (tbl {{.Prefix}}{{.Type}}Table) createTableSql(ifNotExist bool) string {
+func (tbl {{.Prefix}}{{.Type}}Table) createTableSql(ifNotExists bool) string {
 	var stmt string
 	switch tbl.Dialect {
 	{{range .Dialects -}}
 	case schema.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$.Type}}Table{{.}}
     {{end -}}
 	}
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
 	return query
 }
@@ -570,6 +570,17 @@ func (tbl {{.Prefix}}{{.Type}}Table) ternary(flag bool, a, b string) string {
 		return a
 	}
 	return b
+}
+
+// DropTable drops the table, destroying all its data.
+func (tbl {{.Prefix}}{{.Type}}Table) DropTable(ifExists bool) (int64, error) {
+	return tbl.Exec(tbl.dropTableSql(ifExists))
+}
+
+func (tbl {{.Prefix}}{{.Type}}Table) dropTableSql(ifExists bool) string {
+	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.Prefix, tbl.Name)
+	return query
 }
 `
 var tCreateTableFunc = template.Must(template.New("CreateTable").Funcs(funcMap).Parse(sCreateTableFunc))
@@ -588,19 +599,8 @@ func (tbl {{.Prefix}}{{.Type}}Table) CreateTableWithIndexes(ifNotExist bool) (er
 
 // CreateIndexes executes queries that create the indexes needed by the {{.Type}} table.
 func (tbl {{.Prefix}}{{.Type}}Table) CreateIndexes(ifNotExist bool) (err error) {
-	{{if gt (len .Table.Index) 0 -}}
-	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
-
-	// Mysql does not support 'if not exists' on indexes
-	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
-
-	if ifNotExist && tbl.Dialect == schema.Mysql {
-		tbl.DropIndexes(false)
-		ine = ""
-	}
-{{end -}}
 {{range .Table.Index}}
-	_, err = tbl.Exec(tbl.create{{$.Prefix}}{{camel .Name}}IndexSql(ine))
+	err = tbl.Create{{camel .Name}}Index(ifNotExist)
 	if err != nil {
 		return err
 	}
@@ -608,26 +608,46 @@ func (tbl {{.Prefix}}{{.Type}}Table) CreateIndexes(ifNotExist bool) (err error) 
 	return nil
 }
 {{range .Table.Index}}
+// Create{{camel .Name}}Index creates the {{.Name}} index.
+func (tbl {{$.Prefix}}{{$.Type}}Table) Create{{camel .Name}}Index(ifNotExist bool) error {
+	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+
+	if ifNotExist && tbl.Dialect == schema.Mysql {
+		tbl.Drop{{camel .Name}}Index(false)
+		ine = ""
+	}
+
+	_, err := tbl.Exec(tbl.create{{$.Prefix}}{{camel .Name}}IndexSql(ine))
+	return err
+}
+
 func (tbl {{$.Prefix}}{{$.Type}}Table) create{{$.Prefix}}{{camel .Name}}IndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("CREATE {{.UniqueStr}}INDEX %s%s{{.Name}} ON %s%s (%s)", ifNotExists, indexPrefix,
 		tbl.Prefix, tbl.Name, sql{{$.Prefix}}{{camel .Name}}IndexColumns)
 }
 
-func (tbl {{$.Prefix}}{{$.Type}}Table) drop{{$.Prefix}}{{camel .Name}}IndexSql(ifExists, onTbl string) string {
+// Drop{{camel .Name}}Index drops the {{.Name}} index.
+func (tbl {{$.Prefix}}{{$.Type}}Table) Drop{{camel .Name}}Index(ifExists bool) error {
+	_, err := tbl.Exec(tbl.drop{{$.Prefix}}{{camel .Name}}IndexSql(ifExists))
+	return err
+}
+
+func (tbl {{$.Prefix}}{{$.Type}}Table) drop{{$.Prefix}}{{camel .Name}}IndexSql(ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%s{{.Name}}%s", ifExists, indexPrefix, onTbl)
+	return fmt.Sprintf("DROP INDEX %s%s{{.Name}}%s", ie, indexPrefix, onTbl)
 }
 {{end}}
 // DropIndexes executes queries that drop the indexes on by the {{.Type}} table.
 func (tbl {{.Prefix}}{{.Type}}Table) DropIndexes(ifExist bool) (err error) {
-	{{if gt (len .Table.Index) 0 -}}
-	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
-{{- end}}
 {{range .Table.Index}}
-	_, err = tbl.Exec(tbl.drop{{$.Prefix}}{{camel .Name}}IndexSql(ie, onTbl))
+	err = tbl.Drop{{camel .Name}}Index(ifExist)
 	if err != nil {
 		return err
 	}

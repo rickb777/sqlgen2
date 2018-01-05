@@ -120,18 +120,18 @@ const V3UserDataColumnNames = "login, emailaddress, avatar, active, admin, fave,
 //--------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl V3UserTable) CreateTable(ifNotExist bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExist))
+func (tbl V3UserTable) CreateTable(ifNotExists bool) (int64, error) {
+	return tbl.Exec(tbl.createTableSql(ifNotExists))
 }
 
-func (tbl V3UserTable) createTableSql(ifNotExist bool) string {
+func (tbl V3UserTable) createTableSql(ifNotExists bool) string {
 	var stmt string
 	switch tbl.Dialect {
 	case schema.Sqlite: stmt = sqlCreateV3UserTableSqlite
     case schema.Postgres: stmt = sqlCreateV3UserTablePostgres
     case schema.Mysql: stmt = sqlCreateV3UserTableMysql
     }
-	extra := tbl.ternary(ifNotExist, "IF NOT EXISTS ", "")
+	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
 	return query
 }
@@ -141,6 +141,17 @@ func (tbl V3UserTable) ternary(flag bool, a, b string) string {
 		return a
 	}
 	return b
+}
+
+// DropTable drops the table, destroying all its data.
+func (tbl V3UserTable) DropTable(ifExists bool) (int64, error) {
+	return tbl.Exec(tbl.dropTableSql(ifExists))
+}
+
+func (tbl V3UserTable) dropTableSql(ifExists bool) string {
+	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.Prefix, tbl.Name)
+	return query
 }
 
 const sqlCreateV3UserTableSqlite = `
@@ -205,22 +216,13 @@ func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
 
-	// Mysql does not support 'if not exists' on indexes
-	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
-
-	if ifNotExist && tbl.Dialect == schema.Mysql {
-		tbl.DropIndexes(false)
-		ine = ""
-	}
-
-	_, err = tbl.Exec(tbl.createV3UserLoginIndexSql(ine))
+	err = tbl.CreateUserEmailIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	_, err = tbl.Exec(tbl.createV3UserEmailIndexSql(ine))
+	err = tbl.CreateUserLoginIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
@@ -228,15 +230,20 @@ func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
-func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.Prefix, tbl.Name, sqlV3UserLoginIndexColumns)
-}
+// CreateUserEmailIndex creates the user_email index.
+func (tbl V3UserTable) CreateUserEmailIndex(ifNotExist bool) error {
+	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
 
-func (tbl V3UserTable) dropV3UserLoginIndexSql(ifExists, onTbl string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ifExists, indexPrefix, onTbl)
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+
+	if ifNotExist && tbl.Dialect == schema.Mysql {
+		tbl.DropUserEmailIndex(false)
+		ine = ""
+	}
+
+	_, err := tbl.Exec(tbl.createV3UserEmailIndexSql(ine))
+	return err
 }
 
 func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExists string) string {
@@ -245,23 +252,65 @@ func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExists string) string {
 		tbl.Prefix, tbl.Name, sqlV3UserEmailIndexColumns)
 }
 
-func (tbl V3UserTable) dropV3UserEmailIndexSql(ifExists, onTbl string) string {
+// DropUserEmailIndex drops the user_email index.
+func (tbl V3UserTable) DropUserEmailIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropV3UserEmailIndexSql(ifExists))
+	return err
+}
+
+func (tbl V3UserTable) dropV3UserEmailIndexSql(ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
 	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ifExists, indexPrefix, onTbl)
+	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ie, indexPrefix, onTbl)
+}
+
+// CreateUserLoginIndex creates the user_login index.
+func (tbl V3UserTable) CreateUserLoginIndex(ifNotExist bool) error {
+	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+
+	if ifNotExist && tbl.Dialect == schema.Mysql {
+		tbl.DropUserLoginIndex(false)
+		ine = ""
+	}
+
+	_, err := tbl.Exec(tbl.createV3UserLoginIndexSql(ine))
+	return err
+}
+
+func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExists string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.Prefix, tbl.Name, sqlV3UserLoginIndexColumns)
+}
+
+// DropUserLoginIndex drops the user_login index.
+func (tbl V3UserTable) DropUserLoginIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropV3UserLoginIndexSql(ifExists))
+	return err
+}
+
+func (tbl V3UserTable) dropV3UserLoginIndexSql(ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ie, indexPrefix, onTbl)
 }
 
 // DropIndexes executes queries that drop the indexes on by the User table.
 func (tbl V3UserTable) DropIndexes(ifExist bool) (err error) {
-	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExist && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
 
-	_, err = tbl.Exec(tbl.dropV3UserLoginIndexSql(ie, onTbl))
+	err = tbl.DropUserEmailIndex(ifExist)
 	if err != nil {
 		return err
 	}
 
-	_, err = tbl.Exec(tbl.dropV3UserEmailIndexSql(ie, onTbl))
+	err = tbl.DropUserLoginIndex(ifExist)
 	if err != nil {
 		return err
 	}
@@ -271,9 +320,9 @@ func (tbl V3UserTable) DropIndexes(ifExist bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-const sqlV3UserLoginIndexColumns = "login"
-
 const sqlV3UserEmailIndexColumns = "emailaddress"
+
+const sqlV3UserLoginIndexColumns = "login"
 
 //--------------------------------------------------------------------------------
 
