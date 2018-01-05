@@ -69,6 +69,10 @@ func (dialect postgres) FieldAsColumn(field *Field) string {
 		column += " primary key"
 	}
 
+	if field.Type.IsPtr {
+		column += " default null"
+	}
+
 	return column
 }
 

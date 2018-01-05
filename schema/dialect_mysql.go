@@ -61,6 +61,10 @@ func (dialect mysql) FieldAsColumn(field *Field) string {
 		column += " auto_increment"
 	}
 
+	if field.Type.IsPtr {
+		column += " default null"
+	}
+
 	return column
 }
 

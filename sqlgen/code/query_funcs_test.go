@@ -10,9 +10,9 @@ import (
 )
 
 func simpleFixtureTable() *TableDescription {
-	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
-	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "name", ENCNONE, Tag{}}
-	age := &Field{Node{"Age", Type{"", "", "int", Int}, nil}, "age", ENCNONE, Tag{}}
+	id := &Field{Node{"Id", Type{"", "", "int64", false, Int64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
+	name := &Field{Node{"Name", Type{"", "", "string", false, String}, nil}, "name", ENCNONE, Tag{}}
+	age := &Field{Node{"Age", Type{"", "", "int", false, Int}, nil}, "age", ENCNONE, Tag{}}
 
 	return &TableDescription{
 		Type: "Example",
@@ -27,8 +27,8 @@ func simpleFixtureTable() *TableDescription {
 }
 
 func simpleNoPKTable() *TableDescription {
-	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "name", ENCNONE, Tag{}}
-	age := &Field{Node{"Age", Type{"", "", "int", Int}, nil}, "age", ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{"", "", "string", false, String}, nil}, "name", ENCNONE, Tag{}}
+	age := &Field{Node{"Age", Type{"", "", "int", false, Int}, nil}, "age", ENCNONE, Tag{}}
 
 	return &TableDescription{
 		Type: "Example",

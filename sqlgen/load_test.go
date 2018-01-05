@@ -35,15 +35,15 @@ type Date struct {
 	}{
 		{
 			"",
-			&Field{Node{"Event", Type{"", "", "Date", Struct}, nil}, "event", ENCNONE, Tag{}},
+			&Field{Node{"Event", Type{"", "", "Date", false, Struct}, nil}, "event", ENCNONE, Tag{}},
 		},
 		{
 			"`sql:\"encode: json\"`",
-			&Field{Node{"Event", Type{"", "", "Date", Struct}, nil}, "event", ENCJSON, Tag{Encode: "json"}},
+			&Field{Node{"Event", Type{"", "", "Date", false, Struct}, nil}, "event", ENCJSON, Tag{Encode: "json"}},
 		},
 		{
 			"`sql:\"type: integer\"`",
-			&Field{Node{"Event", Type{"", "", "Date", Int}, nil}, "event", ENCNONE, Tag{Type: "integer"}},
+			&Field{Node{"Event", Type{"", "", "Date", false, Int}, nil}, "event", ENCNONE, Tag{Type: "integer"}},
 		},
 	}
 
@@ -110,9 +110,9 @@ type Author struct {
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	p1 := &Node{Name: "Commit", Type: Type{Name: "Commit", Base: Struct}}
-	p2 := &Node{Name: "Author", Type: Type{Name: "Author", Base: Struct}, Parent: p1}
-	author := &Field{Node{"Name", Type{Name: "string", Base: String}, p2}, "name", ENCNONE, Tag{}}
+	p1 := &Node{Name: "Commit", Type: Type{Name: "Commit", IsPtr: true, Base: Struct}}
+	p2 := &Node{Name: "Author", Type: Type{Name: "Author", IsPtr: true, Base: Struct}, Parent: p1}
+	author := &Field{Node{"Name", Type{Name: "string", IsPtr: false, Base: String}, p2}, "name", ENCNONE, Tag{}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -156,8 +156,8 @@ type Category int32
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
-	categories := &Field{Node{"Categories", Type{"", "", "Category", Slice}, nil}, "categories", ENCJSON, Tag{Encode: "json"}}
+	labels := &Field{Node{"Labels", Type{"", "", "[]string", false, Slice}, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
+	categories := &Field{Node{"Categories", Type{"", "", "Category", false, Slice}, nil}, "categories", ENCJSON, Tag{Encode: "json"}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -199,8 +199,8 @@ type Example struct {
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	aaa := &Field{Node{"Aaa", Type{"", "", "string", String}, nil}, "aaa", ENCNONE, Tag{Size: 32, Index: "foo"}}
-	bbb := &Field{Node{"Bbb", Type{"", "", "string", String}, nil}, "bbb", ENCNONE, Tag{Size: 32, Index: "foo"}}
+	aaa := &Field{Node{"Aaa", Type{"", "", "string", false, String}, nil}, "aaa", ENCNONE, Tag{Size: 32, Index: "foo"}}
+	bbb := &Field{Node{"Bbb", Type{"", "", "string", false, String}, nil}, "bbb", ENCNONE, Tag{Size: 32, Index: "foo"}}
 
 	idx := &Index{"foo", false, FieldList{aaa, bbb}}
 
@@ -270,14 +270,14 @@ type Author struct {
 	p2 := &Node{Name: "Author", Parent: p1}
 	p3 := &Node{Name: "Position"}
 
-	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", ENCNONE, Tag{}}
-	name := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "name", ENCNONE, Tag{}}
-	email := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "email", ENCNONE, Tag{}}
-	message := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "message", ENCNONE, Tag{}}
-	filename := &Field{Node{"Filename", Type{"", "", "string", String}, p3}, "filename", ENCNONE, Tag{}}
-	offset := &Field{Node{"Offset", Type{"", "", "int", Int}, p3}, "offset", ENCNONE, Tag{}}
-	line := &Field{Node{"Line", Type{"", "", "int", Int}, p3}, "line", ENCNONE, Tag{}}
-	column := &Field{Node{"Column", Type{"", "", "int", Int}, p3}, "column", ENCNONE, Tag{}}
+	category := &Field{Node{"Cat", Type{"", "", "Category", false, Int32}, nil}, "cat", ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{"", "", "string", false, String}, p2}, "name", ENCNONE, Tag{}}
+	email := &Field{Node{"Email", Type{"", "", "string", false, String}, p2}, "email", ENCNONE, Tag{}}
+	message := &Field{Node{"Message", Type{"", "", "string", false, String}, p1}, "message", ENCNONE, Tag{}}
+	filename := &Field{Node{"Filename", Type{"", "", "string", false, String}, p3}, "filename", ENCNONE, Tag{}}
+	offset := &Field{Node{"Offset", Type{"", "", "int", false, Int}, p3}, "offset", ENCNONE, Tag{}}
+	line := &Field{Node{"Line", Type{"", "", "int", false, Int}, p3}, "line", ENCNONE, Tag{}}
+	column := &Field{Node{"Column", Type{"", "", "int", false, Int}, p3}, "column", ENCNONE, Tag{}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -333,10 +333,10 @@ type Example struct {
 
 	p1 := &Node{Name: "Dates"}
 
-	category := &Field{Node{"Cat", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Category", Uint8}, nil}, "cat", ENCNONE, Tag{}}
-	after := &Field{Node{"After", Type{"", "", "string", String}, p1}, "after", ENCNONE, Tag{Size: 20}}
-	before := &Field{Node{"Before", Type{"", "", "string", String}, p1}, "before", ENCNONE, Tag{Size: 20}}
-	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "name", ENCNONE, Tag{}}
+	category := &Field{Node{"Cat", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Category", false, Uint8}, nil}, "cat", ENCNONE, Tag{}}
+	after := &Field{Node{"After", Type{"", "", "string", false, String}, p1}, "after", ENCNONE, Tag{Size: 20}}
+	before := &Field{Node{"Before", Type{"", "", "string", false, String}, p1}, "before", ENCNONE, Tag{Size: 20}}
+	name := &Field{Node{"Name", Type{"", "", "string", false, String}, nil}, "name", ENCNONE, Tag{}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -404,25 +404,25 @@ type Commit struct {
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	p1 := &Node{Name: "Commit", Type: Type{Name: "Commit", Base: Struct}}
-	p2 := &Node{Name: "Author", Type: Type{PkgPath: "github.com/rickb777/sqlgen2/demo", PkgName: "demo", Name: "Author", Base: Struct}, Parent: p1}
+	p1 := &Node{Name: "Commit", Type: Type{Name: "Commit", IsPtr: true, Base: Struct}}
+	p2 := &Node{Name: "Author", Type: Type{PkgPath: "github.com/rickb777/sqlgen2/demo", PkgName: "demo", Name: "Author", IsPtr: true, Base: Struct}, Parent: p1}
 
-	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
-	number := &Field{Node{"Number", Type{"", "", "int", Int}, nil}, "number", ENCNONE, Tag{}}
-	category := &Field{Node{"Category", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Category", Uint8}, nil}, "category", ENCNONE, Tag{}}
-	commitMessage := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "text", ENCNONE, Tag{Size: 2048, Name: "text"}}
+	id := &Field{Node{"Id", Type{"", "", "int64", false, Int64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
+	number := &Field{Node{"Number", Type{"", "", "int", false, Int}, nil}, "number", ENCNONE, Tag{}}
+	category := &Field{Node{"Category", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Category", false, Uint8}, nil}, "category", ENCNONE, Tag{}}
+	commitMessage := &Field{Node{"Message", Type{"", "", "string", false, String}, p1}, "text", ENCNONE, Tag{Size: 2048, Name: "text"}}
 	//commitTimestamp := &Field{Node{"Timestamp", Type{"time", "Time", String}, p1}, "commit_timestamp", VARCHAR, ENCNONE, Tag{}}
-	authorName := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", ENCNONE, Tag{Prefixed: true}}
-	authorEmail := &Field{Node{"Email", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Email", String}, p2}, "commit_author_email", ENCNONE, Tag{Prefixed: true}}
-	authorUser := &Field{Node{"Username", Type{"", "", "string", String}, p2}, "commit_author_username", ENCNONE, Tag{Prefixed: true}}
-	title := &Field{Node{"Title", Type{"", "", "string", String}, nil}, "title", ENCNONE, Tag{Index: "titleIdx"}}
+	authorName := &Field{Node{"Name", Type{"", "", "string", false, String}, p2}, "commit_author_name", ENCNONE, Tag{Prefixed: true}}
+	authorEmail := &Field{Node{"Email", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Email", false, String}, p2}, "commit_author_email", ENCNONE, Tag{Prefixed: true}}
+	authorUser := &Field{Node{"Username", Type{"", "", "string", false, String}, p2}, "commit_author_username", ENCNONE, Tag{Prefixed: true}}
+	title := &Field{Node{"Title", Type{"", "", "string", false, String}, nil}, "title", ENCNONE, Tag{Index: "titleIdx"}}
 	////owner := &Field{"Owner", "team_owner", VARCHAR, Tag{}}
-	hobby := &Field{Node{"Hobby", Type{"", "", "string", String}, nil}, "hobby", ENCNONE, Tag{Size: 2048}}
-	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
-	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", ENCNONE, Tag{}}
-	avatar := &Field{Node{"Avatar", Type{"", "", "[]byte", Slice}, nil}, "avatar", ENCNONE, Tag{}}
-	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
-	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", ENCTEXT, Tag{Encode: "text"}}
+	hobby := &Field{Node{"Hobby", Type{"", "", "string", false, String}, nil}, "hobby", ENCNONE, Tag{Size: 2048}}
+	labels := &Field{Node{"Labels", Type{"", "", "[]string", false, Slice}, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
+	active := &Field{Node{"Active", Type{"", "", "bool", false, Bool}, nil}, "active", ENCNONE, Tag{}}
+	avatar := &Field{Node{"Avatar", Type{"", "", "[]byte", false, Slice}, nil}, "avatar", ENCNONE, Tag{}}
+	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", false, Struct}, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
+	updated := &Field{Node{"Updated", Type{"time", "time", "Time", false, Struct}, nil}, "updated", ENCTEXT, Tag{Encode: "text"}}
 
 	ititle := &Index{"titleIdx", false, FieldList{title}}
 

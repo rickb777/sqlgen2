@@ -245,11 +245,11 @@ const sSliceItem = `
 // Slice{{.Name}} gets the {{.Name}} column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl {{$.Prefix}}{{$.Type}}Table) Slice{{.Name}}(where where.Expression, orderBy string) ([]{{.Type.Type}}, error) {
-	return tbl.get{{.Type.Name}}list("{{.SqlName}}", where, orderBy)
+	return tbl.get{{.Type.Tag}}list("{{.SqlName}}", where, orderBy)
 }
 {{end}}
 {{range .Table.SimpleFields.DistinctTypes}}
-func (tbl {{$.Prefix}}{{$.Type}}Table) get{{.Name}}list(sqlname string, where where.Expression, orderBy string) ([]{{.Type}}, error) {
+func (tbl {{$.Prefix}}{{$.Type}}Table) get{{.Tag}}list(sqlname string, where where.Expression, orderBy string) ([]{{.Type}}, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
 	tbl.logQuery(query, args...)

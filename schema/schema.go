@@ -150,14 +150,11 @@ func (node *Node) JoinParts(delta int, sep string) string {
 type FieldList []*Field
 
 func (list FieldList) DistinctTypes() []Type {
-	m := make(map[Type]struct{})
+	types := NewTypeSet()
+
 	for _, field := range list {
-		m[field.Type] = struct{}{}
+		types.Add(field.Type)
 	}
 
-	types := make([]Type, 0, len(m))
-	for t, _ := range m {
-		types = append(types, t)
-	}
-	return types
+	return types.ToSlice()
 }

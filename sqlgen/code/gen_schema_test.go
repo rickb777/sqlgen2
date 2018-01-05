@@ -20,13 +20,13 @@ func TestWriteSchema(t *testing.T) {
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
-const NumXExampleColumns = 8
+const NumXExampleColumns = 11
 
-const NumXExampleDataColumns = 7
+const NumXExampleDataColumns = 10
 
 const XExamplePk = "Id"
 
-const XExampleDataColumnNames = "cat, username, active, labels, fave, avatar, updated"
+const XExampleDataColumnNames = "cat, username, qual, age, bmi, active, labels, fave, avatar, updated"
 
 //--------------------------------------------------------------------------------
 
@@ -70,6 +70,9 @@ CREATE TABLE %s%s%s (
  id       integer primary key autoincrement,
  cat      int,
  username text,
+ qual     text default null,
+ age      int default null,
+ bmi      float default null,
  active   boolean,
  labels   text,
  fave     text,
@@ -83,6 +86,9 @@ CREATE TABLE %s%s%s (
  id       bigserial primary key,
  cat      int,
  username varchar(2048),
+ qual     varchar(255) default null,
+ age      int default null,
+ bmi      float default null,
  active   boolean,
  labels   json,
  fave     json,
@@ -96,6 +102,9 @@ CREATE TABLE %s%s%s (
  id       bigint primary key auto_increment,
  cat      int,
  username varchar(2048),
+ qual     varchar(255) default null,
+ age      int default null,
+ bmi      float default null,
  active   tinyint(1),
  labels   json,
  fave     json,

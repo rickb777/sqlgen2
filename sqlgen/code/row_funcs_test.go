@@ -12,14 +12,29 @@ import (
 )
 
 func fixtureTable() *TableDescription {
-	id := &Field{Node{"Id", Type{"", "", "int64", Int64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
-	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", ENCNONE, Tag{Index: "catIdx"}}
-	name := &Field{Node{"Name", Type{"", "", "string", String}, nil}, "username", ENCNONE, Tag{Size: 2048, Name: "username", Unique: "nameIdx"}}
-	active := &Field{Node{"Active", Type{"", "", "bool", Bool}, nil}, "active", ENCNONE, Tag{}}
-	labels := &Field{Node{"Labels", Type{"", "", "[]string", Slice}, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
-	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", Struct}, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
-	avatar := &Field{Node{"Avatar", Type{"", "", "[]byte", Slice}, nil}, "avatar", ENCNONE, Tag{}}
-	updated := &Field{Node{"Updated", Type{"time", "time", "Time", Struct}, nil}, "updated", ENCTEXT, Tag{Size: 100, Encode: "text"}}
+	i64 := Type{"", "", "int64", false, Int64}
+	boo := Type{"", "", "bool", false, Bool}
+	cat := Type{"", "", "Category", false, Int32}
+	str := Type{"", "", "string", false, String}
+	spt := Type{"", "", "string", true, String}
+	ipt := Type{"", "", "int32", true, Int32}
+	fpt := Type{"", "", "float32", true, Float32}
+	sli := Type{"", "", "[]string", false, Slice}
+	bgi := Type{"math/big", "big", "Int", false, Struct}
+	bys := Type{"", "", "[]byte", false, Slice}
+	tim := Type{"time", "time", "Time", false, Struct}
+
+	id := &Field{Node{"Id", i64, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
+	category := &Field{Node{"Cat", cat, nil}, "cat", ENCNONE, Tag{Index: "catIdx"}}
+	name := &Field{Node{"Name", str, nil}, "username", ENCNONE, Tag{Size: 2048, Name: "username", Unique: "nameIdx"}}
+	active := &Field{Node{"Active", boo, nil}, "active", ENCNONE, Tag{}}
+	qual := &Field{Node{"Qual", spt, nil}, "qual", ENCNONE, Tag{}}
+	age := &Field{Node{"Age", ipt, nil}, "age", ENCNONE, Tag{}}
+	bmi := &Field{Node{"Bmi", fpt, nil}, "bmi", ENCNONE, Tag{}}
+	labels := &Field{Node{"Labels", sli, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
+	fave := &Field{Node{"Fave", bgi, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
+	avatar := &Field{Node{"Avatar", bys, nil}, "avatar", ENCNONE, Tag{}}
+	updated := &Field{Node{"Updated", tim, nil}, "updated", ENCTEXT, Tag{Size: 100, Encode: "text"}}
 
 	icat := &Index{"catIdx", false, FieldList{category}}
 	iname := &Index{"nameIdx", true, FieldList{name}}
@@ -31,6 +46,9 @@ func fixtureTable() *TableDescription {
 			id,
 			category,
 			name,
+			qual,
+			age,
+			bmi,
 			active,
 			labels,
 			fave,
@@ -51,10 +69,10 @@ func TestWriteRowsFunc1(t *testing.T) {
 	p1 := &Node{Name: "Commit"}
 	p2 := &Node{Name: "Author", Parent: p1}
 
-	category := &Field{Node{"Cat", Type{"", "", "Category", Int32}, nil}, "cat", ENCNONE, Tag{}}
-	name := &Field{Node{"Name", Type{"", "", "string", String}, p2}, "commit_author_name", ENCNONE, Tag{}}
-	email := &Field{Node{"Email", Type{"", "", "string", String}, p2}, "commit_author_email", ENCNONE, Tag{}}
-	message := &Field{Node{"Message", Type{"", "", "string", String}, p1}, "commit_message", ENCNONE, Tag{}}
+	category := &Field{Node{"Cat", Type{"", "", "Category", false, Int32}, nil}, "cat", ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{"", "", "string", false, String}, p2}, "commit_author_name", ENCNONE, Tag{}}
+	email := &Field{Node{"Email", Type{"", "", "string", false, String}, p2}, "commit_author_email", ENCNONE, Tag{}}
+	message := &Field{Node{"Message", Type{"", "", "string", false, String}, p1}, "commit_message", ENCNONE, Tag{}}
 
 	table := &TableDescription{
 		Type: "Example",
@@ -139,11 +157,14 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 	var v0 int64
 	var v1 Category
 	var v2 string
-	var v3 bool
-	var v4 []byte
-	var v5 []byte
-	var v6 []byte
+	var v3 sql.NullString
+	var v4 sql.NullInt64
+	var v5 sql.NullFloat64
+	var v6 bool
 	var v7 []byte
+	var v8 []byte
+	var v9 []byte
+	var v10 []byte
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -155,6 +176,9 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 			&v5,
 			&v6,
 			&v7,
+			&v8,
+			&v9,
+			&v10,
 		)
 		if err != nil {
 			return vv, err
@@ -164,17 +188,26 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 		v.Id = v0
 		v.Cat = v1
 		v.Name = v2
-		v.Active = v3
-		err = json.Unmarshal(v4, &v.Labels)
+		if v3.Valid {
+			v.Qual = &(string(v3.String))
+		}
+		if v4.Valid {
+			v.Age = &(int32(v4.Int64))
+		}
+		if v5.Valid {
+			v.Bmi = &(float32(v5.Float64))
+		}
+		v.Active = v6
+		err = json.Unmarshal(v7, &v.Labels)
 		if err != nil {
 			return nil, err
 		}
-		err = json.Unmarshal(v5, &v.Fave)
+		err = json.Unmarshal(v8, &v.Fave)
 		if err != nil {
 			return nil, err
 		}
-		v.Avatar = v6
-		err = encoding.UnmarshalText(v7, &v.Updated)
+		v.Avatar = v9
+		err = encoding.UnmarshalText(v10, &v.Updated)
 		if err != nil {
 			return nil, err
 		}

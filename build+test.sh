@@ -5,20 +5,16 @@ PATH=$HOME/gopath/bin:$GOPATH/bin:$PATH
 # delete artefacts from previous build (if any)
 rm -f *.out */*.txt demo/*_sql.go
 
-#if [ -z "$(type -p enumeration)" ]; then
-#  go get bitbucket.org/rickb777/enumeration
-#fi
-
 go get bitbucket.org/pkg/inflect
 go get github.com/acsellers/inflections
 go get github.com/kortschak/utter
 go get gopkg.in/yaml.v2
 
-#enumeration -i schema/dialect.go -o schema/dialect_enum.go -package schema -type DialectId
+# these generated files hardly ever need to change (see github.com/rickb777/runtemplate to do so)
+[ -f schema/type_set.go ]        || runtemplate -tpl simple/set.tpl -output schema/type_set.go        Type=Type
+[ -f sqlgen/code/string_set.go ] || runtemplate -tpl simple/set.tpl -output sqlgen/code/string_set.go Type=string
 
 cd sqlgen
-#enumeration -i parse/kind.go -o parse/kind_enum.go -package parse -type Kind
-
 go install .
 
 if ! type -p goveralls; then
@@ -34,9 +30,9 @@ for d in code output parse; do
 done
 
 cd ..
-#go install .
+go install .
 
-for d in sqlgen where; do
+for d in schema sqlgen where; do
   echo ./$d...
   go test $1 -covermode=count -coverprofile=./$d.out ./$d
   go tool cover -func=./$d.out

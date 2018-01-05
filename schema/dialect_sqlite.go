@@ -54,17 +54,21 @@ func (dialect sqlite) FieldAsColumn(field *Field) string {
 	case parse.Uint32:
 		column = "int unsigned"
 	case parse.Float32:
-		return "float"
+		column = "float"
 	case parse.Float64:
-		return "double"
+		column = "double"
 	case parse.Bool:
-		return "boolean"
+		column = "boolean"
 	case parse.String:
 		column = "text"
 	}
 
 	if field.Tags.Primary {
 		column += " primary key"
+	}
+
+	if field.Type.IsPtr {
+		column += " default null"
 	}
 
 	return column

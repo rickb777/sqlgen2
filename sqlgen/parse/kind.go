@@ -25,9 +25,8 @@ const (
 
 	Interface = 101
 	Map       = 102
-	Ptr       = 103
-	Slice     = 104
-	Struct    = 105
+	Slice     = 103
+	Struct    = 104
 )
 
 func (k Kind) IsShort() bool {
@@ -49,6 +48,15 @@ func (k Kind) IsInteger() bool {
 		Uint,
 		Uint32,
 		Uint64:
+		return true
+	}
+	return false
+}
+
+func (k Kind) IsFloat() bool {
+	switch k {
+	case Float32,
+		Float64:
 		return true
 	}
 	return false
@@ -99,6 +107,14 @@ func (k Kind) Token() string {
 		return "uint64"
 	case String:
 		return "string"
+	case Interface:
+		return "Interface"
+	case Map:
+		return "Map"
+	case Slice:
+		return "Slice"
+	case Struct:
+		return "Struct"
 	}
 	return "<unknown>"
 }

@@ -218,8 +218,7 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 	switch t := lt.(type) {
 	case *types.Pointer:
 		lt = t.Elem()
-		tp.Base = parse.Ptr
-		//isPtr = true
+		tp.IsPtr = true
 	}
 
 	switch nm := lt.(type) {

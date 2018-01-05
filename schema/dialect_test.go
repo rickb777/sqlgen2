@@ -5,20 +5,20 @@ import (
 )
 
 func TestPlaceholders(t *testing.T) {
-	cases := []struct{
-		di     SDialect
-		n int
+	cases := []struct {
+		di       Dialect
+		n        int
 		expected string
 	}{
-		{MysqlDialect, 0, ""},
-		{MysqlDialect, 1, "?"},
-		{MysqlDialect, 3, "?,?,?"},
-		{MysqlDialect, 11, "?,?,?,?,?,?,?,?,?,?,?"},
+		{Mysql, 0, ""},
+		{Mysql, 1, "?"},
+		{Mysql, 3, "?,?,?"},
+		{Mysql, 11, "?,?,?,?,?,?,?,?,?,?,?"},
 
-		{PostgresDialect, 0, ""},
-		{PostgresDialect, 1, "$1"},
-		{PostgresDialect, 3, "$1,$2,$3"},
-		{PostgresDialect, 11, "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11"},
+		{Postgres, 0, ""},
+		{Postgres, 1, "$1"},
+		{Postgres, 3, "$1,$2,$3"},
+		{Postgres, 11, "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11"},
 	}
 	for _, c := range cases {
 		s := c.di.Placeholders(c.n)
@@ -29,12 +29,12 @@ func TestPlaceholders(t *testing.T) {
 }
 
 func TestReplacePlaceholders(t *testing.T) {
-	s := MysqlDialect.ReplacePlaceholders("?,?,?,?,?,?,?,?,?,?,?")
+	s := Mysql.ReplacePlaceholders("?,?,?,?,?,?,?,?,?,?,?")
 	if s != "?,?,?,?,?,?,?,?,?,?,?" {
 		t.Errorf("expected ?,?,?,?,?,?,?,?,?,?,? but got %q", s)
 	}
 
-	s = PostgresDialect.ReplacePlaceholders("?,?,?,?,?,?,?,?,?,?,?")
+	s = Postgres.ReplacePlaceholders("?,?,?,?,?,?,?,?,?,?,?")
 	if s != "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11" {
 		t.Errorf("expected $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 but got %q", s)
 	}
