@@ -81,7 +81,6 @@ func main() {
 		WriteDeleteFunc(buf, view)
 	}
 
-	WriteRowFunc(buf, view)
 	WriteRowsFunc(buf, view)
 	WriteSliceFunc(buf, view, view.Table.HasLastInsertId())
 

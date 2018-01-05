@@ -111,39 +111,19 @@ var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
 
 //-------------------------------------------------------------------------------------------------
 
-// function template to scan a single row.
-const sScanRow = `
-// scan{{.Prefix}}{{.Type}} reads a table record into a single value.
-func scan{{.Prefix}}{{.Type}}(row *sql.Row) (*{{.Type}}, error) {
-{{range .Body1}}{{.}}{{- end}}
-	err := row.Scan(
-{{range .Body2}}{{.}}{{- end}}
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	v := &{{.Type}}{}
-{{range .Body3}}{{.}}{{- end}}
-	return v, nil
-}
-`
-
-var tScanRow = template.Must(template.New("ScanRow").Funcs(funcMap).Parse(sScanRow))
-
-//-------------------------------------------------------------------------------------------------
-
 // function template to scan multiple rows.
 const sScanRows = `
 // scan{{.Prefix}}{{.Types}} reads table records into a slice of values.
-func scan{{.Prefix}}{{.Types}}(rows *sql.Rows) ({{.List}}, error) {
+func scan{{.Prefix}}{{.Types}}(rows *sql.Rows, firstOnly bool) ({{.List}}, error) {
 	var err error
 	var vv {{.List}}
 
 {{range .Body1}}{{.}}{{- end}}
 	for rows.Next() {
 		err = rows.Scan(
-{{range .Body2}}{{.}}{{- end}}
+{{- range .Body2}}
+			{{.}},
+{{- end}}
 		)
 		if err != nil {
 			return vv, err
@@ -152,7 +132,12 @@ func scan{{.Prefix}}{{.Types}}(rows *sql.Rows) ({{.List}}, error) {
 		v := &{{.Type}}{}
 {{range .Body3}}{{.}}{{end}}
 		vv = append(vv, v)
+
+		if firstOnly {
+			return vv, rows.Err()
+		}
 	}
+
 	return vv, rows.Err()
 }
 `
@@ -177,10 +162,20 @@ var tSliceRow = template.Must(template.New("SliceRow").Funcs(funcMap).Parse(sSli
 
 const sQueryRow = `
 // QueryOne is the low-level access function for one {{.Type}}.
+// If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, *{{.Type}} will be nil.
 func (tbl {{.Prefix}}{{.Type}}Table) QueryOne(query string, args ...interface{}) (*{{.Type}}, error) {
 	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return scan{{.Prefix}}{{.Type}}(row)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list, err := scan{{.Prefix}}{{.Types}}(rows, true)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
 }
 `
 
@@ -197,7 +192,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Query(query string, args ...interface{}) ({
 		return nil, err
 	}
 	defer rows.Close()
-	return scan{{.Prefix}}{{.Types}}(rows)
+	return scan{{.Prefix}}{{.Types}}(rows, false)
 }
 `
 
@@ -209,7 +204,7 @@ const sSelectRow = `
 // SelectOneSA allows a single {{.Type}} to be obtained from the table that match a 'where' clause
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, sql.ErrNoRows will result.
+// If not found, *{{.Type}} will be nil.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
@@ -217,7 +212,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) SelectOneSA(where, orderBy string, args ...
 
 // SelectOne allows a single {{.Type}} to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Example will be nil.
 func (tbl {{.Prefix}}{{.Type}}Table) SelectOne(where where.Expression, orderBy string) (*{{.Type}}, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
@@ -232,7 +227,7 @@ const sGetRow = `{{if .Table.Primary}}
 //--------------------------------------------------------------------------------
 
 // Get{{.Type}} gets the record with a given primary key value.
-// If not found, sql.ErrNoRows will result.
+// If not found, *{{.Type}} will be nil.
 func (tbl {{.Prefix}}{{.Type}}Table) Get{{.Type}}(id {{.Table.Primary.Type.Base.Token}}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE {{.Table.Primary.SqlName}}=?", {{.Prefix}}{{.Type}}ColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)

@@ -57,10 +57,20 @@ func TestWriteQueryFuncs(t *testing.T) {
 //--------------------------------------------------------------------------------
 
 // QueryOne is the low-level access function for one Example.
+// If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, *Example will be nil.
 func (tbl XExampleTable) QueryOne(query string, args ...interface{}) (*Example, error) {
 	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return scanXExample(row)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list, err := scanXExamples(rows, true)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
 }
 
 // Query is the low-level access function for Examples.
@@ -71,7 +81,7 @@ func (tbl XExampleTable) Query(query string, args ...interface{}) ([]*Example, e
 		return nil, err
 	}
 	defer rows.Close()
-	return scanXExamples(rows)
+	return scanXExamples(rows, false)
 }
 `
 	if code != expected {
@@ -98,7 +108,7 @@ func TestWriteGetRow(t *testing.T) {
 //--------------------------------------------------------------------------------
 
 // GetExample gets the record with a given primary key value.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Example will be nil.
 func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", XExampleColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
@@ -157,7 +167,7 @@ func TestWriteSelectRow(t *testing.T) {
 // SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Example will be nil.
 func (tbl XExampleTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", XExampleColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
@@ -165,7 +175,7 @@ func (tbl XExampleTable) SelectOneSA(where, orderBy string, args ...interface{})
 
 // SelectOne allows a single Example to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Example will be nil.
 func (tbl XExampleTable) SelectOne(where where.Expression, orderBy string) (*Example, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)

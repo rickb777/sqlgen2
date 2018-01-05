@@ -5,10 +5,9 @@ import (
 	"io"
 
 	"github.com/rickb777/sqlgen2/schema"
-	"text/template"
 )
 
-func writeRowFunc(w io.Writer, view View, tabs string, tmpl *template.Template) {
+func WriteRowsFunc(w io.Writer, view View) {
 
 	for i, field := range view.Table.Fields {
 		if field.Tags.Skip {
@@ -26,34 +25,23 @@ func writeRowFunc(w io.Writer, view View, tabs string, tmpl *template.Template) 
 		}
 
 		// variable scanning
-		l2 := fmt.Sprintf("%s\t&v%d,\n", tabs, i)
+		l2 := fmt.Sprintf("&v%d", i)
 		view.Body2 = append(view.Body2, l2)
 
 		switch field.Encode {
 		case schema.ENCJSON:
-			l3 := fmt.Sprintf("%serr = json.Unmarshal(v%d, &v.%s)\n%sif err != nil {\n%s\treturn nil, err\n%s}\n",
-				tabs, i, field.JoinParts(0, "."), tabs, tabs, tabs)
+			l3 := fmt.Sprintf("\t\terr = json.Unmarshal(v%d, &v.%s)\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n",
+				i, field.JoinParts(0, "."))
 			view.Body3 = append(view.Body3, l3)
 		case schema.ENCTEXT:
-			l3 := fmt.Sprintf("%serr = encoding.UnmarshalText(v%d, &v.%s)\n%sif err != nil {\n%s\treturn nil, err\n%s}\n",
-				tabs, i, field.JoinParts(0, "."), tabs, tabs, tabs)
+			l3 := fmt.Sprintf("\t\terr = encoding.UnmarshalText(v%d, &v.%s)\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n",
+				i, field.JoinParts(0, "."))
 			view.Body3 = append(view.Body3, l3)
 		default:
-			l3 := fmt.Sprintf("%sv.%s = v%d\n", tabs, field.JoinParts(0, "."), i)
+			l3 := fmt.Sprintf("\t\tv.%s = v%d\n", field.JoinParts(0, "."), i)
 			view.Body3 = append(view.Body3, l3)
 		}
 	}
 
-	must(tmpl.Execute(w, view))
+	must(tScanRows.Execute(w, view))
 }
-
-func WriteRowFunc(w io.Writer, view View) {
-	writeRowFunc(w, view, oneTab, tScanRow)
-}
-
-func WriteRowsFunc(w io.Writer, view View) {
-	writeRowFunc(w, view, twoTabs, tScanRows)
-}
-
-const oneTab = "\t"
-const twoTabs = "\t\t"

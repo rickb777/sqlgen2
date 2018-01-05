@@ -126,10 +126,20 @@ func (tbl V2UserTable) Exec(query string, args ...interface{}) (int64, error) {
 //--------------------------------------------------------------------------------
 
 // QueryOne is the low-level access function for one User.
+// If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, *User will be nil.
 func (tbl V2UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return scanV2User(row)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list, err := scanV2Users(rows, true)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
 }
 
 // Query is the low-level access function for Users.
@@ -140,13 +150,13 @@ func (tbl V2UserTable) Query(query string, args ...interface{}) ([]*User, error)
 		return nil, err
 	}
 	defer rows.Close()
-	return scanV2Users(rows)
+	return scanV2Users(rows, false)
 }
 
 //--------------------------------------------------------------------------------
 
 // GetUser gets the record with a given primary key value.
-// If not found, sql.ErrNoRows will result.
+// If not found, *User will be nil.
 func (tbl V2UserTable) GetUser(id int64) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", V2UserColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
@@ -269,7 +279,7 @@ func (tbl V2UserTable) getboollist(sqlname string, where where.Expression, order
 // SelectOneSA allows a single User to be obtained from the table that match a 'where' clause
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, sql.ErrNoRows will result.
+// If not found, *User will be nil.
 func (tbl V2UserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", V2UserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
@@ -277,7 +287,7 @@ func (tbl V2UserTable) SelectOneSA(where, orderBy string, args ...interface{}) (
 
 // SelectOne allows a single User to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Example will be nil.
 func (tbl V2UserTable) SelectOne(where where.Expression, orderBy string) (*User, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
@@ -498,59 +508,8 @@ func (tbl V2UserTable) Truncate(force bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-// scanV2User reads a table record into a single value.
-func scanV2User(row *sql.Row) (*User, error) {
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 int64
-	var v8 string
-	var v9 string
-	var v10 string
-
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
-		&v3,
-		&v4,
-		&v5,
-		&v6,
-		&v7,
-		&v8,
-		&v9,
-		&v10,
-
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	v := &User{}
-	v.Uid = v0
-	v.Login = v1
-	v.EmailAddress = v2
-	v.Avatar = v3
-	v.Active = v4
-	v.Admin = v5
-	err = json.Unmarshal(v6, &v.Fave)
-	if err != nil {
-		return nil, err
-	}
-	v.LastUpdated = v7
-	v.token = v8
-	v.secret = v9
-	v.hash = v10
-
-	return v, nil
-}
-
 // scanV2Users reads table records into a slice of values.
-func scanV2Users(rows *sql.Rows) ([]*User, error) {
+func scanV2Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	var err error
 	var vv []*User
 
@@ -579,7 +538,6 @@ func scanV2Users(rows *sql.Rows) ([]*User, error) {
 			&v8,
 			&v9,
 			&v10,
-
 		)
 		if err != nil {
 			return vv, err
@@ -602,7 +560,12 @@ func scanV2Users(rows *sql.Rows) ([]*User, error) {
 		v.hash = v10
 
 		vv = append(vv, v)
+
+		if firstOnly {
+			return vv, rows.Err()
+		}
 	}
+
 	return vv, rows.Err()
 }
 

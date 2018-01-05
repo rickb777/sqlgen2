@@ -286,10 +286,20 @@ func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
 //--------------------------------------------------------------------------------
 
 // QueryOne is the low-level access function for one Issue.
+// If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, *Issue will be nil.
 func (tbl IssueTable) QueryOne(query string, args ...interface{}) (*Issue, error) {
 	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return scanIssue(row)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list, err := scanIssues(rows, true)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
 }
 
 // Query is the low-level access function for Issues.
@@ -300,13 +310,13 @@ func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error)
 		return nil, err
 	}
 	defer rows.Close()
-	return scanIssues(rows)
+	return scanIssues(rows, false)
 }
 
 //--------------------------------------------------------------------------------
 
 // GetIssue gets the record with a given primary key value.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Issue will be nil.
 func (tbl IssueTable) GetIssue(id int64) (*Issue, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", IssueColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
@@ -451,7 +461,7 @@ func (tbl IssueTable) getstringlist(sqlname string, where where.Expression, orde
 // SelectOneSA allows a single Issue to be obtained from the table that match a 'where' clause
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Issue will be nil.
 func (tbl IssueTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Issue, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", IssueColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
@@ -459,7 +469,7 @@ func (tbl IssueTable) SelectOneSA(where, orderBy string, args ...interface{}) (*
 
 // SelectOne allows a single Issue to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Example will be nil.
 func (tbl IssueTable) SelectOne(where where.Expression, orderBy string) (*Issue, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
@@ -671,50 +681,8 @@ func (tbl IssueTable) Truncate(force bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-// scanIssue reads a table record into a single value.
-func scanIssue(row *sql.Row) (*Issue, error) {
-	var v0 int64
-	var v1 int
-	var v2 Date
-	var v3 string
-	var v4 string
-	var v5 string
-	var v6 string
-	var v7 []byte
-
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
-		&v3,
-		&v4,
-		&v5,
-		&v6,
-		&v7,
-
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	v := &Issue{}
-	v.Id = v0
-	v.Number = v1
-	v.Date = v2
-	v.Title = v3
-	v.Body = v4
-	v.Assignee = v5
-	v.State = v6
-	err = json.Unmarshal(v7, &v.Labels)
-	if err != nil {
-		return nil, err
-	}
-
-	return v, nil
-}
-
 // scanIssues reads table records into a slice of values.
-func scanIssues(rows *sql.Rows) ([]*Issue, error) {
+func scanIssues(rows *sql.Rows, firstOnly bool) ([]*Issue, error) {
 	var err error
 	var vv []*Issue
 
@@ -737,7 +705,6 @@ func scanIssues(rows *sql.Rows) ([]*Issue, error) {
 			&v5,
 			&v6,
 			&v7,
-
 		)
 		if err != nil {
 			return vv, err
@@ -757,7 +724,12 @@ func scanIssues(rows *sql.Rows) ([]*Issue, error) {
 		}
 
 		vv = append(vv, v)
+
+		if firstOnly {
+			return vv, rows.Err()
+		}
 	}
+
 	return vv, rows.Err()
 }
 

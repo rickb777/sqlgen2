@@ -238,10 +238,20 @@ func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
 //--------------------------------------------------------------------------------
 
 // QueryOne is the low-level access function for one Hook.
+// If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, *Hook will be nil.
 func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) {
 	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return scanHook(row)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list, err := scanHooks(rows, true)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
 }
 
 // Query is the low-level access function for Hooks.
@@ -252,13 +262,13 @@ func (tbl HookTable) Query(query string, args ...interface{}) (HookList, error) 
 		return nil, err
 	}
 	defer rows.Close()
-	return scanHooks(rows)
+	return scanHooks(rows, false)
 }
 
 //--------------------------------------------------------------------------------
 
 // GetHook gets the record with a given primary key value.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Hook will be nil.
 func (tbl HookTable) GetHook(id int64) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", HookColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
@@ -397,7 +407,7 @@ func (tbl HookTable) getboollist(sqlname string, where where.Expression, orderBy
 // SelectOneSA allows a single Hook to be obtained from the table that match a 'where' clause
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Hook will be nil.
 func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", HookColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
@@ -405,7 +415,7 @@ func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*H
 
 // SelectOne allows a single Hook to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Example will be nil.
 func (tbl HookTable) SelectOne(where where.Expression, orderBy string) (*Hook, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
@@ -644,74 +654,8 @@ func (tbl HookTable) Truncate(force bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-// scanHook reads a table record into a single value.
-func scanHook(row *sql.Row) (*Hook, error) {
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 Category
-	var v5 bool
-	var v6 bool
-	var v7 bool
-	var v8 string
-	var v9 string
-	var v10 string
-	var v11 string
-	var v12 Email
-	var v13 string
-	var v14 string
-	var v15 Email
-	var v16 string
-
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
-		&v3,
-		&v4,
-		&v5,
-		&v6,
-		&v7,
-		&v8,
-		&v9,
-		&v10,
-		&v11,
-		&v12,
-		&v13,
-		&v14,
-		&v15,
-		&v16,
-
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	v := &Hook{}
-	v.Id = v0
-	v.Sha = v1
-	v.Dates.After = v2
-	v.Dates.Before = v3
-	v.Category = v4
-	v.Created = v5
-	v.Deleted = v6
-	v.Forced = v7
-	v.HeadCommit.ID = v8
-	v.HeadCommit.Message = v9
-	v.HeadCommit.Timestamp = v10
-	v.HeadCommit.Author.Name = v11
-	v.HeadCommit.Author.Email = v12
-	v.HeadCommit.Author.Username = v13
-	v.HeadCommit.Committer.Name = v14
-	v.HeadCommit.Committer.Email = v15
-	v.HeadCommit.Committer.Username = v16
-
-	return v, nil
-}
-
 // scanHooks reads table records into a slice of values.
-func scanHooks(rows *sql.Rows) (HookList, error) {
+func scanHooks(rows *sql.Rows, firstOnly bool) (HookList, error) {
 	var err error
 	var vv HookList
 
@@ -752,7 +696,6 @@ func scanHooks(rows *sql.Rows) (HookList, error) {
 			&v14,
 			&v15,
 			&v16,
-
 		)
 		if err != nil {
 			return vv, err
@@ -778,7 +721,12 @@ func scanHooks(rows *sql.Rows) (HookList, error) {
 		v.HeadCommit.Committer.Username = v16
 
 		vv = append(vv, v)
+
+		if firstOnly {
+			return vv, rows.Err()
+		}
 	}
+
 	return vv, rows.Err()
 }
 

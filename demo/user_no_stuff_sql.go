@@ -123,10 +123,20 @@ func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
 //--------------------------------------------------------------------------------
 
 // QueryOne is the low-level access function for one User.
+// If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, *User will be nil.
 func (tbl V4UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return scanV4User(row)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list, err := scanV4Users(rows, true)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
 }
 
 // Query is the low-level access function for Users.
@@ -137,62 +147,11 @@ func (tbl V4UserTable) Query(query string, args ...interface{}) ([]*User, error)
 		return nil, err
 	}
 	defer rows.Close()
-	return scanV4Users(rows)
-}
-
-// scanV4User reads a table record into a single value.
-func scanV4User(row *sql.Row) (*User, error) {
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 int64
-	var v8 string
-	var v9 string
-	var v10 string
-
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
-		&v3,
-		&v4,
-		&v5,
-		&v6,
-		&v7,
-		&v8,
-		&v9,
-		&v10,
-
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	v := &User{}
-	v.Uid = v0
-	v.Login = v1
-	v.EmailAddress = v2
-	v.Avatar = v3
-	v.Active = v4
-	v.Admin = v5
-	err = json.Unmarshal(v6, &v.Fave)
-	if err != nil {
-		return nil, err
-	}
-	v.LastUpdated = v7
-	v.token = v8
-	v.secret = v9
-	v.hash = v10
-
-	return v, nil
+	return scanV4Users(rows, false)
 }
 
 // scanV4Users reads table records into a slice of values.
-func scanV4Users(rows *sql.Rows) ([]*User, error) {
+func scanV4Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	var err error
 	var vv []*User
 
@@ -221,7 +180,6 @@ func scanV4Users(rows *sql.Rows) ([]*User, error) {
 			&v8,
 			&v9,
 			&v10,
-
 		)
 		if err != nil {
 			return vv, err
@@ -244,7 +202,12 @@ func scanV4Users(rows *sql.Rows) ([]*User, error) {
 		v.hash = v10
 
 		vv = append(vv, v)
+
+		if firstOnly {
+			return vv, rows.Err()
+		}
 	}
+
 	return vv, rows.Err()
 }
 

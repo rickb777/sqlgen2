@@ -268,10 +268,20 @@ func (tbl DbCompoundTable) Exec(query string, args ...interface{}) (int64, error
 //--------------------------------------------------------------------------------
 
 // QueryOne is the low-level access function for one Compound.
+// If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, *Compound will be nil.
 func (tbl DbCompoundTable) QueryOne(query string, args ...interface{}) (*Compound, error) {
 	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
-	return scanDbCompound(row)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list, err := scanDbCompounds(rows, true)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
 }
 
 // Query is the low-level access function for Compounds.
@@ -282,7 +292,7 @@ func (tbl DbCompoundTable) Query(query string, args ...interface{}) ([]*Compound
 		return nil, err
 	}
 	defer rows.Close()
-	return scanDbCompounds(rows)
+	return scanDbCompounds(rows, false)
 }
 
 //--------------------------------------------------------------------------------
@@ -356,7 +366,7 @@ func (tbl DbCompoundTable) getCategorylist(sqlname string, where where.Expressio
 // SelectOneSA allows a single Compound to be obtained from the table that match a 'where' clause
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Compound will be nil.
 func (tbl DbCompoundTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Compound, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", DbCompoundColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
@@ -364,7 +374,7 @@ func (tbl DbCompoundTable) SelectOneSA(where, orderBy string, args ...interface{
 
 // SelectOne allows a single Compound to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, sql.ErrNoRows will result.
+// If not found, *Example will be nil.
 func (tbl DbCompoundTable) SelectOne(where where.Expression, orderBy string) (*Compound, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
@@ -504,32 +514,8 @@ func (tbl DbCompoundTable) Truncate(force bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-// scanDbCompound reads a table record into a single value.
-func scanDbCompound(row *sql.Row) (*Compound, error) {
-	var v0 string
-	var v1 string
-	var v2 Category
-
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
-
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	v := &Compound{}
-	v.Alpha = v0
-	v.Beta = v1
-	v.Category = v2
-
-	return v, nil
-}
-
 // scanDbCompounds reads table records into a slice of values.
-func scanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
+func scanDbCompounds(rows *sql.Rows, firstOnly bool) ([]*Compound, error) {
 	var err error
 	var vv []*Compound
 
@@ -542,7 +528,6 @@ func scanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
 			&v0,
 			&v1,
 			&v2,
-
 		)
 		if err != nil {
 			return vv, err
@@ -554,7 +539,12 @@ func scanDbCompounds(rows *sql.Rows) ([]*Compound, error) {
 		v.Category = v2
 
 		vv = append(vv, v)
+
+		if firstOnly {
+			return vv, rows.Err()
+		}
 	}
+
 	return vv, rows.Err()
 }
 

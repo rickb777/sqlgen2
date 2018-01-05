@@ -45,7 +45,7 @@ func fixtureTable() *TableDescription {
 	}
 }
 
-func TestWriteRowFunc1(t *testing.T) {
+func TestWriteRowsFunc1(t *testing.T) {
 	exit.TestableExit()
 
 	p1 := &Node{Name: "Commit"}
@@ -72,35 +72,45 @@ func TestWriteRowFunc1(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 
-	WriteRowFunc(buf, view)
+	WriteRowsFunc(buf, view)
 
 	code := buf.String()
 	expected := `
-// scanXExample reads a table record into a single value.
-func scanXExample(row *sql.Row) (*Example, error) {
+// scanXExamples reads table records into a slice of values.
+func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
+	var err error
+	var vv []*Example
+
 	var v0 Category
 	var v1 string
 	var v2 string
 	var v3 string
 
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
-		&v3,
+	for rows.Next() {
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+			&v3,
+		)
+		if err != nil {
+			return vv, err
+		}
 
-	)
-	if err != nil {
-		return nil, err
+		v := &Example{}
+		v.Cat = v0
+		v.Commit.Author.Name = v1
+		v.Commit.Author.Email = v2
+		v.Commit.Message = v3
+
+		vv = append(vv, v)
+
+		if firstOnly {
+			return vv, rows.Err()
+		}
 	}
 
-	v := &Example{}
-	v.Cat = v0
-	v.Commit.Author.Name = v1
-	v.Commit.Author.Email = v2
-	v.Commit.Message = v3
-
-	return v, nil
+	return vv, rows.Err()
 }
 `
 	if code != expected {
@@ -117,78 +127,12 @@ func TestWriteRowFunc2(t *testing.T) {
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteRowFunc(buf, view)
-
-	code := buf.String()
-	expected := `
-// scanXExample reads a table record into a single value.
-func scanXExample(row *sql.Row) (*Example, error) {
-	var v0 int64
-	var v1 Category
-	var v2 string
-	var v3 bool
-	var v4 []byte
-	var v5 []byte
-	var v6 []byte
-	var v7 []byte
-
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
-		&v3,
-		&v4,
-		&v5,
-		&v6,
-		&v7,
-
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	v := &Example{}
-	v.Id = v0
-	v.Cat = v1
-	v.Name = v2
-	v.Active = v3
-	err = json.Unmarshal(v4, &v.Labels)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(v5, &v.Fave)
-	if err != nil {
-		return nil, err
-	}
-	v.Avatar = v6
-	err = encoding.UnmarshalText(v7, &v.Updated)
-	if err != nil {
-		return nil, err
-	}
-
-	return v, nil
-}
-`
-	if code != expected {
-		outputDiff(expected, "expected.txt")
-		outputDiff(code, "got.txt")
-		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
-}
-
-func TestWriteRowsFunc2(t *testing.T) {
-	exit.TestableExit()
-
-	view := NewView("Example", "X", "")
-	view.Table = fixtureTable()
-	buf := &bytes.Buffer{}
-
 	WriteRowsFunc(buf, view)
 
 	code := buf.String()
 	expected := `
 // scanXExamples reads table records into a slice of values.
-func scanXExamples(rows *sql.Rows) ([]*Example, error) {
+func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 	var err error
 	var vv []*Example
 
@@ -211,7 +155,6 @@ func scanXExamples(rows *sql.Rows) ([]*Example, error) {
 			&v5,
 			&v6,
 			&v7,
-
 		)
 		if err != nil {
 			return vv, err
@@ -237,7 +180,12 @@ func scanXExamples(rows *sql.Rows) ([]*Example, error) {
 		}
 
 		vv = append(vv, v)
+
+		if firstOnly {
+			return vv, rows.Err()
+		}
 	}
+
 	return vv, rows.Err()
 }
 `
@@ -247,7 +195,6 @@ func scanXExamples(rows *sql.Rows) ([]*Example, error) {
 		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
 	}
 }
-
 
 func outputDiff(a, name string) {
 	f, err := os.Create(name)

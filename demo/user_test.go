@@ -219,9 +219,12 @@ func TestCrudUsingSqlite(t *testing.T) {
 		t.Errorf("expected %#v, got %#v", user1, user2)
 	}
 
-	_, err = tbl.GetUser(user1.Uid + 100000)
-	if err != sql.ErrNoRows {
+	user3, err := tbl.GetUser(user1.Uid + 100000)
+	if err != nil {
 		t.Fatalf("%v", err)
+	}
+	if user3 != nil {
+		t.Fatalf("%v", user3)
 	}
 
 	c1, err = tbl.Count(where.Eq("Login", "user1"))
@@ -232,17 +235,25 @@ func TestCrudUsingSqlite(t *testing.T) {
 		t.Errorf("expected 1, got %d", c1)
 	}
 
-	ul, err := tbl.Select(where.Eq("Login", "user1"), "")
+	ul1, err := tbl.Select(where.Eq("Login", "unknown"), "")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	if len(ul) != 1 || ul[0].Login != "user1" {
-		t.Errorf("expected 1, got %v", ul)
+	if len(ul1) != 0 {
+		t.Errorf("expected 0, got %v", ul1)
 	}
 
-	ul[0].EmailAddress = "bah0@zzz.com"
+	ul2, err := tbl.Select(where.Eq("Login", "user1"), "")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if len(ul2) != 1 || ul2[0].Login != "user1" {
+		t.Errorf("expected 1, got %v", ul2)
+	}
 
-	n, err := tbl.Update(ul[0])
+	ul2[0].EmailAddress = "bah0@zzz.com"
+
+	n, err := tbl.Update(ul2[0])
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -255,7 +266,7 @@ func TestCrudUsingSqlite(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if u1 == nil || u1.Login != "user1" {
-		t.Errorf("expected 1, got %v", ul)
+		t.Errorf("expected 1, got %v", ul2)
 	}
 
 	n, err = tbl.Delete(where.Eq("Login", "user1"))
