@@ -28,22 +28,6 @@ func (t Type) Type() string {
 	}
 }
 
-//func (t Type) NullableStorage() string {
-//	if t.Base == parse.Ptr && t.PkgName == "" {
-//		switch t.Name {
-//		case "string":
-//			return "sql.NullString"
-//		case "int", "int8", "int16", "int32", "int64":
-//			return "sql.NullInt64"
-//		case "float32", "float54":
-//			return "sql.NullFloat64"
-//		case "bool":
-//			return "sql.NullBool"
-//		}
-//	}
-//	return t.Type()
-//}
-
 func (t Type) IsNullable() bool {
 	return t.IsPtr && t.PkgName == ""
 }

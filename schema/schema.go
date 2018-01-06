@@ -4,6 +4,7 @@ import (
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"strings"
 	"bytes"
+	"sort"
 )
 
 type SqlEncode int
@@ -156,5 +157,7 @@ func (list FieldList) DistinctTypes() []Type {
 		types.Add(field.Type)
 	}
 
-	return types.ToSlice()
+	slice := types.ToSlice()
+	sort.Slice(slice, func(i, j int) bool { return slice[i].Tag() < slice[j].Tag() })
+	return slice
 }

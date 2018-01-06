@@ -316,28 +316,6 @@ func (tbl DbCompoundTable) SliceCategory(where where.Expression, orderBy string)
 }
 
 
-func (tbl DbCompoundTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var v string
-	list := make([]string, 0, 10)
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
-		}
-		list = append(list, v)
-	}
-	return list, nil
-}
-
 func (tbl DbCompoundTable) getCategorylist(sqlname string, where where.Expression, orderBy string) ([]Category, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
@@ -350,6 +328,28 @@ func (tbl DbCompoundTable) getCategorylist(sqlname string, where where.Expressio
 
 	var v Category
 	list := make([]Category, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+func (tbl DbCompoundTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
+	wh, args := where.Build(tbl.Dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v string
+	list := make([]string, 0, 10)
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err != nil {

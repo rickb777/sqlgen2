@@ -24,7 +24,7 @@ func WriteRowsFunc(w io.Writer, view View) {
 		default:
 			l1 := Sprintf("\tvar v%d %s\n", i, field.Type.Type())
 			if nullable != "" {
-				l1 = Sprintf("\tvar v%d sql.Null%s\n", i, field.Type.NullableValue())
+				l1 = Sprintf("\tvar v%d sql.Null%s\n", i, nullable)
 			}
 			view.Body1 = append(view.Body1, l1)
 		}
