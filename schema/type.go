@@ -37,7 +37,8 @@ func (t Type) NullableValue() string {
 		switch t.Base {
 		case String:
 			return "String"
-		case Int, Int8, Int16, Int32, Int64:
+		case Int, Int8, Int16, Int32, Int64,
+			Uint, Uint8, Uint16, Uint32, Uint64:
 			return "Int64"
 		case Float32, Float64:
 			return "Float64"

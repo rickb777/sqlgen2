@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	var oFile, typeName, prefix, list string
+	var oFile, typeName, prefix, list, genSetters string
 	var genSchema, genFuncs, gofmt bool
 
 	flag.StringVar(&oFile, "o", "", "output file name (or file path); if omitted, the first input filename is used with _sql.go suffix")
@@ -25,6 +25,7 @@ func main() {
 	flag.BoolVar(&parse.PrintAST, "ast", false, "trace the whole astract syntax tree (very verbose)")
 	flag.BoolVar(&genSchema, "schema", true, "generate sql schema and queries")
 	flag.BoolVar(&genFuncs, "funcs", true, "generate sql crud functions")
+	flag.StringVar(&genSetters, "setters", "none", "generate setters for fields: none, optional, exported, all")
 	flag.BoolVar(&gofmt, "gofmt", false, "format and simplify the generated code nicely")
 
 	flag.Parse()
@@ -83,6 +84,7 @@ func main() {
 
 	WriteRowsFunc(buf, view)
 	WriteSliceFunc(buf, view, view.Table.HasLastInsertId())
+	WriteSetters(buf, view, genSetters)
 
 	// formats the generated file using gofmt
 	var pretty io.Reader = buf

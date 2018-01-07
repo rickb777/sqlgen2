@@ -21,6 +21,7 @@ type View struct {
 	Body3    []string
 	Dialects []string
 	Table    *schema.TableDescription
+	Setter   *schema.Field
 }
 
 func NewView(name, prefix, list string) View {

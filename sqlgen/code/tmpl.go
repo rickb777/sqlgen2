@@ -168,6 +168,22 @@ var tSliceRow = template.Must(template.New("SliceRow").Funcs(funcMap).Parse(sSli
 
 //-------------------------------------------------------------------------------------------------
 
+const sSetter = `
+// Set{{.Setter.Name}} sets the {{.Setter.Name}} field and returns the modified {{.Type}}.
+func (v *{{.Type}}) Set{{.Setter.Name}}(x {{.Setter.Type.Type}}) *{{.Type}} {
+	{{if .Setter.Type.IsNullable -}}
+	v.{{.Setter.Name}} = &x
+{{- else -}}
+	v.{{.Setter.Name}} = x
+{{- end}}
+	return v
+}
+`
+
+var tSetter = template.Must(template.New("SliceRow").Funcs(funcMap).Parse(sSetter))
+
+//-------------------------------------------------------------------------------------------------
+
 const sQueryRows = `
 // QueryOne is the low-level access function for one {{.Type}}.
 // If the query selected many rows, only the first is returned; the rest are discarded.

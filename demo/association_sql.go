@@ -649,3 +649,5 @@ func sliceAssociationWithoutPk(v *Association) ([]interface{}, error) {
 
 	}, nil
 }
+
+//--------------------------------------------------------------------------------
