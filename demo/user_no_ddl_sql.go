@@ -129,13 +129,7 @@ func (tbl V2UserTable) Exec(query string, args ...interface{}) (int64, error) {
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *User will be nil.
 func (tbl V2UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	list, err := scanV2Users(rows, true)
+	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -144,13 +138,17 @@ func (tbl V2UserTable) QueryOne(query string, args ...interface{}) (*User, error
 
 // Query is the low-level access function for Users.
 func (tbl V2UserTable) Query(query string, args ...interface{}) ([]*User, error) {
+	return tbl.doQuery(false, query, args...)
+}
+
+func (tbl V2UserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanV2Users(rows, false)
+	return scanV2Users(rows, firstOnly)
 }
 
 //--------------------------------------------------------------------------------
@@ -322,7 +320,7 @@ func (tbl V2UserTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(wh, args...)
 }
 
-const V2UserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret, hash"
+const V2UserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"
 
 //--------------------------------------------------------------------------------
 
@@ -348,7 +346,7 @@ func (tbl V2UserTable) Insert(vv ...*User) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert(tbl.Db)
+			hook.PreInsert()
 		}
 
 		fields, err := sliceV2UserWithoutPk(v)
@@ -381,14 +379,13 @@ INSERT INTO %s%s (
 	fave,
 	lastupdated,
 	token,
-	secret,
-	hash
+	secret
 ) VALUES (%s)
 `
 
-const sV2UserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?,?"
+const sV2UserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?"
 
-const sV2UserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10"
+const sV2UserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 
 //--------------------------------------------------------------------------------
 
@@ -426,7 +423,7 @@ func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
-			hook.PreUpdate(tbl.Db)
+			hook.PreUpdate()
 		}
 
 		args, err := sliceV2UserWithoutPk(v)
@@ -455,8 +452,7 @@ UPDATE %s%s SET
 	fave=?,
 	lastupdated=?,
 	token=?,
-	secret=?,
-	hash=?
+	secret=?
 WHERE uid=?
 `
 
@@ -470,8 +466,7 @@ UPDATE %s%s SET
 	fave=$7,
 	lastupdated=$8,
 	token=$9,
-	secret=$10,
-	hash=$11
+	secret=$10
 WHERE uid=$1
 `
 
@@ -523,7 +518,6 @@ func scanV2Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	var v7 int64
 	var v8 string
 	var v9 string
-	var v10 string
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -537,7 +531,6 @@ func scanV2Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 			&v7,
 			&v8,
 			&v9,
-			&v10,
 		)
 		if err != nil {
 			return vv, err
@@ -557,7 +550,14 @@ func scanV2Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 		v.LastUpdated = v7
 		v.token = v8
 		v.secret = v9
-		v.hash = v10
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, err
+			}
+		}
 
 		vv = append(vv, v)
 
@@ -586,7 +586,6 @@ func sliceV2UserWithoutPk(v *User) ([]interface{}, error) {
 		v.LastUpdated,
 		v.token,
 		v.secret,
-		v.hash,
 
 	}, nil
 }

@@ -121,6 +121,14 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 		v.Commit.Author.Email = v2
 		v.Commit.Message = v3
 
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, err
+			}
+		}
+
 		vv = append(vv, v)
 
 		if firstOnly {
@@ -210,6 +218,14 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 		err = encoding.UnmarshalText(v10, &v.Updated)
 		if err != nil {
 			return nil, err
+		}
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, err
+			}
 		}
 
 		vv = append(vv, v)

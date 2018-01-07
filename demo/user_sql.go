@@ -111,13 +111,13 @@ func (tbl DbUserTable) logQuery(query string, args ...interface{}) {
 
 //--------------------------------------------------------------------------------
 
-const NumDbUserColumns = 11
+const NumDbUserColumns = 10
 
-const NumDbUserDataColumns = 10
+const NumDbUserDataColumns = 9
 
 const DbUserPk = "Uid"
 
-const DbUserDataColumnNames = "login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret, hash"
+const DbUserDataColumnNames = "login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"
 
 //--------------------------------------------------------------------------------
 
@@ -167,8 +167,7 @@ CREATE TABLE %s%s%s (
  fave         text,
  lastupdated  bigint,
  token        text,
- secret       text,
- hash         text
+ secret       text
 )
 `
 
@@ -183,8 +182,7 @@ CREATE TABLE %s%s%s (
  fave         json,
  lastupdated  bigint,
  token        varchar(255),
- secret       varchar(255),
- hash         varchar(255)
+ secret       varchar(255)
 )
 `
 
@@ -199,8 +197,7 @@ CREATE TABLE %s%s%s (
  fave         json,
  lastupdated  bigint,
  token        varchar(255),
- secret       varchar(255),
- hash         varchar(255)
+ secret       varchar(255)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 
@@ -346,13 +343,7 @@ func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *User will be nil.
 func (tbl DbUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	list, err := scanDbUsers(rows, true)
+	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -361,13 +352,17 @@ func (tbl DbUserTable) QueryOne(query string, args ...interface{}) (*User, error
 
 // Query is the low-level access function for Users.
 func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error) {
+	return tbl.doQuery(false, query, args...)
+}
+
+func (tbl DbUserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanDbUsers(rows, false)
+	return scanDbUsers(rows, firstOnly)
 }
 
 //--------------------------------------------------------------------------------
@@ -539,7 +534,7 @@ func (tbl DbUserTable) Count(where where.Expression) (count int64, err error) {
 	return tbl.CountSA(wh, args...)
 }
 
-const DbUserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret, hash"
+const DbUserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"
 
 //--------------------------------------------------------------------------------
 
@@ -565,7 +560,7 @@ func (tbl DbUserTable) Insert(vv ...*User) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert(tbl.Db)
+			hook.PreInsert()
 		}
 
 		fields, err := sliceDbUserWithoutPk(v)
@@ -598,14 +593,13 @@ INSERT INTO %s%s (
 	fave,
 	lastupdated,
 	token,
-	secret,
-	hash
+	secret
 ) VALUES (%s)
 `
 
-const sDbUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?,?"
+const sDbUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?"
 
-const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10"
+const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 
 //--------------------------------------------------------------------------------
 
@@ -643,7 +637,7 @@ func (tbl DbUserTable) Update(vv ...*User) (int64, error) {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
-			hook.PreUpdate(tbl.Db)
+			hook.PreUpdate()
 		}
 
 		args, err := sliceDbUserWithoutPk(v)
@@ -672,8 +666,7 @@ UPDATE %s%s SET
 	fave=?,
 	lastupdated=?,
 	token=?,
-	secret=?,
-	hash=?
+	secret=?
 WHERE uid=?
 `
 
@@ -687,8 +680,7 @@ UPDATE %s%s SET
 	fave=$7,
 	lastupdated=$8,
 	token=$9,
-	secret=$10,
-	hash=$11
+	secret=$10
 WHERE uid=$1
 `
 
@@ -740,7 +732,6 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	var v7 int64
 	var v8 string
 	var v9 string
-	var v10 string
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -754,7 +745,6 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 			&v7,
 			&v8,
 			&v9,
-			&v10,
 		)
 		if err != nil {
 			return vv, err
@@ -774,7 +764,14 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 		v.LastUpdated = v7
 		v.token = v8
 		v.secret = v9
-		v.hash = v10
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, err
+			}
+		}
 
 		vv = append(vv, v)
 
@@ -803,7 +800,6 @@ func sliceDbUserWithoutPk(v *User) ([]interface{}, error) {
 		v.LastUpdated,
 		v.token,
 		v.secret,
-		v.hash,
 
 	}, nil
 }

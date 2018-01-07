@@ -289,13 +289,7 @@ func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *Issue will be nil.
 func (tbl IssueTable) QueryOne(query string, args ...interface{}) (*Issue, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	list, err := scanIssues(rows, true)
+	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -304,13 +298,17 @@ func (tbl IssueTable) QueryOne(query string, args ...interface{}) (*Issue, error
 
 // Query is the low-level access function for Issues.
 func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error) {
+	return tbl.doQuery(false, query, args...)
+}
+
+func (tbl IssueTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*Issue, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanIssues(rows, false)
+	return scanIssues(rows, firstOnly)
 }
 
 //--------------------------------------------------------------------------------
@@ -530,7 +528,7 @@ func (tbl IssueTable) Insert(vv ...*Issue) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert(tbl.Db)
+			hook.PreInsert()
 		}
 
 		fields, err := sliceIssueWithoutPk(v)
@@ -605,7 +603,7 @@ func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
-			hook.PreUpdate(tbl.Db)
+			hook.PreUpdate()
 		}
 
 		args, err := sliceIssueWithoutPk(v)
@@ -721,6 +719,14 @@ func scanIssues(rows *sql.Rows, firstOnly bool) ([]*Issue, error) {
 		err = json.Unmarshal(v7, &v.Labels)
 		if err != nil {
 			return nil, err
+		}
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, err
+			}
 		}
 
 		vv = append(vv, v)

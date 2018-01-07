@@ -271,13 +271,7 @@ func (tbl DbCompoundTable) Exec(query string, args ...interface{}) (int64, error
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *Compound will be nil.
 func (tbl DbCompoundTable) QueryOne(query string, args ...interface{}) (*Compound, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	list, err := scanDbCompounds(rows, true)
+	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -286,13 +280,17 @@ func (tbl DbCompoundTable) QueryOne(query string, args ...interface{}) (*Compoun
 
 // Query is the low-level access function for Compounds.
 func (tbl DbCompoundTable) Query(query string, args ...interface{}) ([]*Compound, error) {
+	return tbl.doQuery(false, query, args...)
+}
+
+func (tbl DbCompoundTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*Compound, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanDbCompounds(rows, false)
+	return scanDbCompounds(rows, firstOnly)
 }
 
 //--------------------------------------------------------------------------------
@@ -434,7 +432,7 @@ func (tbl DbCompoundTable) Insert(vv ...*Compound) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert(tbl.Db)
+			hook.PreInsert()
 		}
 
 		fields, err := sliceDbCompound(v)
@@ -537,6 +535,14 @@ func scanDbCompounds(rows *sql.Rows, firstOnly bool) ([]*Compound, error) {
 		v.Alpha = v0
 		v.Beta = v1
 		v.Category = v2
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, err
+			}
+		}
 
 		vv = append(vv, v)
 

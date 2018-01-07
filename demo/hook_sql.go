@@ -241,13 +241,7 @@ func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *Hook will be nil.
 func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	list, err := scanHooks(rows, true)
+	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -256,13 +250,17 @@ func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) 
 
 // Query is the low-level access function for Hooks.
 func (tbl HookTable) Query(query string, args ...interface{}) (HookList, error) {
+	return tbl.doQuery(false, query, args...)
+}
+
+func (tbl HookTable) doQuery(firstOnly bool, query string, args ...interface{}) (HookList, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanHooks(rows, false)
+	return scanHooks(rows, firstOnly)
 }
 
 //--------------------------------------------------------------------------------
@@ -476,7 +474,7 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert(tbl.Db)
+			hook.PreInsert()
 		}
 
 		fields, err := sliceHookWithoutPk(v)
@@ -560,7 +558,7 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
-			hook.PreUpdate(tbl.Db)
+			hook.PreUpdate()
 		}
 
 		args, err := sliceHookWithoutPk(v)
@@ -719,6 +717,14 @@ func scanHooks(rows *sql.Rows, firstOnly bool) (HookList, error) {
 		v.HeadCommit.Committer.Name = v14
 		v.HeadCommit.Committer.Email = v15
 		v.HeadCommit.Committer.Username = v16
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, err
+			}
+		}
 
 		vv = append(vv, v)
 

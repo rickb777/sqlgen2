@@ -15,7 +15,6 @@ func WriteType(w io.Writer, view View) {
 func WriteQueryFuncs(w io.Writer, view View) {
 	fmt.Fprintln(w, sectionBreak)
 
-	must(tQueryRow.Execute(w, view))
 	must(tQueryRows.Execute(w, view))
 }
 

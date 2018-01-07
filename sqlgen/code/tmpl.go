@@ -131,6 +131,14 @@ func scan{{.Prefix}}{{.Types}}(rows *sql.Rows, firstOnly bool) ({{.List}}, error
 
 		v := &{{.Type}}{}
 {{range .Body3}}{{.}}{{end}}
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, err
+			}
+		}
+
 		vv = append(vv, v)
 
 		if firstOnly {
@@ -160,43 +168,35 @@ var tSliceRow = template.Must(template.New("SliceRow").Funcs(funcMap).Parse(sSli
 
 //-------------------------------------------------------------------------------------------------
 
-const sQueryRow = `
+const sQueryRows = `
 // QueryOne is the low-level access function for one {{.Type}}.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *{{.Type}} will be nil.
 func (tbl {{.Prefix}}{{.Type}}Table) QueryOne(query string, args ...interface{}) (*{{.Type}}, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	list, err := scan{{.Prefix}}{{.Types}}(rows, true)
+	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
 }
-`
 
-var tQueryRow = template.Must(template.New("SelectRow").Funcs(funcMap).Parse(sQueryRow))
-
-//-------------------------------------------------------------------------------------------------
-
-const sQueryRows = `
 // Query is the low-level access function for {{.Types}}.
 func (tbl {{.Prefix}}{{.Type}}Table) Query(query string, args ...interface{}) ({{.List}}, error) {
+	return tbl.doQuery(false, query, args...)
+}
+
+func (tbl {{.Prefix}}{{.Type}}Table) doQuery(firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scan{{.Prefix}}{{.Types}}(rows, false)
+	return scan{{.Prefix}}{{.Types}}(rows, firstOnly)
 }
 `
 
-var tQueryRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(sQueryRows))
+var tQueryRows = template.Must(template.New("QueryRows").Funcs(funcMap).Parse(sQueryRows))
 
 //-------------------------------------------------------------------------------------------------
 
@@ -343,7 +343,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert(tbl.Db)
+			hook.PreInsert()
 		}
 
 		fields, err := slice{{.Prefix}}{{.Type}}WithoutPk(v)
@@ -399,7 +399,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Insert(vv ...*{{.Type}}) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert(tbl.Db)
+			hook.PreInsert()
 		}
 
 		fields, err := slice{{.Prefix}}{{.Type}}(v)
@@ -465,7 +465,7 @@ func (tbl {{.Prefix}}{{.Type}}Table) Update(vv ...*{{.Type}}) (int64, error) {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
-			hook.PreUpdate(tbl.Db)
+			hook.PreUpdate()
 		}
 
 		args, err := slice{{.Prefix}}{{.Type}}WithoutPk(v)

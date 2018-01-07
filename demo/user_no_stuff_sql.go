@@ -126,13 +126,7 @@ func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *User will be nil.
 func (tbl V4UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	list, err := scanV4Users(rows, true)
+	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -141,13 +135,17 @@ func (tbl V4UserTable) QueryOne(query string, args ...interface{}) (*User, error
 
 // Query is the low-level access function for Users.
 func (tbl V4UserTable) Query(query string, args ...interface{}) ([]*User, error) {
+	return tbl.doQuery(false, query, args...)
+}
+
+func (tbl V4UserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanV4Users(rows, false)
+	return scanV4Users(rows, firstOnly)
 }
 
 // scanV4Users reads table records into a slice of values.
@@ -165,7 +163,6 @@ func scanV4Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	var v7 int64
 	var v8 string
 	var v9 string
-	var v10 string
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -179,7 +176,6 @@ func scanV4Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 			&v7,
 			&v8,
 			&v9,
-			&v10,
 		)
 		if err != nil {
 			return vv, err
@@ -199,7 +195,14 @@ func scanV4Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 		v.LastUpdated = v7
 		v.token = v8
 		v.secret = v9
-		v.hash = v10
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, err
+			}
+		}
 
 		vv = append(vv, v)
 
@@ -228,7 +231,6 @@ func sliceV4UserWithoutPk(v *User) ([]interface{}, error) {
 		v.LastUpdated,
 		v.token,
 		v.secret,
-		v.hash,
 
 	}, nil
 }

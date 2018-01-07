@@ -208,13 +208,7 @@ func (tbl AssociationTable) Exec(query string, args ...interface{}) (int64, erro
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *Association will be nil.
 func (tbl AssociationTable) QueryOne(query string, args ...interface{}) (*Association, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	list, err := scanAssociations(rows, true)
+	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -223,13 +217,17 @@ func (tbl AssociationTable) QueryOne(query string, args ...interface{}) (*Associ
 
 // Query is the low-level access function for Associations.
 func (tbl AssociationTable) Query(query string, args ...interface{}) ([]*Association, error) {
+	return tbl.doQuery(false, query, args...)
+}
+
+func (tbl AssociationTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*Association, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanAssociations(rows, false)
+	return scanAssociations(rows, firstOnly)
 }
 
 //--------------------------------------------------------------------------------
@@ -443,7 +441,7 @@ func (tbl AssociationTable) Insert(vv ...*Association) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert(tbl.Db)
+			hook.PreInsert()
 		}
 
 		fields, err := sliceAssociationWithoutPk(v)
@@ -516,7 +514,7 @@ func (tbl AssociationTable) Update(vv ...*Association) (int64, error) {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
-			hook.PreUpdate(tbl.Db)
+			hook.PreUpdate()
 		}
 
 		args, err := sliceAssociationWithoutPk(v)
@@ -620,6 +618,14 @@ func scanAssociations(rows *sql.Rows, firstOnly bool) ([]*Association, error) {
 		v.Ref1 = &v3
 		v.Ref2 = &v4
 		v.Category = &v5
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, err
+			}
+		}
 
 		vv = append(vv, v)
 

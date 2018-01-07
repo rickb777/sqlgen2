@@ -60,13 +60,7 @@ func TestWriteQueryFuncs(t *testing.T) {
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) QueryOne(query string, args ...interface{}) (*Example, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	list, err := scanXExamples(rows, true)
+	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -75,13 +69,17 @@ func (tbl XExampleTable) QueryOne(query string, args ...interface{}) (*Example, 
 
 // Query is the low-level access function for Examples.
 func (tbl XExampleTable) Query(query string, args ...interface{}) ([]*Example, error) {
+	return tbl.doQuery(false, query, args...)
+}
+
+func (tbl XExampleTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*Example, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanXExamples(rows, false)
+	return scanXExamples(rows, firstOnly)
 }
 `
 	if code != expected {
@@ -256,7 +254,7 @@ func (tbl XExampleTable) Insert(vv ...*Example) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert(tbl.Db)
+			hook.PreInsert()
 		}
 
 		fields, err := sliceXExample(v)
@@ -328,7 +326,7 @@ func (tbl XExampleTable) Insert(vv ...*Example) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert(tbl.Db)
+			hook.PreInsert()
 		}
 
 		fields, err := sliceXExampleWithoutPk(v)
@@ -455,7 +453,7 @@ func (tbl XExampleTable) Update(vv ...*Example) (int64, error) {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
-			hook.PreUpdate(tbl.Db)
+			hook.PreUpdate()
 		}
 
 		args, err := sliceXExampleWithoutPk(v)

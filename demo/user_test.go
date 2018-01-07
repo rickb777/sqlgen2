@@ -62,8 +62,7 @@ CREATE TABLE IF NOT EXISTS prefix_users (
  fave         json,
  lastupdated  bigint,
  token        varchar(255),
- secret       varchar(255),
- hash         varchar(255)
+ secret       varchar(255)
 )
 `
 	if sql != expected {
@@ -210,11 +209,18 @@ func TestCrudUsingSqlite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+	if user1.hash != "PreInsert" {
+		t.Fatalf("%q", user1.hash)
+	}
 
 	user2, err := tbl.GetUser(user1.Uid)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+	if user2.hash != "PostGet" {
+		t.Fatalf("%q", user2.hash)
+	}
+	user1.hash = user2.hash
 	if !reflect.DeepEqual(user1, user2) {
 		t.Errorf("expected %#v, got %#v", user1, user2)
 	}
@@ -259,6 +265,9 @@ func TestCrudUsingSqlite(t *testing.T) {
 	}
 	if n != 1 {
 		t.Errorf("expected 1, got %v", n)
+	}
+	if ul2[0].hash != "PreUpdate" {
+		t.Fatalf("%q", ul2[0].hash)
 	}
 
 	u1, err := tbl.SelectOne(where.Eq("Login", "user1"), "")

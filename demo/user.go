@@ -2,7 +2,6 @@ package demo
 
 import (
 	"math/big"
-	"github.com/rickb777/sqlgen2"
 )
 
 // This example demonstrates
@@ -27,13 +26,21 @@ type User struct {
 
 	// randomly generated hash used to sign user
 	// session and application tokens.
-	hash string
+	hash string `sql:"-"`
 }
 
-func (u *User) PreInsert(sqlgen2.Execer) error {
+// These hooks are just used here for testing, but you could put whatever you like in them.
+func (u *User) PreInsert() error {
+	u.hash = "PreInsert"
 	return nil
 }
 
-func (u *User) PreUpdate(sqlgen2.Execer) error {
+func (u *User) PreUpdate() error {
+	u.hash = "PreUpdate"
+	return nil
+}
+
+func (u *User) PostGet() error {
+	u.hash = "PostGet"
 	return nil
 }
