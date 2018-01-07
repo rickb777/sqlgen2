@@ -9,7 +9,7 @@ import (
 
 const tabs = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 
-func WriteImports(w io.Writer, table *schema.TableDescription, packages StringSet) {
+func WriteImports(w io.Writer, table *schema.TableDescription, setters schema.FieldList, packages StringSet) {
 
 	// check each edge field to see if it is
 	// encoded, which might require us to import
@@ -25,8 +25,14 @@ func WriteImports(w io.Writer, table *schema.TableDescription, packages StringSe
 			// 	packages["compress/gzip"] = struct{}{}
 		default:
 			if field.Type.PkgPath != "" {
-				packages[field.Type.PkgPath] = struct{}{}
+				packages.Add(field.Type.PkgPath)
 			}
+		}
+	}
+
+	for _, field := range setters {
+		if field.Type.PkgPath != "" {
+			packages.Add(field.Type.PkgPath)
 		}
 	}
 

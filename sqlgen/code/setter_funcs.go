@@ -3,17 +3,23 @@ package code
 import (
 	"io"
 	"fmt"
+	"github.com/rickb777/sqlgen2/schema"
 )
 
-func WriteSetters(w io.Writer, view View, genSetters string) {
-	fmt.Fprintln(w, sectionBreak)
+type SetterView struct {
+	Type   string
+	Setter *schema.Field
+}
 
+func (v View) FilterSetters(genSetters string) schema.FieldList {
 	opt := setterOptionMap[genSetters]
 	if opt == none {
-		return
+		return nil
 	}
 
-	for _, field := range view.Table.Fields {
+	var list schema.FieldList
+
+	for _, field := range v.Table.Fields {
 		if field.Tags.Skip && opt < all {
 			continue
 		} else if !isExported(field.Name) && opt < all {
@@ -21,8 +27,22 @@ func WriteSetters(w io.Writer, view View, genSetters string) {
 		} else if !field.Type.IsPtr && opt < exported {
 			continue
 		} else {
-			view.Setter = field
-			must(tSetter.Execute(w, view))
+			list = append(list, field)
+		}
+	}
+
+	return list
+}
+
+func WriteSetters(w io.Writer, view View, fields schema.FieldList) {
+	if len(fields) > 0 {
+		fmt.Fprintln(w, sectionBreak)
+
+		vm := SetterView{Type: view.Type}
+
+		for _, field := range fields {
+			vm.Setter = field
+			must(tSetter.Execute(w, vm))
 		}
 	}
 }

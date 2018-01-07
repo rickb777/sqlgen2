@@ -57,12 +57,13 @@ func main() {
 
 	view := NewView(name, prefix, list)
 	view.Table = table
+	setters := view.FilterSetters(genSetters)
 
 	buf := &bytes.Buffer{}
 
 	WritePackage(buf, pkg)
 
-	WriteImports(buf, table, packagesToImport(genFuncs, genSchema, view.Table.HasPrimaryKey()))
+	WriteImports(buf, table, setters, packagesToImport(genFuncs, genSchema, view.Table.HasPrimaryKey()))
 
 	WriteType(buf, view)
 
@@ -84,7 +85,7 @@ func main() {
 
 	WriteRowsFunc(buf, view)
 	WriteSliceFunc(buf, view, view.Table.HasLastInsertId())
-	WriteSetters(buf, view, genSetters)
+	WriteSetters(buf, view, setters)
 
 	// formats the generated file using gofmt
 	var pretty io.Reader = buf

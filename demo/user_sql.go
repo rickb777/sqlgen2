@@ -11,6 +11,7 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
+	"math/big"
 	"strings"
 )
 
@@ -805,3 +806,63 @@ func sliceDbUserWithoutPk(v *User) ([]interface{}, error) {
 }
 
 //--------------------------------------------------------------------------------
+
+// SetUid sets the Uid field and returns the modified User.
+func (v *User) SetUid(x int64) *User {
+	v.Uid = x
+	return v
+}
+
+// SetLogin sets the Login field and returns the modified User.
+func (v *User) SetLogin(x string) *User {
+	v.Login = x
+	return v
+}
+
+// SetEmailAddress sets the EmailAddress field and returns the modified User.
+func (v *User) SetEmailAddress(x string) *User {
+	v.EmailAddress = x
+	return v
+}
+
+// SetAvatar sets the Avatar field and returns the modified User.
+func (v *User) SetAvatar(x string) *User {
+	v.Avatar = x
+	return v
+}
+
+// SetActive sets the Active field and returns the modified User.
+func (v *User) SetActive(x bool) *User {
+	v.Active = x
+	return v
+}
+
+// SetAdmin sets the Admin field and returns the modified User.
+func (v *User) SetAdmin(x bool) *User {
+	v.Admin = x
+	return v
+}
+
+// SetFave sets the Fave field and returns the modified User.
+func (v *User) SetFave(x big.Int) *User {
+	v.Fave = x
+	return v
+}
+
+// SetLastUpdated sets the LastUpdated field and returns the modified User.
+func (v *User) SetLastUpdated(x int64) *User {
+	v.LastUpdated = x
+	return v
+}
+
+// Settoken sets the token field and returns the modified User.
+func (v *User) Settoken(x string) *User {
+	v.token = x
+	return v
+}
+
+// Setsecret sets the secret field and returns the modified User.
+func (v *User) Setsecret(x string) *User {
+	v.secret = x
+	return v
+}

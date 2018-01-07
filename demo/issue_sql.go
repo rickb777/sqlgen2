@@ -759,3 +759,51 @@ func sliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 }
 
 //--------------------------------------------------------------------------------
+
+// SetId sets the Id field and returns the modified Issue.
+func (v *Issue) SetId(x int64) *Issue {
+	v.Id = x
+	return v
+}
+
+// SetNumber sets the Number field and returns the modified Issue.
+func (v *Issue) SetNumber(x int) *Issue {
+	v.Number = x
+	return v
+}
+
+// SetDate sets the Date field and returns the modified Issue.
+func (v *Issue) SetDate(x Date) *Issue {
+	v.Date = x
+	return v
+}
+
+// SetTitle sets the Title field and returns the modified Issue.
+func (v *Issue) SetTitle(x string) *Issue {
+	v.Title = x
+	return v
+}
+
+// SetBody sets the Body field and returns the modified Issue.
+func (v *Issue) SetBody(x string) *Issue {
+	v.Body = x
+	return v
+}
+
+// SetAssignee sets the Assignee field and returns the modified Issue.
+func (v *Issue) SetAssignee(x string) *Issue {
+	v.Assignee = x
+	return v
+}
+
+// SetState sets the State field and returns the modified Issue.
+func (v *Issue) SetState(x string) *Issue {
+	v.State = x
+	return v
+}
+
+// SetLabels sets the Labels field and returns the modified Issue.
+func (v *Issue) SetLabels(x []string) *Issue {
+	v.Labels = x
+	return v
+}

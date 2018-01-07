@@ -13,7 +13,7 @@ func TestWriteSetters_all(t *testing.T) {
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteSetters(buf, view, "all")
+	WriteSetters(buf, view, view.FilterSetters("all"))
 
 	code := buf.String()
 	expected := `
@@ -99,7 +99,7 @@ func TestWriteSetters_exported(t *testing.T) {
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteSetters(buf, view, "exported")
+	WriteSetters(buf, view, view.FilterSetters("exported"))
 
 	code := buf.String()
 	expected := `
@@ -185,7 +185,7 @@ func TestWriteSetters_optional(t *testing.T) {
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteSetters(buf, view, "optional")
+	WriteSetters(buf, view, view.FilterSetters("optional"))
 
 	code := buf.String()
 	expected := `
@@ -223,12 +223,10 @@ func TestWriteSetters_none(t *testing.T) {
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteSetters(buf, view, "none")
+	WriteSetters(buf, view, view.FilterSetters("none"))
 
 	code := buf.String()
-	expected := `
-//--------------------------------------------------------------------------------
-`
+	expected := ""
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")

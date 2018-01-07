@@ -3,7 +3,7 @@ package demo
 // This example demonstrates
 //   * `sql` tags
 
-//go:generate sqlgen -type demo.Issue -o issue_sql.go -v issue.go
+//go:generate sqlgen -type demo.Issue -setters=all -o issue_sql.go -v issue.go
 
 type Issue struct {
 	Id       int64 `sql:"pk: true, auto: true"`
