@@ -43,8 +43,14 @@ func (v *Example) SetQual(x string) *Example {
 	return v
 }
 
+// SetDiff sets the Diff field and returns the modified Example.
+func (v *Example) SetDiff(x int32) *Example {
+	v.Diff = &x
+	return v
+}
+
 // SetAge sets the Age field and returns the modified Example.
-func (v *Example) SetAge(x int32) *Example {
+func (v *Example) SetAge(x uint32) *Example {
 	v.Age = &x
 	return v
 }
@@ -129,8 +135,14 @@ func (v *Example) SetQual(x string) *Example {
 	return v
 }
 
+// SetDiff sets the Diff field and returns the modified Example.
+func (v *Example) SetDiff(x int32) *Example {
+	v.Diff = &x
+	return v
+}
+
 // SetAge sets the Age field and returns the modified Example.
-func (v *Example) SetAge(x int32) *Example {
+func (v *Example) SetAge(x uint32) *Example {
 	v.Age = &x
 	return v
 }
@@ -197,8 +209,14 @@ func (v *Example) SetQual(x string) *Example {
 	return v
 }
 
+// SetDiff sets the Diff field and returns the modified Example.
+func (v *Example) SetDiff(x int32) *Example {
+	v.Diff = &x
+	return v
+}
+
 // SetAge sets the Age field and returns the modified Example.
-func (v *Example) SetAge(x int32) *Example {
+func (v *Example) SetAge(x uint32) *Example {
 	v.Age = &x
 	return v
 }

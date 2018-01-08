@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/rickb777/sqlgen2/schema"
+	"strings"
 )
 
 func WriteRowsFunc(w io.Writer, view View) {
@@ -45,11 +46,16 @@ func WriteRowsFunc(w io.Writer, view View) {
 		default:
 			if nullable != "" {
 				l3a := Sprintf("\t\tif v%d.Valid {\n", i)
-				l3b := Sprintf("\t\t\tv.%s = &(%s(v%d.%s))\n", field.JoinParts(0, "."), field.Type.Name, i, nullable)
-				l3c := "\t\t}\n"
+				l3b := Sprintf("\t\t\ta := %s(v%d.%s)\n", field.Type.Name, i, nullable)
+				if field.Type.Name == strings.ToLower(nullable){
+					l3b = Sprintf("\t\t\ta := v%d.%s\n", i, nullable)
+				}
+				l3c := Sprintf("\t\t\tv.%s = &a\n", field.JoinParts(0, "."))
+				l3d := "\t\t}\n"
 				view.Body3 = append(view.Body3, l3a)
 				view.Body3 = append(view.Body3, l3b)
 				view.Body3 = append(view.Body3, l3c)
+				view.Body3 = append(view.Body3, l3d)
 			} else {
 				amp := ""
 				if field.Type.IsPtr {

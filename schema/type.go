@@ -50,5 +50,9 @@ func (t Type) NullableValue() string {
 }
 
 func (t Type) String() string {
-	return fmt.Sprintf("%s (%v)", t.Type(), t.Base)
+	p := ""
+	if t.IsPtr {
+		p = "*"
+	}
+	return fmt.Sprintf("%s%s (%v)", p, t.Type(), t.Base)
 }

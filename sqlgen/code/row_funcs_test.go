@@ -18,6 +18,7 @@ func fixtureTable() *TableDescription {
 	str := Type{"", "", "string", false, String}
 	spt := Type{"", "", "string", true, String}
 	ipt := Type{"", "", "int32", true, Int32}
+	upt := Type{"", "", "uint32", true, Uint32}
 	fpt := Type{"", "", "float32", true, Float32}
 	sli := Type{"", "", "[]string", false, Slice}
 	bgi := Type{"math/big", "big", "Int", false, Struct}
@@ -29,7 +30,8 @@ func fixtureTable() *TableDescription {
 	name := &Field{Node{"Name", str, nil}, "username", ENCNONE, Tag{Size: 2048, Name: "username", Unique: "nameIdx"}}
 	active := &Field{Node{"Active", boo, nil}, "active", ENCNONE, Tag{}}
 	qual := &Field{Node{"Qual", spt, nil}, "qual", ENCNONE, Tag{}}
-	age := &Field{Node{"Age", ipt, nil}, "age", ENCNONE, Tag{}}
+	diff := &Field{Node{"Diff", ipt, nil}, "diff", ENCNONE, Tag{}}
+	age := &Field{Node{"Age", upt, nil}, "age", ENCNONE, Tag{}}
 	bmi := &Field{Node{"Bmi", fpt, nil}, "bmi", ENCNONE, Tag{}}
 	labels := &Field{Node{"Labels", sli, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
 	fave := &Field{Node{"Fave", bgi, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
@@ -47,6 +49,7 @@ func fixtureTable() *TableDescription {
 			category,
 			name,
 			qual,
+			diff,
 			age,
 			bmi,
 			active,
@@ -167,12 +170,13 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 	var v2 string
 	var v3 sql.NullString
 	var v4 sql.NullInt64
-	var v5 sql.NullFloat64
-	var v6 bool
-	var v7 []byte
+	var v5 sql.NullInt64
+	var v6 sql.NullFloat64
+	var v7 bool
 	var v8 []byte
 	var v9 []byte
 	var v10 []byte
+	var v11 []byte
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -187,6 +191,7 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 			&v8,
 			&v9,
 			&v10,
+			&v11,
 		)
 		if err != nil {
 			return vv, err
@@ -197,25 +202,32 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 		v.Cat = v1
 		v.Name = v2
 		if v3.Valid {
-			v.Qual = &(string(v3.String))
+			a := v3.String
+			v.Qual = &a
 		}
 		if v4.Valid {
-			v.Age = &(int32(v4.Int64))
+			a := int32(v4.Int64)
+			v.Diff = &a
 		}
 		if v5.Valid {
-			v.Bmi = &(float32(v5.Float64))
+			a := uint32(v5.Int64)
+			v.Age = &a
 		}
-		v.Active = v6
-		err = json.Unmarshal(v7, &v.Labels)
+		if v6.Valid {
+			a := float32(v6.Float64)
+			v.Bmi = &a
+		}
+		v.Active = v7
+		err = json.Unmarshal(v8, &v.Labels)
 		if err != nil {
 			return nil, err
 		}
-		err = json.Unmarshal(v8, &v.Fave)
+		err = json.Unmarshal(v9, &v.Fave)
 		if err != nil {
 			return nil, err
 		}
-		v.Avatar = v9
-		err = encoding.UnmarshalText(v10, &v.Updated)
+		v.Avatar = v10
+		err = encoding.UnmarshalText(v11, &v.Updated)
 		if err != nil {
 			return nil, err
 		}

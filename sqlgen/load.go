@@ -142,12 +142,7 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags map
 		return
 	}
 
-	// Lookup the SQL column type
-	underlying := leaf.Type().Underlying()
-	switch u := underlying.(type) {
-	case *types.Basic:
-		field.Type.Base = parse.Kind(u.Kind())
-
+	switch leaf.Type().Underlying().(type) {
 	case *types.Slice:
 		field.Type.Base = parse.Slice
 	}
@@ -224,33 +219,44 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 	switch nm := lt.(type) {
 	case *types.Basic:
 		tp.Name = nm.Name()
-		//case *types.Struct:
-		//	tp.Name = nm.String()
+		tp.Base = parse.Kind(nm.Kind())
+
 	case *types.Named:
 		tObj := nm.Obj()
 		setTypeName(&tp, tObj, pkg, ctx.mainPkg)
 		parse.DevInfo("named %+v\n", tp)
 
-		if str, ok := nm.Underlying().(*types.Struct); ok {
+		switch u := nm.Underlying().(type) {
+		case *types.Basic:
+			tp.Base = parse.Kind(u.Kind())
+
+		case *types.Slice:
+			tp.Base = parse.Slice
+
+		case *types.Struct:
 			tp.Base = parse.Struct
 			if canRecurse {
-				addStructTags(tags, str)
-				ok = ctx.examineStruct(nm, pkg, leaf.Name(), tags, &node)
+				addStructTags(tags, u)
+				ok := ctx.examineStruct(nm, pkg, leaf.Name(), tags, &node)
 				node.Type = tp
 				return node, ok
 			}
 		}
+
 	case *types.Array:
 		tp.Name = nm.String()
+
 	case *types.Slice:
 		switch el := nm.Elem().(type) {
 		case *types.Basic:
 			tp.Name = nm.String()
+
 		case *types.Named:
 			tnObj := el.Obj()
 			setTypeName(&tp, tnObj, pkg, ctx.mainPkg)
 			parse.DevInfo("slice %+v\n", tp)
 		}
+
 	default:
 		panic(fmt.Sprintf("%#v", lt))
 	}

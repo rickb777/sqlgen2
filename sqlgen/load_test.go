@@ -370,18 +370,19 @@ import (
 )
 
 type Example struct {
-	Id         int64         |sql:"pk: true, auto: true"|
-	Number     int
-	Category   demo.Category
-	Foo        int           |sql:"-"|
-	Commit     *Commit
-	Title      string        |sql:"index: titleIdx"|
-	Hobby      string        |sql:"size: 2048"|
-	Labels     []string      |sql:"encode: json"|
-	Active     bool
-	Avatar     []byte
-	Fave       big.Int       |sql:"encode: json"|
-	Updated    time.Time     |sql:"encode: text"|
+	Id           uint64         |sql:"pk: true, auto: true"|
+	SupersededBy *uint64
+	Number       int
+	Category     demo.Category
+	Foo          int           |sql:"-"|
+	Commit       *Commit
+	Title        string        |sql:"index: titleIdx"|
+	Hobby        string        |sql:"size: 2048"|
+	Labels       []string      |sql:"encode: json"|
+	Active       bool
+	Avatar       []byte
+	Fave         big.Int       |sql:"encode: json"|
+	Updated      time.Time     |sql:"encode: text"|
 }
 
 type Commit struct {
@@ -407,7 +408,8 @@ type Commit struct {
 	p1 := &Node{Name: "Commit", Type: Type{Name: "Commit", IsPtr: true, Base: Struct}}
 	p2 := &Node{Name: "Author", Type: Type{PkgPath: "github.com/rickb777/sqlgen2/demo", PkgName: "demo", Name: "Author", IsPtr: true, Base: Struct}, Parent: p1}
 
-	id := &Field{Node{"Id", Type{"", "", "int64", false, Int64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
+	id := &Field{Node{"Id", Type{"", "", "uint64", false, Uint64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
+	super := &Field{Node{"SupersededBy", Type{"", "", "uint64", true, Uint64}, nil}, "supersededby", ENCNONE, Tag{}}
 	number := &Field{Node{"Number", Type{"", "", "int", false, Int}, nil}, "number", ENCNONE, Tag{}}
 	category := &Field{Node{"Category", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Category", false, Uint8}, nil}, "category", ENCNONE, Tag{}}
 	commitMessage := &Field{Node{"Message", Type{"", "", "string", false, String}, p1}, "text", ENCNONE, Tag{Size: 2048, Name: "text"}}
@@ -431,6 +433,7 @@ type Commit struct {
 		Name: "examples",
 		Fields: FieldList{
 			id,
+			super,
 			number,
 			category,
 			commitMessage,

@@ -158,33 +158,33 @@ func (tbl AssociationTable) dropTableSql(ifExists bool) string {
 const sqlCreateAssociationTableSqlite = `
 CREATE TABLE %s%s%s (
  id       integer primary key autoincrement,
- name     blob default null,
- quality  blob default null,
- ref1     blob default null,
- ref2     blob default null,
- category blob default null
+ name     text default null,
+ quality  text default null,
+ ref1     bigint default null,
+ ref2     bigint default null,
+ category tinyint unsigned default null
 )
 `
 
 const sqlCreateAssociationTablePostgres = `
 CREATE TABLE %s%s%s (
  id       bigserial primary key,
- name     byteaa default null,
- quality  byteaa default null,
- ref1     byteaa default null,
- ref2     byteaa default null,
- category byteaa default null
+ name     varchar(255) default null,
+ quality  varchar(255) default null,
+ ref1     bigint default null,
+ ref2     bigint default null,
+ category tinyint unsigned default null
 )
 `
 
 const sqlCreateAssociationTableMysql = `
 CREATE TABLE %s%s%s (
  id       bigint primary key auto_increment,
- name     mediumblob default null,
- quality  mediumblob default null,
- ref1     mediumblob default null,
- ref2     mediumblob default null,
- category mediumblob default null
+ name     varchar(255) default null,
+ quality  varchar(255) default null,
+ ref1     bigint default null,
+ ref2     bigint default null,
+ category tinyint unsigned default null
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 
@@ -592,11 +592,11 @@ func scanAssociations(rows *sql.Rows, firstOnly bool) ([]*Association, error) {
 	var vv []*Association
 
 	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 int64
-	var v4 int64
-	var v5 Category
+	var v1 sql.NullString
+	var v2 sql.NullString
+	var v3 sql.NullInt64
+	var v4 sql.NullInt64
+	var v5 sql.NullInt64
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -613,11 +613,26 @@ func scanAssociations(rows *sql.Rows, firstOnly bool) ([]*Association, error) {
 
 		v := &Association{}
 		v.Id = v0
-		v.Name = &v1
-		v.Quality = &v2
-		v.Ref1 = &v3
-		v.Ref2 = &v4
-		v.Category = &v5
+		if v1.Valid {
+			a := v1.String
+			v.Name = &a
+		}
+		if v2.Valid {
+			a := v2.String
+			v.Quality = &a
+		}
+		if v3.Valid {
+			a := v3.Int64
+			v.Ref1 = &a
+		}
+		if v4.Valid {
+			a := v4.Int64
+			v.Ref2 = &a
+		}
+		if v5.Valid {
+			a := Category(v5.Int64)
+			v.Category = &a
+		}
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
