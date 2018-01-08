@@ -10,7 +10,7 @@ const or = " OR "
 
 // Null returns an 'ISNULL' condition on a column.
 func Null(column string) Condition {
-	return Condition{column + " ISNULL", []interface{}{}}
+	return Condition{column + " IS NULL", []interface{}{}}
 }
 
 // Eq returns an equality condition on a column.

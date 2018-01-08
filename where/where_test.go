@@ -30,8 +30,8 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 
 		{
 			Null("name"),
-			"WHERE name ISNULL",
-			"WHERE name ISNULL",
+			"WHERE name IS NULL",
+			"WHERE name IS NULL",
 			nil,
 		},
 

@@ -103,9 +103,9 @@ func TestUpdateFieldsSql(t *testing.T) {
 		d        schema.Dialect
 		expected string
 	}{
-		{schema.Sqlite, `UPDATE prefix_users SET EmailAddress=?, Hash=? WHERE EmailAddress ISNULL`},
-		{schema.Mysql, `UPDATE prefix_users SET EmailAddress=?, Hash=? WHERE EmailAddress ISNULL`},
-		{schema.Postgres, `UPDATE prefix_users SET EmailAddress=$1, Hash=$2 WHERE EmailAddress ISNULL`},
+		{schema.Sqlite, `UPDATE prefix_users SET EmailAddress=?, Hash=? WHERE EmailAddress IS NULL`},
+		{schema.Mysql, `UPDATE prefix_users SET EmailAddress=?, Hash=? WHERE EmailAddress IS NULL`},
+		{schema.Postgres, `UPDATE prefix_users SET EmailAddress=$1, Hash=$2 WHERE EmailAddress IS NULL`},
 	}
 
 	for _, c := range cases {
