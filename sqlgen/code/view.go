@@ -14,6 +14,7 @@ type View struct {
 	Prefix   string
 	Type     string
 	Types    string
+	Thing    string
 	List     string
 	Suffix   string
 	Body1    []string
@@ -32,6 +33,7 @@ func NewView(name, prefix, list string) View {
 		Prefix:   prefix,
 		Type:     name,
 		Types:    Pluralize(name),
+		Thing:    "Table",
 		List:     list,
 		Dialects: schema.Dialects,
 	}

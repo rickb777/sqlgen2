@@ -12,13 +12,13 @@ import (
 	"log"
 )
 
-// V3UserTableName is the default name for this table.
-const V3UserTableName = "users"
+// UserTblName is the default name for this table.
+const UserTblName = "users"
 
-// V3UserTable holds a given table name with the database reference, providing access methods below.
+// UserTbl holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
-type V3UserTable struct {
+type UserTbl struct {
 	Prefix, Name string
 	Db           sqlgen2.Execer
 	Ctx          context.Context
@@ -27,48 +27,48 @@ type V3UserTable struct {
 }
 
 // Type conformance check
-var _ sqlgen2.Table = &V3UserTable{}
+var _ sqlgen2.Table = &UserTbl{}
 
-// NewV3UserTable returns a new table instance.
+// NewUserTbl returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewV3UserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) V3UserTable {
+func NewUserTbl(name string, d sqlgen2.Execer, dialect schema.Dialect) UserTbl {
 	if name == "" {
-		name = V3UserTableName
+		name = UserTblName
 	}
-	return V3UserTable{"", name, d, context.Background(), dialect, nil}
+	return UserTbl{"", name, d, context.Background(), dialect, nil}
 }
 
 // WithPrefix sets the prefix for subsequent queries.
-func (tbl V3UserTable) WithPrefix(pfx string) V3UserTable {
+func (tbl UserTbl) WithPrefix(pfx string) UserTbl {
 	tbl.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
-func (tbl V3UserTable) WithContext(ctx context.Context) V3UserTable {
+func (tbl UserTbl) WithContext(ctx context.Context) UserTbl {
 	tbl.Ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
-func (tbl V3UserTable) WithLogger(logger *log.Logger) V3UserTable {
+func (tbl UserTbl) WithLogger(logger *log.Logger) UserTbl {
 	tbl.Logger = logger
 	return tbl
 }
 
 // SetLogger sets the logger for subsequent queries, returning the interface.
-func (tbl V3UserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
+func (tbl UserTbl) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.Logger = logger
 	return tbl
 }
 
 // FullName gets the concatenated prefix and table name.
-func (tbl V3UserTable) FullName() string {
+func (tbl UserTbl) FullName() string {
 	return tbl.Prefix + tbl.Name
 }
 
-func (tbl V3UserTable) prefixWithoutDot() string {
+func (tbl UserTbl) prefixWithoutDot() string {
 	last := len(tbl.Prefix)-1
 	if last > 0 && tbl.Prefix[last] == '.' {
 		return tbl.Prefix[0:last]
@@ -78,65 +78,65 @@ func (tbl V3UserTable) prefixWithoutDot() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl V3UserTable) DB() *sql.DB {
+func (tbl UserTbl) DB() *sql.DB {
 	return tbl.Db.(*sql.DB)
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl V3UserTable) Tx() *sql.Tx {
+func (tbl UserTbl) Tx() *sql.Tx {
 	return tbl.Db.(*sql.Tx)
 }
 
 // IsTx tests whether this is within a transaction.
-func (tbl V3UserTable) IsTx() bool {
+func (tbl UserTbl) IsTx() bool {
 	_, ok := tbl.Db.(*sql.Tx)
 	return ok
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
-func (tbl V3UserTable) BeginTx(opts *sql.TxOptions) (V3UserTable, error) {
+func (tbl UserTbl) BeginTx(opts *sql.TxOptions) (UserTbl, error) {
 	d := tbl.Db.(*sql.DB)
 	var err error
 	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
 	return tbl, err
 }
 
-func (tbl V3UserTable) logQuery(query string, args ...interface{}) {
+func (tbl UserTbl) logQuery(query string, args ...interface{}) {
 	sqlgen2.LogQuery(tbl.Logger, query, args...)
 }
 
 
 //--------------------------------------------------------------------------------
 
-const NumV3UserColumns = 10
+const NumUserColumns = 10
 
-const NumV3UserDataColumns = 9
+const NumUserDataColumns = 9
 
-const V3UserPk = "Uid"
+const UserPk = "Uid"
 
-const V3UserDataColumnNames = "login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"
+const UserDataColumnNames = "login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"
 
 //--------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl V3UserTable) CreateTable(ifNotExists bool) (int64, error) {
+func (tbl UserTbl) CreateTable(ifNotExists bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExists))
 }
 
-func (tbl V3UserTable) createTableSql(ifNotExists bool) string {
+func (tbl UserTbl) createTableSql(ifNotExists bool) string {
 	var stmt string
 	switch tbl.Dialect {
-	case schema.Sqlite: stmt = sqlCreateV3UserTableSqlite
-    case schema.Postgres: stmt = sqlCreateV3UserTablePostgres
-    case schema.Mysql: stmt = sqlCreateV3UserTableMysql
+	case schema.Sqlite: stmt = sqlCreateUserTblSqlite
+    case schema.Postgres: stmt = sqlCreateUserTblPostgres
+    case schema.Mysql: stmt = sqlCreateUserTblMysql
     }
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
 	return query
 }
 
-func (tbl V3UserTable) ternary(flag bool, a, b string) string {
+func (tbl UserTbl) ternary(flag bool, a, b string) string {
 	if flag {
 		return a
 	}
@@ -144,17 +144,17 @@ func (tbl V3UserTable) ternary(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl V3UserTable) DropTable(ifExists bool) (int64, error) {
+func (tbl UserTbl) DropTable(ifExists bool) (int64, error) {
 	return tbl.Exec(tbl.dropTableSql(ifExists))
 }
 
-func (tbl V3UserTable) dropTableSql(ifExists bool) string {
+func (tbl UserTbl) dropTableSql(ifExists bool) string {
 	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
 	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.Prefix, tbl.Name)
 	return query
 }
 
-const sqlCreateV3UserTableSqlite = `
+const sqlCreateUserTblSqlite = `
 CREATE TABLE %s%s%s (
  uid          integer primary key autoincrement,
  login        text,
@@ -169,7 +169,7 @@ CREATE TABLE %s%s%s (
 )
 `
 
-const sqlCreateV3UserTablePostgres = `
+const sqlCreateUserTblPostgres = `
 CREATE TABLE %s%s%s (
  uid          bigserial primary key,
  login        varchar(255),
@@ -184,7 +184,7 @@ CREATE TABLE %s%s%s (
 )
 `
 
-const sqlCreateV3UserTableMysql = `
+const sqlCreateUserTblMysql = `
 CREATE TABLE %s%s%s (
  uid          bigint primary key auto_increment,
  login        varchar(255),
@@ -202,7 +202,7 @@ CREATE TABLE %s%s%s (
 //--------------------------------------------------------------------------------
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+func (tbl UserTbl) CreateTableWithIndexes(ifNotExist bool) (err error) {
 	_, err = tbl.CreateTable(ifNotExist)
 	if err != nil {
 		return err
@@ -212,7 +212,7 @@ func (tbl V3UserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 }
 
 // CreateIndexes executes queries that create the indexes needed by the User table.
-func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
+func (tbl UserTbl) CreateIndexes(ifNotExist bool) (err error) {
 
 	err = tbl.CreateUserLoginIndex(ifNotExist)
 	if err != nil {
@@ -228,7 +228,7 @@ func (tbl V3UserTable) CreateIndexes(ifNotExist bool) (err error) {
 }
 
 // CreateUserLoginIndex creates the user_login index.
-func (tbl V3UserTable) CreateUserLoginIndex(ifNotExist bool) error {
+func (tbl UserTbl) CreateUserLoginIndex(ifNotExist bool) error {
 	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -239,23 +239,23 @@ func (tbl V3UserTable) CreateUserLoginIndex(ifNotExist bool) error {
 		ine = ""
 	}
 
-	_, err := tbl.Exec(tbl.createV3UserLoginIndexSql(ine))
+	_, err := tbl.Exec(tbl.createUserLoginIndexSql(ine))
 	return err
 }
 
-func (tbl V3UserTable) createV3UserLoginIndexSql(ifNotExists string) string {
+func (tbl UserTbl) createUserLoginIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.Prefix, tbl.Name, sqlV3UserLoginIndexColumns)
+		tbl.Prefix, tbl.Name, sqlUserLoginIndexColumns)
 }
 
 // DropUserLoginIndex drops the user_login index.
-func (tbl V3UserTable) DropUserLoginIndex(ifExists bool) error {
-	_, err := tbl.Exec(tbl.dropV3UserLoginIndexSql(ifExists))
+func (tbl UserTbl) DropUserLoginIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropUserLoginIndexSql(ifExists))
 	return err
 }
 
-func (tbl V3UserTable) dropV3UserLoginIndexSql(ifExists bool) string {
+func (tbl UserTbl) dropUserLoginIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
 	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
@@ -264,7 +264,7 @@ func (tbl V3UserTable) dropV3UserLoginIndexSql(ifExists bool) string {
 }
 
 // CreateUserEmailIndex creates the user_email index.
-func (tbl V3UserTable) CreateUserEmailIndex(ifNotExist bool) error {
+func (tbl UserTbl) CreateUserEmailIndex(ifNotExist bool) error {
 	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -275,23 +275,23 @@ func (tbl V3UserTable) CreateUserEmailIndex(ifNotExist bool) error {
 		ine = ""
 	}
 
-	_, err := tbl.Exec(tbl.createV3UserEmailIndexSql(ine))
+	_, err := tbl.Exec(tbl.createUserEmailIndexSql(ine))
 	return err
 }
 
-func (tbl V3UserTable) createV3UserEmailIndexSql(ifNotExists string) string {
+func (tbl UserTbl) createUserEmailIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.Prefix, tbl.Name, sqlV3UserEmailIndexColumns)
+		tbl.Prefix, tbl.Name, sqlUserEmailIndexColumns)
 }
 
 // DropUserEmailIndex drops the user_email index.
-func (tbl V3UserTable) DropUserEmailIndex(ifExists bool) error {
-	_, err := tbl.Exec(tbl.dropV3UserEmailIndexSql(ifExists))
+func (tbl UserTbl) DropUserEmailIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropUserEmailIndexSql(ifExists))
 	return err
 }
 
-func (tbl V3UserTable) dropV3UserEmailIndexSql(ifExists bool) string {
+func (tbl UserTbl) dropUserEmailIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
 	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
@@ -300,7 +300,7 @@ func (tbl V3UserTable) dropV3UserEmailIndexSql(ifExists bool) string {
 }
 
 // DropIndexes executes queries that drop the indexes on by the User table.
-func (tbl V3UserTable) DropIndexes(ifExist bool) (err error) {
+func (tbl UserTbl) DropIndexes(ifExist bool) (err error) {
 
 	err = tbl.DropUserLoginIndex(ifExist)
 	if err != nil {
@@ -317,16 +317,16 @@ func (tbl V3UserTable) DropIndexes(ifExist bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-const sqlV3UserLoginIndexColumns = "login"
+const sqlUserLoginIndexColumns = "login"
 
-const sqlV3UserEmailIndexColumns = "emailaddress"
+const sqlUserEmailIndexColumns = "emailaddress"
 
 //--------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected (of the database drive supports this).
-func (tbl V3UserTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl UserTbl) Exec(query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
@@ -340,7 +340,7 @@ func (tbl V3UserTable) Exec(query string, args ...interface{}) (int64, error) {
 // QueryOne is the low-level access function for one User.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *User will be nil.
-func (tbl V3UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+func (tbl UserTbl) QueryOne(query string, args ...interface{}) (*User, error) {
 	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
@@ -349,22 +349,22 @@ func (tbl V3UserTable) QueryOne(query string, args ...interface{}) (*User, error
 }
 
 // Query is the low-level access function for Users.
-func (tbl V3UserTable) Query(query string, args ...interface{}) ([]*User, error) {
+func (tbl UserTbl) Query(query string, args ...interface{}) ([]*User, error) {
 	return tbl.doQuery(false, query, args...)
 }
 
-func (tbl V3UserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func (tbl UserTbl) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanV3Users(rows, firstOnly)
+	return scanUsers(rows, firstOnly)
 }
 
-// scanV3Users reads table records into a slice of values.
-func scanV3Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
+// scanUsers reads table records into a slice of values.
+func scanUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	var err error
 	var vv []*User
 
@@ -429,7 +429,7 @@ func scanV3Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	return vv, rows.Err()
 }
 
-func sliceV3UserWithoutPk(v *User) ([]interface{}, error) {
+func sliceUserWithoutPk(v *User) ([]interface{}, error) {
 
 	v6, err := json.Marshal(&v.Fave)
 	if err != nil {

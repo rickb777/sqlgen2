@@ -55,7 +55,7 @@ func WriteSchema(w io.Writer, view View) {
 		ds := d.String()
 
 		fmt.Fprintf(w, constStringWithTicks,
-			identifier("sqlCreate", tableName, "Table"+ds),
+			identifier("sqlCreate", tableName, view.Thing+ds),
 			"CREATE TABLE %s%s%s ("+d.TableDDL(view.Table)+"\n)"+d.CreateTableSettings())
 	}
 

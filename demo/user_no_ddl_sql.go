@@ -14,13 +14,13 @@ import (
 	"strings"
 )
 
-// V2UserTableName is the default name for this table.
-const V2UserTableName = "users"
+// V2UserJoinName is the default name for this table.
+const V2UserJoinName = "users"
 
-// V2UserTable holds a given table name with the database reference, providing access methods below.
+// V2UserJoin holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
-type V2UserTable struct {
+type V2UserJoin struct {
 	Prefix, Name string
 	Db           sqlgen2.Execer
 	Ctx          context.Context
@@ -29,48 +29,48 @@ type V2UserTable struct {
 }
 
 // Type conformance check
-var _ sqlgen2.Table = &V2UserTable{}
+var _ sqlgen2.Table = &V2UserJoin{}
 
-// NewV2UserTable returns a new table instance.
+// NewV2UserJoin returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewV2UserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) V2UserTable {
+func NewV2UserJoin(name string, d sqlgen2.Execer, dialect schema.Dialect) V2UserJoin {
 	if name == "" {
-		name = V2UserTableName
+		name = V2UserJoinName
 	}
-	return V2UserTable{"", name, d, context.Background(), dialect, nil}
+	return V2UserJoin{"", name, d, context.Background(), dialect, nil}
 }
 
 // WithPrefix sets the prefix for subsequent queries.
-func (tbl V2UserTable) WithPrefix(pfx string) V2UserTable {
+func (tbl V2UserJoin) WithPrefix(pfx string) V2UserJoin {
 	tbl.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
-func (tbl V2UserTable) WithContext(ctx context.Context) V2UserTable {
+func (tbl V2UserJoin) WithContext(ctx context.Context) V2UserJoin {
 	tbl.Ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
-func (tbl V2UserTable) WithLogger(logger *log.Logger) V2UserTable {
+func (tbl V2UserJoin) WithLogger(logger *log.Logger) V2UserJoin {
 	tbl.Logger = logger
 	return tbl
 }
 
 // SetLogger sets the logger for subsequent queries, returning the interface.
-func (tbl V2UserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
+func (tbl V2UserJoin) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.Logger = logger
 	return tbl
 }
 
 // FullName gets the concatenated prefix and table name.
-func (tbl V2UserTable) FullName() string {
+func (tbl V2UserJoin) FullName() string {
 	return tbl.Prefix + tbl.Name
 }
 
-func (tbl V2UserTable) prefixWithoutDot() string {
+func (tbl V2UserJoin) prefixWithoutDot() string {
 	last := len(tbl.Prefix)-1
 	if last > 0 && tbl.Prefix[last] == '.' {
 		return tbl.Prefix[0:last]
@@ -80,31 +80,31 @@ func (tbl V2UserTable) prefixWithoutDot() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl V2UserTable) DB() *sql.DB {
+func (tbl V2UserJoin) DB() *sql.DB {
 	return tbl.Db.(*sql.DB)
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl V2UserTable) Tx() *sql.Tx {
+func (tbl V2UserJoin) Tx() *sql.Tx {
 	return tbl.Db.(*sql.Tx)
 }
 
 // IsTx tests whether this is within a transaction.
-func (tbl V2UserTable) IsTx() bool {
+func (tbl V2UserJoin) IsTx() bool {
 	_, ok := tbl.Db.(*sql.Tx)
 	return ok
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
-func (tbl V2UserTable) BeginTx(opts *sql.TxOptions) (V2UserTable, error) {
+func (tbl V2UserJoin) BeginTx(opts *sql.TxOptions) (V2UserJoin, error) {
 	d := tbl.Db.(*sql.DB)
 	var err error
 	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
 	return tbl, err
 }
 
-func (tbl V2UserTable) logQuery(query string, args ...interface{}) {
+func (tbl V2UserJoin) logQuery(query string, args ...interface{}) {
 	sqlgen2.LogQuery(tbl.Logger, query, args...)
 }
 
@@ -114,7 +114,7 @@ func (tbl V2UserTable) logQuery(query string, args ...interface{}) {
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected (of the database drive supports this).
-func (tbl V2UserTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl V2UserJoin) Exec(query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
 	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
 	if err != nil {
@@ -128,7 +128,7 @@ func (tbl V2UserTable) Exec(query string, args ...interface{}) (int64, error) {
 // QueryOne is the low-level access function for one User.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *User will be nil.
-func (tbl V2UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+func (tbl V2UserJoin) QueryOne(query string, args ...interface{}) (*User, error) {
 	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
@@ -137,11 +137,11 @@ func (tbl V2UserTable) QueryOne(query string, args ...interface{}) (*User, error
 }
 
 // Query is the low-level access function for Users.
-func (tbl V2UserTable) Query(query string, args ...interface{}) ([]*User, error) {
+func (tbl V2UserJoin) Query(query string, args ...interface{}) ([]*User, error) {
 	return tbl.doQuery(false, query, args...)
 }
 
-func (tbl V2UserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func (tbl V2UserJoin) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
 	if err != nil {
@@ -155,7 +155,7 @@ func (tbl V2UserTable) doQuery(firstOnly bool, query string, args ...interface{}
 
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
-func (tbl V2UserTable) GetUser(id int64) (*User, error) {
+func (tbl V2UserJoin) GetUser(id int64) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", V2UserColumnNames, tbl.Prefix, tbl.Name)
 	return tbl.QueryOne(query, id)
 }
@@ -164,48 +164,48 @@ func (tbl V2UserTable) GetUser(id int64) (*User, error) {
 
 // SliceUid gets the Uid column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl V2UserTable) SliceUid(where where.Expression, orderBy string) ([]int64, error) {
+func (tbl V2UserJoin) SliceUid(where where.Expression, orderBy string) ([]int64, error) {
 	return tbl.getint64list("uid", where, orderBy)
 }
 
 // SliceLogin gets the Login column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl V2UserTable) SliceLogin(where where.Expression, orderBy string) ([]string, error) {
+func (tbl V2UserJoin) SliceLogin(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("login", where, orderBy)
 }
 
 // SliceEmailAddress gets the EmailAddress column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl V2UserTable) SliceEmailAddress(where where.Expression, orderBy string) ([]string, error) {
+func (tbl V2UserJoin) SliceEmailAddress(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("emailaddress", where, orderBy)
 }
 
 // SliceAvatar gets the Avatar column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl V2UserTable) SliceAvatar(where where.Expression, orderBy string) ([]string, error) {
+func (tbl V2UserJoin) SliceAvatar(where where.Expression, orderBy string) ([]string, error) {
 	return tbl.getstringlist("avatar", where, orderBy)
 }
 
 // SliceActive gets the Active column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl V2UserTable) SliceActive(where where.Expression, orderBy string) ([]bool, error) {
+func (tbl V2UserJoin) SliceActive(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("active", where, orderBy)
 }
 
 // SliceAdmin gets the Admin column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl V2UserTable) SliceAdmin(where where.Expression, orderBy string) ([]bool, error) {
+func (tbl V2UserJoin) SliceAdmin(where where.Expression, orderBy string) ([]bool, error) {
 	return tbl.getboollist("admin", where, orderBy)
 }
 
 // SliceLastUpdated gets the LastUpdated column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl V2UserTable) SliceLastUpdated(where where.Expression, orderBy string) ([]int64, error) {
+func (tbl V2UserJoin) SliceLastUpdated(where where.Expression, orderBy string) ([]int64, error) {
 	return tbl.getint64list("lastupdated", where, orderBy)
 }
 
 
-func (tbl V2UserTable) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
+func (tbl V2UserJoin) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
 	tbl.logQuery(query, args...)
@@ -227,7 +227,7 @@ func (tbl V2UserTable) getboollist(sqlname string, where where.Expression, order
 	return list, nil
 }
 
-func (tbl V2UserTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
+func (tbl V2UserJoin) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
 	tbl.logQuery(query, args...)
@@ -249,7 +249,7 @@ func (tbl V2UserTable) getint64list(sqlname string, where where.Expression, orde
 	return list, nil
 }
 
-func (tbl V2UserTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
+func (tbl V2UserJoin) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
 	wh, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
 	tbl.logQuery(query, args...)
@@ -278,7 +278,7 @@ func (tbl V2UserTable) getstringlist(sqlname string, where where.Expression, ord
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *User will be nil.
-func (tbl V2UserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
+func (tbl V2UserJoin) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", V2UserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
@@ -286,27 +286,27 @@ func (tbl V2UserTable) SelectOneSA(where, orderBy string, args ...interface{}) (
 // SelectOne allows a single User to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *Example will be nil.
-func (tbl V2UserTable) SelectOne(where where.Expression, orderBy string) (*User, error) {
+func (tbl V2UserJoin) SelectOne(where where.Expression, orderBy string) (*User, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Users to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl V2UserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
+func (tbl V2UserJoin) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", V2UserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Users to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl V2UserTable) Select(where where.Expression, orderBy string) ([]*User, error) {
+func (tbl V2UserJoin) Select(where where.Expression, orderBy string) ([]*User, error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.SelectSA(wh, orderBy, args...)
 }
 
 // CountSA counts Users in the table that match a 'where' clause.
-func (tbl V2UserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
+func (tbl V2UserJoin) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
@@ -315,7 +315,7 @@ func (tbl V2UserTable) CountSA(where string, args ...interface{}) (count int64, 
 }
 
 // Count counts the Users in the table that match a 'where' clause.
-func (tbl V2UserTable) Count(where where.Expression) (count int64, err error) {
+func (tbl V2UserJoin) Count(where where.Expression) (count int64, err error) {
 	wh, args := where.Build(tbl.Dialect)
 	return tbl.CountSA(wh, args...)
 }
@@ -327,7 +327,7 @@ const V2UserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave
 // Insert adds new records for the Users. The Users have their primary key fields
 // set to the new record identifiers.
 // The User.PreInsert(Execer) method will be called, if it exists.
-func (tbl V2UserTable) Insert(vv ...*User) error {
+func (tbl V2UserJoin) Insert(vv ...*User) error {
 	var params string
 	switch tbl.Dialect {
 	case schema.Postgres:
@@ -390,12 +390,12 @@ const sV2UserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 //--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
-func (tbl V2UserTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
+func (tbl V2UserJoin) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
 	query, args := tbl.updateFields(where, fields...)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl V2UserTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+func (tbl V2UserJoin) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
 	whereClause, wargs := where.Build(tbl.Dialect)
@@ -408,7 +408,7 @@ func (tbl V2UserTable) updateFields(where where.Expression, fields ...sql.NamedA
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The User.PreUpdate(Execer) method will be called, if it exists.
-func (tbl V2UserTable) Update(vv ...*User) (int64, error) {
+func (tbl V2UserJoin) Update(vv ...*User) (int64, error) {
 	var stmt string
 	switch tbl.Dialect {
 	case schema.Postgres:
@@ -473,12 +473,12 @@ WHERE uid=$1
 //--------------------------------------------------------------------------------
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
-func (tbl V2UserTable) Delete(where where.Expression) (int64, error) {
+func (tbl V2UserJoin) Delete(where where.Expression) (int64, error) {
 	query, args := tbl.deleteRows(where)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl V2UserTable) deleteRows(where where.Expression) (string, []interface{}) {
+func (tbl V2UserJoin) deleteRows(where where.Expression) (string, []interface{}) {
 	whereClause, args := where.Build(tbl.Dialect)
 	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
 	return query, args
@@ -491,7 +491,7 @@ func (tbl V2UserTable) deleteRows(where where.Expression) (string, []interface{}
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl V2UserTable) Truncate(force bool) (err error) {
+func (tbl V2UserJoin) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect.TruncateDDL(tbl.FullName(), force) {
 		_, err = tbl.Exec(query)
 		if err != nil {

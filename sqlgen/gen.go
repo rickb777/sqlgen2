@@ -13,13 +13,14 @@ import (
 )
 
 func main() {
-	var oFile, typeName, prefix, list, genSetters string
+	var oFile, typeName, prefix, list, kind, genSetters string
 	var genSchema, genFuncs, gofmt bool
 
 	flag.StringVar(&oFile, "o", "", "output file name (or file path); if omitted, the first input filename is used with _sql.go suffix")
 	flag.StringVar(&typeName, "type", "", "type to generate; required")
 	flag.StringVar(&prefix, "prefix", "", "prefix for names of generated types; optional")
 	flag.StringVar(&list, "list", "", "list type for slice of model objects; optional")
+	flag.StringVar(&kind, "kind", "Table", "kind of model: default is Table but you could use View, Join etc as required")
 	flag.BoolVar(&Verbose, "v", false, "progress messages")
 	flag.BoolVar(&parse.Debug, "z", false, "debug messages")
 	flag.BoolVar(&parse.PrintAST, "ast", false, "trace the whole astract syntax tree (very verbose)")
@@ -57,6 +58,7 @@ func main() {
 
 	view := NewView(name, prefix, list)
 	view.Table = table
+	view.Thing = kind
 	setters := view.FilterSetters(genSetters)
 
 	buf := &bytes.Buffer{}
