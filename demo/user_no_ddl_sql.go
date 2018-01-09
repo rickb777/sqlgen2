@@ -519,23 +519,6 @@ func (tbl V2UserJoin) deleteRows(where where.Expression) (string, []interface{})
 	return query, args
 }
 
-// Truncate drops every record from the table, if possible. It might fail if constraints exist that
-// prevent some or all rows from being deleted; use the force option to override this.
-//
-// When 'force' is set true, be aware of the following consequences.
-// When using Mysql, foreign keys in other tables can be left dangling.
-// When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
-// are also truncated.
-func (tbl V2UserJoin) Truncate(force bool) (err error) {
-	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
-		_, err = tbl.Exec(query)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 //--------------------------------------------------------------------------------
 
 // scanV2Users reads table records into a slice of values.

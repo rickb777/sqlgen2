@@ -23,7 +23,7 @@ type {{.Prefix}}{{.Type}}{{.Thing}} struct {
 }
 
 // Type conformance check
-var _ sqlgen2.Table = &{{.Prefix}}{{.Type}}{{.Thing}}{}
+var _ {{.Interface}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
 
 // New{{.Prefix}}{{.Type}}{{.Thing}} returns a new table instance.
 // If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.
@@ -555,7 +555,13 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) deleteRows(where where.Expression) (st
 	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
 	return query, args
 }
+`
 
+var tDelete = template.Must(template.New("Delete").Funcs(funcMap).Parse(sDelete))
+
+//-------------------------------------------------------------------------------------------------
+
+const sTruncate = `
 // Truncate drops every record from the table, if possible. It might fail if constraints exist that
 // prevent some or all rows from being deleted; use the force option to override this.
 //
@@ -574,11 +580,10 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Truncate(force bool) (err error) {
 }
 `
 
-var tDelete = template.Must(template.New("Delete").Funcs(funcMap).Parse(sDelete))
+var tTruncate = template.Must(template.New("Truncate").Funcs(funcMap).Parse(sTruncate))
 
 //-------------------------------------------------------------------------------------------------
 
-// function template to call sql exec
 const sExec = `
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.

@@ -71,6 +71,10 @@ func WriteSchema(w io.Writer, view View) {
 				identifier("sql"+view.Prefix, ix.Name, "IndexColumns"), ix.Columns())
 		}
 	}
+
+	fmt.Fprintln(w, sectionBreak)
+
+	must(tTruncate.Execute(w, view))
 }
 
 func identifier(prefix, id, suffix string) string {

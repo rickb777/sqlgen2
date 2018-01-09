@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"flag"
 	"github.com/kortschak/utter"
+	"github.com/rickb777/sqlgen2/schema"
 	. "github.com/rickb777/sqlgen2/sqlgen/code"
 	. "github.com/rickb777/sqlgen2/sqlgen/output"
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"io"
 	"os"
 	"strings"
 	"path/filepath"
-	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 )
 
 func main() {
@@ -66,6 +67,8 @@ func main() {
 	view := NewView(name, prefix, list)
 	view.Table = table
 	view.Thing = kind
+	view.Interface = primaryInterface(table, genSchema)
+
 	setters := view.FilterSetters(genSetters)
 
 	buf := &bytes.Buffer{}
@@ -135,4 +138,14 @@ func lastDirName(full string) string {
 	d1, _ := filepath.Split(abs)
 	_, f2 := filepath.Split(filepath.Clean(d1))
 	return f2
+}
+
+func primaryInterface(table *schema.TableDescription, genSchema bool) string {
+	if !genSchema {
+		return "sqlgen2.Table"
+	}
+	if len(table.Index) == 0 {
+		return "sqlgen2.TableCreator"
+	}
+	return "sqlgen2.TableWithIndexes"
 }

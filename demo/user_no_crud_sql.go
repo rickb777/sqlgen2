@@ -24,7 +24,7 @@ type UserTbl struct {
 }
 
 // Type conformance check
-var _ sqlgen2.Table = &UserTbl{}
+var _ sqlgen2.TableWithIndexes = &UserTbl{}
 
 // NewUserTbl returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
@@ -355,6 +355,25 @@ func (tbl UserTbl) DropIndexes(ifExist bool) (err error) {
 const sqlUserLoginIndexColumns = "login"
 
 const sqlUserEmailIndexColumns = "emailaddress"
+
+//--------------------------------------------------------------------------------
+
+// Truncate drops every record from the table, if possible. It might fail if constraints exist that
+// prevent some or all rows from being deleted; use the force option to override this.
+//
+// When 'force' is set true, be aware of the following consequences.
+// When using Mysql, foreign keys in other tables can be left dangling.
+// When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
+// are also truncated.
+func (tbl UserTbl) Truncate(force bool) (err error) {
+	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
+		_, err = tbl.Exec(query)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 //--------------------------------------------------------------------------------
 

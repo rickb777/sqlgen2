@@ -25,7 +25,7 @@ type AssociationTable struct {
 }
 
 // Type conformance check
-var _ sqlgen2.Table = &AssociationTable{}
+var _ sqlgen2.TableCreator = &AssociationTable{}
 
 // NewAssociationTable returns a new table instance.
 // If a blank table name is supplied, the default name "associations" will be used instead.
@@ -209,6 +209,25 @@ CREATE TABLE %s%s%s (
  category tinyint unsigned default null
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
+
+//--------------------------------------------------------------------------------
+
+// Truncate drops every record from the table, if possible. It might fail if constraints exist that
+// prevent some or all rows from being deleted; use the force option to override this.
+//
+// When 'force' is set true, be aware of the following consequences.
+// When using Mysql, foreign keys in other tables can be left dangling.
+// When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
+// are also truncated.
+func (tbl AssociationTable) Truncate(force bool) (err error) {
+	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
+		_, err = tbl.Exec(query)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 //--------------------------------------------------------------------------------
 
@@ -587,23 +606,6 @@ func (tbl AssociationTable) deleteRows(where where.Expression) (string, []interf
 	whereClause, args := where.Build(tbl.dialect)
 	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
 	return query, args
-}
-
-// Truncate drops every record from the table, if possible. It might fail if constraints exist that
-// prevent some or all rows from being deleted; use the force option to override this.
-//
-// When 'force' is set true, be aware of the following consequences.
-// When using Mysql, foreign keys in other tables can be left dangling.
-// When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
-// are also truncated.
-func (tbl AssociationTable) Truncate(force bool) (err error) {
-	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
-		_, err = tbl.Exec(query)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 //--------------------------------------------------------------------------------
