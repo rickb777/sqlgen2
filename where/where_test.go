@@ -247,3 +247,49 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 		}
 	}
 }
+
+func TestQueryConstraint(t *testing.T) {
+	cases := []struct {
+		qc          QueryConstraint
+		expSqlite   string
+		expMysql    string
+		expPostgres string
+	}{
+		{nil, "", "", ""},
+		{Literal("order by foo"), "order by foo", "order by foo", "order by foo"},
+		{OrderBy("foo").Asc(), "ORDER BY foo", "ORDER BY foo", "ORDER BY foo"},
+		{OrderBy("foo").Desc(), "ORDER BY foo DESC", "ORDER BY foo DESC", "ORDER BY foo DESC"},
+		{Limit(0), "", "", ""},
+		{Limit(10), "LIMIT 10", "LIMIT 10", "LIMIT 10"},
+		{Offset(20), "OFFSET 20", "OFFSET 20", "OFFSET 20"},
+		{OrderBy("foo").Desc().Limit(10).Offset(20), "ORDER BY foo DESC LIMIT 10 OFFSET 20", "ORDER BY foo DESC LIMIT 10 OFFSET 20", "ORDER BY foo DESC LIMIT 10 OFFSET 20"},
+	}
+
+	for i, c := range cases {
+		var sql string
+
+		if c.qc != nil {
+			sql = c.qc.Build(schema.Sqlite)
+		}
+
+		if sql != c.expSqlite {
+			t.Errorf("%d Sqlite: Wanted %s\nGot %s", i, c.expSqlite, sql)
+		}
+
+		if c.qc != nil {
+			sql = c.qc.Build(schema.Mysql)
+		}
+
+		if sql != c.expMysql {
+			t.Errorf("%d Mysql: Wanted %s\nGot %s", i, c.expMysql, sql)
+		}
+
+		if c.qc != nil {
+			sql = c.qc.Build(schema.Postgres)
+		}
+
+		if sql != c.expPostgres {
+			t.Errorf("%d Postgres: Wanted %s\nGot %s", i, c.expPostgres, sql)
+		}
+	}
+}

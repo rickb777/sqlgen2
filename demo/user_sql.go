@@ -416,54 +416,74 @@ func (tbl DbUserTable) GetUser(id int64) (*User, error) {
 	return tbl.QueryOne(query, id)
 }
 
+// GetUsers gets records from the table according to a list of primary keys.
+// Although the list of ids can be arbitrarily long, there are practical limits;
+// note that Oracle DB has a limit of 1000.
+func (tbl DbUserTable) GetUsers(id ...int64) (list []*User, err error) {
+	if len(id) > 0 {
+		pl := tbl.dialect.Placeholders(len(id))
+		query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid IN (%s)", DbUserColumnNames, tbl.prefix, tbl.name, pl)
+		args := make([]interface{}, len(id))
+
+		for i, v := range id {
+			args[i] = v
+		}
+
+		list, err = tbl.Query(query, args...)
+	}
+
+	return list, err
+}
+
 //--------------------------------------------------------------------------------
 
 // SliceUid gets the Uid column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbUserTable) SliceUid(where where.Expression, orderBy string) ([]int64, error) {
-	return tbl.getint64list("uid", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbUserTable) SliceUid(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64list("uid", wh, qc)
 }
 
 // SliceLogin gets the Login column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbUserTable) SliceLogin(where where.Expression, orderBy string) ([]string, error) {
-	return tbl.getstringlist("login", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbUserTable) SliceLogin(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("login", wh, qc)
 }
 
 // SliceEmailAddress gets the EmailAddress column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbUserTable) SliceEmailAddress(where where.Expression, orderBy string) ([]string, error) {
-	return tbl.getstringlist("emailaddress", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbUserTable) SliceEmailAddress(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("emailaddress", wh, qc)
 }
 
 // SliceAvatar gets the Avatar column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbUserTable) SliceAvatar(where where.Expression, orderBy string) ([]string, error) {
-	return tbl.getstringlist("avatar", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbUserTable) SliceAvatar(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("avatar", wh, qc)
 }
 
 // SliceActive gets the Active column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbUserTable) SliceActive(where where.Expression, orderBy string) ([]bool, error) {
-	return tbl.getboollist("active", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbUserTable) SliceActive(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+	return tbl.getboollist("active", wh, qc)
 }
 
 // SliceAdmin gets the Admin column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbUserTable) SliceAdmin(where where.Expression, orderBy string) ([]bool, error) {
-	return tbl.getboollist("admin", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbUserTable) SliceAdmin(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+	return tbl.getboollist("admin", wh, qc)
 }
 
 // SliceLastUpdated gets the LastUpdated column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbUserTable) SliceLastUpdated(where where.Expression, orderBy string) ([]int64, error) {
-	return tbl.getint64list("lastupdated", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbUserTable) SliceLastUpdated(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64list("lastupdated", wh, qc)
 }
 
 
-func (tbl DbUserTable) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
-	wh, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
+func (tbl DbUserTable) getboollist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -483,9 +503,10 @@ func (tbl DbUserTable) getboollist(sqlname string, where where.Expression, order
 	return list, nil
 }
 
-func (tbl DbUserTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
-	wh, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
+func (tbl DbUserTable) getint64list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -505,9 +526,10 @@ func (tbl DbUserTable) getint64list(sqlname string, where where.Expression, orde
 	return list, nil
 }
 
-func (tbl DbUserTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
-	wh, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
+func (tbl DbUserTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -540,11 +562,12 @@ func (tbl DbUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (
 }
 
 // SelectOne allows a single User to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
 // If not found, *Example will be nil.
-func (tbl DbUserTable) SelectOne(where where.Expression, orderBy string) (*User, error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.SelectOneSA(wh, orderBy, args...)
+func (tbl DbUserTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*User, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectOneSA(whs, orderBy, args...)
 }
 
 // SelectSA allows Users to be obtained from the table that match a 'where' clause.
@@ -555,10 +578,11 @@ func (tbl DbUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*
 }
 
 // Select allows Users to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbUserTable) Select(where where.Expression, orderBy string) ([]*User, error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.SelectSA(wh, orderBy, args...)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbUserTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectSA(whs, orderBy, args...)
 }
 
 // CountSA counts Users in the table that match a 'where' clause.
@@ -688,7 +712,6 @@ func (tbl DbUserTable) Update(vv ...*User) (int64, error) {
 		}
 
 		args = append(args, v.Uid)
-		tbl.logQuery(query, args...)
 		n, err := tbl.Exec(query, args...)
 		if err != nil {
 			return count, err
@@ -727,6 +750,54 @@ WHERE uid=$1
 `
 
 //--------------------------------------------------------------------------------
+
+// DeleteUsers deletes rows from the table, given some primary keys.
+// The list of ids can be arbitrarily long.
+func (tbl DbUserTable) DeleteUsers(id ...int64) (int64, error) {
+	const batch = 1000 // limited by Oracle DB
+	const qt = "DELETE FROM %s%s WHERE uid IN (%s)"
+
+	var count, n int64
+	var err error
+	var max = batch
+	if len(id) < batch {
+		max = len(id)
+	}
+	args := make([]interface{}, max)
+
+	if len(id) > batch {
+		pl := tbl.dialect.Placeholders(batch)
+		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+
+		for len(id) > batch {
+			for i := 0; i < batch; i++ {
+				args[i] = id[i]
+			}
+
+			n, err = tbl.Exec(query, args...)
+			count += n
+			if err != nil {
+				return count, err
+			}
+
+			id = id[batch:]
+		}
+	}
+
+	if len(id) > 0 {
+		pl := tbl.dialect.Placeholders(len(id))
+		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+
+		for i := 0; i < batch; i++ {
+			args[i] = id[i]
+		}
+
+		n, err = tbl.Exec(query, args...)
+		count += n
+	}
+
+	return count, err
+}
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 func (tbl DbUserTable) Delete(where where.Expression) (int64, error) {

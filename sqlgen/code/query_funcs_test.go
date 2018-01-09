@@ -111,6 +111,25 @@ func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", XExampleColumnNames, tbl.prefix, tbl.name)
 	return tbl.QueryOne(query, id)
 }
+
+// GetExamples gets records from the table according to a list of primary keys.
+// Although the list of ids can be arbitrarily long, there are practical limits;
+// note that Oracle DB has a limit of 1000.
+func (tbl XExampleTable) GetExamples(id ...int64) (list []*Example, err error) {
+	if len(id) > 0 {
+		pl := tbl.dialect.Placeholders(len(id))
+		query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id IN (%s)", XExampleColumnNames, tbl.prefix, tbl.name, pl)
+		args := make([]interface{}, len(id))
+
+		for i, v := range id {
+			args[i] = v
+		}
+
+		list, err = tbl.Query(query, args...)
+	}
+
+	return list, err
+}
 `
 	if code != expected {
 		outputDiff(expected, "expected.txt")
@@ -172,11 +191,12 @@ func (tbl XExampleTable) SelectOneSA(where, orderBy string, args ...interface{})
 }
 
 // SelectOne allows a single Example to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
 // If not found, *Example will be nil.
-func (tbl XExampleTable) SelectOne(where where.Expression, orderBy string) (*Example, error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.SelectOneSA(wh, orderBy, args...)
+func (tbl XExampleTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Example, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectOneSA(whs, orderBy, args...)
 }
 
 // SelectSA allows Examples to be obtained from the table that match a 'where' clause.
@@ -187,10 +207,11 @@ func (tbl XExampleTable) SelectSA(where, orderBy string, args ...interface{}) ([
 }
 
 // Select allows Examples to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl XExampleTable) Select(where where.Expression, orderBy string) ([]*Example, error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.SelectSA(wh, orderBy, args...)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl XExampleTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Example, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectSA(whs, orderBy, args...)
 }
 
 // CountSA counts Examples in the table that match a 'where' clause.
@@ -462,7 +483,6 @@ func (tbl XExampleTable) Update(vv ...*Example) (int64, error) {
 		}
 
 		args = append(args, v.Id)
-		tbl.logQuery(query, args...)
 		n, err := tbl.Exec(query, args...)
 		if err != nil {
 			return count, err
@@ -506,6 +526,54 @@ func TestWriteDeleteFunc(t *testing.T) {
 	code := buf.String()
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
+
+// DeleteExamples deletes rows from the table, given some primary keys.
+// The list of ids can be arbitrarily long.
+func (tbl XExampleTable) DeleteExamples(id ...int64) (int64, error) {
+	const batch = 1000 // limited by Oracle DB
+	const qt = "DELETE FROM %s%s WHERE id IN (%s)"
+
+	var count, n int64
+	var err error
+	var max = batch
+	if len(id) < batch {
+		max = len(id)
+	}
+	args := make([]interface{}, max)
+
+	if len(id) > batch {
+		pl := tbl.dialect.Placeholders(batch)
+		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+
+		for len(id) > batch {
+			for i := 0; i < batch; i++ {
+				args[i] = id[i]
+			}
+
+			n, err = tbl.Exec(query, args...)
+			count += n
+			if err != nil {
+				return count, err
+			}
+
+			id = id[batch:]
+		}
+	}
+
+	if len(id) > 0 {
+		pl := tbl.dialect.Placeholders(len(id))
+		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+
+		for i := 0; i < batch; i++ {
+			args[i] = id[i]
+		}
+
+		n, err = tbl.Exec(query, args...)
+		count += n
+	}
+
+	return count, err
+}
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 func (tbl XExampleTable) Delete(where where.Expression) (int64, error) {

@@ -264,11 +264,12 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneSA(where, orderBy string, arg
 }
 
 // SelectOne allows a single {{.Type}} to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
 // If not found, *Example will be nil.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(where where.Expression, orderBy string) (*{{.Type}}, error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.SelectOneSA(wh, orderBy, args...)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(wh where.Expression, qc where.QueryConstraint) (*{{.Type}}, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectOneSA(whs, orderBy, args...)
 }
 `
 
@@ -281,9 +282,28 @@ const sGetRow = `{{if .Table.Primary}}
 
 // Get{{.Type}} gets the record with a given primary key value.
 // If not found, *{{.Type}} will be nil.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.Base.Token}}) (*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE {{.Table.Primary.SqlName}}=?", {{.Prefix}}{{.Type}}ColumnNames, tbl.prefix, tbl.name)
 	return tbl.QueryOne(query, id)
+}
+
+// Get{{.Types}} gets records from the table according to a list of primary keys.
+// Although the list of ids can be arbitrarily long, there are practical limits;
+// note that Oracle DB has a limit of 1000.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}(id ...{{.Table.Primary.Type.Name}}) (list {{.List}}, err error) {
+	if len(id) > 0 {
+		pl := tbl.dialect.Placeholders(len(id))
+		query := fmt.Sprintf("SELECT %s FROM %s%s WHERE {{.Table.Primary.SqlName}} IN (%s)", {{.Prefix}}{{.Type}}ColumnNames, tbl.prefix, tbl.name, pl)
+		args := make([]interface{}, len(id))
+
+		for i, v := range id {
+			args[i] = v
+		}
+
+		list, err = tbl.Query(query, args...)
+	}
+
+	return list, err
 }
 {{end -}}
 `
@@ -296,15 +316,16 @@ const sSliceItem = `
 //--------------------------------------------------------------------------------
 {{range .Table.SimpleFields}}
 // Slice{{.Name}} gets the {{.Name}} column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{.Name}}(where where.Expression, orderBy string) ([]{{.Type.Type}}, error) {
-	return tbl.get{{.Type.Tag}}list("{{.SqlName}}", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{.Name}}(wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error) {
+	return tbl.get{{.Type.Tag}}list("{{.SqlName}}", wh, qc)
 }
 {{end}}
 {{range .Table.SimpleFields.DistinctTypes}}
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) get{{.Tag}}list(sqlname string, where where.Expression, orderBy string) ([]{{.Type}}, error) {
-	wh, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) get{{.Tag}}list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -340,10 +361,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectSA(where, orderBy string, args .
 }
 
 // Select allows {{.Types}} to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Select(where where.Expression, orderBy string) ({{.List}}, error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.SelectSA(wh, orderBy, args...)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Select(wh where.Expression, qc where.QueryConstraint) ({{.List}}, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectSA(whs, orderBy, args...)
 }
 `
 
@@ -527,7 +549,6 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(vv ...*{{.Type}}) (int64, error
 		}
 
 		args = append(args, v.{{.Table.Primary.Name}})
-		tbl.logQuery(query, args...)
 		n, err := tbl.Exec(query, args...)
 		if err != nil {
 			return count, err
@@ -544,6 +565,56 @@ var tUpdate = template.Must(template.New("Update").Funcs(funcMap).Parse(sUpdate)
 //-------------------------------------------------------------------------------------------------
 
 const sDelete = `
+{{if .Table.Primary -}}
+// Delete{{.Types}} deletes rows from the table, given some primary keys.
+// The list of ids can be arbitrarily long.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(id ...{{.Table.Primary.Type.Name}}) (int64, error) {
+	const batch = 1000 // limited by Oracle DB
+	const qt = "DELETE FROM %s%s WHERE {{.Table.Primary.SqlName}} IN (%s)"
+
+	var count, n int64
+	var err error
+	var max = batch
+	if len(id) < batch {
+		max = len(id)
+	}
+	args := make([]interface{}, max)
+
+	if len(id) > batch {
+		pl := tbl.dialect.Placeholders(batch)
+		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+
+		for len(id) > batch {
+			for i := 0; i < batch; i++ {
+				args[i] = id[i]
+			}
+
+			n, err = tbl.Exec(query, args...)
+			count += n
+			if err != nil {
+				return count, err
+			}
+
+			id = id[batch:]
+		}
+	}
+
+	if len(id) > 0 {
+		pl := tbl.dialect.Placeholders(len(id))
+		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+
+		for i := 0; i < batch; i++ {
+			args[i] = id[i]
+		}
+
+		n, err = tbl.Exec(query, args...)
+		count += n
+	}
+
+	return count, err
+}
+
+{{end -}}
 // Delete deletes one or more rows from the table, given a 'where' clause.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete(where where.Expression) (int64, error) {
 	query, args := tbl.deleteRows(where)

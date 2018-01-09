@@ -313,48 +313,68 @@ func (tbl HookTable) GetHook(id int64) (*Hook, error) {
 	return tbl.QueryOne(query, id)
 }
 
+// GetHooks gets records from the table according to a list of primary keys.
+// Although the list of ids can be arbitrarily long, there are practical limits;
+// note that Oracle DB has a limit of 1000.
+func (tbl HookTable) GetHooks(id ...int64) (list HookList, err error) {
+	if len(id) > 0 {
+		pl := tbl.dialect.Placeholders(len(id))
+		query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id IN (%s)", HookColumnNames, tbl.prefix, tbl.name, pl)
+		args := make([]interface{}, len(id))
+
+		for i, v := range id {
+			args[i] = v
+		}
+
+		list, err = tbl.Query(query, args...)
+	}
+
+	return list, err
+}
+
 //--------------------------------------------------------------------------------
 
 // SliceId gets the Id column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl HookTable) SliceId(where where.Expression, orderBy string) ([]int64, error) {
-	return tbl.getint64list("id", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceId(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64list("id", wh, qc)
 }
 
 // SliceSha gets the Sha column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl HookTable) SliceSha(where where.Expression, orderBy string) ([]string, error) {
-	return tbl.getstringlist("sha", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceSha(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("sha", wh, qc)
 }
 
 // SliceCategory gets the Category column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl HookTable) SliceCategory(where where.Expression, orderBy string) ([]Category, error) {
-	return tbl.getCategorylist("category", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceCategory(wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	return tbl.getCategorylist("category", wh, qc)
 }
 
 // SliceCreated gets the Created column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl HookTable) SliceCreated(where where.Expression, orderBy string) ([]bool, error) {
-	return tbl.getboollist("created", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceCreated(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+	return tbl.getboollist("created", wh, qc)
 }
 
 // SliceDeleted gets the Deleted column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl HookTable) SliceDeleted(where where.Expression, orderBy string) ([]bool, error) {
-	return tbl.getboollist("deleted", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceDeleted(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+	return tbl.getboollist("deleted", wh, qc)
 }
 
 // SliceForced gets the Forced column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl HookTable) SliceForced(where where.Expression, orderBy string) ([]bool, error) {
-	return tbl.getboollist("forced", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceForced(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+	return tbl.getboollist("forced", wh, qc)
 }
 
 
-func (tbl HookTable) getCategorylist(sqlname string, where where.Expression, orderBy string) ([]Category, error) {
-	wh, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
+func (tbl HookTable) getCategorylist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -374,9 +394,10 @@ func (tbl HookTable) getCategorylist(sqlname string, where where.Expression, ord
 	return list, nil
 }
 
-func (tbl HookTable) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
-	wh, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
+func (tbl HookTable) getboollist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -396,9 +417,10 @@ func (tbl HookTable) getboollist(sqlname string, where where.Expression, orderBy
 	return list, nil
 }
 
-func (tbl HookTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
-	wh, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
+func (tbl HookTable) getint64list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -418,9 +440,10 @@ func (tbl HookTable) getint64list(sqlname string, where where.Expression, orderB
 	return list, nil
 }
 
-func (tbl HookTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
-	wh, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
+func (tbl HookTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -453,11 +476,12 @@ func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*H
 }
 
 // SelectOne allows a single Hook to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
 // If not found, *Example will be nil.
-func (tbl HookTable) SelectOne(where where.Expression, orderBy string) (*Hook, error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.SelectOneSA(wh, orderBy, args...)
+func (tbl HookTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Hook, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectOneSA(whs, orderBy, args...)
 }
 
 // SelectSA allows Hooks to be obtained from the table that match a 'where' clause.
@@ -468,10 +492,11 @@ func (tbl HookTable) SelectSA(where, orderBy string, args ...interface{}) (HookL
 }
 
 // Select allows Hooks to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl HookTable) Select(where where.Expression, orderBy string) (HookList, error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.SelectSA(wh, orderBy, args...)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) Select(wh where.Expression, qc where.QueryConstraint) (HookList, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectSA(whs, orderBy, args...)
 }
 
 // CountSA counts Hooks in the table that match a 'where' clause.
@@ -608,7 +633,6 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 		}
 
 		args = append(args, v.Id)
-		tbl.logQuery(query, args...)
 		n, err := tbl.Exec(query, args...)
 		if err != nil {
 			return count, err
@@ -661,6 +685,54 @@ WHERE id=$1
 `
 
 //--------------------------------------------------------------------------------
+
+// DeleteHooks deletes rows from the table, given some primary keys.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooks(id ...int64) (int64, error) {
+	const batch = 1000 // limited by Oracle DB
+	const qt = "DELETE FROM %s%s WHERE id IN (%s)"
+
+	var count, n int64
+	var err error
+	var max = batch
+	if len(id) < batch {
+		max = len(id)
+	}
+	args := make([]interface{}, max)
+
+	if len(id) > batch {
+		pl := tbl.dialect.Placeholders(batch)
+		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+
+		for len(id) > batch {
+			for i := 0; i < batch; i++ {
+				args[i] = id[i]
+			}
+
+			n, err = tbl.Exec(query, args...)
+			count += n
+			if err != nil {
+				return count, err
+			}
+
+			id = id[batch:]
+		}
+	}
+
+	if len(id) > 0 {
+		pl := tbl.dialect.Placeholders(len(id))
+		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+
+		for i := 0; i < batch; i++ {
+			args[i] = id[i]
+		}
+
+		n, err = tbl.Exec(query, args...)
+		count += n
+	}
+
+	return count, err
+}
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 func (tbl HookTable) Delete(where where.Expression) (int64, error) {

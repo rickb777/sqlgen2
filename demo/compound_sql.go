@@ -337,27 +337,28 @@ func (tbl DbCompoundTable) doQuery(firstOnly bool, query string, args ...interfa
 //--------------------------------------------------------------------------------
 
 // SliceAlpha gets the Alpha column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbCompoundTable) SliceAlpha(where where.Expression, orderBy string) ([]string, error) {
-	return tbl.getstringlist("alpha", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbCompoundTable) SliceAlpha(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("alpha", wh, qc)
 }
 
 // SliceBeta gets the Beta column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbCompoundTable) SliceBeta(where where.Expression, orderBy string) ([]string, error) {
-	return tbl.getstringlist("beta", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbCompoundTable) SliceBeta(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("beta", wh, qc)
 }
 
 // SliceCategory gets the Category column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbCompoundTable) SliceCategory(where where.Expression, orderBy string) ([]Category, error) {
-	return tbl.getCategorylist("category", where, orderBy)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbCompoundTable) SliceCategory(wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	return tbl.getCategorylist("category", wh, qc)
 }
 
 
-func (tbl DbCompoundTable) getCategorylist(sqlname string, where where.Expression, orderBy string) ([]Category, error) {
-	wh, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
+func (tbl DbCompoundTable) getCategorylist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -377,9 +378,10 @@ func (tbl DbCompoundTable) getCategorylist(sqlname string, where where.Expressio
 	return list, nil
 }
 
-func (tbl DbCompoundTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
-	wh, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
+func (tbl DbCompoundTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -412,11 +414,12 @@ func (tbl DbCompoundTable) SelectOneSA(where, orderBy string, args ...interface{
 }
 
 // SelectOne allows a single Compound to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
 // If not found, *Example will be nil.
-func (tbl DbCompoundTable) SelectOne(where where.Expression, orderBy string) (*Compound, error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.SelectOneSA(wh, orderBy, args...)
+func (tbl DbCompoundTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Compound, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectOneSA(whs, orderBy, args...)
 }
 
 // SelectSA allows Compounds to be obtained from the table that match a 'where' clause.
@@ -427,10 +430,11 @@ func (tbl DbCompoundTable) SelectSA(where, orderBy string, args ...interface{}) 
 }
 
 // Select allows Compounds to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbCompoundTable) Select(where where.Expression, orderBy string) ([]*Compound, error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.SelectSA(wh, orderBy, args...)
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbCompoundTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Compound, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectSA(whs, orderBy, args...)
 }
 
 // CountSA counts Compounds in the table that match a 'where' clause.

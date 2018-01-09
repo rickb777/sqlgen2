@@ -241,7 +241,7 @@ func TestCrudUsingSqlite(t *testing.T) {
 		t.Errorf("expected 1, got %d", c1)
 	}
 
-	ul1, err := tbl.Select(where.Eq("Login", "unknown"), "")
+	ul1, err := tbl.Select(where.Eq("Login", "unknown"), nil)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -249,7 +249,7 @@ func TestCrudUsingSqlite(t *testing.T) {
 		t.Errorf("expected 0, got %v", ul1)
 	}
 
-	ul2, err := tbl.Select(where.Eq("Login", "user1"), "")
+	ul2, err := tbl.Select(where.Eq("Login", "user1"), nil)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -270,7 +270,7 @@ func TestCrudUsingSqlite(t *testing.T) {
 		t.Fatalf("%q", ul2[0].hash)
 	}
 
-	u1, err := tbl.SelectOne(where.Eq("Login", "user1"), "")
+	u1, err := tbl.SelectOne(where.Eq("Login", "user1"), nil)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -312,7 +312,7 @@ func TestGettersUsingSqlite(t *testing.T) {
 		}
 	}
 
-	logins, err := tbl.SliceLogin(where.NoOp(), "order by login")
+	logins, err := tbl.SliceLogin(where.NoOp(), where.OrderBy("login"))
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
