@@ -19,49 +19,46 @@ type context struct {
 	mainPkg  string
 }
 
-func load(pkgStore parse.PackageStore, pkg, name string) (*TableDescription, error) {
+func load(pkgStore parse.PackageStore, name parse.LType, mainPkg string) (*TableDescription, error) {
 	table := new(TableDescription)
 
 	// local map of indexes, used for quick lookups and de-duping.
 	indices := map[string]*Index{}
 
-	table.Type = name
+	table.Type = name.Name
 	table.Name = Pluralize(Underscore(table.Type))
 
-	nm := pkgStore.FindNamed(pkg, name)
-	tags := pkgStore.FindTags(pkg, name)
-	ctx := &context{pkgStore, indices, table, pkg}
-	ctx.examineStruct(nm, pkg, name, tags, nil)
+	nm := pkgStore.FindNamed(name)
+	tags := pkgStore.FindTags(name)
+	ctx := &context{pkgStore, indices, table, mainPkg}
+	ctx.examineStruct(nm, name, tags, nil)
 
 	for _, idx := range ctx.indices {
 		table.Index = append(table.Index, idx)
 	}
 
-	checkNoConflictingNames(pkg, name, table)
+	checkNoConflictingNames(name, table)
 
 	return table, nil
 }
 
 //-------------------------------------------------------------------------------------------------
 
-func (ctx *context) examineStruct(nm *types.Named, pkg, name string, tags map[string]parse.Tag, parent *Node) bool {
-	parse.DevInfo("examineStruct %s %s %+v\n  tags %v\n", pkg, name, nm, tags)
+func (ctx *context) examineStruct(nm *types.Named, name parse.LType, tags map[string]parse.Tag, parent *Node) bool {
+	parse.DevInfo("examineStruct %s %+v\n  tags %v\n", name, nm, tags)
 	if nm == nil {
 		return false
 	}
 
 	str := nm.Underlying().(*types.Struct)
 	if str.NumFields() == 0 {
-		exit.Fail(1, "%s.%s: empty structs are not supported (was there a parser warning?).\n", pkg, name)
+		exit.Fail(1, "%s: empty structs are not supported (was there a parser warning?).\n", name)
 	}
 
 	var unexportedFields []string
 
 	for j := 0; j < str.NumFields(); j++ {
 		tField := str.Field(j)
-		//parse.DevInfo("    f%d: name:%-10s pkg:%s type:%-25s f:%v, e:%v, a:%v\n", j,
-		//	tField.Name(), tField.Pkg().Name(), tField.Type(), tField.IsField(), tField.Exported(), tField.Anonymous())
-
 		if !tField.Exported() {
 			tag := tags[tField.Name()]
 			if !tag.Skip {
@@ -71,26 +68,26 @@ func (ctx *context) examineStruct(nm *types.Named, pkg, name string, tags map[st
 	}
 
 	if len(unexportedFields) == str.NumFields() {
-		output.Info("%s.%s: Info: %s contains no exported fields; it must implement sql.Scanner and driver.Valuer.\n", pkg, name, str.String())
+		output.Info("%s: Info: %s contains no exported fields; it must implement sql.Scanner and driver.Valuer.\n", name, str.String())
 		return true // add this struct as a field; assume the type implements Scanner/Valuer
 
 	} else if len(unexportedFields) > 0 {
-		output.Info("%s.%s: Warning: %s.%s contains unexported fields %s.\n"+
-			"  (perhaps annotate with `sql:\"-\"`)\n", pkg, name, nm.Obj().Pkg().Name(), nm.Obj().Name(), strings.Join(unexportedFields, ", "))
+		output.Info("%s: Warning: %s.%s contains unexported fields %s.\n"+
+			"  (perhaps annotate with `sql:\"-\"`)\n", name, nm.Obj().Pkg().Name(), nm.Obj().Name(), strings.Join(unexportedFields, ", "))
 	}
 
 	for j := 0; j < str.NumFields(); j++ {
 		tField := str.Field(j)
-		parse.DevInfo("    f%d: name:%-10s pkg:%s type:%-25s f:%v, e:%v, a:%v\n", j,
+		parse.DevInfo("    f%-2d: name:%-15s pkg:%-10s type:%-50s field:%v, exp:%v, anon:%v\n", j,
 			tField.Name(), tField.Pkg().Name(), tField.Type(), tField.IsField(), tField.Exported(), tField.Anonymous())
 
 		tag := tags[tField.Name()]
 		if !tag.Skip {
 			if tField.Anonymous() {
-				ctx.convertEmbeddedNodeToFields(tField, pkg, parent)
+				ctx.convertEmbeddedNodeToFields(tField, name.PkgName, parent)
 
 			} else {
-				ctx.convertLeafNodeToField(tField, pkg, tags, parent)
+				ctx.convertLeafNodeToField(tField, name.PkgName, tags, parent)
 			}
 		}
 	}
@@ -105,26 +102,31 @@ func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, par
 
 	name := leaf.Name()
 	parse.DevInfo("convertEmbeddedNodeToFields %s %s\n", pkg, name)
-	nm := ctx.pkgStore.FindNamed(pkg, name)
+	lt := parse.LType{pkg, name}
+	nm := ctx.pkgStore.FindNamed(lt)
+	path := ""
 
 	if nm == nil {
 		var ok bool
 		nm, ok = leaf.Type().(*types.Named)
 		if !ok {
-			exit.Fail(5, "Unable to find %s.%s\n", pkg, name)
+			exit.Fail(5, "Unable to find %s\n", lt)
 		}
-		pkg = nm.Obj().Pkg().Name()
+		nmPkg := nm.Obj().Pkg()
+		path = nmPkg.Path()
+		pkg = nmPkg.Name()
 		str2 := nm.Underlying().(*types.Struct)
 		tags = make(map[string]parse.Tag)
 		addStructTags(tags, str2)
 		parse.DevInfo(" - found in other package %v %v\n", leaf.Type(), str2)
 	} else {
-		pkg = nm.Obj().Pkg().Name()
-		tags = ctx.pkgStore.FindTags(pkg, name)
+		nmPkg := nm.Obj().Pkg()
+		pkg = nmPkg.Name()
+		tags = ctx.pkgStore.FindTags(lt)
 	}
 
-	node := &Node{Name: name, Parent: parent}
-	ctx.examineStruct(nm, pkg, name, tags, node)
+	node := &Node{Name: name, Type: Type{PkgPath: path, PkgName: pkg, Name: name, Base: parse.Struct}, Parent: parent}
+	ctx.examineStruct(nm, lt, tags, node)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -208,7 +210,6 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 	tp := Type{}
 
 	lt := leaf.Type()
-	//isPtr := false
 
 	switch t := lt.(type) {
 	case *types.Pointer:
@@ -237,7 +238,7 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 			tp.Base = parse.Struct
 			if canRecurse {
 				addStructTags(tags, u)
-				ok := ctx.examineStruct(nm, pkg, leaf.Name(), tags, &node)
+				ok := ctx.examineStruct(nm, parse.LType{pkg, leaf.Name()}, tags, &node)
 				node.Type = tp
 				return node, ok
 			}
@@ -266,13 +267,18 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags map[
 }
 
 func setTypeName(tp *Type, tn *types.TypeName, pkg, mainPkg string) {
-	if tn.Pkg().Name() != pkg {
-		tp.PkgPath = tn.Pkg().Path()
-		tp.PkgName = tn.Pkg().Name()
+	tp.Name = tn.Name()
+	tnPkg := tn.Pkg()
+	if tnPkg.Name() != mainPkg {
+		tp.PkgPath = tnPkg.Path()
+		tp.PkgName = tnPkg.Name()
+		//parse.DevInfo("setTypeName %s %s %s\n", tp.Name, tp.PkgPath, tp.PkgName)
 	} else if pkg != mainPkg {
 		tp.PkgName = pkg
+		//parse.DevInfo("setTypeName %s - %s\n", tp.Name, tp.PkgName)
+	//} else {
+	//	parse.DevInfo("setTypeName %s - -\n", tp.Name)
 	}
-	tp.Name = tn.Name()
 }
 
 func addStructTags(tags map[string]parse.Tag, str *types.Struct) {
@@ -286,7 +292,7 @@ func addStructTags(tags map[string]parse.Tag, str *types.Struct) {
 	}
 }
 
-func checkNoConflictingNames(pkg, name string, table *TableDescription) {
+func checkNoConflictingNames(name parse.LType, table *TableDescription) {
 	names := make(map[string]struct{})
 	var duplicates []string
 
@@ -300,8 +306,8 @@ func checkNoConflictingNames(pkg, name string, table *TableDescription) {
 	}
 
 	if len(duplicates) > 0 {
-		parse.DevInfo("checkNoConflictingNames %s %s %+v\n", pkg, name, utter.Sdump(table))
-		exit.Fail(1, "%s.%s: found conflicting SQL column names: %s.\nPlease set the names on these fields explicitly using tags.\n",
-			pkg, name, strings.Join(duplicates, ", "))
+		parse.DevInfo("checkNoConflictingNames %s %+v\n", name, utter.Sdump(table))
+		exit.Fail(1, "%s: found conflicting SQL column names: %s.\nPlease set the names on these fields explicitly using tags.\n",
+			name, strings.Join(duplicates, ", "))
 	}
 }

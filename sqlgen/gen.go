@@ -10,6 +10,8 @@ import (
 	"io"
 	"os"
 	"strings"
+	"path/filepath"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 )
 
 func main() {
@@ -36,6 +38,7 @@ func main() {
 	words := strings.Split(typeName, ".")
 	Require(len(words) == 2, "type %q requires a package name prefix.\n", typeName)
 	pkg, name := words[0], words[1]
+	mainPkg := pkg
 
 	// parse the Go source code file(s) to extract the required struct and return it as an AST.
 	pkgStore, err := parse.Parse(flag.Args())
@@ -46,12 +49,16 @@ func main() {
 		oFile = flag.Args()[0]
 		Require(strings.HasSuffix(oFile, ".go"), oFile+": must end '.go'")
 		oFile = oFile[:len(oFile)-3] + "_sql.go"
+		parse.DevInfo("oFile: %s\n", oFile)
+	} else {
+		mainPkg = lastDirName(oFile)
+		parse.DevInfo("mainPkg: %s\n", mainPkg)
 	}
 
 	o := NewOutput(oFile)
 
 	// load the Tree into a schema Object
-	table, err := load(pkgStore, pkg, name)
+	table, err := load(pkgStore, parse.LType{pkg, name}, mainPkg)
 	if parse.Debug {
 		utter.Dump(table)
 	}
@@ -63,7 +70,7 @@ func main() {
 
 	buf := &bytes.Buffer{}
 
-	WritePackage(buf, pkg)
+	WritePackage(buf, mainPkg)
 
 	WriteImports(buf, table, setters, packagesToImport(genFuncs, genSchema, view.Table.HasPrimaryKey()))
 
@@ -118,4 +125,14 @@ func packagesToImport(genFuncs, genSchema, hasPrimaryKey bool) StringSet {
 		imports.Add("strings")
 	}
 	return imports
+}
+
+func lastDirName(full string) string {
+	abs, err := filepath.Abs(full)
+	if err != nil {
+		exit.Fail(1, "%s: %s.\n", full, err)
+	}
+	d1, _ := filepath.Split(abs)
+	_, f2 := filepath.Split(filepath.Clean(d1))
+	return f2
 }

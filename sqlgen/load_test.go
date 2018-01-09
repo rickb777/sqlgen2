@@ -14,6 +14,8 @@ import (
 	"testing"
 )
 
+const demoPath = "github.com/rickb777/sqlgen2/demo"
+
 func TestParseAndLoad_typesWithAllFieldsUnexported(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
@@ -56,7 +58,7 @@ type Date struct {
 			t.Fatalf("Error parsing: %s", err)
 		}
 
-		table, err := load(pkgStore, "pkg1", "Example")
+		table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
 		if err != nil {
 			t.Fatalf("Error loading: %s", err)
 		}
@@ -105,7 +107,7 @@ type Author struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, "pkg1", "Example")
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -151,7 +153,7 @@ type Category int32
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, "pkg1", "Example")
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -194,7 +196,7 @@ type Example struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, "pkg1", "Example")
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -261,14 +263,14 @@ type Author struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, "pkg1", "Example")
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	p1 := &Node{Name: "Commit"}
-	p2 := &Node{Name: "Author", Parent: p1}
-	p3 := &Node{Name: "Position"}
+	p1 := &Node{Name: "Commit", Type: Type{PkgName: "pkg1", Name: "Commit", Base: Struct}}
+	p2 := &Node{Name: "Author", Type: Type{PkgName: "pkg1", Name: "Author", Base: Struct}, Parent: p1}
+	p3 := &Node{Name: "Position", Type: Type{PkgPath: "go/token", PkgName: "token", Name: "Position", Base: Struct}}
 
 	category := &Field{Node{"Cat", Type{"", "", "Category", false, Int32}, nil}, "cat", ENCNONE, Tag{}}
 	name := &Field{Node{"Name", Type{"", "", "string", false, String}, p2}, "name", ENCNONE, Tag{}}
@@ -326,14 +328,14 @@ type Example struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, "pkg1", "Example")
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	p1 := &Node{Name: "Dates"}
+	p1 := &Node{Name: "Dates", Type: Type{PkgPath: demoPath, PkgName: "demo", Name: "Dates", Base: Struct}}
 
-	category := &Field{Node{"Cat", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Category", false, Uint8}, nil}, "cat", ENCNONE, Tag{}}
+	category := &Field{Node{"Cat", Type{demoPath, "demo", "Category", false, Uint8}, nil}, "cat", ENCNONE, Tag{}}
 	after := &Field{Node{"After", Type{"", "", "string", false, String}, p1}, "after", ENCNONE, Tag{Size: 20}}
 	before := &Field{Node{"Before", Type{"", "", "string", false, String}, p1}, "before", ENCNONE, Tag{Size: 20}}
 	name := &Field{Node{"Name", Type{"", "", "string", false, String}, nil}, "name", ENCNONE, Tag{}}
@@ -400,22 +402,22 @@ type Commit struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, "pkg1", "Example")
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
 
 	p1 := &Node{Name: "Commit", Type: Type{Name: "Commit", IsPtr: true, Base: Struct}}
-	p2 := &Node{Name: "Author", Type: Type{PkgPath: "github.com/rickb777/sqlgen2/demo", PkgName: "demo", Name: "Author", IsPtr: true, Base: Struct}, Parent: p1}
+	p2 := &Node{Name: "Author", Type: Type{PkgPath: demoPath, PkgName: "demo", Name: "Author", IsPtr: true, Base: Struct}, Parent: p1}
 
 	id := &Field{Node{"Id", Type{"", "", "uint64", false, Uint64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
 	super := &Field{Node{"SupersededBy", Type{"", "", "uint64", true, Uint64}, nil}, "supersededby", ENCNONE, Tag{}}
 	number := &Field{Node{"Number", Type{"", "", "int", false, Int}, nil}, "number", ENCNONE, Tag{}}
-	category := &Field{Node{"Category", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Category", false, Uint8}, nil}, "category", ENCNONE, Tag{}}
+	category := &Field{Node{"Category", Type{demoPath, "demo", "Category", false, Uint8}, nil}, "category", ENCNONE, Tag{}}
 	commitMessage := &Field{Node{"Message", Type{"", "", "string", false, String}, p1}, "text", ENCNONE, Tag{Size: 2048, Name: "text"}}
 	//commitTimestamp := &Field{Node{"Timestamp", Type{"time", "Time", String}, p1}, "commit_timestamp", VARCHAR, ENCNONE, Tag{}}
 	authorName := &Field{Node{"Name", Type{"", "", "string", false, String}, p2}, "commit_author_name", ENCNONE, Tag{Prefixed: true}}
-	authorEmail := &Field{Node{"Email", Type{"github.com/rickb777/sqlgen2/demo", "demo", "Email", false, String}, p2}, "commit_author_email", ENCNONE, Tag{Prefixed: true}}
+	authorEmail := &Field{Node{"Email", Type{demoPath, "demo", "Email", false, String}, p2}, "commit_author_email", ENCNONE, Tag{Prefixed: true}}
 	authorUser := &Field{Node{"Username", Type{"", "", "string", false, String}, p2}, "commit_author_username", ENCNONE, Tag{Prefixed: true}}
 	title := &Field{Node{"Title", Type{"", "", "string", false, String}, nil}, "title", ENCNONE, Tag{Index: "titleIdx"}}
 	////owner := &Field{"Owner", "team_owner", VARCHAR, Tag{}}

@@ -4,7 +4,20 @@ import (
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"go/ast"
 	"go/types"
+	"fmt"
 )
+
+type LType struct {
+	PkgName string // package name (short name)
+	Name    string // name of source code type.
+}
+
+func (t LType) String() string {
+	if t.PkgName == "" {
+		return t.Name
+	}
+	return fmt.Sprintf("%s.%s", t.PkgName, t.Name)
+}
 
 type PackageGroup struct {
 	Pkg   *types.Package
@@ -18,9 +31,9 @@ func (st PackageStore) store(pkg *types.Package, files []*ast.File) {
 	st[pkg.Name()] = PackageGroup{pkg, files}
 }
 
-func (st PackageStore) FindNamed(pkg, name string) *types.Named {
-	DevInfo("Find %s %s\n", pkg, name)
-	pkgGrp, exists := st[pkg]
+func (st PackageStore) FindNamed(name LType) *types.Named {
+	DevInfo("Find %v\n", name)
+	pkgGrp, exists := st[name.PkgName]
 	if !exists {
 		//exit.Fail(5, "Unable to find package %q\n", pkg)
 		return nil
@@ -29,7 +42,7 @@ func (st PackageStore) FindNamed(pkg, name string) *types.Named {
 	scope := pkgGrp.Pkg.Scope()
 
 	for i, n := range scope.Names() {
-		if n == name {
+		if n == name.Name {
 			obj := scope.Lookup(n)
 			t, ok := obj.Type().(*types.Named)
 			DevInfo("  scope%d: %s %v\n", i, obj.Name(), obj.Type())
@@ -49,9 +62,9 @@ func (st PackageStore) FindNamed(pkg, name string) *types.Named {
 	return nil
 }
 
-func (st PackageStore) FindStruct(pkg, name string) (*types.Struct, map[string]Tag) {
-	DevInfo("FindStruct %s %s\n", pkg, name)
-	t := st.FindNamed(pkg, name)
+func (st PackageStore) FindStruct(name LType) (*types.Struct, map[string]Tag) {
+	DevInfo("FindStruct %v\n", name)
+	t := st.FindNamed(name)
 	if t == nil {
 		return nil, nil
 	}
@@ -67,26 +80,26 @@ func (st PackageStore) FindStruct(pkg, name string) (*types.Struct, map[string]T
 		return nil, nil
 	}
 
-	tags, err := findTags(st[pkg].Files, pkg, name)
+	tags, err := findTags(st[name.PkgName].Files, name)
 	if err != nil {
-		exit.Fail(4, "%s, %s: tag error: %s\n", pkg, name, err)
+		exit.Fail(4, "%s: tag error: %s\n", name, err)
 		return nil, nil
 	}
 
 	return s, tags
 }
 
-func (st PackageStore) FindTags(pkg, name string) map[string]Tag {
-	tags, err := findTags(st[pkg].Files, pkg, name)
+func (st PackageStore) FindTags(name LType) map[string]Tag {
+	tags, err := findTags(st[name.PkgName].Files, name)
 	if err != nil {
-		exit.Fail(4, "%s, %s: tag error: %s\n", pkg, name, err)
+		exit.Fail(4, "%s: tag error: %s\n", name, err)
 		return nil
 	}
 	return tags
 }
 
-func findTags(files []*ast.File, pkg, name string) (map[string]Tag, error) {
-	typeSpec, _ := findTypeDecl(files, pkg, name)
+func findTags(files []*ast.File, name LType) (map[string]Tag, error) {
+	typeSpec, _ := findTypeDecl(files, name)
 	if typeSpec == nil {
 		return nil, nil
 	}
@@ -95,7 +108,7 @@ func findTags(files []*ast.File, pkg, name string) (map[string]Tag, error) {
 
 	switch st := typeSpec.Type.(type) {
 	case *ast.StructType:
-		err := findStructTags(files, pkg, name, st, tags)
+		err := findStructTags(files, name, st, tags)
 		if err != nil {
 			return nil, err
 		}
@@ -104,17 +117,17 @@ func findTags(files []*ast.File, pkg, name string) (map[string]Tag, error) {
 	return tags, nil
 }
 
-func findTypeDecl(files []*ast.File, pkg, name string) (*ast.TypeSpec, string) {
+func findTypeDecl(files []*ast.File, name LType) (*ast.TypeSpec, string) {
 	for _, file := range files {
-		if file.Name.Name == pkg {
+		if file.Name.Name == name.PkgName {
 			for _, decl := range file.Decls {
 				gen, isGenDecl := decl.(*ast.GenDecl)
 				if isGenDecl {
 					for _, gs := range gen.Specs {
 						spec, isTypeSpec := gs.(*ast.TypeSpec)
 						if isTypeSpec {
-							if spec.Name.String() == name {
-								DevInfo("findTypeDecl %s.%s -> found %#v %s\n", pkg, name, spec.Type, file.Name.Name)
+							if spec.Name.String() == name.Name {
+								DevInfo("findTypeDecl %s -> found %#v %s\n", name, spec.Type, file.Name.Name)
 								return spec, file.Name.Name
 							}
 						}
@@ -124,20 +137,17 @@ func findTypeDecl(files []*ast.File, pkg, name string) (*ast.TypeSpec, string) {
 		}
 	}
 
-	if pkg != "" {
-		pkg = pkg + "."
-	}
-	exit.Fail(5, "Cannot find '%s%s' in the source code. Should you add more source files to be parsed?\n", pkg, name)
+	exit.Fail(5, "Cannot find '%s' in the source code. Should you add more source files to be parsed?\n", name)
 	return nil, ""
 }
 
-func findStructTags(files []*ast.File, pkg, name string, str *ast.StructType, tags map[string]Tag) error {
-	DevInfo("findStructTags(%s %s str %d)\n", pkg, name, len(tags))
+func findStructTags(files []*ast.File, name LType, str *ast.StructType, tags map[string]Tag) error {
+	DevInfo("findStructTags(%s str %d)\n", name, len(tags))
 
 	for j, field := range str.Fields.List {
 		if field.Tag != nil {
 			if field.Names == nil {
-				err := buildEmbeddedStruct(files, pkg, name, field.Type, "")
+				err := buildEmbeddedStruct(files, name, field.Type, "")
 				if err != nil {
 					return err
 				}
@@ -157,7 +167,7 @@ func findStructTags(files []*ast.File, pkg, name string, str *ast.StructType, ta
 	return nil
 }
 
-func buildEmbeddedStruct(files []*ast.File, pkg, name string, expr ast.Expr, tag string) (err error) {
+func buildEmbeddedStruct(files []*ast.File, name LType, expr ast.Expr, tag string) (err error) {
 	DevInfo("buildEmbeddedStruct expr:%#v tag:%q\n", expr, tag)
 	depth += 1
 	defer lessDeep()
