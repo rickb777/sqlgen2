@@ -346,6 +346,18 @@ func (tbl HookTable) SliceSha(wh where.Expression, qc where.QueryConstraint) ([]
 	return tbl.getstringlist("sha", wh, qc)
 }
 
+// SliceAfter gets the After column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceAfter(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("after", wh, qc)
+}
+
+// SliceBefore gets the Before column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceBefore(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("before", wh, qc)
+}
+
 // SliceCategory gets the Category column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
 func (tbl HookTable) SliceCategory(wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
@@ -370,6 +382,60 @@ func (tbl HookTable) SliceForced(wh where.Expression, qc where.QueryConstraint) 
 	return tbl.getboollist("forced", wh, qc)
 }
 
+// SliceID gets the ID column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceCommitId(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("commit_id", wh, qc)
+}
+
+// SliceMessage gets the Message column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceMessage(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("message", wh, qc)
+}
+
+// SliceTimestamp gets the Timestamp column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceTimestamp(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("timestamp", wh, qc)
+}
+
+// SliceName gets the Name column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceHeadCommitAuthorName(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("head_commit_author_name", wh, qc)
+}
+
+// SliceEmail gets the Email column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceHeadCommitAuthorEmail(wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+	return tbl.getEmaillist("head_commit_author_email", wh, qc)
+}
+
+// SliceUsername gets the Username column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceHeadCommitAuthorUsername(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("head_commit_author_username", wh, qc)
+}
+
+// SliceName gets the Name column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceHeadCommitCommitterName(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("head_commit_committer_name", wh, qc)
+}
+
+// SliceEmail gets the Email column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceHeadCommitCommitterEmail(wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+	return tbl.getEmaillist("head_commit_committer_email", wh, qc)
+}
+
+// SliceUsername gets the Username column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) SliceHeadCommitCommitterUsername(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist("head_commit_committer_username", wh, qc)
+}
+
 
 func (tbl HookTable) getCategorylist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	whs, args := wh.Build(tbl.dialect)
@@ -384,6 +450,29 @@ func (tbl HookTable) getCategorylist(sqlname string, wh where.Expression, qc whe
 
 	var v Category
 	list := make([]Category, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+func (tbl HookTable) getEmaillist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v Email
+	list := make([]Email, 0, 10)
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err != nil {

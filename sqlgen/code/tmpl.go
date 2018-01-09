@@ -317,7 +317,7 @@ const sSliceItem = `
 {{range .Table.SimpleFields}}
 // Slice{{.Name}} gets the {{.Name}} column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{.Name}}(wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error) {
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error) {
 	return tbl.get{{.Type.Tag}}list("{{.SqlName}}", wh, qc)
 }
 {{end}}

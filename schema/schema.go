@@ -84,7 +84,7 @@ func (t *TableDescription) ColumnNames(withAuto bool) []string {
 func (t *TableDescription) SimpleFields() FieldList {
 	list := make(FieldList, 0, len(t.Fields))
 	for _, f := range t.Fields {
-		if f.Node.Parent == nil && f.Encode == ENCNONE && f.IsExported() {
+		if f.Encode == ENCNONE && f.IsExported() {
 			list = append(list, f)
 		}
 	}

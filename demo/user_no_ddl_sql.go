@@ -230,7 +230,7 @@ func (tbl V2UserJoin) SliceLogin(wh where.Expression, qc where.QueryConstraint) 
 
 // SliceEmailAddress gets the EmailAddress column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl V2UserJoin) SliceEmailAddress(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl V2UserJoin) SliceEmailaddress(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("emailaddress", wh, qc)
 }
 
@@ -254,7 +254,7 @@ func (tbl V2UserJoin) SliceAdmin(wh where.Expression, qc where.QueryConstraint) 
 
 // SliceLastUpdated gets the LastUpdated column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl V2UserJoin) SliceLastUpdated(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl V2UserJoin) SliceLastupdated(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list("lastupdated", wh, qc)
 }
 

@@ -408,7 +408,7 @@ func (tbl IssueTable) SliceTitle(wh where.Expression, qc where.QueryConstraint) 
 
 // SliceBody gets the Body column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl IssueTable) SliceBody(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl IssueTable) SliceBigbody(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("bigbody", wh, qc)
 }
 
