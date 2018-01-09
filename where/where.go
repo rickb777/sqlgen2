@@ -15,6 +15,8 @@ type Dialect interface {
 
 // Expression is an element in a WHERE clause. Expressions may be nested in various ways.
 type Expression interface {
+	And(Expression) Clause
+	Or(Expression) Clause
 	Build(dialect Dialect) (string, []interface{})
 	build(args []interface{}, dialect Dialect) (string, []interface{})
 }

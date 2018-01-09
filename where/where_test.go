@@ -148,6 +148,20 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 		},
 
 		{
+			Not(nameEqFred).And(ageLt10),
+			"WHERE (NOT (name=?)) AND (age<?)",
+			"WHERE (NOT (name=$1)) AND (age<$2)",
+			[]interface{}{"Fred", 10},
+		},
+
+		{
+			Not(nameEqFred).Or(ageLt10),
+			"WHERE (NOT (name=?)) OR (age<?)",
+			"WHERE (NOT (name=$1)) OR (age<$2)",
+			[]interface{}{"Fred", 10},
+		},
+
+		{
 			And(nameEqFred, ageLt10),
 			"WHERE (name=?) AND (age<?)",
 			"WHERE (name=$1) AND (age<$2)",

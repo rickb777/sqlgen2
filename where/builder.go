@@ -85,6 +85,18 @@ func Not(el Expression) Expression {
 	return not{el}
 }
 
+// And combines two conditions into a clause that requires they are both true.
+func (cl not) And(c2 Expression) Clause {
+	return Clause{[]Expression{cl}, and}.And(c2)
+}
+
+// Or combines two conditions into a clause that requires either is true.
+func (cl not) Or(c2 Expression) Clause {
+	return Clause{[]Expression{cl}, or}.Or(c2)
+}
+
+//-------------------------------------------------------------------------------------------------
+
 // NoOp creates an empty expression.
 func NoOp() Expression {
 	return Clause{}
@@ -101,6 +113,8 @@ func (cl Condition) And(c2 Expression) Clause {
 func (cl Condition) Or(c2 Expression) Clause {
 	return Clause{[]Expression{cl}, or}.Or(c2)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // And combines two clauses into a clause that requires they are both true.
 // SQL implementation note: AND has higher precedence than OR.
@@ -133,6 +147,8 @@ func (wh Clause) And(exp Expression) Clause {
 func (wh Clause) Or(exp Expression) Clause {
 	return wh.conjoin(exp, or)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // And combines some expressions into a clause that requires they are all true.
 func And(exp ...Expression) Clause {
