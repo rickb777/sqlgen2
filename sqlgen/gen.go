@@ -20,7 +20,7 @@ func main() {
 	var genSchema, genFuncs, gofmt bool
 
 	flag.StringVar(&oFile, "o", "", "output file name (or file path); if omitted, the first input filename is used with _sql.go suffix")
-	flag.StringVar(&typeName, "type", "", "type to generate; required")
+	flag.StringVar(&typeName, "type", "", "type to analyse; required")
 	flag.StringVar(&prefix, "prefix", "", "prefix for names of generated types; optional")
 	flag.StringVar(&list, "list", "", "list type for slice of model objects; optional")
 	flag.StringVar(&kind, "kind", "Table", "kind of model: default is Table but you could use View, Join etc as required")

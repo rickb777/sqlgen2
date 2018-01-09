@@ -18,26 +18,32 @@ go get -u github.com/rickb777/sqlgen2
 sqlgen [option [arg]] file.go ...
 
 Options:
-  -type string
-    	type to generate; required
-  -prefix
-        prefix for names of generated types; optional
-  -file string
-    	input file name; required
+  -type pkg.Type
+    	primary type to analyse, which must be a struct type; required
   -o string
     	output file name; required
   -tags string
     	a YAML file containing tags that augment and override any attached to the fields in Go struct(s); optional
-  -schema
+  -list string
+    	names some type that is a collection of the primary type; optional; otherwise []*Type is used
+  -prefix string
+        prefix for names of generated types; optional, default is blank
+  -kind string
+    	suffix for names of generated types to indicate the intent; optional, default is "Table" but you might find nouns like "Join" or "View" are helpful
+  -schema=true
     	generate sql schema and queries; default true
-  -funcs
+  -funcs=true
     	generate sql crud functions; default true
+  -setters string
+    	generate setter methods for fields in the primary type: none, optional (i.e. fields that are pointers), exported, all; default: none
   -gofmt
     	format and simplify the generated code nicely; default false
   -v
     	verbose progress; default false
   -z
     	debug info; default false
+  -ast
+    	debug AST info; default false
 ```
 
 ### Tutorial
