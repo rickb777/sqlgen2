@@ -26,6 +26,8 @@ Options:
     	input file name; required
   -o string
     	output file name; required
+  -tags string
+    	a YAML file containing tags that augment and override any attached to the fields in Go struct(s); optional
   -schema
     	generate sql schema and queries; default true
   -funcs
@@ -251,6 +253,31 @@ CREATE TALBE IF NOT EXISTS users (
  addr_state TEXT,
  addr_zip   TEXT
 );
+```
+
+### Shared Nested Structs With Tags
+
+If you want to nest a struct into several types that you want to process with sqlgen, you might run up against a challenge: the field tags needed in one case might be inappropriate for another case. But there's an easy way around this issue: you can supply a Yaml file that sets the tags needed in each case. The Yaml file has tags that override the tags in the Go source code.
+
+If you prefer, you can even use this approach for all tags; this means you don't need *any* tags in the Go source code.
+
+This example has two fields with tags.
+
+```go
+type User struct {
+    Uid uint64 `sql:"pk: true, auto: true"`
+    Name       `sql:"name: username"`
+}
+```
+
+The Yaml below overrides the tags. When used, the effect is that the `Uid` field would be neither primary key nor auto-incrementing. The `Name` field would have size 50 instead of the default (255), but the `name: username` setting would be kept.
+
+```yaml
+Uid:
+  pk:   false
+  auto: false
+Name:
+  size: 50
 ```
 
 ### JSON Encoding

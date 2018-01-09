@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	var oFile, typeName, prefix, list, kind, genSetters string
+	var oFile, typeName, prefix, list, kind, tagsFile, genSetters string
 	var genSchema, genFuncs, gofmt bool
 
 	flag.StringVar(&oFile, "o", "", "output file name (or file path); if omitted, the first input filename is used with _sql.go suffix")
@@ -24,6 +24,7 @@ func main() {
 	flag.StringVar(&prefix, "prefix", "", "prefix for names of generated types; optional")
 	flag.StringVar(&list, "list", "", "list type for slice of model objects; optional")
 	flag.StringVar(&kind, "kind", "Table", "kind of model: default is Table but you could use View, Join etc as required")
+	flag.StringVar(&tagsFile, "tags", "", "a YAML file containing tags that augment and override any in the Go struct(s); optional")
 	flag.BoolVar(&Verbose, "v", false, "progress messages")
 	flag.BoolVar(&parse.Debug, "z", false, "debug messages")
 	flag.BoolVar(&parse.PrintAST, "ast", false, "trace the whole astract syntax tree (very verbose)")
@@ -58,8 +59,13 @@ func main() {
 
 	o := NewOutput(oFile)
 
+	tags, err := parse.ReadTagsFile(tagsFile)
+	if err != nil && err != os.ErrNotExist{
+		exit.Fail(1, "Tags file %s failed: %s.\n", tagsFile, err)
+	}
+
 	// load the Tree into a schema Object
-	table, err := load(pkgStore, parse.LType{pkg, name}, mainPkg)
+	table, err := load(pkgStore, parse.LType{pkg, name}, mainPkg, tags)
 	if parse.Debug {
 		utter.Dump(table)
 	}

@@ -3,6 +3,8 @@ package parse
 import (
 	"reflect"
 	"testing"
+	"os"
+	"io/ioutil"
 )
 
 func TestParseTag(t *testing.T) {
@@ -63,5 +65,44 @@ func TestParseTag(t *testing.T) {
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("Wanted Tag %+v, got Tag %+v", want, got)
 		}
+	}
+}
+
+func TestReadTagsFile(t *testing.T) {
+	file := os.TempDir() + "/sqlgen2-test.yaml"
+	defer os.Remove(file)
+
+	yml := `
+Id:
+  pk: true
+  auto: true
+
+Foo:
+  name: fooish
+  type: blob
+`
+
+	err := ioutil.WriteFile(file, []byte(yml), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tags, err := ReadTagsFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(tags) != 2 {
+		t.Errorf("Wanted 2, got %d", len(tags))
+	}
+
+	id := tags["Id"]
+	if !reflect.DeepEqual(id, Tag{Primary: true, Auto: true}) {
+		t.Errorf("Got %+v", id)
+	}
+
+	foo := tags["Foo"]
+	if !reflect.DeepEqual(foo, Tag{Name: "fooish", Type: "blob"}) {
+		t.Errorf("Got %+v", id)
 	}
 }

@@ -89,7 +89,7 @@ func (st PackageStore) FindStruct(name LType) (*types.Struct, map[string]Tag) {
 	return s, tags
 }
 
-func (st PackageStore) FindTags(name LType) map[string]Tag {
+func (st PackageStore) FindTags(name LType) Tags {
 	tags, err := findTags(st[name.PkgName].Files, name)
 	if err != nil {
 		exit.Fail(4, "%s: tag error: %s\n", name, err)
@@ -98,13 +98,13 @@ func (st PackageStore) FindTags(name LType) map[string]Tag {
 	return tags
 }
 
-func findTags(files []*ast.File, name LType) (map[string]Tag, error) {
+func findTags(files []*ast.File, name LType) (Tags, error) {
 	typeSpec, _ := findTypeDecl(files, name)
 	if typeSpec == nil {
 		return nil, nil
 	}
 
-	tags := make(map[string]Tag)
+	tags := make(Tags)
 
 	switch st := typeSpec.Type.(type) {
 	case *ast.StructType:

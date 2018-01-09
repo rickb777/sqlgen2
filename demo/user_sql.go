@@ -239,53 +239,17 @@ func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 
-	err = tbl.CreateUserEmailIndex(ifNotExist)
-	if err != nil {
-		return err
-	}
-
 	err = tbl.CreateUserLoginIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-// CreateUserEmailIndex creates the user_email index.
-func (tbl DbUserTable) CreateUserEmailIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
-
-	// Mysql does not support 'if not exists' on indexes
-	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
-
-	if ifNotExist && tbl.dialect == schema.Mysql {
-		tbl.DropUserEmailIndex(false)
-		ine = ""
+	err = tbl.CreateUserEmailIndex(ifNotExist)
+	if err != nil {
+		return err
 	}
 
-	_, err := tbl.Exec(tbl.createDbUserEmailIndexSql(ine))
-	return err
-}
-
-func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.prefix, tbl.name, sqlDbUserEmailIndexColumns)
-}
-
-// DropUserEmailIndex drops the user_email index.
-func (tbl DbUserTable) DropUserEmailIndex(ifExists bool) error {
-	_, err := tbl.Exec(tbl.dropDbUserEmailIndexSql(ifExists))
-	return err
-}
-
-func (tbl DbUserTable) dropDbUserEmailIndexSql(ifExists bool) string {
-	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ie, indexPrefix, onTbl)
+	return nil
 }
 
 // CreateUserLoginIndex creates the user_login index.
@@ -324,15 +288,51 @@ func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists bool) string {
 	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ie, indexPrefix, onTbl)
 }
 
+// CreateUserEmailIndex creates the user_email index.
+func (tbl DbUserTable) CreateUserEmailIndex(ifNotExist bool) error {
+	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
+
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+
+	if ifNotExist && tbl.dialect == schema.Mysql {
+		tbl.DropUserEmailIndex(false)
+		ine = ""
+	}
+
+	_, err := tbl.Exec(tbl.createDbUserEmailIndexSql(ine))
+	return err
+}
+
+func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExists string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.prefix, tbl.name, sqlDbUserEmailIndexColumns)
+}
+
+// DropUserEmailIndex drops the user_email index.
+func (tbl DbUserTable) DropUserEmailIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropDbUserEmailIndexSql(ifExists))
+	return err
+}
+
+func (tbl DbUserTable) dropDbUserEmailIndexSql(ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ie, indexPrefix, onTbl)
+}
+
 // DropIndexes executes queries that drop the indexes on by the User table.
 func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 
-	err = tbl.DropUserEmailIndex(ifExist)
+	err = tbl.DropUserLoginIndex(ifExist)
 	if err != nil {
 		return err
 	}
 
-	err = tbl.DropUserLoginIndex(ifExist)
+	err = tbl.DropUserEmailIndex(ifExist)
 	if err != nil {
 		return err
 	}
@@ -342,9 +342,9 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-const sqlDbUserEmailIndexColumns = "emailaddress"
-
 const sqlDbUserLoginIndexColumns = "login"
+
+const sqlDbUserEmailIndexColumns = "emailaddress"
 
 //--------------------------------------------------------------------------------
 

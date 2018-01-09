@@ -58,7 +58,7 @@ type Date struct {
 			t.Fatalf("Error parsing: %s", err)
 		}
 
-		table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
+		table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
 		if err != nil {
 			t.Fatalf("Error loading: %s", err)
 		}
@@ -107,7 +107,7 @@ type Author struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -153,7 +153,7 @@ type Category int32
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -196,7 +196,7 @@ type Example struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -215,6 +215,61 @@ type Example struct {
 		},
 		Index: []*Index{
 			idx,
+		},
+	}
+
+	if !reflect.DeepEqual(table, expected) {
+		ex := utter.Sdump(expected)
+		ac := utter.Sdump(table)
+		outputDiff(ex, "expected.txt")
+		outputDiff(ac, "got.txt")
+		t.Errorf("expected | got\n%s\n", sideBySideDiff(ex, ac))
+	}
+}
+
+func TestParseAndLoad_overriddenTags(t *testing.T) {
+	exit.TestableExit()
+	Debug = true
+	code := strings.Replace(`package pkg1
+
+type Example struct {
+	Aaa string  |sql:"size: 32, index: foo"|
+	Author
+}
+
+type Author struct {
+	Name string  |sql:"name: author"|
+}
+`, "|", "`", -1)
+
+	source := Source{"issue.go", bytes.NewBufferString(code)}
+
+	pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+	if err != nil {
+		t.Fatalf("Error parsing: %s", err)
+	}
+
+	fileTags := map[string]Tag{
+		"Aaa": Tag{Name: "xxx", Size: 10},
+		"Name": Tag{Name: "writer"},
+	}
+
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", fileTags)
+	if err != nil {
+		t.Fatalf("Error loading: %s", err)
+	}
+
+	p1 := &Node{Name: "Author", Type: Type{PkgName: "pkg1", Name: "Author", Base: Struct}}
+
+	aaa := &Field{Node{"Aaa", Type{"", "", "string", false, String}, nil}, "xxx", ENCNONE, Tag{Name: "xxx", Size: 10}}
+	name := &Field{Node{"Name", Type{"", "", "string", false, String}, p1}, "writer", ENCNONE, Tag{Name: "writer"}}
+
+	expected := &TableDescription{
+		Type: "Example",
+		Name: "examples",
+		Fields: FieldList{
+			aaa,
+			name,
 		},
 	}
 
@@ -263,7 +318,7 @@ type Author struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -328,7 +383,7 @@ type Example struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -402,7 +457,7 @@ type Commit struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1")
+	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}

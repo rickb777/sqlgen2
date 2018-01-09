@@ -6,6 +6,9 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v2"
+	"os"
+	"io/ioutil"
+	"bytes"
 )
 
 const TagKey = "sql"
@@ -57,10 +60,46 @@ func ParseTag(raw string) (*Tag, error) {
 	return tag, err
 }
 
+type Tags map[string]Tag
+
+func (tags Tags) String() string {
+	b := &bytes.Buffer{}
+	for n, t := range tags {
+		fmt.Fprintf(b, "%-10s: %+v\n", n, t)
+	}
+	return b.String()
+}
+
 func topAndTail(s string) string {
 	last := len(s) - 1
 	if len(s) >= 2 && s[0] == s[last] {
 		return s[1:last]
 	}
 	return s
+}
+
+func ReadTagsFile(file string) (Tags, error) {
+	if file == "" {
+		return nil, nil
+	}
+
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	tags := make(Tags)
+
+	err = yaml.Unmarshal(b, tags)
+	if err != nil {
+		return nil, err
+	}
+
+	DevInfo("tags from %s\n%s\n", file, tags)
+	return tags, nil
 }
