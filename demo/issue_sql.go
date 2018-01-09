@@ -14,18 +14,15 @@ import (
 	"strings"
 )
 
-// IssueTableName is the default name for this table.
-const IssueTableName = "issues"
-
 // IssueTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type IssueTable struct {
-	Prefix, Name string
-	Db           sqlgen2.Execer
-	Ctx          context.Context
-	Dialect      schema.Dialect
-	Logger       *log.Logger
+	prefix, name string
+	db           sqlgen2.Execer
+	ctx          context.Context
+	dialect      schema.Dialect
+	logger       *log.Logger
 }
 
 // Type conformance check
@@ -36,76 +33,101 @@ var _ sqlgen2.Table = &IssueTable{}
 // The table name prefix is initially blank and the request context is the background.
 func NewIssueTable(name string, d sqlgen2.Execer, dialect schema.Dialect) IssueTable {
 	if name == "" {
-		name = IssueTableName
+		name = "issues"
 	}
 	return IssueTable{"", name, d, context.Background(), dialect, nil}
 }
 
-// WithPrefix sets the prefix for subsequent queries.
+// WithPrefix sets the table name prefix for subsequent queries.
 func (tbl IssueTable) WithPrefix(pfx string) IssueTable {
-	tbl.Prefix = pfx
+	tbl.prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
 func (tbl IssueTable) WithContext(ctx context.Context) IssueTable {
-	tbl.Ctx = ctx
+	tbl.ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
 func (tbl IssueTable) WithLogger(logger *log.Logger) IssueTable {
-	tbl.Logger = logger
+	tbl.logger = logger
 	return tbl
+}
+
+// Ctx gets the current request context.
+func (tbl IssueTable) Ctx() context.Context {
+	return tbl.ctx
+}
+
+// Dialect gets the database dialect.
+func (tbl IssueTable) Dialect() schema.Dialect {
+	return tbl.dialect
+}
+
+// Logger gets the trace logger.
+func (tbl IssueTable) Logger() *log.Logger {
+	return tbl.logger
 }
 
 // SetLogger sets the logger for subsequent queries, returning the interface.
 func (tbl IssueTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.Logger = logger
+	tbl.logger = logger
 	return tbl
+}
+
+// Name gets the table name.
+func (tbl IssueTable) Name() string {
+	return tbl.name
+}
+
+// Prefix gets the table name prefix.
+func (tbl IssueTable) Prefix() string {
+	return tbl.prefix
 }
 
 // FullName gets the concatenated prefix and table name.
 func (tbl IssueTable) FullName() string {
-	return tbl.Prefix + tbl.Name
+	return tbl.prefix + tbl.name
 }
 
 func (tbl IssueTable) prefixWithoutDot() string {
-	last := len(tbl.Prefix)-1
-	if last > 0 && tbl.Prefix[last] == '.' {
-		return tbl.Prefix[0:last]
+	last := len(tbl.prefix)-1
+	if last > 0 && tbl.prefix[last] == '.' {
+		return tbl.prefix[0:last]
 	}
-	return tbl.Prefix
+	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl IssueTable) DB() *sql.DB {
-	return tbl.Db.(*sql.DB)
+	return tbl.db.(*sql.DB)
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl IssueTable) Tx() *sql.Tx {
-	return tbl.Db.(*sql.Tx)
+	return tbl.db.(*sql.Tx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl IssueTable) IsTx() bool {
-	_, ok := tbl.Db.(*sql.Tx)
+	_, ok := tbl.db.(*sql.Tx)
 	return ok
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
 func (tbl IssueTable) BeginTx(opts *sql.TxOptions) (IssueTable, error) {
-	d := tbl.Db.(*sql.DB)
+	d := tbl.db.(*sql.DB)
 	var err error
-	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
+	tbl.db, err = d.BeginTx(tbl.ctx, opts)
 	return tbl, err
 }
 
 func (tbl IssueTable) logQuery(query string, args ...interface{}) {
-	sqlgen2.LogQuery(tbl.Logger, query, args...)
+	sqlgen2.LogQuery(tbl.logger, query, args...)
 }
 
 
@@ -128,13 +150,13 @@ func (tbl IssueTable) CreateTable(ifNotExists bool) (int64, error) {
 
 func (tbl IssueTable) createTableSql(ifNotExists bool) string {
 	var stmt string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Sqlite: stmt = sqlCreateIssueTableSqlite
     case schema.Postgres: stmt = sqlCreateIssueTablePostgres
     case schema.Mysql: stmt = sqlCreateIssueTableMysql
     }
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf(stmt, extra, tbl.prefix, tbl.name)
 	return query
 }
 
@@ -152,7 +174,7 @@ func (tbl IssueTable) DropTable(ifExists bool) (int64, error) {
 
 func (tbl IssueTable) dropTableSql(ifExists bool) string {
 	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.prefix, tbl.name)
 	return query
 }
 
@@ -220,12 +242,12 @@ func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreateIssueAssigneeIndex creates the issue_assignee index.
 func (tbl IssueTable) CreateIssueAssigneeIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect == schema.Mysql {
+	if ifNotExist && tbl.dialect == schema.Mysql {
 		tbl.DropIssueAssigneeIndex(false)
 		ine = ""
 	}
@@ -237,7 +259,7 @@ func (tbl IssueTable) CreateIssueAssigneeIndex(ifNotExist bool) error {
 func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("CREATE INDEX %s%sissue_assignee ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.Prefix, tbl.Name, sqlIssueAssigneeIndexColumns)
+		tbl.prefix, tbl.name, sqlIssueAssigneeIndexColumns)
 }
 
 // DropIssueAssigneeIndex drops the issue_assignee index.
@@ -248,8 +270,8 @@ func (tbl IssueTable) DropIssueAssigneeIndex(ifExists bool) error {
 
 func (tbl IssueTable) dropIssueAssigneeIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
+	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%sissue_assignee%s", ie, indexPrefix, onTbl)
 }
@@ -276,7 +298,7 @@ const sqlIssueAssigneeIndexColumns = "assignee"
 // It returns the number of rows affected (of the database drive supports this).
 func (tbl IssueTable) Exec(query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
-	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
+	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -303,7 +325,7 @@ func (tbl IssueTable) Query(query string, args ...interface{}) ([]*Issue, error)
 
 func (tbl IssueTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*Issue, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +338,7 @@ func (tbl IssueTable) doQuery(firstOnly bool, query string, args ...interface{})
 // GetIssue gets the record with a given primary key value.
 // If not found, *Issue will be nil.
 func (tbl IssueTable) GetIssue(id int64) (*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", IssueColumnNames, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", IssueColumnNames, tbl.prefix, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 
@@ -366,10 +388,10 @@ func (tbl IssueTable) SliceState(where where.Expression, orderBy string) ([]stri
 
 
 func (tbl IssueTable) getDatelist(sqlname string, where where.Expression, orderBy string) ([]Date, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -388,10 +410,10 @@ func (tbl IssueTable) getDatelist(sqlname string, where where.Expression, orderB
 }
 
 func (tbl IssueTable) getintlist(sqlname string, where where.Expression, orderBy string) ([]int, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -410,10 +432,10 @@ func (tbl IssueTable) getintlist(sqlname string, where where.Expression, orderBy
 }
 
 func (tbl IssueTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -432,10 +454,10 @@ func (tbl IssueTable) getint64list(sqlname string, where where.Expression, order
 }
 
 func (tbl IssueTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -461,7 +483,7 @@ func (tbl IssueTable) getstringlist(sqlname string, where where.Expression, orde
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *Issue will be nil.
 func (tbl IssueTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", IssueColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", IssueColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -469,36 +491,36 @@ func (tbl IssueTable) SelectOneSA(where, orderBy string, args ...interface{}) (*
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *Example will be nil.
 func (tbl IssueTable) SelectOne(where where.Expression, orderBy string) (*Issue, error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Issues to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", IssueColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", IssueColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Issues to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl IssueTable) Select(where where.Expression, orderBy string) ([]*Issue, error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.SelectSA(wh, orderBy, args...)
 }
 
 // CountSA counts Issues in the table that match a 'where' clause.
 func (tbl IssueTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
 	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
 	return count, err
 }
 
 // Count counts the Issues in the table that match a 'where' clause.
 func (tbl IssueTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.CountSA(wh, args...)
 }
 
@@ -511,15 +533,15 @@ const IssueColumnNames = "id, number, date, title, bigbody, assignee, state, lab
 // The Issue.PreInsert(Execer) method will be called, if it exists.
 func (tbl IssueTable) Insert(vv ...*Issue) error {
 	var params string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Postgres:
 		params = sIssueDataColumnParamsPostgres
 	default:
 		params = sIssueDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsertIssue, tbl.Prefix, tbl.Name, params)
-	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
+	query := fmt.Sprintf(sqlInsertIssue, tbl.prefix, tbl.name, params)
+	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
 	}
@@ -577,9 +599,9 @@ func (tbl IssueTable) UpdateFields(where where.Expression, fields ...sql.NamedAr
 
 func (tbl IssueTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
-	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
-	whereClause, wargs := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
+	whereClause, wargs := where.Build(tbl.dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whereClause)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -590,14 +612,14 @@ func (tbl IssueTable) updateFields(where where.Expression, fields ...sql.NamedAr
 // The Issue.PreUpdate(Execer) method will be called, if it exists.
 func (tbl IssueTable) Update(vv ...*Issue) (int64, error) {
 	var stmt string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Postgres:
 		stmt = sqlUpdateIssueByPkPostgres
 	default:
 		stmt = sqlUpdateIssueByPkSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf(stmt, tbl.prefix, tbl.name)
 
 	var count int64
 	for _, v := range vv {
@@ -655,8 +677,8 @@ func (tbl IssueTable) Delete(where where.Expression) (int64, error) {
 }
 
 func (tbl IssueTable) deleteRows(where where.Expression) (string, []interface{}) {
-	whereClause, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
+	whereClause, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
 	return query, args
 }
 
@@ -668,7 +690,7 @@ func (tbl IssueTable) deleteRows(where where.Expression) (string, []interface{})
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
 func (tbl IssueTable) Truncate(force bool) (err error) {
-	for _, query := range tbl.Dialect.TruncateDDL(tbl.FullName(), force) {
+	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
 		_, err = tbl.Exec(query)
 		if err != nil {
 			return err

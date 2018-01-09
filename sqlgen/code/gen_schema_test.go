@@ -37,13 +37,13 @@ func (tbl XExampleTable) CreateTable(ifNotExists bool) (int64, error) {
 
 func (tbl XExampleTable) createTableSql(ifNotExists bool) string {
 	var stmt string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Sqlite: stmt = sqlCreateXExampleTableSqlite
     case schema.Postgres: stmt = sqlCreateXExampleTablePostgres
     case schema.Mysql: stmt = sqlCreateXExampleTableMysql
     }
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf(stmt, extra, tbl.prefix, tbl.name)
 	return query
 }
 
@@ -61,7 +61,7 @@ func (tbl XExampleTable) DropTable(ifExists bool) (int64, error) {
 
 func (tbl XExampleTable) dropTableSql(ifExists bool) string {
 	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.prefix, tbl.name)
 	return query
 }
 
@@ -146,12 +146,12 @@ func (tbl XExampleTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreateCatIdxIndex creates the catIdx index.
 func (tbl XExampleTable) CreateCatIdxIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect == schema.Mysql {
+	if ifNotExist && tbl.dialect == schema.Mysql {
 		tbl.DropCatIdxIndex(false)
 		ine = ""
 	}
@@ -163,7 +163,7 @@ func (tbl XExampleTable) CreateCatIdxIndex(ifNotExist bool) error {
 func (tbl XExampleTable) createXCatIdxIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("CREATE INDEX %s%scatIdx ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.Prefix, tbl.Name, sqlXCatIdxIndexColumns)
+		tbl.prefix, tbl.name, sqlXCatIdxIndexColumns)
 }
 
 // DropCatIdxIndex drops the catIdx index.
@@ -174,20 +174,20 @@ func (tbl XExampleTable) DropCatIdxIndex(ifExists bool) error {
 
 func (tbl XExampleTable) dropXCatIdxIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
+	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%scatIdx%s", ie, indexPrefix, onTbl)
 }
 
 // CreateNameIdxIndex creates the nameIdx index.
 func (tbl XExampleTable) CreateNameIdxIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect == schema.Mysql {
+	if ifNotExist && tbl.dialect == schema.Mysql {
 		tbl.DropNameIdxIndex(false)
 		ine = ""
 	}
@@ -199,7 +199,7 @@ func (tbl XExampleTable) CreateNameIdxIndex(ifNotExist bool) error {
 func (tbl XExampleTable) createXNameIdxIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%snameIdx ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.Prefix, tbl.Name, sqlXNameIdxIndexColumns)
+		tbl.prefix, tbl.name, sqlXNameIdxIndexColumns)
 }
 
 // DropNameIdxIndex drops the nameIdx index.
@@ -210,8 +210,8 @@ func (tbl XExampleTable) DropNameIdxIndex(ifExists bool) error {
 
 func (tbl XExampleTable) dropXNameIdxIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
+	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%snameIdx%s", ie, indexPrefix, onTbl)
 }

@@ -15,18 +15,15 @@ import (
 	"strings"
 )
 
-// DbUserTableName is the default name for this table.
-const DbUserTableName = "users"
-
 // DbUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DbUserTable struct {
-	Prefix, Name string
-	Db           sqlgen2.Execer
-	Ctx          context.Context
-	Dialect      schema.Dialect
-	Logger       *log.Logger
+	prefix, name string
+	db           sqlgen2.Execer
+	ctx          context.Context
+	dialect      schema.Dialect
+	logger       *log.Logger
 }
 
 // Type conformance check
@@ -37,76 +34,101 @@ var _ sqlgen2.Table = &DbUserTable{}
 // The table name prefix is initially blank and the request context is the background.
 func NewDbUserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) DbUserTable {
 	if name == "" {
-		name = DbUserTableName
+		name = "users"
 	}
 	return DbUserTable{"", name, d, context.Background(), dialect, nil}
 }
 
-// WithPrefix sets the prefix for subsequent queries.
+// WithPrefix sets the table name prefix for subsequent queries.
 func (tbl DbUserTable) WithPrefix(pfx string) DbUserTable {
-	tbl.Prefix = pfx
+	tbl.prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
 func (tbl DbUserTable) WithContext(ctx context.Context) DbUserTable {
-	tbl.Ctx = ctx
+	tbl.ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
 func (tbl DbUserTable) WithLogger(logger *log.Logger) DbUserTable {
-	tbl.Logger = logger
+	tbl.logger = logger
 	return tbl
+}
+
+// Ctx gets the current request context.
+func (tbl DbUserTable) Ctx() context.Context {
+	return tbl.ctx
+}
+
+// Dialect gets the database dialect.
+func (tbl DbUserTable) Dialect() schema.Dialect {
+	return tbl.dialect
+}
+
+// Logger gets the trace logger.
+func (tbl DbUserTable) Logger() *log.Logger {
+	return tbl.logger
 }
 
 // SetLogger sets the logger for subsequent queries, returning the interface.
 func (tbl DbUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.Logger = logger
+	tbl.logger = logger
 	return tbl
+}
+
+// Name gets the table name.
+func (tbl DbUserTable) Name() string {
+	return tbl.name
+}
+
+// Prefix gets the table name prefix.
+func (tbl DbUserTable) Prefix() string {
+	return tbl.prefix
 }
 
 // FullName gets the concatenated prefix and table name.
 func (tbl DbUserTable) FullName() string {
-	return tbl.Prefix + tbl.Name
+	return tbl.prefix + tbl.name
 }
 
 func (tbl DbUserTable) prefixWithoutDot() string {
-	last := len(tbl.Prefix)-1
-	if last > 0 && tbl.Prefix[last] == '.' {
-		return tbl.Prefix[0:last]
+	last := len(tbl.prefix)-1
+	if last > 0 && tbl.prefix[last] == '.' {
+		return tbl.prefix[0:last]
 	}
-	return tbl.Prefix
+	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl DbUserTable) DB() *sql.DB {
-	return tbl.Db.(*sql.DB)
+	return tbl.db.(*sql.DB)
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl DbUserTable) Tx() *sql.Tx {
-	return tbl.Db.(*sql.Tx)
+	return tbl.db.(*sql.Tx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl DbUserTable) IsTx() bool {
-	_, ok := tbl.Db.(*sql.Tx)
+	_, ok := tbl.db.(*sql.Tx)
 	return ok
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
 func (tbl DbUserTable) BeginTx(opts *sql.TxOptions) (DbUserTable, error) {
-	d := tbl.Db.(*sql.DB)
+	d := tbl.db.(*sql.DB)
 	var err error
-	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
+	tbl.db, err = d.BeginTx(tbl.ctx, opts)
 	return tbl, err
 }
 
 func (tbl DbUserTable) logQuery(query string, args ...interface{}) {
-	sqlgen2.LogQuery(tbl.Logger, query, args...)
+	sqlgen2.LogQuery(tbl.logger, query, args...)
 }
 
 
@@ -129,13 +151,13 @@ func (tbl DbUserTable) CreateTable(ifNotExists bool) (int64, error) {
 
 func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
 	var stmt string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Sqlite: stmt = sqlCreateDbUserTableSqlite
     case schema.Postgres: stmt = sqlCreateDbUserTablePostgres
     case schema.Mysql: stmt = sqlCreateDbUserTableMysql
     }
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf(stmt, extra, tbl.prefix, tbl.name)
 	return query
 }
 
@@ -153,7 +175,7 @@ func (tbl DbUserTable) DropTable(ifExists bool) (int64, error) {
 
 func (tbl DbUserTable) dropTableSql(ifExists bool) string {
 	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.prefix, tbl.name)
 	return query
 }
 
@@ -217,12 +239,12 @@ func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 
-	err = tbl.CreateUserLoginIndex(ifNotExist)
+	err = tbl.CreateUserEmailIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	err = tbl.CreateUserEmailIndex(ifNotExist)
+	err = tbl.CreateUserLoginIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
@@ -230,50 +252,14 @@ func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
-// CreateUserLoginIndex creates the user_login index.
-func (tbl DbUserTable) CreateUserLoginIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
-
-	// Mysql does not support 'if not exists' on indexes
-	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
-
-	if ifNotExist && tbl.Dialect == schema.Mysql {
-		tbl.DropUserLoginIndex(false)
-		ine = ""
-	}
-
-	_, err := tbl.Exec(tbl.createDbUserLoginIndexSql(ine))
-	return err
-}
-
-func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.Prefix, tbl.Name, sqlDbUserLoginIndexColumns)
-}
-
-// DropUserLoginIndex drops the user_login index.
-func (tbl DbUserTable) DropUserLoginIndex(ifExists bool) error {
-	_, err := tbl.Exec(tbl.dropDbUserLoginIndexSql(ifExists))
-	return err
-}
-
-func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists bool) string {
-	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ie, indexPrefix, onTbl)
-}
-
 // CreateUserEmailIndex creates the user_email index.
 func (tbl DbUserTable) CreateUserEmailIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect != schema.Mysql, "IF NOT EXISTS ", "")
+	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect == schema.Mysql {
+	if ifNotExist && tbl.dialect == schema.Mysql {
 		tbl.DropUserEmailIndex(false)
 		ine = ""
 	}
@@ -285,7 +271,7 @@ func (tbl DbUserTable) CreateUserEmailIndex(ifNotExist bool) error {
 func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.Prefix, tbl.Name, sqlDbUserEmailIndexColumns)
+		tbl.prefix, tbl.name, sqlDbUserEmailIndexColumns)
 }
 
 // DropUserEmailIndex drops the user_email index.
@@ -296,21 +282,57 @@ func (tbl DbUserTable) DropUserEmailIndex(ifExists bool) error {
 
 func (tbl DbUserTable) dropDbUserEmailIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.Prefix, tbl.Name), "")
+	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ie, indexPrefix, onTbl)
+}
+
+// CreateUserLoginIndex creates the user_login index.
+func (tbl DbUserTable) CreateUserLoginIndex(ifNotExist bool) error {
+	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
+
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+
+	if ifNotExist && tbl.dialect == schema.Mysql {
+		tbl.DropUserLoginIndex(false)
+		ine = ""
+	}
+
+	_, err := tbl.Exec(tbl.createDbUserLoginIndexSql(ine))
+	return err
+}
+
+func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExists string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.prefix, tbl.name, sqlDbUserLoginIndexColumns)
+}
+
+// DropUserLoginIndex drops the user_login index.
+func (tbl DbUserTable) DropUserLoginIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropDbUserLoginIndexSql(ifExists))
+	return err
+}
+
+func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ie, indexPrefix, onTbl)
 }
 
 // DropIndexes executes queries that drop the indexes on by the User table.
 func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 
-	err = tbl.DropUserLoginIndex(ifExist)
+	err = tbl.DropUserEmailIndex(ifExist)
 	if err != nil {
 		return err
 	}
 
-	err = tbl.DropUserEmailIndex(ifExist)
+	err = tbl.DropUserLoginIndex(ifExist)
 	if err != nil {
 		return err
 	}
@@ -320,9 +342,9 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-const sqlDbUserLoginIndexColumns = "login"
-
 const sqlDbUserEmailIndexColumns = "emailaddress"
+
+const sqlDbUserLoginIndexColumns = "login"
 
 //--------------------------------------------------------------------------------
 
@@ -331,7 +353,7 @@ const sqlDbUserEmailIndexColumns = "emailaddress"
 // It returns the number of rows affected (of the database drive supports this).
 func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
-	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
+	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -358,7 +380,7 @@ func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error)
 
 func (tbl DbUserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +393,7 @@ func (tbl DbUserTable) doQuery(firstOnly bool, query string, args ...interface{}
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl DbUserTable) GetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", DbUserColumnNames, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", DbUserColumnNames, tbl.prefix, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 
@@ -421,10 +443,10 @@ func (tbl DbUserTable) SliceLastUpdated(where where.Expression, orderBy string) 
 
 
 func (tbl DbUserTable) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -443,10 +465,10 @@ func (tbl DbUserTable) getboollist(sqlname string, where where.Expression, order
 }
 
 func (tbl DbUserTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -465,10 +487,10 @@ func (tbl DbUserTable) getint64list(sqlname string, where where.Expression, orde
 }
 
 func (tbl DbUserTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -494,7 +516,7 @@ func (tbl DbUserTable) getstringlist(sqlname string, where where.Expression, ord
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *User will be nil.
 func (tbl DbUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", DbUserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", DbUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -502,36 +524,36 @@ func (tbl DbUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *Example will be nil.
 func (tbl DbUserTable) SelectOne(where where.Expression, orderBy string) (*User, error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Users to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", DbUserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", DbUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Users to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl DbUserTable) Select(where where.Expression, orderBy string) ([]*User, error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.SelectSA(wh, orderBy, args...)
 }
 
 // CountSA counts Users in the table that match a 'where' clause.
 func (tbl DbUserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
 	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
 	return count, err
 }
 
 // Count counts the Users in the table that match a 'where' clause.
 func (tbl DbUserTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.CountSA(wh, args...)
 }
 
@@ -544,15 +566,15 @@ const DbUserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave
 // The User.PreInsert(Execer) method will be called, if it exists.
 func (tbl DbUserTable) Insert(vv ...*User) error {
 	var params string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Postgres:
 		params = sDbUserDataColumnParamsPostgres
 	default:
 		params = sDbUserDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsertDbUser, tbl.Prefix, tbl.Name, params)
-	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
+	query := fmt.Sprintf(sqlInsertDbUser, tbl.prefix, tbl.name, params)
+	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
 	}
@@ -612,9 +634,9 @@ func (tbl DbUserTable) UpdateFields(where where.Expression, fields ...sql.NamedA
 
 func (tbl DbUserTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
-	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
-	whereClause, wargs := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
+	whereClause, wargs := where.Build(tbl.dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whereClause)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -625,14 +647,14 @@ func (tbl DbUserTable) updateFields(where where.Expression, fields ...sql.NamedA
 // The User.PreUpdate(Execer) method will be called, if it exists.
 func (tbl DbUserTable) Update(vv ...*User) (int64, error) {
 	var stmt string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Postgres:
 		stmt = sqlUpdateDbUserByPkPostgres
 	default:
 		stmt = sqlUpdateDbUserByPkSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf(stmt, tbl.prefix, tbl.name)
 
 	var count int64
 	for _, v := range vv {
@@ -694,8 +716,8 @@ func (tbl DbUserTable) Delete(where where.Expression) (int64, error) {
 }
 
 func (tbl DbUserTable) deleteRows(where where.Expression) (string, []interface{}) {
-	whereClause, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
+	whereClause, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
 	return query, args
 }
 
@@ -707,7 +729,7 @@ func (tbl DbUserTable) deleteRows(where where.Expression) (string, []interface{}
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
 func (tbl DbUserTable) Truncate(force bool) (err error) {
-	for _, query := range tbl.Dialect.TruncateDDL(tbl.FullName(), force) {
+	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
 		_, err = tbl.Exec(query)
 		if err != nil {
 			return err

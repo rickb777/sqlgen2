@@ -14,18 +14,15 @@ import (
 	"strings"
 )
 
-// V2UserJoinName is the default name for this table.
-const V2UserJoinName = "users"
-
 // V2UserJoin holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type V2UserJoin struct {
-	Prefix, Name string
-	Db           sqlgen2.Execer
-	Ctx          context.Context
-	Dialect      schema.Dialect
-	Logger       *log.Logger
+	prefix, name string
+	db           sqlgen2.Execer
+	ctx          context.Context
+	dialect      schema.Dialect
+	logger       *log.Logger
 }
 
 // Type conformance check
@@ -36,76 +33,114 @@ var _ sqlgen2.Table = &V2UserJoin{}
 // The table name prefix is initially blank and the request context is the background.
 func NewV2UserJoin(name string, d sqlgen2.Execer, dialect schema.Dialect) V2UserJoin {
 	if name == "" {
-		name = V2UserJoinName
+		name = "users"
 	}
 	return V2UserJoin{"", name, d, context.Background(), dialect, nil}
 }
 
-// WithPrefix sets the prefix for subsequent queries.
+// CopyTableAsV2UserJoin copies a table instance, retaining the name etc but
+// providing methods appropriate for 'User'.
+func CopyTableAsV2UserJoin(origin sqlgen2.Table) V2UserJoin {
+	return V2UserJoin{
+		prefix:  origin.Prefix(),
+		name:    origin.Name(),
+		db:      origin.DB(),
+		ctx:     origin.Ctx(),
+		dialect: origin.Dialect(),
+		logger:  origin.Logger(),
+	}
+}
+
+// WithPrefix sets the table name prefix for subsequent queries.
 func (tbl V2UserJoin) WithPrefix(pfx string) V2UserJoin {
-	tbl.Prefix = pfx
+	tbl.prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
 func (tbl V2UserJoin) WithContext(ctx context.Context) V2UserJoin {
-	tbl.Ctx = ctx
+	tbl.ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
 func (tbl V2UserJoin) WithLogger(logger *log.Logger) V2UserJoin {
-	tbl.Logger = logger
+	tbl.logger = logger
 	return tbl
+}
+
+// Ctx gets the current request context.
+func (tbl V2UserJoin) Ctx() context.Context {
+	return tbl.ctx
+}
+
+// Dialect gets the database dialect.
+func (tbl V2UserJoin) Dialect() schema.Dialect {
+	return tbl.dialect
+}
+
+// Logger gets the trace logger.
+func (tbl V2UserJoin) Logger() *log.Logger {
+	return tbl.logger
 }
 
 // SetLogger sets the logger for subsequent queries, returning the interface.
 func (tbl V2UserJoin) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.Logger = logger
+	tbl.logger = logger
 	return tbl
+}
+
+// Name gets the table name.
+func (tbl V2UserJoin) Name() string {
+	return tbl.name
+}
+
+// Prefix gets the table name prefix.
+func (tbl V2UserJoin) Prefix() string {
+	return tbl.prefix
 }
 
 // FullName gets the concatenated prefix and table name.
 func (tbl V2UserJoin) FullName() string {
-	return tbl.Prefix + tbl.Name
+	return tbl.prefix + tbl.name
 }
 
 func (tbl V2UserJoin) prefixWithoutDot() string {
-	last := len(tbl.Prefix)-1
-	if last > 0 && tbl.Prefix[last] == '.' {
-		return tbl.Prefix[0:last]
+	last := len(tbl.prefix)-1
+	if last > 0 && tbl.prefix[last] == '.' {
+		return tbl.prefix[0:last]
 	}
-	return tbl.Prefix
+	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl V2UserJoin) DB() *sql.DB {
-	return tbl.Db.(*sql.DB)
+	return tbl.db.(*sql.DB)
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl V2UserJoin) Tx() *sql.Tx {
-	return tbl.Db.(*sql.Tx)
+	return tbl.db.(*sql.Tx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl V2UserJoin) IsTx() bool {
-	_, ok := tbl.Db.(*sql.Tx)
+	_, ok := tbl.db.(*sql.Tx)
 	return ok
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
 func (tbl V2UserJoin) BeginTx(opts *sql.TxOptions) (V2UserJoin, error) {
-	d := tbl.Db.(*sql.DB)
+	d := tbl.db.(*sql.DB)
 	var err error
-	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
+	tbl.db, err = d.BeginTx(tbl.ctx, opts)
 	return tbl, err
 }
 
 func (tbl V2UserJoin) logQuery(query string, args ...interface{}) {
-	sqlgen2.LogQuery(tbl.Logger, query, args...)
+	sqlgen2.LogQuery(tbl.logger, query, args...)
 }
 
 
@@ -116,7 +151,7 @@ func (tbl V2UserJoin) logQuery(query string, args ...interface{}) {
 // It returns the number of rows affected (of the database drive supports this).
 func (tbl V2UserJoin) Exec(query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
-	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
+	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -143,7 +178,7 @@ func (tbl V2UserJoin) Query(query string, args ...interface{}) ([]*User, error) 
 
 func (tbl V2UserJoin) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +191,7 @@ func (tbl V2UserJoin) doQuery(firstOnly bool, query string, args ...interface{})
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl V2UserJoin) GetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", V2UserColumnNames, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", V2UserColumnNames, tbl.prefix, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 
@@ -206,10 +241,10 @@ func (tbl V2UserJoin) SliceLastUpdated(where where.Expression, orderBy string) (
 
 
 func (tbl V2UserJoin) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -228,10 +263,10 @@ func (tbl V2UserJoin) getboollist(sqlname string, where where.Expression, orderB
 }
 
 func (tbl V2UserJoin) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -250,10 +285,10 @@ func (tbl V2UserJoin) getint64list(sqlname string, where where.Expression, order
 }
 
 func (tbl V2UserJoin) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +314,7 @@ func (tbl V2UserJoin) getstringlist(sqlname string, where where.Expression, orde
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *User will be nil.
 func (tbl V2UserJoin) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", V2UserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", V2UserColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -287,36 +322,36 @@ func (tbl V2UserJoin) SelectOneSA(where, orderBy string, args ...interface{}) (*
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *Example will be nil.
 func (tbl V2UserJoin) SelectOne(where where.Expression, orderBy string) (*User, error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Users to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserJoin) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", V2UserColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", V2UserColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Users to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl V2UserJoin) Select(where where.Expression, orderBy string) ([]*User, error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.SelectSA(wh, orderBy, args...)
 }
 
 // CountSA counts Users in the table that match a 'where' clause.
 func (tbl V2UserJoin) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
 	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
 	return count, err
 }
 
 // Count counts the Users in the table that match a 'where' clause.
 func (tbl V2UserJoin) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.CountSA(wh, args...)
 }
 
@@ -329,15 +364,15 @@ const V2UserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave
 // The User.PreInsert(Execer) method will be called, if it exists.
 func (tbl V2UserJoin) Insert(vv ...*User) error {
 	var params string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Postgres:
 		params = sV2UserDataColumnParamsPostgres
 	default:
 		params = sV2UserDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsertV2User, tbl.Prefix, tbl.Name, params)
-	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
+	query := fmt.Sprintf(sqlInsertV2User, tbl.prefix, tbl.name, params)
+	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
 	}
@@ -397,9 +432,9 @@ func (tbl V2UserJoin) UpdateFields(where where.Expression, fields ...sql.NamedAr
 
 func (tbl V2UserJoin) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
-	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
-	whereClause, wargs := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
+	whereClause, wargs := where.Build(tbl.dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whereClause)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -410,14 +445,14 @@ func (tbl V2UserJoin) updateFields(where where.Expression, fields ...sql.NamedAr
 // The User.PreUpdate(Execer) method will be called, if it exists.
 func (tbl V2UserJoin) Update(vv ...*User) (int64, error) {
 	var stmt string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Postgres:
 		stmt = sqlUpdateV2UserByPkPostgres
 	default:
 		stmt = sqlUpdateV2UserByPkSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf(stmt, tbl.prefix, tbl.name)
 
 	var count int64
 	for _, v := range vv {
@@ -479,8 +514,8 @@ func (tbl V2UserJoin) Delete(where where.Expression) (int64, error) {
 }
 
 func (tbl V2UserJoin) deleteRows(where where.Expression) (string, []interface{}) {
-	whereClause, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
+	whereClause, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
 	return query, args
 }
 
@@ -492,7 +527,7 @@ func (tbl V2UserJoin) deleteRows(where where.Expression) (string, []interface{})
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
 func (tbl V2UserJoin) Truncate(force bool) (err error) {
-	for _, query := range tbl.Dialect.TruncateDDL(tbl.FullName(), force) {
+	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
 		_, err = tbl.Exec(query)
 		if err != nil {
 			return err

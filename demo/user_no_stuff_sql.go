@@ -11,18 +11,15 @@ import (
 	"log"
 )
 
-// V4UserTableName is the default name for this table.
-const V4UserTableName = "users"
-
 // V4UserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type V4UserTable struct {
-	Prefix, Name string
-	Db           sqlgen2.Execer
-	Ctx          context.Context
-	Dialect      schema.Dialect
-	Logger       *log.Logger
+	prefix, name string
+	db           sqlgen2.Execer
+	ctx          context.Context
+	dialect      schema.Dialect
+	logger       *log.Logger
 }
 
 // Type conformance check
@@ -33,76 +30,101 @@ var _ sqlgen2.Table = &V4UserTable{}
 // The table name prefix is initially blank and the request context is the background.
 func NewV4UserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) V4UserTable {
 	if name == "" {
-		name = V4UserTableName
+		name = "users"
 	}
 	return V4UserTable{"", name, d, context.Background(), dialect, nil}
 }
 
-// WithPrefix sets the prefix for subsequent queries.
+// WithPrefix sets the table name prefix for subsequent queries.
 func (tbl V4UserTable) WithPrefix(pfx string) V4UserTable {
-	tbl.Prefix = pfx
+	tbl.prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
 func (tbl V4UserTable) WithContext(ctx context.Context) V4UserTable {
-	tbl.Ctx = ctx
+	tbl.ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
 func (tbl V4UserTable) WithLogger(logger *log.Logger) V4UserTable {
-	tbl.Logger = logger
+	tbl.logger = logger
 	return tbl
+}
+
+// Ctx gets the current request context.
+func (tbl V4UserTable) Ctx() context.Context {
+	return tbl.ctx
+}
+
+// Dialect gets the database dialect.
+func (tbl V4UserTable) Dialect() schema.Dialect {
+	return tbl.dialect
+}
+
+// Logger gets the trace logger.
+func (tbl V4UserTable) Logger() *log.Logger {
+	return tbl.logger
 }
 
 // SetLogger sets the logger for subsequent queries, returning the interface.
 func (tbl V4UserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.Logger = logger
+	tbl.logger = logger
 	return tbl
+}
+
+// Name gets the table name.
+func (tbl V4UserTable) Name() string {
+	return tbl.name
+}
+
+// Prefix gets the table name prefix.
+func (tbl V4UserTable) Prefix() string {
+	return tbl.prefix
 }
 
 // FullName gets the concatenated prefix and table name.
 func (tbl V4UserTable) FullName() string {
-	return tbl.Prefix + tbl.Name
+	return tbl.prefix + tbl.name
 }
 
 func (tbl V4UserTable) prefixWithoutDot() string {
-	last := len(tbl.Prefix)-1
-	if last > 0 && tbl.Prefix[last] == '.' {
-		return tbl.Prefix[0:last]
+	last := len(tbl.prefix)-1
+	if last > 0 && tbl.prefix[last] == '.' {
+		return tbl.prefix[0:last]
 	}
-	return tbl.Prefix
+	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl V4UserTable) DB() *sql.DB {
-	return tbl.Db.(*sql.DB)
+	return tbl.db.(*sql.DB)
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl V4UserTable) Tx() *sql.Tx {
-	return tbl.Db.(*sql.Tx)
+	return tbl.db.(*sql.Tx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl V4UserTable) IsTx() bool {
-	_, ok := tbl.Db.(*sql.Tx)
+	_, ok := tbl.db.(*sql.Tx)
 	return ok
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
 func (tbl V4UserTable) BeginTx(opts *sql.TxOptions) (V4UserTable, error) {
-	d := tbl.Db.(*sql.DB)
+	d := tbl.db.(*sql.DB)
 	var err error
-	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
+	tbl.db, err = d.BeginTx(tbl.ctx, opts)
 	return tbl, err
 }
 
 func (tbl V4UserTable) logQuery(query string, args ...interface{}) {
-	sqlgen2.LogQuery(tbl.Logger, query, args...)
+	sqlgen2.LogQuery(tbl.logger, query, args...)
 }
 
 
@@ -113,7 +135,7 @@ func (tbl V4UserTable) logQuery(query string, args ...interface{}) {
 // It returns the number of rows affected (of the database drive supports this).
 func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
-	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
+	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -140,7 +162,7 @@ func (tbl V4UserTable) Query(query string, args ...interface{}) ([]*User, error)
 
 func (tbl V4UserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

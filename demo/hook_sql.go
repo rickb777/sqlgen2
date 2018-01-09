@@ -13,18 +13,15 @@ import (
 	"strings"
 )
 
-// HookTableName is the default name for this table.
-const HookTableName = "hooks"
-
 // HookTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type HookTable struct {
-	Prefix, Name string
-	Db           sqlgen2.Execer
-	Ctx          context.Context
-	Dialect      schema.Dialect
-	Logger       *log.Logger
+	prefix, name string
+	db           sqlgen2.Execer
+	ctx          context.Context
+	dialect      schema.Dialect
+	logger       *log.Logger
 }
 
 // Type conformance check
@@ -35,76 +32,101 @@ var _ sqlgen2.Table = &HookTable{}
 // The table name prefix is initially blank and the request context is the background.
 func NewHookTable(name string, d sqlgen2.Execer, dialect schema.Dialect) HookTable {
 	if name == "" {
-		name = HookTableName
+		name = "hooks"
 	}
 	return HookTable{"", name, d, context.Background(), dialect, nil}
 }
 
-// WithPrefix sets the prefix for subsequent queries.
+// WithPrefix sets the table name prefix for subsequent queries.
 func (tbl HookTable) WithPrefix(pfx string) HookTable {
-	tbl.Prefix = pfx
+	tbl.prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
 func (tbl HookTable) WithContext(ctx context.Context) HookTable {
-	tbl.Ctx = ctx
+	tbl.ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
 func (tbl HookTable) WithLogger(logger *log.Logger) HookTable {
-	tbl.Logger = logger
+	tbl.logger = logger
 	return tbl
+}
+
+// Ctx gets the current request context.
+func (tbl HookTable) Ctx() context.Context {
+	return tbl.ctx
+}
+
+// Dialect gets the database dialect.
+func (tbl HookTable) Dialect() schema.Dialect {
+	return tbl.dialect
+}
+
+// Logger gets the trace logger.
+func (tbl HookTable) Logger() *log.Logger {
+	return tbl.logger
 }
 
 // SetLogger sets the logger for subsequent queries, returning the interface.
 func (tbl HookTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.Logger = logger
+	tbl.logger = logger
 	return tbl
+}
+
+// Name gets the table name.
+func (tbl HookTable) Name() string {
+	return tbl.name
+}
+
+// Prefix gets the table name prefix.
+func (tbl HookTable) Prefix() string {
+	return tbl.prefix
 }
 
 // FullName gets the concatenated prefix and table name.
 func (tbl HookTable) FullName() string {
-	return tbl.Prefix + tbl.Name
+	return tbl.prefix + tbl.name
 }
 
 func (tbl HookTable) prefixWithoutDot() string {
-	last := len(tbl.Prefix)-1
-	if last > 0 && tbl.Prefix[last] == '.' {
-		return tbl.Prefix[0:last]
+	last := len(tbl.prefix)-1
+	if last > 0 && tbl.prefix[last] == '.' {
+		return tbl.prefix[0:last]
 	}
-	return tbl.Prefix
+	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl HookTable) DB() *sql.DB {
-	return tbl.Db.(*sql.DB)
+	return tbl.db.(*sql.DB)
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl HookTable) Tx() *sql.Tx {
-	return tbl.Db.(*sql.Tx)
+	return tbl.db.(*sql.Tx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl HookTable) IsTx() bool {
-	_, ok := tbl.Db.(*sql.Tx)
+	_, ok := tbl.db.(*sql.Tx)
 	return ok
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
 func (tbl HookTable) BeginTx(opts *sql.TxOptions) (HookTable, error) {
-	d := tbl.Db.(*sql.DB)
+	d := tbl.db.(*sql.DB)
 	var err error
-	tbl.Db, err = d.BeginTx(tbl.Ctx, opts)
+	tbl.db, err = d.BeginTx(tbl.ctx, opts)
 	return tbl, err
 }
 
 func (tbl HookTable) logQuery(query string, args ...interface{}) {
-	sqlgen2.LogQuery(tbl.Logger, query, args...)
+	sqlgen2.LogQuery(tbl.logger, query, args...)
 }
 
 
@@ -127,13 +149,13 @@ func (tbl HookTable) CreateTable(ifNotExists bool) (int64, error) {
 
 func (tbl HookTable) createTableSql(ifNotExists bool) string {
 	var stmt string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Sqlite: stmt = sqlCreateHookTableSqlite
     case schema.Postgres: stmt = sqlCreateHookTablePostgres
     case schema.Mysql: stmt = sqlCreateHookTableMysql
     }
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf(stmt, extra, tbl.prefix, tbl.name)
 	return query
 }
 
@@ -151,7 +173,7 @@ func (tbl HookTable) DropTable(ifExists bool) (int64, error) {
 
 func (tbl HookTable) dropTableSql(ifExists bool) string {
 	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.prefix, tbl.name)
 	return query
 }
 
@@ -228,7 +250,7 @@ CREATE TABLE %s%s%s (
 // It returns the number of rows affected (of the database drive supports this).
 func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
-	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
+	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -255,7 +277,7 @@ func (tbl HookTable) Query(query string, args ...interface{}) (HookList, error) 
 
 func (tbl HookTable) doQuery(firstOnly bool, query string, args ...interface{}) (HookList, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +290,7 @@ func (tbl HookTable) doQuery(firstOnly bool, query string, args ...interface{}) 
 // GetHook gets the record with a given primary key value.
 // If not found, *Hook will be nil.
 func (tbl HookTable) GetHook(id int64) (*Hook, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", HookColumnNames, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", HookColumnNames, tbl.prefix, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 
@@ -312,10 +334,10 @@ func (tbl HookTable) SliceForced(where where.Expression, orderBy string) ([]bool
 
 
 func (tbl HookTable) getCategorylist(sqlname string, where where.Expression, orderBy string) ([]Category, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -334,10 +356,10 @@ func (tbl HookTable) getCategorylist(sqlname string, where where.Expression, ord
 }
 
 func (tbl HookTable) getboollist(sqlname string, where where.Expression, orderBy string) ([]bool, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -356,10 +378,10 @@ func (tbl HookTable) getboollist(sqlname string, where where.Expression, orderBy
 }
 
 func (tbl HookTable) getint64list(sqlname string, where where.Expression, orderBy string) ([]int64, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -378,10 +400,10 @@ func (tbl HookTable) getint64list(sqlname string, where where.Expression, orderB
 }
 
 func (tbl HookTable) getstringlist(sqlname string, where where.Expression, orderBy string) ([]string, error) {
-	wh, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.Prefix, tbl.Name, wh, orderBy)
+	wh, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, wh, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -407,7 +429,7 @@ func (tbl HookTable) getstringlist(sqlname string, where where.Expression, order
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *Hook will be nil.
 func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Hook, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", HookColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", HookColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -415,36 +437,36 @@ func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*H
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *Example will be nil.
 func (tbl HookTable) SelectOne(where where.Expression, orderBy string) (*Hook, error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Hooks to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl HookTable) SelectSA(where, orderBy string, args ...interface{}) (HookList, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", HookColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", HookColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Hooks to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl HookTable) Select(where where.Expression, orderBy string) (HookList, error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.SelectSA(wh, orderBy, args...)
 }
 
 // CountSA counts Hooks in the table that match a 'where' clause.
 func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
 	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
 	return count, err
 }
 
 // Count counts the Hooks in the table that match a 'where' clause.
 func (tbl HookTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.CountSA(wh, args...)
 }
 
@@ -457,15 +479,15 @@ const HookColumnNames = "id, sha, after, before, category, created, deleted, for
 // The Hook.PreInsert(Execer) method will be called, if it exists.
 func (tbl HookTable) Insert(vv ...*Hook) error {
 	var params string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Postgres:
 		params = sHookDataColumnParamsPostgres
 	default:
 		params = sHookDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsertHook, tbl.Prefix, tbl.Name, params)
-	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
+	query := fmt.Sprintf(sqlInsertHook, tbl.prefix, tbl.name, params)
+	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
 	}
@@ -532,9 +554,9 @@ func (tbl HookTable) UpdateFields(where where.Expression, fields ...sql.NamedArg
 
 func (tbl HookTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
-	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
-	whereClause, wargs := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
+	whereClause, wargs := where.Build(tbl.dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whereClause)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -545,14 +567,14 @@ func (tbl HookTable) updateFields(where where.Expression, fields ...sql.NamedArg
 // The Hook.PreUpdate(Execer) method will be called, if it exists.
 func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 	var stmt string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Postgres:
 		stmt = sqlUpdateHookByPkPostgres
 	default:
 		stmt = sqlUpdateHookByPkSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf(stmt, tbl.prefix, tbl.name)
 
 	var count int64
 	for _, v := range vv {
@@ -628,8 +650,8 @@ func (tbl HookTable) Delete(where where.Expression) (int64, error) {
 }
 
 func (tbl HookTable) deleteRows(where where.Expression) (string, []interface{}) {
-	whereClause, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
+	whereClause, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
 	return query, args
 }
 
@@ -641,7 +663,7 @@ func (tbl HookTable) deleteRows(where where.Expression) (string, []interface{}) 
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
 func (tbl HookTable) Truncate(force bool) (err error) {
-	for _, query := range tbl.Dialect.TruncateDDL(tbl.FullName(), force) {
+	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
 		_, err = tbl.Exec(query)
 		if err != nil {
 			return err

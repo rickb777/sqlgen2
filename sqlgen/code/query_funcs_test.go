@@ -74,7 +74,7 @@ func (tbl XExampleTable) Query(query string, args ...interface{}) ([]*Example, e
 
 func (tbl XExampleTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*Example, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.Db.QueryContext(tbl.Ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func TestWriteGetRow(t *testing.T) {
 // GetExample gets the record with a given primary key value.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", XExampleColumnNames, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", XExampleColumnNames, tbl.prefix, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 `
@@ -137,7 +137,7 @@ func xTestWriteSelectItem(t *testing.T) {
 
 // Get gets the record with a given primary key value.
 func (tbl XExampleTable) Get(id int64) (*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", XExampleColumnNames, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", XExampleColumnNames, tbl.prefix, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 `
@@ -167,7 +167,7 @@ func TestWriteSelectRow(t *testing.T) {
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", XExampleColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", XExampleColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -175,36 +175,36 @@ func (tbl XExampleTable) SelectOneSA(where, orderBy string, args ...interface{})
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) SelectOne(where where.Expression, orderBy string) (*Example, error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.SelectOneSA(wh, orderBy, args...)
 }
 
 // SelectSA allows Examples to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl XExampleTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", XExampleColumnNames, tbl.Prefix, tbl.Name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", XExampleColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Examples to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 func (tbl XExampleTable) Select(where where.Expression, orderBy string) ([]*Example, error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.SelectSA(wh, orderBy, args...)
 }
 
 // CountSA counts Examples in the table that match a 'where' clause.
 func (tbl XExampleTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.Prefix, tbl.Name, where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
 	tbl.logQuery(query, args...)
-	row := tbl.Db.QueryRowContext(tbl.Ctx, query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
 	return count, err
 }
 
 // Count counts the Examples in the table that match a 'where' clause.
 func (tbl XExampleTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.Dialect)
+	wh, args := where.Build(tbl.dialect)
 	return tbl.CountSA(wh, args...)
 }
 
@@ -237,15 +237,15 @@ func TestWriteInsertFunc_noPK(t *testing.T) {
 // The Example.PreInsert(Execer) method will be called, if it exists.
 func (tbl XExampleTable) Insert(vv ...*Example) error {
 	var params string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Postgres:
 		params = sXExampleDataColumnParamsPostgres
 	default:
 		params = sXExampleDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsertXExample, tbl.Prefix, tbl.Name, params)
-	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
+	query := fmt.Sprintf(sqlInsertXExample, tbl.prefix, tbl.name, params)
+	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
 	}
@@ -309,15 +309,15 @@ func TestWriteInsertFunc_withPK(t *testing.T) {
 // The Example.PreInsert(Execer) method will be called, if it exists.
 func (tbl XExampleTable) Insert(vv ...*Example) error {
 	var params string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Postgres:
 		params = sXExampleDataColumnParamsPostgres
 	default:
 		params = sXExampleDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsertXExample, tbl.Prefix, tbl.Name, params)
-	st, err := tbl.Db.PrepareContext(tbl.Ctx, query)
+	query := fmt.Sprintf(sqlInsertXExample, tbl.prefix, tbl.name, params)
+	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
 	}
@@ -391,9 +391,9 @@ func (tbl XExampleTable) UpdateFields(where where.Expression, fields ...sql.Name
 
 func (tbl XExampleTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
-	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
-	whereClause, wargs := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
+	whereClause, wargs := where.Build(tbl.dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whereClause)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -427,9 +427,9 @@ func (tbl XExampleTable) UpdateFields(where where.Expression, fields ...sql.Name
 
 func (tbl XExampleTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
-	assignments := strings.Join(list.Assignments(tbl.Dialect, 1), ", ")
-	whereClause, wargs := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.Prefix, tbl.Name, assignments, whereClause)
+	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
+	whereClause, wargs := where.Build(tbl.dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whereClause)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -440,14 +440,14 @@ func (tbl XExampleTable) updateFields(where where.Expression, fields ...sql.Name
 // The Example.PreUpdate(Execer) method will be called, if it exists.
 func (tbl XExampleTable) Update(vv ...*Example) (int64, error) {
 	var stmt string
-	switch tbl.Dialect {
+	switch tbl.dialect {
 	case schema.Postgres:
 		stmt = sqlUpdateXExampleByPkPostgres
 	default:
 		stmt = sqlUpdateXExampleByPkSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.Prefix, tbl.Name)
+	query := fmt.Sprintf(stmt, tbl.prefix, tbl.name)
 
 	var count int64
 	for _, v := range vv {
@@ -514,8 +514,8 @@ func (tbl XExampleTable) Delete(where where.Expression) (int64, error) {
 }
 
 func (tbl XExampleTable) deleteRows(where where.Expression) (string, []interface{}) {
-	whereClause, args := where.Build(tbl.Dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.Prefix, tbl.Name, whereClause)
+	whereClause, args := where.Build(tbl.dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
 	return query, args
 }
 
@@ -527,7 +527,7 @@ func (tbl XExampleTable) deleteRows(where where.Expression) (string, []interface
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
 func (tbl XExampleTable) Truncate(force bool) (err error) {
-	for _, query := range tbl.Dialect.TruncateDDL(tbl.FullName(), force) {
+	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
 		_, err = tbl.Exec(query)
 		if err != nil {
 			return err
@@ -564,7 +564,7 @@ func TestWriteExecFunc(t *testing.T) {
 // It returns the number of rows affected (of the database drive supports this).
 func (tbl XExampleTable) Exec(query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
-	res, err := tbl.Db.ExecContext(tbl.Ctx, query, args...)
+	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}

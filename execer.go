@@ -5,6 +5,7 @@ import (
 	"context"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
+	"github.com/rickb777/sqlgen2/schema"
 )
 
 // Execer describes the methods of the core database API. See database/sql/DB and database/sql/Tx.
@@ -48,6 +49,12 @@ type CanPostGet interface {
 
 // Table provides the generic features of each generated table handler.
 type Table interface {
+	// Prefix gets the table name prefix.
+	Prefix() string
+
+	// Name gets the table name. without prefix
+	Name() string
+
 	// FullName gets the concatenated prefix and table name.
 	FullName() string
 
@@ -62,6 +69,16 @@ type Table interface {
 	// IsTx tests whether this is within a transaction.
 	IsTx() bool
 
+	// Ctx gets the current request context.
+	Ctx() context.Context
+
+	// Dialect gets the database dialect.
+	Dialect() schema.Dialect
+
+	// Logger gets the trace logger.
+	Logger() *log.Logger
+
+	// SetLogger sets the trace logger.
 	SetLogger(logger *log.Logger) Table
 }
 
