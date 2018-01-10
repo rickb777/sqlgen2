@@ -37,6 +37,19 @@ func NewDbCompoundTable(name string, d sqlgen2.Execer, dialect schema.Dialect) D
 	return DbCompoundTable{"", name, d, context.Background(), dialect, nil}
 }
 
+// CopyTableAsDbCompoundTable copies a table instance, retaining the name etc but
+// providing methods appropriate for 'Compound'.
+func CopyTableAsDbCompoundTable(origin sqlgen2.Table) DbCompoundTable {
+	return DbCompoundTable{
+		prefix:  origin.Prefix(),
+		name:    origin.Name(),
+		db:      origin.DB(),
+		ctx:     origin.Ctx(),
+		dialect: origin.Dialect(),
+		logger:  origin.Logger(),
+	}
+}
+
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl DbCompoundTable) WithPrefix(pfx string) DbCompoundTable {
 	tbl.prefix = pfx
@@ -336,6 +349,58 @@ func (tbl DbCompoundTable) doQuery(firstOnly bool, query string, args ...interfa
 
 //--------------------------------------------------------------------------------
 
+// SelectOneSA allows a single Compound to be obtained from the table that match a 'where' clause
+// and some limit.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, *Compound will be nil.
+func (tbl DbCompoundTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Compound, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", DbCompoundColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	return tbl.QueryOne(query, args...)
+}
+
+// SelectOne allows a single Compound to be obtained from the sqlgen2.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// If not found, *Example will be nil.
+func (tbl DbCompoundTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Compound, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectOneSA(whs, orderBy, args...)
+}
+
+// SelectSA allows Compounds to be obtained from the table that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+func (tbl DbCompoundTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Compound, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", DbCompoundColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	return tbl.Query(query, args...)
+}
+
+// Select allows Compounds to be obtained from the table that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl DbCompoundTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Compound, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectSA(whs, orderBy, args...)
+}
+
+// CountSA counts Compounds in the table that match a 'where' clause.
+func (tbl DbCompoundTable) CountSA(where string, args ...interface{}) (count int64, err error) {
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
+	tbl.logQuery(query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
+	err = row.Scan(&count)
+	return count, err
+}
+
+// Count counts the Compounds in the table that match a 'where' clause.
+func (tbl DbCompoundTable) Count(where where.Expression) (count int64, err error) {
+	wh, args := where.Build(tbl.dialect)
+	return tbl.CountSA(wh, args...)
+}
+
+const DbCompoundColumnNames = "alpha, beta, category"
+
+//--------------------------------------------------------------------------------
+
 // SliceAlpha gets the Alpha column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
 func (tbl DbCompoundTable) SliceAlpha(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
@@ -401,58 +466,6 @@ func (tbl DbCompoundTable) getstringlist(sqlname string, wh where.Expression, qc
 	return list, nil
 }
 
-
-//--------------------------------------------------------------------------------
-
-// SelectOneSA allows a single Compound to be obtained from the table that match a 'where' clause
-// and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, *Compound will be nil.
-func (tbl DbCompoundTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Compound, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", DbCompoundColumnNames, tbl.prefix, tbl.name, where, orderBy)
-	return tbl.QueryOne(query, args...)
-}
-
-// SelectOne allows a single Compound to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-// If not found, *Example will be nil.
-func (tbl DbCompoundTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Compound, error) {
-	whs, args := wh.Build(tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectOneSA(whs, orderBy, args...)
-}
-
-// SelectSA allows Compounds to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbCompoundTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Compound, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", DbCompoundColumnNames, tbl.prefix, tbl.name, where, orderBy)
-	return tbl.Query(query, args...)
-}
-
-// Select allows Compounds to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl DbCompoundTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Compound, error) {
-	whs, args := wh.Build(tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectSA(whs, orderBy, args...)
-}
-
-// CountSA counts Compounds in the table that match a 'where' clause.
-func (tbl DbCompoundTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
-	tbl.logQuery(query, args...)
-	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
-	err = row.Scan(&count)
-	return count, err
-}
-
-// Count counts the Compounds in the table that match a 'where' clause.
-func (tbl DbCompoundTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.CountSA(wh, args...)
-}
-
-const DbCompoundColumnNames = "alpha, beta, category"
 
 //--------------------------------------------------------------------------------
 
@@ -524,6 +537,17 @@ func (tbl DbCompoundTable) updateFields(where where.Expression, fields ...sql.Na
 	return query, args
 }
 
+func sliceDbCompound(v *Compound) ([]interface{}, error) {
+
+
+	return []interface{}{
+		v.Alpha,
+		v.Beta,
+		v.Category,
+
+	}, nil
+}
+
 //--------------------------------------------------------------------------------
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
@@ -580,15 +604,4 @@ func scanDbCompounds(rows *sql.Rows, firstOnly bool) ([]*Compound, error) {
 	}
 
 	return vv, rows.Err()
-}
-
-func sliceDbCompound(v *Compound) ([]interface{}, error) {
-
-
-	return []interface{}{
-		v.Alpha,
-		v.Beta,
-		v.Category,
-
-	}, nil
 }

@@ -11,14 +11,13 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
-	"math/big"
 	"strings"
 )
 
-// DbUserTable holds a given table name with the database reference, providing access methods below.
+// AUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
-type DbUserTable struct {
+type AUserTable struct {
 	prefix, name string
 	db           sqlgen2.Execer
 	ctx          context.Context
@@ -27,22 +26,22 @@ type DbUserTable struct {
 }
 
 // Type conformance check
-var _ sqlgen2.TableWithIndexes = &DbUserTable{}
+var _ sqlgen2.TableWithIndexes = &AUserTable{}
 
-// NewDbUserTable returns a new table instance.
+// NewAUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewDbUserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) DbUserTable {
+func NewAUserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) AUserTable {
 	if name == "" {
 		name = "users"
 	}
-	return DbUserTable{"", name, d, context.Background(), dialect, nil}
+	return AUserTable{"", name, d, context.Background(), dialect, nil}
 }
 
-// CopyTableAsDbUserTable copies a table instance, retaining the name etc but
+// CopyTableAsAUserTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'User'.
-func CopyTableAsDbUserTable(origin sqlgen2.Table) DbUserTable {
-	return DbUserTable{
+func CopyTableAsAUserTable(origin sqlgen2.Table) AUserTable {
+	return AUserTable{
 		prefix:  origin.Prefix(),
 		name:    origin.Name(),
 		db:      origin.DB(),
@@ -53,60 +52,60 @@ func CopyTableAsDbUserTable(origin sqlgen2.Table) DbUserTable {
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
-func (tbl DbUserTable) WithPrefix(pfx string) DbUserTable {
+func (tbl AUserTable) WithPrefix(pfx string) AUserTable {
 	tbl.prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
-func (tbl DbUserTable) WithContext(ctx context.Context) DbUserTable {
+func (tbl AUserTable) WithContext(ctx context.Context) AUserTable {
 	tbl.ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
-func (tbl DbUserTable) WithLogger(logger *log.Logger) DbUserTable {
+func (tbl AUserTable) WithLogger(logger *log.Logger) AUserTable {
 	tbl.logger = logger
 	return tbl
 }
 
 // Ctx gets the current request context.
-func (tbl DbUserTable) Ctx() context.Context {
+func (tbl AUserTable) Ctx() context.Context {
 	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
-func (tbl DbUserTable) Dialect() schema.Dialect {
+func (tbl AUserTable) Dialect() schema.Dialect {
 	return tbl.dialect
 }
 
 // Logger gets the trace logger.
-func (tbl DbUserTable) Logger() *log.Logger {
+func (tbl AUserTable) Logger() *log.Logger {
 	return tbl.logger
 }
 
 // SetLogger sets the logger for subsequent queries, returning the interface.
-func (tbl DbUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
+func (tbl AUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
 	return tbl
 }
 
 // Name gets the table name.
-func (tbl DbUserTable) Name() string {
+func (tbl AUserTable) Name() string {
 	return tbl.name
 }
 
 // Prefix gets the table name prefix.
-func (tbl DbUserTable) Prefix() string {
+func (tbl AUserTable) Prefix() string {
 	return tbl.prefix
 }
 
 // FullName gets the concatenated prefix and table name.
-func (tbl DbUserTable) FullName() string {
+func (tbl AUserTable) FullName() string {
 	return tbl.prefix + tbl.name
 }
 
-func (tbl DbUserTable) prefixWithoutDot() string {
+func (tbl AUserTable) prefixWithoutDot() string {
 	last := len(tbl.prefix)-1
 	if last > 0 && tbl.prefix[last] == '.' {
 		return tbl.prefix[0:last]
@@ -116,65 +115,65 @@ func (tbl DbUserTable) prefixWithoutDot() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl DbUserTable) DB() *sql.DB {
+func (tbl AUserTable) DB() *sql.DB {
 	return tbl.db.(*sql.DB)
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl DbUserTable) Tx() *sql.Tx {
+func (tbl AUserTable) Tx() *sql.Tx {
 	return tbl.db.(*sql.Tx)
 }
 
 // IsTx tests whether this is within a transaction.
-func (tbl DbUserTable) IsTx() bool {
+func (tbl AUserTable) IsTx() bool {
 	_, ok := tbl.db.(*sql.Tx)
 	return ok
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
-func (tbl DbUserTable) BeginTx(opts *sql.TxOptions) (DbUserTable, error) {
+func (tbl AUserTable) BeginTx(opts *sql.TxOptions) (AUserTable, error) {
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
 	return tbl, err
 }
 
-func (tbl DbUserTable) logQuery(query string, args ...interface{}) {
+func (tbl AUserTable) logQuery(query string, args ...interface{}) {
 	sqlgen2.LogQuery(tbl.logger, query, args...)
 }
 
 
 //--------------------------------------------------------------------------------
 
-const NumDbUserColumns = 10
+const NumAUserColumns = 10
 
-const NumDbUserDataColumns = 9
+const NumAUserDataColumns = 9
 
-const DbUserPk = "Uid"
+const AUserPk = "Uid"
 
-const DbUserDataColumnNames = "login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"
+const AUserDataColumnNames = "login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"
 
 //--------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl DbUserTable) CreateTable(ifNotExists bool) (int64, error) {
+func (tbl AUserTable) CreateTable(ifNotExists bool) (int64, error) {
 	return tbl.Exec(tbl.createTableSql(ifNotExists))
 }
 
-func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
+func (tbl AUserTable) createTableSql(ifNotExists bool) string {
 	var stmt string
 	switch tbl.dialect {
-	case schema.Sqlite: stmt = sqlCreateDbUserTableSqlite
-    case schema.Postgres: stmt = sqlCreateDbUserTablePostgres
-    case schema.Mysql: stmt = sqlCreateDbUserTableMysql
+	case schema.Sqlite: stmt = sqlCreateAUserTableSqlite
+    case schema.Postgres: stmt = sqlCreateAUserTablePostgres
+    case schema.Mysql: stmt = sqlCreateAUserTableMysql
     }
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.prefix, tbl.name)
 	return query
 }
 
-func (tbl DbUserTable) ternary(flag bool, a, b string) string {
+func (tbl AUserTable) ternary(flag bool, a, b string) string {
 	if flag {
 		return a
 	}
@@ -182,17 +181,17 @@ func (tbl DbUserTable) ternary(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl DbUserTable) DropTable(ifExists bool) (int64, error) {
+func (tbl AUserTable) DropTable(ifExists bool) (int64, error) {
 	return tbl.Exec(tbl.dropTableSql(ifExists))
 }
 
-func (tbl DbUserTable) dropTableSql(ifExists bool) string {
+func (tbl AUserTable) dropTableSql(ifExists bool) string {
 	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
 	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.prefix, tbl.name)
 	return query
 }
 
-const sqlCreateDbUserTableSqlite = `
+const sqlCreateAUserTableSqlite = `
 CREATE TABLE %s%s%s (
  uid          integer primary key autoincrement,
  login        text,
@@ -207,7 +206,7 @@ CREATE TABLE %s%s%s (
 )
 `
 
-const sqlCreateDbUserTablePostgres = `
+const sqlCreateAUserTablePostgres = `
 CREATE TABLE %s%s%s (
  uid          bigserial primary key,
  login        varchar(255),
@@ -222,7 +221,7 @@ CREATE TABLE %s%s%s (
 )
 `
 
-const sqlCreateDbUserTableMysql = `
+const sqlCreateAUserTableMysql = `
 CREATE TABLE %s%s%s (
  uid          bigint primary key auto_increment,
  login        varchar(255),
@@ -240,7 +239,7 @@ CREATE TABLE %s%s%s (
 //--------------------------------------------------------------------------------
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+func (tbl AUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 	_, err = tbl.CreateTable(ifNotExist)
 	if err != nil {
 		return err
@@ -250,7 +249,7 @@ func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 }
 
 // CreateIndexes executes queries that create the indexes needed by the User table.
-func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
+func (tbl AUserTable) CreateIndexes(ifNotExist bool) (err error) {
 
 	err = tbl.CreateUserLoginIndex(ifNotExist)
 	if err != nil {
@@ -266,7 +265,7 @@ func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 }
 
 // CreateUserLoginIndex creates the user_login index.
-func (tbl DbUserTable) CreateUserLoginIndex(ifNotExist bool) error {
+func (tbl AUserTable) CreateUserLoginIndex(ifNotExist bool) error {
 	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -277,23 +276,23 @@ func (tbl DbUserTable) CreateUserLoginIndex(ifNotExist bool) error {
 		ine = ""
 	}
 
-	_, err := tbl.Exec(tbl.createDbUserLoginIndexSql(ine))
+	_, err := tbl.Exec(tbl.createAUserLoginIndexSql(ine))
 	return err
 }
 
-func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExists string) string {
+func (tbl AUserTable) createAUserLoginIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.prefix, tbl.name, sqlDbUserLoginIndexColumns)
+		tbl.prefix, tbl.name, sqlAUserLoginIndexColumns)
 }
 
 // DropUserLoginIndex drops the user_login index.
-func (tbl DbUserTable) DropUserLoginIndex(ifExists bool) error {
-	_, err := tbl.Exec(tbl.dropDbUserLoginIndexSql(ifExists))
+func (tbl AUserTable) DropUserLoginIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropAUserLoginIndexSql(ifExists))
 	return err
 }
 
-func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists bool) string {
+func (tbl AUserTable) dropAUserLoginIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
 	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
@@ -302,7 +301,7 @@ func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists bool) string {
 }
 
 // CreateUserEmailIndex creates the user_email index.
-func (tbl DbUserTable) CreateUserEmailIndex(ifNotExist bool) error {
+func (tbl AUserTable) CreateUserEmailIndex(ifNotExist bool) error {
 	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -313,23 +312,23 @@ func (tbl DbUserTable) CreateUserEmailIndex(ifNotExist bool) error {
 		ine = ""
 	}
 
-	_, err := tbl.Exec(tbl.createDbUserEmailIndexSql(ine))
+	_, err := tbl.Exec(tbl.createAUserEmailIndexSql(ine))
 	return err
 }
 
-func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExists string) string {
+func (tbl AUserTable) createAUserEmailIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.prefixWithoutDot()
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.prefix, tbl.name, sqlDbUserEmailIndexColumns)
+		tbl.prefix, tbl.name, sqlAUserEmailIndexColumns)
 }
 
 // DropUserEmailIndex drops the user_email index.
-func (tbl DbUserTable) DropUserEmailIndex(ifExists bool) error {
-	_, err := tbl.Exec(tbl.dropDbUserEmailIndexSql(ifExists))
+func (tbl AUserTable) DropUserEmailIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropAUserEmailIndexSql(ifExists))
 	return err
 }
 
-func (tbl DbUserTable) dropDbUserEmailIndexSql(ifExists bool) string {
+func (tbl AUserTable) dropAUserEmailIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
 	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
@@ -338,7 +337,7 @@ func (tbl DbUserTable) dropDbUserEmailIndexSql(ifExists bool) string {
 }
 
 // DropIndexes executes queries that drop the indexes on by the User table.
-func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
+func (tbl AUserTable) DropIndexes(ifExist bool) (err error) {
 
 	err = tbl.DropUserLoginIndex(ifExist)
 	if err != nil {
@@ -355,9 +354,9 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-const sqlDbUserLoginIndexColumns = "login"
+const sqlAUserLoginIndexColumns = "login"
 
-const sqlDbUserEmailIndexColumns = "emailaddress"
+const sqlAUserEmailIndexColumns = "emailaddress"
 
 //--------------------------------------------------------------------------------
 
@@ -368,7 +367,7 @@ const sqlDbUserEmailIndexColumns = "emailaddress"
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl DbUserTable) Truncate(force bool) (err error) {
+func (tbl AUserTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
 		_, err = tbl.Exec(query)
 		if err != nil {
@@ -383,7 +382,7 @@ func (tbl DbUserTable) Truncate(force bool) (err error) {
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected (of the database drive supports this).
-func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl AUserTable) Exec(query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
 	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -397,7 +396,7 @@ func (tbl DbUserTable) Exec(query string, args ...interface{}) (int64, error) {
 // QueryOne is the low-level access function for one User.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *User will be nil.
-func (tbl DbUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+func (tbl AUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
@@ -406,36 +405,36 @@ func (tbl DbUserTable) QueryOne(query string, args ...interface{}) (*User, error
 }
 
 // Query is the low-level access function for Users.
-func (tbl DbUserTable) Query(query string, args ...interface{}) ([]*User, error) {
+func (tbl AUserTable) Query(query string, args ...interface{}) ([]*User, error) {
 	return tbl.doQuery(false, query, args...)
 }
 
-func (tbl DbUserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func (tbl AUserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanDbUsers(rows, firstOnly)
+	return scanAUsers(rows, firstOnly)
 }
 
 //--------------------------------------------------------------------------------
 
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
-func (tbl DbUserTable) GetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", DbUserColumnNames, tbl.prefix, tbl.name)
+func (tbl AUserTable) GetUser(id int64) (*User, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", AUserColumnNames, tbl.prefix, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 
 // GetUsers gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
-func (tbl DbUserTable) GetUsers(id ...int64) (list []*User, err error) {
+func (tbl AUserTable) GetUsers(id ...int64) (list []*User, err error) {
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid IN (%s)", DbUserColumnNames, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid IN (%s)", AUserColumnNames, tbl.prefix, tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -454,15 +453,15 @@ func (tbl DbUserTable) GetUsers(id ...int64) (list []*User, err error) {
 // and some limit.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
 // If not found, *User will be nil.
-func (tbl DbUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", DbUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
+func (tbl AUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", AUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single User to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
 // If not found, *Example will be nil.
-func (tbl DbUserTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*User, error) {
+func (tbl AUserTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*User, error) {
 	whs, args := wh.Build(tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectOneSA(whs, orderBy, args...)
@@ -470,21 +469,21 @@ func (tbl DbUserTable) SelectOne(wh where.Expression, qc where.QueryConstraint) 
 
 // SelectSA allows Users to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl DbUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", DbUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
+func (tbl AUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", AUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Users to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl DbUserTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
+func (tbl AUserTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
 	whs, args := wh.Build(tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectSA(whs, orderBy, args...)
 }
 
 // CountSA counts Users in the table that match a 'where' clause.
-func (tbl DbUserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
+func (tbl AUserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
@@ -493,59 +492,59 @@ func (tbl DbUserTable) CountSA(where string, args ...interface{}) (count int64, 
 }
 
 // Count counts the Users in the table that match a 'where' clause.
-func (tbl DbUserTable) Count(where where.Expression) (count int64, err error) {
+func (tbl AUserTable) Count(where where.Expression) (count int64, err error) {
 	wh, args := where.Build(tbl.dialect)
 	return tbl.CountSA(wh, args...)
 }
 
-const DbUserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"
+const AUserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"
 
 //--------------------------------------------------------------------------------
 
 // SliceUid gets the Uid column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl DbUserTable) SliceUid(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl AUserTable) SliceUid(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list("uid", wh, qc)
 }
 
 // SliceLogin gets the Login column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl DbUserTable) SliceLogin(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl AUserTable) SliceLogin(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("login", wh, qc)
 }
 
 // SliceEmailAddress gets the EmailAddress column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl DbUserTable) SliceEmailaddress(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl AUserTable) SliceEmailaddress(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("emailaddress", wh, qc)
 }
 
 // SliceAvatar gets the Avatar column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl DbUserTable) SliceAvatar(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl AUserTable) SliceAvatar(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("avatar", wh, qc)
 }
 
 // SliceActive gets the Active column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl DbUserTable) SliceActive(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+func (tbl AUserTable) SliceActive(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	return tbl.getboollist("active", wh, qc)
 }
 
 // SliceAdmin gets the Admin column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl DbUserTable) SliceAdmin(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+func (tbl AUserTable) SliceAdmin(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	return tbl.getboollist("admin", wh, qc)
 }
 
 // SliceLastUpdated gets the LastUpdated column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl DbUserTable) SliceLastupdated(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl AUserTable) SliceLastupdated(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list("lastupdated", wh, qc)
 }
 
 
-func (tbl DbUserTable) getboollist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+func (tbl AUserTable) getboollist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	whs, args := wh.Build(tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
@@ -568,7 +567,7 @@ func (tbl DbUserTable) getboollist(sqlname string, wh where.Expression, qc where
 	return list, nil
 }
 
-func (tbl DbUserTable) getint64list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl AUserTable) getint64list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := wh.Build(tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
@@ -591,7 +590,7 @@ func (tbl DbUserTable) getint64list(sqlname string, wh where.Expression, qc wher
 	return list, nil
 }
 
-func (tbl DbUserTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl AUserTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := wh.Build(tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
@@ -620,16 +619,16 @@ func (tbl DbUserTable) getstringlist(sqlname string, wh where.Expression, qc whe
 // Insert adds new records for the Users. The Users have their primary key fields
 // set to the new record identifiers.
 // The User.PreInsert(Execer) method will be called, if it exists.
-func (tbl DbUserTable) Insert(vv ...*User) error {
+func (tbl AUserTable) Insert(vv ...*User) error {
 	var params string
 	switch tbl.dialect {
 	case schema.Postgres:
-		params = sDbUserDataColumnParamsPostgres
+		params = sAUserDataColumnParamsPostgres
 	default:
-		params = sDbUserDataColumnParamsSimple
+		params = sAUserDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsertDbUser, tbl.prefix, tbl.name, params)
+	query := fmt.Sprintf(sqlInsertAUser, tbl.prefix, tbl.name, params)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -642,7 +641,7 @@ func (tbl DbUserTable) Insert(vv ...*User) error {
 			hook.PreInsert()
 		}
 
-		fields, err := sliceDbUserWithoutPk(v)
+		fields, err := sliceAUserWithoutPk(v)
 		if err != nil {
 			return err
 		}
@@ -662,7 +661,7 @@ func (tbl DbUserTable) Insert(vv ...*User) error {
 	return nil
 }
 
-const sqlInsertDbUser = `
+const sqlInsertAUser = `
 INSERT INTO %s%s (
 	login,
 	emailaddress,
@@ -676,19 +675,19 @@ INSERT INTO %s%s (
 ) VALUES (%s)
 `
 
-const sDbUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?"
+const sAUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?"
 
-const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
+const sAUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 
 //--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
-func (tbl DbUserTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
+func (tbl AUserTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
 	query, args := tbl.updateFields(where, fields...)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl DbUserTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+func (tbl AUserTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
 	whereClause, wargs := where.Build(tbl.dialect)
@@ -701,13 +700,13 @@ func (tbl DbUserTable) updateFields(where where.Expression, fields ...sql.NamedA
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The User.PreUpdate(Execer) method will be called, if it exists.
-func (tbl DbUserTable) Update(vv ...*User) (int64, error) {
+func (tbl AUserTable) Update(vv ...*User) (int64, error) {
 	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
-		stmt = sqlUpdateDbUserByPkPostgres
+		stmt = sqlUpdateAUserByPkPostgres
 	default:
-		stmt = sqlUpdateDbUserByPkSimple
+		stmt = sqlUpdateAUserByPkSimple
 	}
 
 	query := fmt.Sprintf(stmt, tbl.prefix, tbl.name)
@@ -719,7 +718,7 @@ func (tbl DbUserTable) Update(vv ...*User) (int64, error) {
 			hook.PreUpdate()
 		}
 
-		args, err := sliceDbUserWithoutPk(v)
+		args, err := sliceAUserWithoutPk(v)
 		if err != nil {
 			return count, err
 		}
@@ -734,7 +733,7 @@ func (tbl DbUserTable) Update(vv ...*User) (int64, error) {
 	return count, nil
 }
 
-const sqlUpdateDbUserByPkSimple = `
+const sqlUpdateAUserByPkSimple = `
 UPDATE %s%s SET
 	login=?,
 	emailaddress=?,
@@ -748,7 +747,7 @@ UPDATE %s%s SET
 WHERE uid=?
 `
 
-const sqlUpdateDbUserByPkPostgres = `
+const sqlUpdateAUserByPkPostgres = `
 UPDATE %s%s SET
 	login=$2,
 	emailaddress=$3,
@@ -762,7 +761,7 @@ UPDATE %s%s SET
 WHERE uid=$1
 `
 
-func sliceDbUserWithoutPk(v *User) ([]interface{}, error) {
+func sliceAUserWithoutPk(v *User) ([]interface{}, error) {
 
 	v6, err := json.Marshal(&v.Fave)
 	if err != nil {
@@ -787,7 +786,7 @@ func sliceDbUserWithoutPk(v *User) ([]interface{}, error) {
 
 // DeleteUsers deletes rows from the table, given some primary keys.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsers(id ...int64) (int64, error) {
+func (tbl AUserTable) DeleteUsers(id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s%s WHERE uid IN (%s)"
 
@@ -834,12 +833,12 @@ func (tbl DbUserTable) DeleteUsers(id ...int64) (int64, error) {
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
-func (tbl DbUserTable) Delete(where where.Expression) (int64, error) {
+func (tbl AUserTable) Delete(where where.Expression) (int64, error) {
 	query, args := tbl.deleteRows(where)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl DbUserTable) deleteRows(where where.Expression) (string, []interface{}) {
+func (tbl AUserTable) deleteRows(where where.Expression) (string, []interface{}) {
 	whereClause, args := where.Build(tbl.dialect)
 	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
 	return query, args
@@ -847,8 +846,8 @@ func (tbl DbUserTable) deleteRows(where where.Expression) (string, []interface{}
 
 //--------------------------------------------------------------------------------
 
-// scanDbUsers reads table records into a slice of values.
-func scanDbUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
+// scanAUsers reads table records into a slice of values.
+func scanAUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	var err error
 	var vv []*User
 
@@ -911,66 +910,4 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	}
 
 	return vv, rows.Err()
-}
-
-//--------------------------------------------------------------------------------
-
-// SetUid sets the Uid field and returns the modified User.
-func (v *User) SetUid(x int64) *User {
-	v.Uid = x
-	return v
-}
-
-// SetLogin sets the Login field and returns the modified User.
-func (v *User) SetLogin(x string) *User {
-	v.Login = x
-	return v
-}
-
-// SetEmailAddress sets the EmailAddress field and returns the modified User.
-func (v *User) SetEmailAddress(x string) *User {
-	v.EmailAddress = x
-	return v
-}
-
-// SetAvatar sets the Avatar field and returns the modified User.
-func (v *User) SetAvatar(x string) *User {
-	v.Avatar = x
-	return v
-}
-
-// SetActive sets the Active field and returns the modified User.
-func (v *User) SetActive(x bool) *User {
-	v.Active = x
-	return v
-}
-
-// SetAdmin sets the Admin field and returns the modified User.
-func (v *User) SetAdmin(x bool) *User {
-	v.Admin = x
-	return v
-}
-
-// SetFave sets the Fave field and returns the modified User.
-func (v *User) SetFave(x big.Int) *User {
-	v.Fave = x
-	return v
-}
-
-// SetLastUpdated sets the LastUpdated field and returns the modified User.
-func (v *User) SetLastUpdated(x int64) *User {
-	v.LastUpdated = x
-	return v
-}
-
-// Settoken sets the token field and returns the modified User.
-func (v *User) Settoken(x string) *User {
-	v.token = x
-	return v
-}
-
-// Setsecret sets the secret field and returns the modified User.
-func (v *User) Setsecret(x string) *User {
-	v.secret = x
-	return v
 }

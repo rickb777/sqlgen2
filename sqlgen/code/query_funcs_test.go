@@ -148,7 +148,7 @@ func xTestWriteSelectItem(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 
-	WriteSelectItem(buf, view)
+	WriteSliceColumn(buf, view)
 
 	code := buf.String()
 	expected := `

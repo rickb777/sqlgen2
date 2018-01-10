@@ -37,6 +37,19 @@ func NewHookTable(name string, d sqlgen2.Execer, dialect schema.Dialect) HookTab
 	return HookTable{"", name, d, context.Background(), dialect, nil}
 }
 
+// CopyTableAsHookTable copies a table instance, retaining the name etc but
+// providing methods appropriate for 'Hook'.
+func CopyTableAsHookTable(origin sqlgen2.Table) HookTable {
+	return HookTable{
+		prefix:  origin.Prefix(),
+		name:    origin.Name(),
+		db:      origin.DB(),
+		ctx:     origin.Ctx(),
+		dialect: origin.Dialect(),
+		logger:  origin.Logger(),
+	}
+}
+
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl HookTable) WithPrefix(pfx string) HookTable {
 	tbl.prefix = pfx
@@ -334,6 +347,58 @@ func (tbl HookTable) GetHooks(id ...int64) (list HookList, err error) {
 
 //--------------------------------------------------------------------------------
 
+// SelectOneSA allows a single Hook to be obtained from the table that match a 'where' clause
+// and some limit.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, *Hook will be nil.
+func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Hook, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", HookColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	return tbl.QueryOne(query, args...)
+}
+
+// SelectOne allows a single Hook to be obtained from the sqlgen2.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// If not found, *Example will be nil.
+func (tbl HookTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Hook, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectOneSA(whs, orderBy, args...)
+}
+
+// SelectSA allows Hooks to be obtained from the table that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+func (tbl HookTable) SelectSA(where, orderBy string, args ...interface{}) (HookList, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", HookColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	return tbl.Query(query, args...)
+}
+
+// Select allows Hooks to be obtained from the table that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl HookTable) Select(wh where.Expression, qc where.QueryConstraint) (HookList, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectSA(whs, orderBy, args...)
+}
+
+// CountSA counts Hooks in the table that match a 'where' clause.
+func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, err error) {
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
+	tbl.logQuery(query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
+	err = row.Scan(&count)
+	return count, err
+}
+
+// Count counts the Hooks in the table that match a 'where' clause.
+func (tbl HookTable) Count(where where.Expression) (count int64, err error) {
+	wh, args := where.Build(tbl.dialect)
+	return tbl.CountSA(wh, args...)
+}
+
+const HookColumnNames = "id, sha, after, before, category, created, deleted, forced, commit_id, message, timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
+
+//--------------------------------------------------------------------------------
+
 // SliceId gets the Id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
 func (tbl HookTable) SliceId(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
@@ -555,58 +620,6 @@ func (tbl HookTable) getstringlist(sqlname string, wh where.Expression, qc where
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single Hook to be obtained from the table that match a 'where' clause
-// and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, *Hook will be nil.
-func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Hook, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", HookColumnNames, tbl.prefix, tbl.name, where, orderBy)
-	return tbl.QueryOne(query, args...)
-}
-
-// SelectOne allows a single Hook to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-// If not found, *Example will be nil.
-func (tbl HookTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Hook, error) {
-	whs, args := wh.Build(tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectOneSA(whs, orderBy, args...)
-}
-
-// SelectSA allows Hooks to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl HookTable) SelectSA(where, orderBy string, args ...interface{}) (HookList, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", HookColumnNames, tbl.prefix, tbl.name, where, orderBy)
-	return tbl.Query(query, args...)
-}
-
-// Select allows Hooks to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl HookTable) Select(wh where.Expression, qc where.QueryConstraint) (HookList, error) {
-	whs, args := wh.Build(tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectSA(whs, orderBy, args...)
-}
-
-// CountSA counts Hooks in the table that match a 'where' clause.
-func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
-	tbl.logQuery(query, args...)
-	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
-	err = row.Scan(&count)
-	return count, err
-}
-
-// Count counts the Hooks in the table that match a 'where' clause.
-func (tbl HookTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.CountSA(wh, args...)
-}
-
-const HookColumnNames = "id, sha, after, before, category, created, deleted, forced, commit_id, message, timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
-
-//--------------------------------------------------------------------------------
-
 // Insert adds new records for the Hooks. The Hooks have their primary key fields
 // set to the new record identifiers.
 // The Hook.PreInsert(Execer) method will be called, if it exists.
@@ -773,6 +786,30 @@ UPDATE %s%s SET
 WHERE id=$1
 `
 
+func sliceHookWithoutPk(v *Hook) ([]interface{}, error) {
+
+
+	return []interface{}{
+		v.Sha,
+		v.Dates.After,
+		v.Dates.Before,
+		v.Category,
+		v.Created,
+		v.Deleted,
+		v.Forced,
+		v.HeadCommit.ID,
+		v.HeadCommit.Message,
+		v.HeadCommit.Timestamp,
+		v.HeadCommit.Author.Name,
+		v.HeadCommit.Author.Email,
+		v.HeadCommit.Author.Username,
+		v.HeadCommit.Committer.Name,
+		v.HeadCommit.Committer.Email,
+		v.HeadCommit.Committer.Username,
+
+	}, nil
+}
+
 //--------------------------------------------------------------------------------
 
 // DeleteHooks deletes rows from the table, given some primary keys.
@@ -919,28 +956,4 @@ func scanHooks(rows *sql.Rows, firstOnly bool) (HookList, error) {
 	}
 
 	return vv, rows.Err()
-}
-
-func sliceHookWithoutPk(v *Hook) ([]interface{}, error) {
-
-
-	return []interface{}{
-		v.Sha,
-		v.Dates.After,
-		v.Dates.Before,
-		v.Category,
-		v.Created,
-		v.Deleted,
-		v.Forced,
-		v.HeadCommit.ID,
-		v.HeadCommit.Message,
-		v.HeadCommit.Timestamp,
-		v.HeadCommit.Author.Name,
-		v.HeadCommit.Author.Email,
-		v.HeadCommit.Author.Username,
-		v.HeadCommit.Committer.Name,
-		v.HeadCommit.Committer.Email,
-		v.HeadCommit.Committer.Username,
-
-	}, nil
 }

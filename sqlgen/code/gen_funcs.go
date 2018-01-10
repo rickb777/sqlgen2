@@ -22,7 +22,7 @@ func WriteGetRow(w io.Writer, view View) {
 	must(tGetRow.Execute(w, view))
 }
 
-func WriteSelectItem(w io.Writer, view View) {
+func WriteSliceColumn(w io.Writer, view View) {
 	must(tSliceItem.Execute(w, view))
 }
 

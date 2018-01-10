@@ -37,6 +37,19 @@ func NewAssociationTable(name string, d sqlgen2.Execer, dialect schema.Dialect) 
 	return AssociationTable{"", name, d, context.Background(), dialect, nil}
 }
 
+// CopyTableAsAssociationTable copies a table instance, retaining the name etc but
+// providing methods appropriate for 'Association'.
+func CopyTableAsAssociationTable(origin sqlgen2.Table) AssociationTable {
+	return AssociationTable{
+		prefix:  origin.Prefix(),
+		name:    origin.Name(),
+		db:      origin.DB(),
+		ctx:     origin.Ctx(),
+		dialect: origin.Dialect(),
+		logger:  origin.Logger(),
+	}
+}
+
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl AssociationTable) WithPrefix(pfx string) AssociationTable {
 	tbl.prefix = pfx
@@ -301,6 +314,58 @@ func (tbl AssociationTable) GetAssociations(id ...int64) (list []*Association, e
 
 //--------------------------------------------------------------------------------
 
+// SelectOneSA allows a single Association to be obtained from the table that match a 'where' clause
+// and some limit.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, *Association will be nil.
+func (tbl AssociationTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Association, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", AssociationColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	return tbl.QueryOne(query, args...)
+}
+
+// SelectOne allows a single Association to be obtained from the sqlgen2.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// If not found, *Example will be nil.
+func (tbl AssociationTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Association, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectOneSA(whs, orderBy, args...)
+}
+
+// SelectSA allows Associations to be obtained from the table that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+func (tbl AssociationTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Association, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", AssociationColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	return tbl.Query(query, args...)
+}
+
+// Select allows Associations to be obtained from the table that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl AssociationTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Association, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectSA(whs, orderBy, args...)
+}
+
+// CountSA counts Associations in the table that match a 'where' clause.
+func (tbl AssociationTable) CountSA(where string, args ...interface{}) (count int64, err error) {
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
+	tbl.logQuery(query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
+	err = row.Scan(&count)
+	return count, err
+}
+
+// Count counts the Associations in the table that match a 'where' clause.
+func (tbl AssociationTable) Count(where where.Expression) (count int64, err error) {
+	wh, args := where.Build(tbl.dialect)
+	return tbl.CountSA(wh, args...)
+}
+
+const AssociationColumnNames = "id, name, quality, ref1, ref2, category"
+
+//--------------------------------------------------------------------------------
+
 // SliceId gets the Id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
 func (tbl AssociationTable) SliceId(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
@@ -430,58 +495,6 @@ func (tbl AssociationTable) getstringPtrlist(sqlname string, wh where.Expression
 	return list, nil
 }
 
-
-//--------------------------------------------------------------------------------
-
-// SelectOneSA allows a single Association to be obtained from the table that match a 'where' clause
-// and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, *Association will be nil.
-func (tbl AssociationTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Association, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", AssociationColumnNames, tbl.prefix, tbl.name, where, orderBy)
-	return tbl.QueryOne(query, args...)
-}
-
-// SelectOne allows a single Association to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-// If not found, *Example will be nil.
-func (tbl AssociationTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Association, error) {
-	whs, args := wh.Build(tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectOneSA(whs, orderBy, args...)
-}
-
-// SelectSA allows Associations to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl AssociationTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Association, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", AssociationColumnNames, tbl.prefix, tbl.name, where, orderBy)
-	return tbl.Query(query, args...)
-}
-
-// Select allows Associations to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl AssociationTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Association, error) {
-	whs, args := wh.Build(tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectSA(whs, orderBy, args...)
-}
-
-// CountSA counts Associations in the table that match a 'where' clause.
-func (tbl AssociationTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
-	tbl.logQuery(query, args...)
-	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
-	err = row.Scan(&count)
-	return count, err
-}
-
-// Count counts the Associations in the table that match a 'where' clause.
-func (tbl AssociationTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.CountSA(wh, args...)
-}
-
-const AssociationColumnNames = "id, name, quality, ref1, ref2, category"
 
 //--------------------------------------------------------------------------------
 
@@ -618,6 +631,19 @@ UPDATE %s%s SET
 WHERE id=$1
 `
 
+func sliceAssociationWithoutPk(v *Association) ([]interface{}, error) {
+
+
+	return []interface{}{
+		v.Name,
+		v.Quality,
+		v.Ref1,
+		v.Ref2,
+		v.Category,
+
+	}, nil
+}
+
 //--------------------------------------------------------------------------------
 
 // DeleteAssociations deletes rows from the table, given some primary keys.
@@ -746,17 +772,4 @@ func scanAssociations(rows *sql.Rows, firstOnly bool) ([]*Association, error) {
 	}
 
 	return vv, rows.Err()
-}
-
-func sliceAssociationWithoutPk(v *Association) ([]interface{}, error) {
-
-
-	return []interface{}{
-		v.Name,
-		v.Quality,
-		v.Ref1,
-		v.Ref2,
-		v.Category,
-
-	}, nil
 }

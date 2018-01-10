@@ -38,6 +38,19 @@ func NewIssueTable(name string, d sqlgen2.Execer, dialect schema.Dialect) IssueT
 	return IssueTable{"", name, d, context.Background(), dialect, nil}
 }
 
+// CopyTableAsIssueTable copies a table instance, retaining the name etc but
+// providing methods appropriate for 'Issue'.
+func CopyTableAsIssueTable(origin sqlgen2.Table) IssueTable {
+	return IssueTable{
+		prefix:  origin.Prefix(),
+		name:    origin.Name(),
+		db:      origin.DB(),
+		ctx:     origin.Ctx(),
+		dialect: origin.Dialect(),
+		logger:  origin.Logger(),
+	}
+}
+
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl IssueTable) WithPrefix(pfx string) IssueTable {
 	tbl.prefix = pfx
@@ -382,6 +395,58 @@ func (tbl IssueTable) GetIssues(id ...int64) (list []*Issue, err error) {
 
 //--------------------------------------------------------------------------------
 
+// SelectOneSA allows a single Issue to be obtained from the table that match a 'where' clause
+// and some limit.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// If not found, *Issue will be nil.
+func (tbl IssueTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Issue, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", IssueColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	return tbl.QueryOne(query, args...)
+}
+
+// SelectOne allows a single Issue to be obtained from the sqlgen2.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// If not found, *Example will be nil.
+func (tbl IssueTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Issue, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectOneSA(whs, orderBy, args...)
+}
+
+// SelectSA allows Issues to be obtained from the table that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+func (tbl IssueTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Issue, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", IssueColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	return tbl.Query(query, args...)
+}
+
+// Select allows Issues to be obtained from the table that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+func (tbl IssueTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Issue, error) {
+	whs, args := wh.Build(tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	return tbl.SelectSA(whs, orderBy, args...)
+}
+
+// CountSA counts Issues in the table that match a 'where' clause.
+func (tbl IssueTable) CountSA(where string, args ...interface{}) (count int64, err error) {
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
+	tbl.logQuery(query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
+	err = row.Scan(&count)
+	return count, err
+}
+
+// Count counts the Issues in the table that match a 'where' clause.
+func (tbl IssueTable) Count(where where.Expression) (count int64, err error) {
+	wh, args := where.Build(tbl.dialect)
+	return tbl.CountSA(wh, args...)
+}
+
+const IssueColumnNames = "id, number, date, title, bigbody, assignee, state, labels"
+
+//--------------------------------------------------------------------------------
+
 // SliceId gets the Id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
 func (tbl IssueTable) SliceId(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
@@ -517,58 +582,6 @@ func (tbl IssueTable) getstringlist(sqlname string, wh where.Expression, qc wher
 	return list, nil
 }
 
-
-//--------------------------------------------------------------------------------
-
-// SelectOneSA allows a single Issue to be obtained from the table that match a 'where' clause
-// and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, *Issue will be nil.
-func (tbl IssueTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", IssueColumnNames, tbl.prefix, tbl.name, where, orderBy)
-	return tbl.QueryOne(query, args...)
-}
-
-// SelectOne allows a single Issue to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-// If not found, *Example will be nil.
-func (tbl IssueTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Issue, error) {
-	whs, args := wh.Build(tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectOneSA(whs, orderBy, args...)
-}
-
-// SelectSA allows Issues to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-func (tbl IssueTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", IssueColumnNames, tbl.prefix, tbl.name, where, orderBy)
-	return tbl.Query(query, args...)
-}
-
-// Select allows Issues to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
-func (tbl IssueTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Issue, error) {
-	whs, args := wh.Build(tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectSA(whs, orderBy, args...)
-}
-
-// CountSA counts Issues in the table that match a 'where' clause.
-func (tbl IssueTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
-	tbl.logQuery(query, args...)
-	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
-	err = row.Scan(&count)
-	return count, err
-}
-
-// Count counts the Issues in the table that match a 'where' clause.
-func (tbl IssueTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.CountSA(wh, args...)
-}
-
-const IssueColumnNames = "id, number, date, title, bigbody, assignee, state, labels"
 
 //--------------------------------------------------------------------------------
 
@@ -711,6 +724,25 @@ UPDATE %s%s SET
 WHERE id=$1
 `
 
+func sliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
+
+	v7, err := json.Marshal(&v.Labels)
+	if err != nil {
+		return nil, err
+	}
+
+	return []interface{}{
+		v.Number,
+		v.Date,
+		v.Title,
+		v.Body,
+		v.Assignee,
+		v.State,
+		v7,
+
+	}, nil
+}
+
 //--------------------------------------------------------------------------------
 
 // DeleteIssues deletes rows from the table, given some primary keys.
@@ -833,25 +865,6 @@ func scanIssues(rows *sql.Rows, firstOnly bool) ([]*Issue, error) {
 	}
 
 	return vv, rows.Err()
-}
-
-func sliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
-
-	v7, err := json.Marshal(&v.Labels)
-	if err != nil {
-		return nil, err
-	}
-
-	return []interface{}{
-		v.Number,
-		v.Date,
-		v.Title,
-		v.Body,
-		v.Assignee,
-		v.State,
-		v7,
-
-	}, nil
 }
 
 //--------------------------------------------------------------------------------

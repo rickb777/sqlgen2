@@ -11,10 +11,10 @@ import (
 	"log"
 )
 
-// V4UserTable holds a given table name with the database reference, providing access methods below.
+// X1UserJoin holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
-type V4UserTable struct {
+type X1UserJoin struct {
 	prefix, name string
 	db           sqlgen2.Execer
 	ctx          context.Context
@@ -23,73 +23,86 @@ type V4UserTable struct {
 }
 
 // Type conformance check
-var _ sqlgen2.Table = &V4UserTable{}
+var _ sqlgen2.Table = &X1UserJoin{}
 
-// NewV4UserTable returns a new table instance.
+// NewX1UserJoin returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The table name prefix is initially blank and the request context is the background.
-func NewV4UserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) V4UserTable {
+func NewX1UserJoin(name string, d sqlgen2.Execer, dialect schema.Dialect) X1UserJoin {
 	if name == "" {
 		name = "users"
 	}
-	return V4UserTable{"", name, d, context.Background(), dialect, nil}
+	return X1UserJoin{"", name, d, context.Background(), dialect, nil}
+}
+
+// CopyTableAsX1UserJoin copies a table instance, retaining the name etc but
+// providing methods appropriate for 'User'.
+func CopyTableAsX1UserJoin(origin sqlgen2.Table) X1UserJoin {
+	return X1UserJoin{
+		prefix:  origin.Prefix(),
+		name:    origin.Name(),
+		db:      origin.DB(),
+		ctx:     origin.Ctx(),
+		dialect: origin.Dialect(),
+		logger:  origin.Logger(),
+	}
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
-func (tbl V4UserTable) WithPrefix(pfx string) V4UserTable {
+func (tbl X1UserJoin) WithPrefix(pfx string) X1UserJoin {
 	tbl.prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
-func (tbl V4UserTable) WithContext(ctx context.Context) V4UserTable {
+func (tbl X1UserJoin) WithContext(ctx context.Context) X1UserJoin {
 	tbl.ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
-func (tbl V4UserTable) WithLogger(logger *log.Logger) V4UserTable {
+func (tbl X1UserJoin) WithLogger(logger *log.Logger) X1UserJoin {
 	tbl.logger = logger
 	return tbl
 }
 
 // Ctx gets the current request context.
-func (tbl V4UserTable) Ctx() context.Context {
+func (tbl X1UserJoin) Ctx() context.Context {
 	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
-func (tbl V4UserTable) Dialect() schema.Dialect {
+func (tbl X1UserJoin) Dialect() schema.Dialect {
 	return tbl.dialect
 }
 
 // Logger gets the trace logger.
-func (tbl V4UserTable) Logger() *log.Logger {
+func (tbl X1UserJoin) Logger() *log.Logger {
 	return tbl.logger
 }
 
 // SetLogger sets the logger for subsequent queries, returning the interface.
-func (tbl V4UserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
+func (tbl X1UserJoin) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
 	return tbl
 }
 
 // Name gets the table name.
-func (tbl V4UserTable) Name() string {
+func (tbl X1UserJoin) Name() string {
 	return tbl.name
 }
 
 // Prefix gets the table name prefix.
-func (tbl V4UserTable) Prefix() string {
+func (tbl X1UserJoin) Prefix() string {
 	return tbl.prefix
 }
 
 // FullName gets the concatenated prefix and table name.
-func (tbl V4UserTable) FullName() string {
+func (tbl X1UserJoin) FullName() string {
 	return tbl.prefix + tbl.name
 }
 
-func (tbl V4UserTable) prefixWithoutDot() string {
+func (tbl X1UserJoin) prefixWithoutDot() string {
 	last := len(tbl.prefix)-1
 	if last > 0 && tbl.prefix[last] == '.' {
 		return tbl.prefix[0:last]
@@ -99,31 +112,31 @@ func (tbl V4UserTable) prefixWithoutDot() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl V4UserTable) DB() *sql.DB {
+func (tbl X1UserJoin) DB() *sql.DB {
 	return tbl.db.(*sql.DB)
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl V4UserTable) Tx() *sql.Tx {
+func (tbl X1UserJoin) Tx() *sql.Tx {
 	return tbl.db.(*sql.Tx)
 }
 
 // IsTx tests whether this is within a transaction.
-func (tbl V4UserTable) IsTx() bool {
+func (tbl X1UserJoin) IsTx() bool {
 	_, ok := tbl.db.(*sql.Tx)
 	return ok
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
-func (tbl V4UserTable) BeginTx(opts *sql.TxOptions) (V4UserTable, error) {
+func (tbl X1UserJoin) BeginTx(opts *sql.TxOptions) (X1UserJoin, error) {
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
 	return tbl, err
 }
 
-func (tbl V4UserTable) logQuery(query string, args ...interface{}) {
+func (tbl X1UserJoin) logQuery(query string, args ...interface{}) {
 	sqlgen2.LogQuery(tbl.logger, query, args...)
 }
 
@@ -133,7 +146,7 @@ func (tbl V4UserTable) logQuery(query string, args ...interface{}) {
 // Exec executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
 // It returns the number of rows affected (of the database drive supports this).
-func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl X1UserJoin) Exec(query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
 	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -147,7 +160,7 @@ func (tbl V4UserTable) Exec(query string, args ...interface{}) (int64, error) {
 // QueryOne is the low-level access function for one User.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *User will be nil.
-func (tbl V4UserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+func (tbl X1UserJoin) QueryOne(query string, args ...interface{}) (*User, error) {
 	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
@@ -156,22 +169,22 @@ func (tbl V4UserTable) QueryOne(query string, args ...interface{}) (*User, error
 }
 
 // Query is the low-level access function for Users.
-func (tbl V4UserTable) Query(query string, args ...interface{}) ([]*User, error) {
+func (tbl X1UserJoin) Query(query string, args ...interface{}) ([]*User, error) {
 	return tbl.doQuery(false, query, args...)
 }
 
-func (tbl V4UserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func (tbl X1UserJoin) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanV4Users(rows, firstOnly)
+	return scanX1Users(rows, firstOnly)
 }
 
-// scanV4Users reads table records into a slice of values.
-func scanV4Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
+// scanX1Users reads table records into a slice of values.
+func scanX1Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	var err error
 	var vv []*User
 
@@ -234,25 +247,4 @@ func scanV4Users(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	}
 
 	return vv, rows.Err()
-}
-
-func sliceV4UserWithoutPk(v *User) ([]interface{}, error) {
-
-	v6, err := json.Marshal(&v.Fave)
-	if err != nil {
-		return nil, err
-	}
-
-	return []interface{}{
-		v.Login,
-		v.EmailAddress,
-		v.Avatar,
-		v.Active,
-		v.Admin,
-		v6,
-		v.LastUpdated,
-		v.token,
-		v.secret,
-
-	}, nil
 }
