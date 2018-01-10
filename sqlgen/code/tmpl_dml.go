@@ -384,7 +384,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(id ...{{.Table.Primar
 		pl := tbl.dialect.Placeholders(len(id))
 		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
 
-		for i := 0; i < batch; i++ {
+		for i := 0; i < len(id); i++ {
 			args[i] = id[i]
 		}
 

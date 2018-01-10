@@ -305,11 +305,14 @@ func TestGettersUsingSqlite(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+	list := make([]*User, 20)
 	for i := 0; i < 20; i++ {
-		err = tbl.Insert(user(i))
-		if err != nil {
-			t.Fatalf("%v", err)
-		}
+		list[i] = user(i)
+	}
+
+	err = tbl.Insert(list...)
+	if err != nil {
+		t.Fatalf("%v", err)
 	}
 
 	logins, err := tbl.SliceLogin(where.NoOp(), where.OrderBy("login"))
@@ -324,6 +327,50 @@ func TestGettersUsingSqlite(t *testing.T) {
 		if logins[i] != exp {
 			t.Errorf("expected %s, got %s", exp, logins[i])
 		}
+	}
+}
+
+func TestBulkDeleteUsingSqlite(t *testing.T) {
+	defer cleanup()
+
+	tbl := NewDbUserTable("users", connect(), schema.Sqlite)
+	if testing.Verbose() {
+		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
+	}
+
+	err := tbl.CreateTableWithIndexes(false)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	err = tbl.Truncate(true)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	const n = 17
+
+	list := make([]*User, n)
+	for i := 0; i < n; i++ {
+		list[i] = user(i)
+	}
+
+	err = tbl.Insert(list...)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	ids := make([]int64, n)
+	for i := 0; i < n; i++ {
+		ids[i] = list[i].Uid
+	}
+
+	j, err := tbl.DeleteUsers(ids...)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if j != n {
+		t.Errorf("Got %d", j)
 	}
 }
 

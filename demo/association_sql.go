@@ -695,7 +695,7 @@ func (tbl AssociationTable) DeleteAssociations(id ...int64) (int64, error) {
 		pl := tbl.dialect.Placeholders(len(id))
 		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
 
-		for i := 0; i < batch; i++ {
+		for i := 0; i < len(id); i++ {
 			args[i] = id[i]
 		}
 
