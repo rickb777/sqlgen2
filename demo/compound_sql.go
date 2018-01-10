@@ -105,7 +105,7 @@ func (tbl DbCompoundTable) FullName() string {
 }
 
 func (tbl DbCompoundTable) prefixWithoutDot() string {
-	last := len(tbl.prefix)-1
+	last := len(tbl.prefix) - 1
 	if last > 0 && tbl.prefix[last] == '.' {
 		return tbl.prefix[0:last]
 	}
@@ -142,7 +142,6 @@ func (tbl DbCompoundTable) logQuery(query string, args ...interface{}) {
 	sqlgen2.LogQuery(tbl.logger, query, args...)
 }
 
-
 //--------------------------------------------------------------------------------
 
 const NumDbCompoundColumns = 3
@@ -161,10 +160,13 @@ func (tbl DbCompoundTable) CreateTable(ifNotExists bool) (int64, error) {
 func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
 	var stmt string
 	switch tbl.dialect {
-	case schema.Sqlite: stmt = sqlCreateDbCompoundTableSqlite
-    case schema.Postgres: stmt = sqlCreateDbCompoundTablePostgres
-    case schema.Mysql: stmt = sqlCreateDbCompoundTableMysql
-    }
+	case schema.Sqlite:
+		stmt = sqlCreateDbCompoundTableSqlite
+	case schema.Postgres:
+		stmt = sqlCreateDbCompoundTablePostgres
+	case schema.Mysql:
+		stmt = sqlCreateDbCompoundTableMysql
+	}
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
 	query := fmt.Sprintf(stmt, extra, tbl.prefix, tbl.name)
 	return query
@@ -419,7 +421,6 @@ func (tbl DbCompoundTable) SliceCategory(wh where.Expression, qc where.QueryCons
 	return tbl.getCategorylist("category", wh, qc)
 }
 
-
 func (tbl DbCompoundTable) getCategorylist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	whs, args := wh.Build(tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
@@ -465,7 +466,6 @@ func (tbl DbCompoundTable) getstringlist(sqlname string, wh where.Expression, qc
 	}
 	return list, nil
 }
-
 
 //--------------------------------------------------------------------------------
 
@@ -539,12 +539,10 @@ func (tbl DbCompoundTable) updateFields(where where.Expression, fields ...sql.Na
 
 func sliceDbCompound(v *Compound) ([]interface{}, error) {
 
-
 	return []interface{}{
 		v.Alpha,
 		v.Beta,
 		v.Category,
-
 	}, nil
 }
 

@@ -3,7 +3,7 @@ package demo
 // This example demonstrates
 //   * the use of pointers for optional items
 
-//go:generate sqlgen -type demo.Association -o association_sql.go -v association.go category.go
+//go:generate sqlgen -type demo.Association -o association_sql.go -all -v association.go category.go
 
 type Association struct {
 	Id       int64 `sql:"pk: true, auto: true"`

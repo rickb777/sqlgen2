@@ -8,7 +8,7 @@ import (
 //   * indexes
 //   * unexported fields
 
-//go:generate sqlgen -type demo.User -o user_sql.go -v -prefix Db -setters=all user.go
+//go:generate sqlgen -type demo.User -o user_sql.go -gofmt -v -prefix Db -all -setters=all user.go
 
 type User struct {
 	Uid          int64   `sql:"pk: true, auto: true"`

@@ -16,41 +16,53 @@ import (
 )
 
 func main() {
-	var oFile, typeName, prefix, list, kind, tagsFile, genSetters, genFuncs string
+	var oFile, typeName, prefix, list, kind, tagsFile, genSetters string
 	var flags = funcFlags{}
-	var gofmt bool
+	var all, sselect, insert, gofmt bool
 
-	flag.StringVar(&oFile, "o", "", "output file name (or file path); if omitted, the first input filename is used with _sql.go suffix")
-	flag.StringVar(&typeName, "type", "", "type to analyse; required")
-	flag.StringVar(&prefix, "prefix", "", "prefix for names of generated types; optional")
-	flag.StringVar(&list, "list", "", "list type for slice of model objects; optional")
-	flag.StringVar(&kind, "kind", "Table", "kind of model: default is Table but you could use View, Join etc as required")
-	flag.StringVar(&tagsFile, "tags", "", "a YAML file containing tags that augment and override any in the Go struct(s); optional")
-	flag.BoolVar(&Verbose, "v", false, "progress messages")
-	flag.BoolVar(&parse.Debug, "z", false, "debug messages")
-	flag.BoolVar(&parse.PrintAST, "ast", false, "trace the whole astract syntax tree (very verbose)")
-	flag.BoolVar(&flags.schema, "schema", true, "generate sql schema and queries")
-	flag.BoolVar(&flags.insert, "create", true, "generate sql create (insert) functions")
-	flag.BoolVar(&flags.sselect, "read", true, "generate sql select functions")
-	flag.BoolVar(&flags.update, "update", true, "generate sql update functions")
-	flag.BoolVar(&flags.delete, "delete", true, "generate sql delete functions")
-	flag.BoolVar(&flags.slice, "slice", true, "generate sql slice (column select) functions")
-	flag.StringVar(&genFuncs, "funcs", "", "shorthand for generate crud functions: none, all")
-	flag.StringVar(&genSetters, "setters", "none", "generate setters for fields: none, optional, exported, all")
-	flag.BoolVar(&gofmt, "gofmt", false, "format and simplify the generated code nicely")
+	flag.StringVar(&oFile, "o", "", "Output file name (or file path); optional.\n" +
+		"\tIf omitted, the first input filename is used with '_sql.go' suffix.")
+	flag.StringVar(&typeName, "type", "", "The type to analyse; required.\n" +
+		"\tThis is expressed in the form 'pkg.Name'")
+	flag.StringVar(&prefix, "prefix", "", "Prefix for names of generated types; optional.\n" +
+		"\tUse this if you need to avoid name collisions.")
+	flag.StringVar(&list, "list", "", "List type for slice of model objects; optional.")
+	flag.StringVar(&kind, "kind", "Table", "Kind of model: you could use 'Table', 'View', 'Join' etc as required")
+	flag.StringVar(&tagsFile, "tags", "", "A YAML file containing tags that augment and override any in the Go struct(s); optional.\n" +
+		"Tags control the SQL type, size, column name, indexes etc.")
+	flag.BoolVar(&Verbose, "v", false, "Show progress messages.")
+	flag.BoolVar(&parse.Debug, "z", false, "Show debug messages.")
+	flag.BoolVar(&parse.PrintAST, "ast", false, "Trace the whole astract syntax tree (very verbose).")
+	flag.BoolVar(&gofmt, "gofmt", false, "Format and simplify the generated code nicely.")
+
+	// filters for what gets generated
+	flag.BoolVar(&all, "all", false, "Shorthand for '-schema -create -read -update -delete -slice'; recommended.\n" +
+		"\tThis does not affect -setters.")
+	flag.BoolVar(&sselect, "select", false, "Alias for -read")
+	flag.BoolVar(&insert, "insert", false, "Alias for -create")
+	flag.BoolVar(&flags.schema, "schema", false, "Generate SQL schema create/drop methods.")
+	flag.BoolVar(&flags.insert, "create", false, "Generate SQL create (insert) methods.")
+	flag.BoolVar(&flags.sselect, "read", false, "Generate SQL select (read) methods.")
+	flag.BoolVar(&flags.update, "update", false, "Generate SQL update methods.")
+	flag.BoolVar(&flags.delete, "delete", false, "Generate SQL delete methods.")
+	flag.BoolVar(&flags.slice, "slice", false, "Generate SQL slice (column select) methods.")
+	flag.StringVar(&genSetters, "setters", "none", "Generate setters for fields of your type (see -type): none, optional, exported, all.\n" +
+		"\tFields that are pointers are assumed to be optional.")
 
 	flag.Parse()
 
 	Require(flag.NArg() > 0, "at least one input file is required; put this after the other args\n")
 
-	switch genFuncs {
-	case "all":
+	if sselect {
+		flags.sselect = true
+	}
+
+	if insert {
+		flags.insert = true
+	}
+
+	if all {
 		flags = allFuncFlags
-	case "none":
-		flags = noFuncFlags
-	case "":
-	default:
-		exit.Fail(1, "-funcs: value must be 'all' or 'none'.\n")
 	}
 
 	words := strings.Split(typeName, ".")
@@ -187,9 +199,10 @@ func primaryInterface(table *schema.TableDescription, genSchema bool) string {
 	return "sqlgen2.TableWithIndexes"
 }
 
+//-------------------------------------------------------------------------------------------------
+
 type funcFlags struct {
 	schema, sselect, insert, update, delete, slice bool
 }
 
 var allFuncFlags = funcFlags{true, true, true, true, true, true}
-var noFuncFlags = funcFlags{false, false, false, false, false, false}
