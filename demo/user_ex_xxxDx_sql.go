@@ -236,14 +236,15 @@ func (tbl DUserTable) DeleteUsers(id ...int64) (int64, error) {
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
-func (tbl DUserTable) Delete(where where.Expression) (int64, error) {
-	query, args := tbl.deleteRows(where)
+// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+func (tbl DUserTable) Delete(wh where.Expression) (int64, error) {
+	query, args := tbl.deleteRows(wh)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl DUserTable) deleteRows(where where.Expression) (string, []interface{}) {
-	whereClause, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
+func (tbl DUserTable) deleteRows(wh where.Expression) (string, []interface{}) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whs)
 	return query, args
 }
 

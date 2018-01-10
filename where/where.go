@@ -21,6 +21,15 @@ type Expression interface {
 	build(args []interface{}, dialect Dialect) (string, []interface{})
 }
 
+func BuildExpression(wh Expression, dialect Dialect) (string, []interface{}) {
+	if wh == nil {
+		return "", nil
+	}
+	return wh.Build(dialect)
+}
+
+//-------------------------------------------------------------------------------------------------
+
 // Condition is a simple condition such as an equality test.
 type Condition struct {
 	Sql  string

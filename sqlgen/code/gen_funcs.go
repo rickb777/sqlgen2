@@ -26,10 +26,9 @@ func WriteSliceColumn(w io.Writer, view View) {
 	must(tSliceItem.Execute(w, view))
 }
 
-func WriteSelectRow(w io.Writer, view View) {
+func WriteSelectRowsFuncs(w io.Writer, view View) {
 	fmt.Fprintln(w, sectionBreak)
 
-	must(tSelectRow.Execute(w, view))
 	must(tSelectRows.Execute(w, view))
 	must(tCountRows.Execute(w, view))
 

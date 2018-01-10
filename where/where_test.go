@@ -50,7 +50,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 		},
 
 		{
-			nameEqFred.And(NoOp()),
+			NoOp().And(nameEqFred),
 			"WHERE (name=?)",
 			"WHERE (name=$1)",
 			[]interface{}{"Fred"},

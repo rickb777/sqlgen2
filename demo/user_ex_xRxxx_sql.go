@@ -215,40 +215,44 @@ func (tbl RUserTable) GetUsers(id ...int64) (list []*User, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single User to be obtained from the table that match a 'where' clause
-// and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, *User will be nil.
+// SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause
+// and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
+// If not found, *Example will be nil.
 func (tbl RUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", RUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single User to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
 func (tbl RUserTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*User, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectOneSA(whs, orderBy, args...)
 }
 
 // SelectSA allows Users to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl RUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", RUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Users to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl RUserTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectSA(whs, orderBy, args...)
 }
 
 // CountSA counts Users in the table that match a 'where' clause.
+// Use a blank string for the 'where' argument if it is not needed.
 func (tbl RUserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
 	tbl.logQuery(query, args...)
@@ -258,9 +262,10 @@ func (tbl RUserTable) CountSA(where string, args ...interface{}) (count int64, e
 }
 
 // Count counts the Users in the table that match a 'where' clause.
-func (tbl RUserTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.CountSA(wh, args...)
+// Use a nil value for the 'wh' argument if it is not needed.
+func (tbl RUserTable) Count(wh where.Expression) (count int64, err error) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	return tbl.CountSA(whs, args...)
 }
 
 const RUserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"

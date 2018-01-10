@@ -347,40 +347,44 @@ func (tbl HookTable) GetHooks(id ...int64) (list HookList, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single Hook to be obtained from the table that match a 'where' clause
-// and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, *Hook will be nil.
+// SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause
+// and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
+// If not found, *Example will be nil.
 func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", HookColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single Hook to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
 func (tbl HookTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Hook, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectOneSA(whs, orderBy, args...)
 }
 
 // SelectSA allows Hooks to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl HookTable) SelectSA(where, orderBy string, args ...interface{}) (HookList, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", HookColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Hooks to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) Select(wh where.Expression, qc where.QueryConstraint) (HookList, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectSA(whs, orderBy, args...)
 }
 
 // CountSA counts Hooks in the table that match a 'where' clause.
+// Use a blank string for the 'where' argument if it is not needed.
 func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
 	tbl.logQuery(query, args...)
@@ -390,9 +394,10 @@ func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, er
 }
 
 // Count counts the Hooks in the table that match a 'where' clause.
-func (tbl HookTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.CountSA(wh, args...)
+// Use a nil value for the 'wh' argument if it is not needed.
+func (tbl HookTable) Count(wh where.Expression) (count int64, err error) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	return tbl.CountSA(whs, args...)
 }
 
 const HookColumnNames = "id, sha, after, before, category, created, deleted, forced, commit_id, message, timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
@@ -400,110 +405,127 @@ const HookColumnNames = "id, sha, after, before, category, created, deleted, for
 //--------------------------------------------------------------------------------
 
 // SliceId gets the Id column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceId(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list("id", wh, qc)
 }
 
 // SliceSha gets the Sha column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceSha(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("sha", wh, qc)
 }
 
 // SliceAfter gets the After column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceAfter(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("after", wh, qc)
 }
 
 // SliceBefore gets the Before column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceBefore(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("before", wh, qc)
 }
 
 // SliceCategory gets the Category column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceCategory(wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	return tbl.getCategorylist("category", wh, qc)
 }
 
 // SliceCreated gets the Created column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceCreated(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	return tbl.getboollist("created", wh, qc)
 }
 
 // SliceDeleted gets the Deleted column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceDeleted(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	return tbl.getboollist("deleted", wh, qc)
 }
 
 // SliceForced gets the Forced column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceForced(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	return tbl.getboollist("forced", wh, qc)
 }
 
 // SliceID gets the ID column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceCommitId(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("commit_id", wh, qc)
 }
 
 // SliceMessage gets the Message column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceMessage(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("message", wh, qc)
 }
 
 // SliceTimestamp gets the Timestamp column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceTimestamp(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("timestamp", wh, qc)
 }
 
 // SliceName gets the Name column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitAuthorName(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("head_commit_author_name", wh, qc)
 }
 
 // SliceEmail gets the Email column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitAuthorEmail(wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
 	return tbl.getEmaillist("head_commit_author_email", wh, qc)
 }
 
 // SliceUsername gets the Username column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitAuthorUsername(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("head_commit_author_username", wh, qc)
 }
 
 // SliceName gets the Name column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitCommitterName(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("head_commit_committer_name", wh, qc)
 }
 
 // SliceEmail gets the Email column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitCommitterEmail(wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
 	return tbl.getEmaillist("head_commit_committer_email", wh, qc)
 }
 
 // SliceUsername gets the Username column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitCommitterUsername(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("head_commit_committer_username", wh, qc)
 }
 
 
 func (tbl HookTable) getCategorylist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -526,7 +548,7 @@ func (tbl HookTable) getCategorylist(sqlname string, wh where.Expression, qc whe
 }
 
 func (tbl HookTable) getEmaillist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -549,7 +571,7 @@ func (tbl HookTable) getEmaillist(sqlname string, wh where.Expression, qc where.
 }
 
 func (tbl HookTable) getboollist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -572,7 +594,7 @@ func (tbl HookTable) getboollist(sqlname string, wh where.Expression, qc where.Q
 }
 
 func (tbl HookTable) getint64list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -595,7 +617,7 @@ func (tbl HookTable) getint64list(sqlname string, wh where.Expression, qc where.
 }
 
 func (tbl HookTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -693,16 +715,17 @@ const sHookDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$1
 //--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
-func (tbl HookTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
-	query, args := tbl.updateFields(where, fields...)
+// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+func (tbl HookTable) UpdateFields(wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	query, args := tbl.updateFields(wh, fields...)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl HookTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+func (tbl HookTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
-	whereClause, wargs := where.Build(tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whereClause)
+	whs, wargs := where.BuildExpression(wh, tbl.dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whs)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -861,14 +884,15 @@ func (tbl HookTable) DeleteHooks(id ...int64) (int64, error) {
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
-func (tbl HookTable) Delete(where where.Expression) (int64, error) {
-	query, args := tbl.deleteRows(where)
+// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+func (tbl HookTable) Delete(wh where.Expression) (int64, error) {
+	query, args := tbl.deleteRows(wh)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl HookTable) deleteRows(where where.Expression) (string, []interface{}) {
-	whereClause, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
+func (tbl HookTable) deleteRows(wh where.Expression) (string, []interface{}) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whs)
 	return query, args
 }
 

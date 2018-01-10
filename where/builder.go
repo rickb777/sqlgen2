@@ -97,7 +97,9 @@ func (cl not) Or(c2 Expression) Clause {
 
 //-------------------------------------------------------------------------------------------------
 
-// NoOp creates an empty expression.
+// NoOp creates an empty expression. This is useful for conditionally chaining
+// expressions based contextual decisions. It can also be passed to any method
+// that need an expression but for which none is required in that case.
 func NoOp() Expression {
 	return Clause{}
 }
@@ -129,7 +131,8 @@ func (wh Clause) conjoin(exp Expression, conj string) Clause {
 			return Clause{append(wh.wheres, cl.wheres...), conj}
 		}
 	} else {
-		if wh.conjunction == conj {
+		// blank case comes from NoOp
+		if wh.conjunction == "" || wh.conjunction == conj {
 			return Clause{append(wh.wheres, exp), conj}
 		}
 	}

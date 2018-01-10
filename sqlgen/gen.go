@@ -122,7 +122,7 @@ func main() {
 
 	if flags.sselect {
 		WriteGetRow(buf, view)
-		WriteSelectRow(buf, view)
+		WriteSelectRowsFuncs(buf, view)
 	}
 
 	if flags.slice {

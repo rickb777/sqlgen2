@@ -189,16 +189,17 @@ func (tbl UUserTable) doQuery(firstOnly bool, query string, args ...interface{})
 //--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
-func (tbl UUserTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
-	query, args := tbl.updateFields(where, fields...)
+// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+func (tbl UUserTable) UpdateFields(wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	query, args := tbl.updateFields(wh, fields...)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl UUserTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+func (tbl UUserTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
-	whereClause, wargs := where.Build(tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whereClause)
+	whs, wargs := where.BuildExpression(wh, tbl.dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whs)
 	args := append(list.Values(), wargs...)
 	return query, args
 }

@@ -175,15 +175,15 @@ func TestWriteSelectRow(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 
-	WriteSelectRow(buf, view)
+	WriteSelectRowsFuncs(buf, view)
 
 	code := buf.String()
 	expected := `
 //--------------------------------------------------------------------------------
 
 // SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause
-// and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", XExampleColumnNames, tbl.prefix, tbl.name, where, orderBy)
@@ -191,30 +191,34 @@ func (tbl XExampleTable) SelectOneSA(where, orderBy string, args ...interface{})
 }
 
 // SelectOne allows a single Example to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Example, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectOneSA(whs, orderBy, args...)
 }
 
 // SelectSA allows Examples to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl XExampleTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", XExampleColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Examples to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl XExampleTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Example, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectSA(whs, orderBy, args...)
 }
 
 // CountSA counts Examples in the table that match a 'where' clause.
+// Use a blank string for the 'where' argument if it is not needed.
 func (tbl XExampleTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
 	tbl.logQuery(query, args...)
@@ -224,9 +228,10 @@ func (tbl XExampleTable) CountSA(where string, args ...interface{}) (count int64
 }
 
 // Count counts the Examples in the table that match a 'where' clause.
-func (tbl XExampleTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.CountSA(wh, args...)
+// Use a nil value for the 'wh' argument if it is not needed.
+func (tbl XExampleTable) Count(wh where.Expression) (count int64, err error) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	return tbl.CountSA(whs, args...)
 }
 
 const XExampleColumnNames = "id, name, age"
@@ -405,16 +410,17 @@ func TestWriteUpdateFunc_noPK(t *testing.T) {
 //--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
-func (tbl XExampleTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
-	query, args := tbl.updateFields(where, fields...)
+// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+func (tbl XExampleTable) UpdateFields(wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	query, args := tbl.updateFields(wh, fields...)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl XExampleTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+func (tbl XExampleTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
-	whereClause, wargs := where.Build(tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whereClause)
+	whs, wargs := where.BuildExpression(wh, tbl.dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whs)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -441,16 +447,17 @@ func TestWriteUpdateFunc_withPK(t *testing.T) {
 //--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
-func (tbl XExampleTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
-	query, args := tbl.updateFields(where, fields...)
+// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+func (tbl XExampleTable) UpdateFields(wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	query, args := tbl.updateFields(wh, fields...)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl XExampleTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+func (tbl XExampleTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
-	whereClause, wargs := where.Build(tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whereClause)
+	whs, wargs := where.BuildExpression(wh, tbl.dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whs)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -576,14 +583,15 @@ func (tbl XExampleTable) DeleteExamples(id ...int64) (int64, error) {
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
-func (tbl XExampleTable) Delete(where where.Expression) (int64, error) {
-	query, args := tbl.deleteRows(where)
+// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+func (tbl XExampleTable) Delete(wh where.Expression) (int64, error) {
+	query, args := tbl.deleteRows(wh)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl XExampleTable) deleteRows(where where.Expression) (string, []interface{}) {
-	whereClause, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
+func (tbl XExampleTable) deleteRows(wh where.Expression) (string, []interface{}) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whs)
 	return query, args
 }
 

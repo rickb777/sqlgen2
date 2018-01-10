@@ -254,53 +254,17 @@ func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 
-	err = tbl.CreateUserEmailIndex(ifNotExist)
-	if err != nil {
-		return err
-	}
-
 	err = tbl.CreateUserLoginIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-// CreateUserEmailIndex creates the user_email index.
-func (tbl DbUserTable) CreateUserEmailIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
-
-	// Mysql does not support 'if not exists' on indexes
-	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
-
-	if ifNotExist && tbl.dialect == schema.Mysql {
-		tbl.DropUserEmailIndex(false)
-		ine = ""
+	err = tbl.CreateUserEmailIndex(ifNotExist)
+	if err != nil {
+		return err
 	}
 
-	_, err := tbl.Exec(tbl.createDbUserEmailIndexSql(ine))
-	return err
-}
-
-func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.prefix, tbl.name, sqlDbUserEmailIndexColumns)
-}
-
-// DropUserEmailIndex drops the user_email index.
-func (tbl DbUserTable) DropUserEmailIndex(ifExists bool) error {
-	_, err := tbl.Exec(tbl.dropDbUserEmailIndexSql(ifExists))
-	return err
-}
-
-func (tbl DbUserTable) dropDbUserEmailIndexSql(ifExists bool) string {
-	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ie, indexPrefix, onTbl)
+	return nil
 }
 
 // CreateUserLoginIndex creates the user_login index.
@@ -339,15 +303,51 @@ func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists bool) string {
 	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ie, indexPrefix, onTbl)
 }
 
+// CreateUserEmailIndex creates the user_email index.
+func (tbl DbUserTable) CreateUserEmailIndex(ifNotExist bool) error {
+	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
+
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+
+	if ifNotExist && tbl.dialect == schema.Mysql {
+		tbl.DropUserEmailIndex(false)
+		ine = ""
+	}
+
+	_, err := tbl.Exec(tbl.createDbUserEmailIndexSql(ine))
+	return err
+}
+
+func (tbl DbUserTable) createDbUserEmailIndexSql(ifNotExists string) string {
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s%s (%s)", ifNotExists, indexPrefix,
+		tbl.prefix, tbl.name, sqlDbUserEmailIndexColumns)
+}
+
+// DropUserEmailIndex drops the user_email index.
+func (tbl DbUserTable) DropUserEmailIndex(ifExists bool) error {
+	_, err := tbl.Exec(tbl.dropDbUserEmailIndexSql(ifExists))
+	return err
+}
+
+func (tbl DbUserTable) dropDbUserEmailIndexSql(ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
+	indexPrefix := tbl.prefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ie, indexPrefix, onTbl)
+}
+
 // DropIndexes executes queries that drop the indexes on by the User table.
 func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 
-	err = tbl.DropUserEmailIndex(ifExist)
+	err = tbl.DropUserLoginIndex(ifExist)
 	if err != nil {
 		return err
 	}
 
-	err = tbl.DropUserLoginIndex(ifExist)
+	err = tbl.DropUserEmailIndex(ifExist)
 	if err != nil {
 		return err
 	}
@@ -357,9 +357,9 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 
 //--------------------------------------------------------------------------------
 
-const sqlDbUserEmailIndexColumns = "emailaddress"
-
 const sqlDbUserLoginIndexColumns = "login"
+
+const sqlDbUserEmailIndexColumns = "emailaddress"
 
 //--------------------------------------------------------------------------------
 
@@ -452,40 +452,44 @@ func (tbl DbUserTable) GetUsers(id ...int64) (list []*User, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single User to be obtained from the table that match a 'where' clause
-// and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, *User will be nil.
+// SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause
+// and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
+// If not found, *Example will be nil.
 func (tbl DbUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", DbUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single User to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
 func (tbl DbUserTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*User, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectOneSA(whs, orderBy, args...)
 }
 
 // SelectSA allows Users to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl DbUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", DbUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Users to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectSA(whs, orderBy, args...)
 }
 
 // CountSA counts Users in the table that match a 'where' clause.
+// Use a blank string for the 'where' argument if it is not needed.
 func (tbl DbUserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
 	tbl.logQuery(query, args...)
@@ -495,9 +499,10 @@ func (tbl DbUserTable) CountSA(where string, args ...interface{}) (count int64, 
 }
 
 // Count counts the Users in the table that match a 'where' clause.
-func (tbl DbUserTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.CountSA(wh, args...)
+// Use a nil value for the 'wh' argument if it is not needed.
+func (tbl DbUserTable) Count(wh where.Expression) (count int64, err error) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	return tbl.CountSA(whs, args...)
 }
 
 const DbUserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"
@@ -505,49 +510,56 @@ const DbUserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave
 //--------------------------------------------------------------------------------
 
 // SliceUid gets the Uid column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceUid(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list("uid", wh, qc)
 }
 
 // SliceLogin gets the Login column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceLogin(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("login", wh, qc)
 }
 
 // SliceEmailAddress gets the EmailAddress column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceEmailaddress(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("emailaddress", wh, qc)
 }
 
 // SliceAvatar gets the Avatar column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceAvatar(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("avatar", wh, qc)
 }
 
 // SliceActive gets the Active column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceActive(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	return tbl.getboollist("active", wh, qc)
 }
 
 // SliceAdmin gets the Admin column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceAdmin(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	return tbl.getboollist("admin", wh, qc)
 }
 
 // SliceLastUpdated gets the LastUpdated column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceLastupdated(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list("lastupdated", wh, qc)
 }
 
 func (tbl DbUserTable) getboollist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -570,7 +582,7 @@ func (tbl DbUserTable) getboollist(sqlname string, wh where.Expression, qc where
 }
 
 func (tbl DbUserTable) getint64list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -593,7 +605,7 @@ func (tbl DbUserTable) getint64list(sqlname string, wh where.Expression, qc wher
 }
 
 func (tbl DbUserTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -683,16 +695,17 @@ const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 //--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
-func (tbl DbUserTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
-	query, args := tbl.updateFields(where, fields...)
+// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+func (tbl DbUserTable) UpdateFields(wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	query, args := tbl.updateFields(wh, fields...)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl DbUserTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+func (tbl DbUserTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
-	whereClause, wargs := where.Build(tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whereClause)
+	whs, wargs := where.BuildExpression(wh, tbl.dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whs)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -833,14 +846,15 @@ func (tbl DbUserTable) DeleteUsers(id ...int64) (int64, error) {
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
-func (tbl DbUserTable) Delete(where where.Expression) (int64, error) {
-	query, args := tbl.deleteRows(where)
+// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+func (tbl DbUserTable) Delete(wh where.Expression) (int64, error) {
+	query, args := tbl.deleteRows(wh)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl DbUserTable) deleteRows(where where.Expression) (string, []interface{}) {
-	whereClause, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
+func (tbl DbUserTable) deleteRows(wh where.Expression) (string, []interface{}) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whs)
 	return query, args
 }
 

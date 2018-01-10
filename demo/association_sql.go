@@ -314,40 +314,44 @@ func (tbl AssociationTable) GetAssociations(id ...int64) (list []*Association, e
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single Association to be obtained from the table that match a 'where' clause
-// and some limit.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
-// If not found, *Association will be nil.
+// SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause
+// and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
+// If not found, *Example will be nil.
 func (tbl AssociationTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Association, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", AssociationColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
 // SelectOne allows a single Association to be obtained from the sqlgen2.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
 func (tbl AssociationTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Association, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectOneSA(whs, orderBy, args...)
 }
 
 // SelectSA allows Associations to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in 'orderBy'; otherwise use a blank string.
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl AssociationTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Association, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", AssociationColumnNames, tbl.prefix, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
 // Select allows Associations to be obtained from the table that match a 'where' clause.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Association, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectSA(whs, orderBy, args...)
 }
 
 // CountSA counts Associations in the table that match a 'where' clause.
+// Use a blank string for the 'where' argument if it is not needed.
 func (tbl AssociationTable) CountSA(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
 	tbl.logQuery(query, args...)
@@ -357,9 +361,10 @@ func (tbl AssociationTable) CountSA(where string, args ...interface{}) (count in
 }
 
 // Count counts the Associations in the table that match a 'where' clause.
-func (tbl AssociationTable) Count(where where.Expression) (count int64, err error) {
-	wh, args := where.Build(tbl.dialect)
-	return tbl.CountSA(wh, args...)
+// Use a nil value for the 'wh' argument if it is not needed.
+func (tbl AssociationTable) Count(wh where.Expression) (count int64, err error) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	return tbl.CountSA(whs, args...)
 }
 
 const AssociationColumnNames = "id, name, quality, ref1, ref2, category"
@@ -367,44 +372,50 @@ const AssociationColumnNames = "id, name, quality, ref1, ref2, category"
 //--------------------------------------------------------------------------------
 
 // SliceId gets the Id column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceId(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list("id", wh, qc)
 }
 
 // SliceName gets the Name column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceName(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringPtrlist("name", wh, qc)
 }
 
 // SliceQuality gets the Quality column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceQuality(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringPtrlist("quality", wh, qc)
 }
 
 // SliceRef1 gets the Ref1 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceRef1(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64Ptrlist("ref1", wh, qc)
 }
 
 // SliceRef2 gets the Ref2 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceRef2(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64Ptrlist("ref2", wh, qc)
 }
 
 // SliceCategory gets the Category column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceCategory(wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	return tbl.getCategoryPtrlist("category", wh, qc)
 }
 
 
 func (tbl AssociationTable) getCategoryPtrlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -427,7 +438,7 @@ func (tbl AssociationTable) getCategoryPtrlist(sqlname string, wh where.Expressi
 }
 
 func (tbl AssociationTable) getint64list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -450,7 +461,7 @@ func (tbl AssociationTable) getint64list(sqlname string, wh where.Expression, qc
 }
 
 func (tbl AssociationTable) getint64Ptrlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -473,7 +484,7 @@ func (tbl AssociationTable) getint64Ptrlist(sqlname string, wh where.Expression,
 }
 
 func (tbl AssociationTable) getstringPtrlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -560,16 +571,17 @@ const sAssociationDataColumnParamsPostgres = "$1,$2,$3,$4,$5"
 //--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
-func (tbl AssociationTable) UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error) {
-	query, args := tbl.updateFields(where, fields...)
+// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+func (tbl AssociationTable) UpdateFields(wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	query, args := tbl.updateFields(wh, fields...)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl AssociationTable) updateFields(where where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
+func (tbl AssociationTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
-	whereClause, wargs := where.Build(tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whereClause)
+	whs, wargs := where.BuildExpression(wh, tbl.dialect)
+	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whs)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -695,14 +707,15 @@ func (tbl AssociationTable) DeleteAssociations(id ...int64) (int64, error) {
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
-func (tbl AssociationTable) Delete(where where.Expression) (int64, error) {
-	query, args := tbl.deleteRows(where)
+// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+func (tbl AssociationTable) Delete(wh where.Expression) (int64, error) {
+	query, args := tbl.deleteRows(wh)
 	return tbl.Exec(query, args...)
 }
 
-func (tbl AssociationTable) deleteRows(where where.Expression) (string, []interface{}) {
-	whereClause, args := where.Build(tbl.dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whereClause)
+func (tbl AssociationTable) deleteRows(wh where.Expression) (string, []interface{}) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whs)
 	return query, args
 }
 

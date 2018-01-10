@@ -188,50 +188,57 @@ func (tbl SUserTable) doQuery(firstOnly bool, query string, args ...interface{})
 //--------------------------------------------------------------------------------
 
 // SliceUid gets the Uid column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceUid(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list("uid", wh, qc)
 }
 
 // SliceLogin gets the Login column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceLogin(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("login", wh, qc)
 }
 
 // SliceEmailAddress gets the EmailAddress column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceEmailaddress(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("emailaddress", wh, qc)
 }
 
 // SliceAvatar gets the Avatar column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceAvatar(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist("avatar", wh, qc)
 }
 
 // SliceActive gets the Active column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceActive(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	return tbl.getboollist("active", wh, qc)
 }
 
 // SliceAdmin gets the Admin column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceAdmin(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	return tbl.getboollist("admin", wh, qc)
 }
 
 // SliceLastUpdated gets the LastUpdated column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'; otherwise use nil.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceLastupdated(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list("lastupdated", wh, qc)
 }
 
 
 func (tbl SUserTable) getboollist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -254,7 +261,7 @@ func (tbl SUserTable) getboollist(sqlname string, wh where.Expression, qc where.
 }
 
 func (tbl SUserTable) getint64list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
@@ -277,7 +284,7 @@ func (tbl SUserTable) getint64list(sqlname string, wh where.Expression, qc where
 }
 
 func (tbl SUserTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	whs, args := wh.Build(tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
