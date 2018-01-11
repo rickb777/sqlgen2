@@ -40,7 +40,7 @@ func baseTableDDL(t *TableDescription, did Dialect) string {
 
 func baseInsertDML(t *TableDescription) string {
 	w := &bytes.Buffer{}
-	w.WriteString("INSERT INTO %s%s (\n")
+	w.WriteString("INSERT INTO %s (\n")
 
 	comma := ""
 	for _, field := range t.Fields {
@@ -58,7 +58,7 @@ func baseInsertDML(t *TableDescription) string {
 
 func baseUpdateDML(t *TableDescription, fields FieldList, param func(int) string) string {
 	w := &bytes.Buffer{}
-	w.WriteString("UPDATE %s%s SET\n")
+	w.WriteString("UPDATE %s SET\n")
 
 	comma := ""
 	for i, field := range t.Fields {
@@ -78,7 +78,7 @@ func baseUpdateDML(t *TableDescription, fields FieldList, param func(int) string
 
 func baseDeleteDML(t *TableDescription, fields FieldList, param func(int) string) string {
 	w := &bytes.Buffer{}
-	w.WriteString("DELETE FROM %s%s")
+	w.WriteString("DELETE FROM %s")
 	w.WriteString(baseWhereClause(fields, 0, param))
 	return w.String()
 }

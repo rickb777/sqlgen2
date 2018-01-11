@@ -15,11 +15,11 @@ const sTable = `
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type {{.Prefix}}{{.Type}}{{.Thing}} struct {
-	prefix, name string
-	db           sqlgen2.Execer
-	ctx          context.Context
-	dialect      schema.Dialect
-	logger       *log.Logger
+	name    sqlgen2.TableName
+	db      sqlgen2.Execer
+	ctx     context.Context
+	dialect schema.Dialect
+	logger  *log.Logger
 }
 
 // Type conformance check
@@ -27,19 +27,18 @@ var _ {{.Interface}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
 
 // New{{.Prefix}}{{.Type}}{{.Thing}} returns a new table instance.
 // If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.
-// The table name prefix is initially blank and the request context is the background.
-func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d sqlgen2.Execer, dialect schema.Dialect) {{.Prefix}}{{.Type}}{{.Thing}} {
-	if name == "" {
-		name = "{{.DbName}}"
+// The request context is initialised with the background.
+func New{{.Prefix}}{{.Type}}{{.Thing}}(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) {{.Prefix}}{{.Type}}{{.Thing}} {
+	if name.Name == "" {
+		name.Name = "{{.DbName}}"
 	}
-	return {{.Prefix}}{{.Type}}{{.Thing}}{"", name, d, context.Background(), dialect, nil}
+	return {{.Prefix}}{{.Type}}{{.Thing}}{name, d, context.Background(), dialect, nil}
 }
 
 // CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}} copies a table instance, retaining the name etc but
 // providing methods appropriate for '{{.Type}}'.
 func CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}}(origin sqlgen2.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
-		prefix:  origin.Prefix(),
 		name:    origin.Name(),
 		db:      origin.DB(),
 		ctx:     origin.Ctx(),
@@ -50,7 +49,7 @@ func CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}}(origin sqlgen2.Table) {{.Prefix}}
 
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithPrefix(pfx string) {{.Prefix}}{{.Type}}{{.Thing}} {
-	tbl.prefix = pfx
+	tbl.name.Prefix = pfx
 	return tbl
 }
 
@@ -88,26 +87,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SetLogger(logger *log.Logger) sqlgen2.
 }
 
 // Name gets the table name.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Name() string {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Name() sqlgen2.TableName {
 	return tbl.name
-}
-
-// Prefix gets the table name prefix.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Prefix() string {
-	return tbl.prefix
-}
-
-// FullName gets the concatenated prefix and table name.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) FullName() string {
-	return tbl.prefix + tbl.name
-}
-
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) prefixWithoutDot() string {
-	last := len(tbl.prefix)-1
-	if last > 0 && tbl.prefix[last] == '.' {
-		return tbl.prefix[0:last]
-	}
-	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -228,7 +209,7 @@ const sTruncate = `
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Truncate(force bool) (err error) {
-	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
+	for _, query := range tbl.dialect.TruncateDDL(tbl.Name().String(), force) {
 		_, err = tbl.Exec(query)
 		if err != nil {
 			return err
@@ -257,7 +238,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) createTableSql(ifNotExists bool) strin
     {{end -}}
 	}
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.prefix, tbl.name)
+	query := fmt.Sprintf(stmt, extra, tbl.name)
 	return query
 }
 
@@ -275,7 +256,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DropTable(ifExists bool) (int64, error
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) dropTableSql(ifExists bool) string {
 	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.prefix, tbl.name)
+	query := fmt.Sprintf("DROP TABLE %s%s", extra, tbl.name)
 	return query
 }
 `
@@ -321,9 +302,9 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ifNotExi
 }
 
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) create{{$.Prefix}}{{camel .Name}}IndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE {{.UniqueStr}}INDEX %s%s{{.Name}} ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.prefix, tbl.name, sql{{$.Prefix}}{{camel .Name}}IndexColumns)
+	indexPrefix := tbl.name.PrefixWithoutDot()
+	return fmt.Sprintf("CREATE {{.UniqueStr}}INDEX %s%s{{.Name}} ON %s (%s)", ifNotExists, indexPrefix,
+		tbl.name, sql{{$.Prefix}}{{camel .Name}}IndexColumns)
 }
 
 // Drop{{camel .Name}}Index drops the {{.Name}} index.
@@ -335,8 +316,8 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Drop{{camel .Name}}Index(ifExists b
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) drop{{$.Prefix}}{{camel .Name}}IndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
-	indexPrefix := tbl.prefixWithoutDot()
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	indexPrefix := tbl.name.PrefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%s{{.Name}}%s", ie, indexPrefix, onTbl)
 }
 {{end}}

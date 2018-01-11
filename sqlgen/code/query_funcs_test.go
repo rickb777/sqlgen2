@@ -108,7 +108,7 @@ func TestWriteGetRow(t *testing.T) {
 // GetExample gets the record with a given primary key value.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", XExampleColumnNames, tbl.prefix, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", XExampleColumnNames, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 
@@ -118,7 +118,7 @@ func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
 func (tbl XExampleTable) GetExamples(id ...int64) (list []*Example, err error) {
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id IN (%s)", XExampleColumnNames, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)", XExampleColumnNames, tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -156,7 +156,7 @@ func xTestWriteSelectItem(t *testing.T) {
 
 // Get gets the record with a given primary key value.
 func (tbl XExampleTable) Get(id int64) (*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE id=?", XExampleColumnNames, tbl.prefix, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", XExampleColumnNames, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 `
@@ -186,7 +186,7 @@ func TestWriteSelectRow(t *testing.T) {
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", XExampleColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", XExampleColumnNames, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -204,7 +204,7 @@ func (tbl XExampleTable) SelectOne(wh where.Expression, qc where.QueryConstraint
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl XExampleTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", XExampleColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", XExampleColumnNames, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
@@ -220,7 +220,7 @@ func (tbl XExampleTable) Select(wh where.Expression, qc where.QueryConstraint) (
 // CountSA counts Examples in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
 func (tbl XExampleTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
@@ -270,7 +270,7 @@ func (tbl XExampleTable) Insert(vv ...*Example) error {
 		params = sXExampleDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsertXExample, tbl.prefix, tbl.name, params)
+	query := fmt.Sprintf(sqlInsertXExample, tbl.name, params)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -299,7 +299,7 @@ func (tbl XExampleTable) Insert(vv ...*Example) error {
 }
 
 const sqlInsertXExample = |
-INSERT INTO %s%s (
+INSERT INTO %s (
 	name,
 	age
 ) VALUES (%s)
@@ -342,7 +342,7 @@ func (tbl XExampleTable) Insert(vv ...*Example) error {
 		params = sXExampleDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsertXExample, tbl.prefix, tbl.name, params)
+	query := fmt.Sprintf(sqlInsertXExample, tbl.name, params)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -376,7 +376,7 @@ func (tbl XExampleTable) Insert(vv ...*Example) error {
 }
 
 const sqlInsertXExample = |
-INSERT INTO %s%s (
+INSERT INTO %s (
 	name,
 	age
 ) VALUES (%s)
@@ -420,7 +420,7 @@ func (tbl XExampleTable) updateFields(wh where.Expression, fields ...sql.NamedAr
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
 	whs, wargs := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whs)
+	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.name, assignments, whs)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -457,7 +457,7 @@ func (tbl XExampleTable) updateFields(wh where.Expression, fields ...sql.NamedAr
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
 	whs, wargs := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whs)
+	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.name, assignments, whs)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -475,7 +475,7 @@ func (tbl XExampleTable) Update(vv ...*Example) (int64, error) {
 		stmt = sqlUpdateXExampleByPkSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.prefix, tbl.name)
+	query := fmt.Sprintf(stmt, tbl.name)
 
 	var count int64
 	for _, v := range vv {
@@ -500,14 +500,14 @@ func (tbl XExampleTable) Update(vv ...*Example) (int64, error) {
 }
 
 const sqlUpdateXExampleByPkSimple = |
-UPDATE %s%s SET
+UPDATE %s SET
 	name=?,
 	age=?
 WHERE id=?
 |
 
 const sqlUpdateXExampleByPkPostgres = |
-UPDATE %s%s SET
+UPDATE %s SET
 	name=$2,
 	age=$3
 WHERE id=$1
@@ -538,7 +538,7 @@ func TestWriteDeleteFunc(t *testing.T) {
 // The list of ids can be arbitrarily long.
 func (tbl XExampleTable) DeleteExamples(id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s%s WHERE id IN (%s)"
+	const qt = "DELETE FROM %s WHERE id IN (%s)"
 
 	var count, n int64
 	var err error
@@ -550,7 +550,7 @@ func (tbl XExampleTable) DeleteExamples(id ...int64) (int64, error) {
 
 	if len(id) > batch {
 		pl := tbl.dialect.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -569,7 +569,7 @@ func (tbl XExampleTable) DeleteExamples(id ...int64) (int64, error) {
 
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]
@@ -591,7 +591,7 @@ func (tbl XExampleTable) Delete(wh where.Expression) (int64, error) {
 
 func (tbl XExampleTable) deleteRows(wh where.Expression) (string, []interface{}) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whs)
+	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }
 

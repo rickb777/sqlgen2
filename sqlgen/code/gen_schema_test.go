@@ -43,7 +43,7 @@ func (tbl XExampleTable) createTableSql(ifNotExists bool) string {
     case schema.Mysql: stmt = sqlCreateXExampleTableMysql
     }
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.prefix, tbl.name)
+	query := fmt.Sprintf(stmt, extra, tbl.name)
 	return query
 }
 
@@ -61,12 +61,12 @@ func (tbl XExampleTable) DropTable(ifExists bool) (int64, error) {
 
 func (tbl XExampleTable) dropTableSql(ifExists bool) string {
 	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.prefix, tbl.name)
+	query := fmt.Sprintf("DROP TABLE %s%s", extra, tbl.name)
 	return query
 }
 
 const sqlCreateXExampleTableSqlite = |
-CREATE TABLE %s%s%s (
+CREATE TABLE %s%s (
  id       integer primary key autoincrement,
  cat      int,
  username text,
@@ -83,7 +83,7 @@ CREATE TABLE %s%s%s (
 |
 
 const sqlCreateXExampleTablePostgres = |
-CREATE TABLE %s%s%s (
+CREATE TABLE %s%s (
  id       bigserial primary key,
  cat      int,
  username varchar(2048),
@@ -100,7 +100,7 @@ CREATE TABLE %s%s%s (
 |
 
 const sqlCreateXExampleTableMysql = |
-CREATE TABLE %s%s%s (
+CREATE TABLE %s%s (
  id       bigint primary key auto_increment,
  cat      int,
  username varchar(2048),
@@ -161,9 +161,9 @@ func (tbl XExampleTable) CreateCatIdxIndex(ifNotExist bool) error {
 }
 
 func (tbl XExampleTable) createXCatIdxIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE INDEX %s%scatIdx ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.prefix, tbl.name, sqlXCatIdxIndexColumns)
+	indexPrefix := tbl.name.PrefixWithoutDot()
+	return fmt.Sprintf("CREATE INDEX %s%scatIdx ON %s (%s)", ifNotExists, indexPrefix,
+		tbl.name, sqlXCatIdxIndexColumns)
 }
 
 // DropCatIdxIndex drops the catIdx index.
@@ -175,8 +175,8 @@ func (tbl XExampleTable) DropCatIdxIndex(ifExists bool) error {
 func (tbl XExampleTable) dropXCatIdxIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
-	indexPrefix := tbl.prefixWithoutDot()
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	indexPrefix := tbl.name.PrefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%scatIdx%s", ie, indexPrefix, onTbl)
 }
 
@@ -197,9 +197,9 @@ func (tbl XExampleTable) CreateNameIdxIndex(ifNotExist bool) error {
 }
 
 func (tbl XExampleTable) createXNameIdxIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%snameIdx ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.prefix, tbl.name, sqlXNameIdxIndexColumns)
+	indexPrefix := tbl.name.PrefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%snameIdx ON %s (%s)", ifNotExists, indexPrefix,
+		tbl.name, sqlXNameIdxIndexColumns)
 }
 
 // DropNameIdxIndex drops the nameIdx index.
@@ -211,8 +211,8 @@ func (tbl XExampleTable) DropNameIdxIndex(ifExists bool) error {
 func (tbl XExampleTable) dropXNameIdxIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
-	indexPrefix := tbl.prefixWithoutDot()
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	indexPrefix := tbl.name.PrefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%snameIdx%s", ie, indexPrefix, onTbl)
 }
 
@@ -248,7 +248,7 @@ const sqlXNameIdxIndexColumns = "username"
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
 func (tbl XExampleTable) Truncate(force bool) (err error) {
-	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
+	for _, query := range tbl.dialect.TruncateDDL(tbl.Name().String(), force) {
 		_, err = tbl.Exec(query)
 		if err != nil {
 			return err

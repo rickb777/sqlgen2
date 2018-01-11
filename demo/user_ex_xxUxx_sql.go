@@ -18,11 +18,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type UUserTable struct {
-	prefix, name string
-	db           sqlgen2.Execer
-	ctx          context.Context
-	dialect      schema.Dialect
-	logger       *log.Logger
+	name    sqlgen2.TableName
+	db      sqlgen2.Execer
+	ctx     context.Context
+	dialect schema.Dialect
+	logger  *log.Logger
 }
 
 // Type conformance check
@@ -30,19 +30,18 @@ var _ sqlgen2.Table = &UUserTable{}
 
 // NewUUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
-// The table name prefix is initially blank and the request context is the background.
-func NewUUserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) UUserTable {
-	if name == "" {
-		name = "users"
+// The request context is initialised with the background.
+func NewUUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) UUserTable {
+	if name.Name == "" {
+		name.Name = "users"
 	}
-	return UUserTable{"", name, d, context.Background(), dialect, nil}
+	return UUserTable{name, d, context.Background(), dialect, nil}
 }
 
 // CopyTableAsUUserTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'User'.
 func CopyTableAsUUserTable(origin sqlgen2.Table) UUserTable {
 	return UUserTable{
-		prefix:  origin.Prefix(),
 		name:    origin.Name(),
 		db:      origin.DB(),
 		ctx:     origin.Ctx(),
@@ -53,7 +52,7 @@ func CopyTableAsUUserTable(origin sqlgen2.Table) UUserTable {
 
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl UUserTable) WithPrefix(pfx string) UUserTable {
-	tbl.prefix = pfx
+	tbl.name.Prefix = pfx
 	return tbl
 }
 
@@ -91,26 +90,8 @@ func (tbl UUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl UUserTable) Name() string {
+func (tbl UUserTable) Name() sqlgen2.TableName {
 	return tbl.name
-}
-
-// Prefix gets the table name prefix.
-func (tbl UUserTable) Prefix() string {
-	return tbl.prefix
-}
-
-// FullName gets the concatenated prefix and table name.
-func (tbl UUserTable) FullName() string {
-	return tbl.prefix + tbl.name
-}
-
-func (tbl UUserTable) prefixWithoutDot() string {
-	last := len(tbl.prefix)-1
-	if last > 0 && tbl.prefix[last] == '.' {
-		return tbl.prefix[0:last]
-	}
-	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -199,7 +180,7 @@ func (tbl UUserTable) updateFields(wh where.Expression, fields ...sql.NamedArg) 
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
 	whs, wargs := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whs)
+	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.name, assignments, whs)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -217,7 +198,7 @@ func (tbl UUserTable) Update(vv ...*User) (int64, error) {
 		stmt = sqlUpdateUUserByPkSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.prefix, tbl.name)
+	query := fmt.Sprintf(stmt, tbl.name)
 
 	var count int64
 	for _, v := range vv {
@@ -242,7 +223,7 @@ func (tbl UUserTable) Update(vv ...*User) (int64, error) {
 }
 
 const sqlUpdateUUserByPkSimple = `
-UPDATE %s%s SET
+UPDATE %s SET
 	login=?,
 	emailaddress=?,
 	avatar=?,
@@ -256,7 +237,7 @@ WHERE uid=?
 `
 
 const sqlUpdateUUserByPkPostgres = `
-UPDATE %s%s SET
+UPDATE %s SET
 	login=$2,
 	emailaddress=$3,
 	avatar=$4,

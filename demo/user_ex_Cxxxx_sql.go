@@ -16,11 +16,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type CUserTable struct {
-	prefix, name string
-	db           sqlgen2.Execer
-	ctx          context.Context
-	dialect      schema.Dialect
-	logger       *log.Logger
+	name    sqlgen2.TableName
+	db      sqlgen2.Execer
+	ctx     context.Context
+	dialect schema.Dialect
+	logger  *log.Logger
 }
 
 // Type conformance check
@@ -28,19 +28,18 @@ var _ sqlgen2.Table = &CUserTable{}
 
 // NewCUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
-// The table name prefix is initially blank and the request context is the background.
-func NewCUserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) CUserTable {
-	if name == "" {
-		name = "users"
+// The request context is initialised with the background.
+func NewCUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) CUserTable {
+	if name.Name == "" {
+		name.Name = "users"
 	}
-	return CUserTable{"", name, d, context.Background(), dialect, nil}
+	return CUserTable{name, d, context.Background(), dialect, nil}
 }
 
 // CopyTableAsCUserTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'User'.
 func CopyTableAsCUserTable(origin sqlgen2.Table) CUserTable {
 	return CUserTable{
-		prefix:  origin.Prefix(),
 		name:    origin.Name(),
 		db:      origin.DB(),
 		ctx:     origin.Ctx(),
@@ -51,7 +50,7 @@ func CopyTableAsCUserTable(origin sqlgen2.Table) CUserTable {
 
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl CUserTable) WithPrefix(pfx string) CUserTable {
-	tbl.prefix = pfx
+	tbl.name.Prefix = pfx
 	return tbl
 }
 
@@ -89,26 +88,8 @@ func (tbl CUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl CUserTable) Name() string {
+func (tbl CUserTable) Name() sqlgen2.TableName {
 	return tbl.name
-}
-
-// Prefix gets the table name prefix.
-func (tbl CUserTable) Prefix() string {
-	return tbl.prefix
-}
-
-// FullName gets the concatenated prefix and table name.
-func (tbl CUserTable) FullName() string {
-	return tbl.prefix + tbl.name
-}
-
-func (tbl CUserTable) prefixWithoutDot() string {
-	last := len(tbl.prefix)-1
-	if last > 0 && tbl.prefix[last] == '.' {
-		return tbl.prefix[0:last]
-	}
-	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -198,7 +179,7 @@ func (tbl CUserTable) Insert(vv ...*User) error {
 		params = sCUserDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsertCUser, tbl.prefix, tbl.name, params)
+	query := fmt.Sprintf(sqlInsertCUser, tbl.name, params)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -232,7 +213,7 @@ func (tbl CUserTable) Insert(vv ...*User) error {
 }
 
 const sqlInsertCUser = `
-INSERT INTO %s%s (
+INSERT INTO %s (
 	login,
 	emailaddress,
 	avatar,

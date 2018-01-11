@@ -56,7 +56,7 @@ func WriteSchema(w io.Writer, view View) {
 
 		fmt.Fprintf(w, constStringWithTicks,
 			identifier("sqlCreate", tableName, view.Thing+ds),
-			"CREATE TABLE %s%s%s ("+d.TableDDL(view.Table)+"\n)"+d.CreateTableSettings())
+			"CREATE TABLE %s%s ("+d.TableDDL(view.Table)+"\n)"+d.CreateTableSettings())
 	}
 
 	if len(view.Table.Index) > 0 {

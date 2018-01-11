@@ -17,11 +17,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type SUserTable struct {
-	prefix, name string
-	db           sqlgen2.Execer
-	ctx          context.Context
-	dialect      schema.Dialect
-	logger       *log.Logger
+	name    sqlgen2.TableName
+	db      sqlgen2.Execer
+	ctx     context.Context
+	dialect schema.Dialect
+	logger  *log.Logger
 }
 
 // Type conformance check
@@ -29,19 +29,18 @@ var _ sqlgen2.Table = &SUserTable{}
 
 // NewSUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
-// The table name prefix is initially blank and the request context is the background.
-func NewSUserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) SUserTable {
-	if name == "" {
-		name = "users"
+// The request context is initialised with the background.
+func NewSUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) SUserTable {
+	if name.Name == "" {
+		name.Name = "users"
 	}
-	return SUserTable{"", name, d, context.Background(), dialect, nil}
+	return SUserTable{name, d, context.Background(), dialect, nil}
 }
 
 // CopyTableAsSUserTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'User'.
 func CopyTableAsSUserTable(origin sqlgen2.Table) SUserTable {
 	return SUserTable{
-		prefix:  origin.Prefix(),
 		name:    origin.Name(),
 		db:      origin.DB(),
 		ctx:     origin.Ctx(),
@@ -52,7 +51,7 @@ func CopyTableAsSUserTable(origin sqlgen2.Table) SUserTable {
 
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl SUserTable) WithPrefix(pfx string) SUserTable {
-	tbl.prefix = pfx
+	tbl.name.Prefix = pfx
 	return tbl
 }
 
@@ -90,26 +89,8 @@ func (tbl SUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl SUserTable) Name() string {
+func (tbl SUserTable) Name() sqlgen2.TableName {
 	return tbl.name
-}
-
-// Prefix gets the table name prefix.
-func (tbl SUserTable) Prefix() string {
-	return tbl.prefix
-}
-
-// FullName gets the concatenated prefix and table name.
-func (tbl SUserTable) FullName() string {
-	return tbl.prefix + tbl.name
-}
-
-func (tbl SUserTable) prefixWithoutDot() string {
-	last := len(tbl.prefix)-1
-	if last > 0 && tbl.prefix[last] == '.' {
-		return tbl.prefix[0:last]
-	}
-	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -240,7 +221,7 @@ func (tbl SUserTable) SliceLastupdated(wh where.Expression, qc where.QueryConstr
 func (tbl SUserTable) getboollist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -263,7 +244,7 @@ func (tbl SUserTable) getboollist(sqlname string, wh where.Expression, qc where.
 func (tbl SUserTable) getint64list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -286,7 +267,7 @@ func (tbl SUserTable) getint64list(sqlname string, wh where.Expression, qc where
 func (tbl SUserTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {

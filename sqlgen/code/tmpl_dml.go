@@ -48,7 +48,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(wh where.Ex
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) get{{.Tag}}list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -80,7 +80,7 @@ const sGetRow = `{{if .Table.Primary}}
 // Get{{.Type}} gets the record with a given primary key value.
 // If not found, *{{.Type}} will be nil.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE {{.Table.Primary.SqlName}}=?", {{.Prefix}}{{.Type}}ColumnNames, tbl.prefix, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}}=?", {{.Prefix}}{{.Type}}ColumnNames, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 
@@ -90,7 +90,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}(id ...{{.Table.Primary.Type.Name}}) (list {{.List}}, err error) {
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s%s WHERE {{.Table.Primary.SqlName}} IN (%s)", {{.Prefix}}{{.Type}}ColumnNames, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}} IN (%s)", {{.Prefix}}{{.Type}}ColumnNames, tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -115,7 +115,7 @@ const sSelectRows = `
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneSA(where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", {{.Prefix}}{{.Type}}ColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", {{.Prefix}}{{.Type}}ColumnNames, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -133,7 +133,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(wh where.Expression, qc wher
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectSA(where, orderBy string, args ...interface{}) ({{.List}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", {{.Prefix}}{{.Type}}ColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", {{.Prefix}}{{.Type}}ColumnNames, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
@@ -155,7 +155,7 @@ const sCountRows = `
 // CountSA counts {{.Types}} in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
@@ -188,7 +188,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(vv ...*{{.Type}}) error {
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsert{{$.Prefix}}{{$.Type}}, tbl.prefix, tbl.name, params)
+	query := fmt.Sprintf(sqlInsert{{$.Prefix}}{{$.Type}}, tbl.name, params)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -244,7 +244,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(vv ...*{{.Type}}) error {
 		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsert{{$.Prefix}}{{$.Type}}, tbl.prefix, tbl.name, params)
+	query := fmt.Sprintf(sqlInsert{{$.Prefix}}{{$.Type}}, tbl.name, params)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -290,7 +290,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) updateFields(wh where.Expression, fiel
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
 	whs, wargs := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whs)
+	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.name, assignments, whs)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -315,7 +315,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(vv ...*{{.Type}}) (int64, error
 		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.prefix, tbl.name)
+	query := fmt.Sprintf(stmt, tbl.name)
 
 	var count int64
 	for _, v := range vv {
@@ -351,7 +351,7 @@ const sDelete = `
 // The list of ids can be arbitrarily long.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(id ...{{.Table.Primary.Type.Name}}) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s%s WHERE {{.Table.Primary.SqlName}} IN (%s)"
+	const qt = "DELETE FROM %s WHERE {{.Table.Primary.SqlName}} IN (%s)"
 
 	var count, n int64
 	var err error
@@ -363,7 +363,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(id ...{{.Table.Primar
 
 	if len(id) > batch {
 		pl := tbl.dialect.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -382,7 +382,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(id ...{{.Table.Primar
 
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]
@@ -405,7 +405,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete(wh where.Expression) (int64, er
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) deleteRows(wh where.Expression) (string, []interface{}) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whs)
+	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }
 `

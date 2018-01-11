@@ -17,11 +17,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DUserTable struct {
-	prefix, name string
-	db           sqlgen2.Execer
-	ctx          context.Context
-	dialect      schema.Dialect
-	logger       *log.Logger
+	name    sqlgen2.TableName
+	db      sqlgen2.Execer
+	ctx     context.Context
+	dialect schema.Dialect
+	logger  *log.Logger
 }
 
 // Type conformance check
@@ -29,19 +29,18 @@ var _ sqlgen2.Table = &DUserTable{}
 
 // NewDUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
-// The table name prefix is initially blank and the request context is the background.
-func NewDUserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) DUserTable {
-	if name == "" {
-		name = "users"
+// The request context is initialised with the background.
+func NewDUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) DUserTable {
+	if name.Name == "" {
+		name.Name = "users"
 	}
-	return DUserTable{"", name, d, context.Background(), dialect, nil}
+	return DUserTable{name, d, context.Background(), dialect, nil}
 }
 
 // CopyTableAsDUserTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'User'.
 func CopyTableAsDUserTable(origin sqlgen2.Table) DUserTable {
 	return DUserTable{
-		prefix:  origin.Prefix(),
 		name:    origin.Name(),
 		db:      origin.DB(),
 		ctx:     origin.Ctx(),
@@ -52,7 +51,7 @@ func CopyTableAsDUserTable(origin sqlgen2.Table) DUserTable {
 
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl DUserTable) WithPrefix(pfx string) DUserTable {
-	tbl.prefix = pfx
+	tbl.name.Prefix = pfx
 	return tbl
 }
 
@@ -90,26 +89,8 @@ func (tbl DUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl DUserTable) Name() string {
+func (tbl DUserTable) Name() sqlgen2.TableName {
 	return tbl.name
-}
-
-// Prefix gets the table name prefix.
-func (tbl DUserTable) Prefix() string {
-	return tbl.prefix
-}
-
-// FullName gets the concatenated prefix and table name.
-func (tbl DUserTable) FullName() string {
-	return tbl.prefix + tbl.name
-}
-
-func (tbl DUserTable) prefixWithoutDot() string {
-	last := len(tbl.prefix)-1
-	if last > 0 && tbl.prefix[last] == '.' {
-		return tbl.prefix[0:last]
-	}
-	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -191,7 +172,7 @@ func (tbl DUserTable) doQuery(firstOnly bool, query string, args ...interface{})
 // The list of ids can be arbitrarily long.
 func (tbl DUserTable) DeleteUsers(id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s%s WHERE uid IN (%s)"
+	const qt = "DELETE FROM %s WHERE uid IN (%s)"
 
 	var count, n int64
 	var err error
@@ -203,7 +184,7 @@ func (tbl DUserTable) DeleteUsers(id ...int64) (int64, error) {
 
 	if len(id) > batch {
 		pl := tbl.dialect.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -222,7 +203,7 @@ func (tbl DUserTable) DeleteUsers(id ...int64) (int64, error) {
 
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]
@@ -244,7 +225,7 @@ func (tbl DUserTable) Delete(wh where.Expression) (int64, error) {
 
 func (tbl DUserTable) deleteRows(wh where.Expression) (string, []interface{}) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whs)
+	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }
 

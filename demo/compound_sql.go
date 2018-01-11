@@ -17,11 +17,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DbCompoundTable struct {
-	prefix, name string
-	db           sqlgen2.Execer
-	ctx          context.Context
-	dialect      schema.Dialect
-	logger       *log.Logger
+	name    sqlgen2.TableName
+	db      sqlgen2.Execer
+	ctx     context.Context
+	dialect schema.Dialect
+	logger  *log.Logger
 }
 
 // Type conformance check
@@ -29,19 +29,18 @@ var _ sqlgen2.TableWithIndexes = &DbCompoundTable{}
 
 // NewDbCompoundTable returns a new table instance.
 // If a blank table name is supplied, the default name "compounds" will be used instead.
-// The table name prefix is initially blank and the request context is the background.
-func NewDbCompoundTable(name string, d sqlgen2.Execer, dialect schema.Dialect) DbCompoundTable {
-	if name == "" {
-		name = "compounds"
+// The request context is initialised with the background.
+func NewDbCompoundTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) DbCompoundTable {
+	if name.Name == "" {
+		name.Name = "compounds"
 	}
-	return DbCompoundTable{"", name, d, context.Background(), dialect, nil}
+	return DbCompoundTable{name, d, context.Background(), dialect, nil}
 }
 
 // CopyTableAsDbCompoundTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'Compound'.
 func CopyTableAsDbCompoundTable(origin sqlgen2.Table) DbCompoundTable {
 	return DbCompoundTable{
-		prefix:  origin.Prefix(),
 		name:    origin.Name(),
 		db:      origin.DB(),
 		ctx:     origin.Ctx(),
@@ -52,7 +51,7 @@ func CopyTableAsDbCompoundTable(origin sqlgen2.Table) DbCompoundTable {
 
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl DbCompoundTable) WithPrefix(pfx string) DbCompoundTable {
-	tbl.prefix = pfx
+	tbl.name.Prefix = pfx
 	return tbl
 }
 
@@ -90,26 +89,8 @@ func (tbl DbCompoundTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl DbCompoundTable) Name() string {
+func (tbl DbCompoundTable) Name() sqlgen2.TableName {
 	return tbl.name
-}
-
-// Prefix gets the table name prefix.
-func (tbl DbCompoundTable) Prefix() string {
-	return tbl.prefix
-}
-
-// FullName gets the concatenated prefix and table name.
-func (tbl DbCompoundTable) FullName() string {
-	return tbl.prefix + tbl.name
-}
-
-func (tbl DbCompoundTable) prefixWithoutDot() string {
-	last := len(tbl.prefix) - 1
-	if last > 0 && tbl.prefix[last] == '.' {
-		return tbl.prefix[0:last]
-	}
-	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -168,7 +149,7 @@ func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
 		stmt = sqlCreateDbCompoundTableMysql
 	}
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.prefix, tbl.name)
+	query := fmt.Sprintf(stmt, extra, tbl.name)
 	return query
 }
 
@@ -186,12 +167,12 @@ func (tbl DbCompoundTable) DropTable(ifExists bool) (int64, error) {
 
 func (tbl DbCompoundTable) dropTableSql(ifExists bool) string {
 	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.prefix, tbl.name)
+	query := fmt.Sprintf("DROP TABLE %s%s", extra, tbl.name)
 	return query
 }
 
 const sqlCreateDbCompoundTableSqlite = `
-CREATE TABLE %s%s%s (
+CREATE TABLE %s%s (
  alpha    text,
  beta     text,
  category tinyint unsigned
@@ -199,7 +180,7 @@ CREATE TABLE %s%s%s (
 `
 
 const sqlCreateDbCompoundTablePostgres = `
-CREATE TABLE %s%s%s (
+CREATE TABLE %s%s (
  alpha    varchar(255),
  beta     varchar(255),
  category tinyint unsigned
@@ -207,7 +188,7 @@ CREATE TABLE %s%s%s (
 `
 
 const sqlCreateDbCompoundTableMysql = `
-CREATE TABLE %s%s%s (
+CREATE TABLE %s%s (
  alpha    varchar(255),
  beta     varchar(255),
  category tinyint unsigned
@@ -254,9 +235,9 @@ func (tbl DbCompoundTable) CreateAlphaBetaIndex(ifNotExist bool) error {
 }
 
 func (tbl DbCompoundTable) createDbAlphaBetaIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%salpha_beta ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.prefix, tbl.name, sqlDbAlphaBetaIndexColumns)
+	indexPrefix := tbl.name.PrefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%salpha_beta ON %s (%s)", ifNotExists, indexPrefix,
+		tbl.name, sqlDbAlphaBetaIndexColumns)
 }
 
 // DropAlphaBetaIndex drops the alpha_beta index.
@@ -268,8 +249,8 @@ func (tbl DbCompoundTable) DropAlphaBetaIndex(ifExists bool) error {
 func (tbl DbCompoundTable) dropDbAlphaBetaIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
-	indexPrefix := tbl.prefixWithoutDot()
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	indexPrefix := tbl.name.PrefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%salpha_beta%s", ie, indexPrefix, onTbl)
 }
 
@@ -298,7 +279,7 @@ const sqlDbAlphaBetaIndexColumns = "alpha, beta"
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
 func (tbl DbCompoundTable) Truncate(force bool) (err error) {
-	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
+	for _, query := range tbl.dialect.TruncateDDL(tbl.Name().String(), force) {
 		_, err = tbl.Exec(query)
 		if err != nil {
 			return err
@@ -356,7 +337,7 @@ func (tbl DbCompoundTable) doQuery(firstOnly bool, query string, args ...interfa
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
 func (tbl DbCompoundTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Compound, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", DbCompoundColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", DbCompoundColumnNames, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -374,7 +355,7 @@ func (tbl DbCompoundTable) SelectOne(wh where.Expression, qc where.QueryConstrai
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl DbCompoundTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Compound, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", DbCompoundColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", DbCompoundColumnNames, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
@@ -390,7 +371,7 @@ func (tbl DbCompoundTable) Select(wh where.Expression, qc where.QueryConstraint)
 // CountSA counts Compounds in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
 func (tbl DbCompoundTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
@@ -432,7 +413,7 @@ func (tbl DbCompoundTable) SliceCategory(wh where.Expression, qc where.QueryCons
 func (tbl DbCompoundTable) getCategorylist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -455,7 +436,7 @@ func (tbl DbCompoundTable) getCategorylist(sqlname string, wh where.Expression, 
 func (tbl DbCompoundTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -488,7 +469,7 @@ func (tbl DbCompoundTable) Insert(vv ...*Compound) error {
 		params = sDbCompoundDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsertDbCompound, tbl.prefix, tbl.name, params)
+	query := fmt.Sprintf(sqlInsertDbCompound, tbl.name, params)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -517,7 +498,7 @@ func (tbl DbCompoundTable) Insert(vv ...*Compound) error {
 }
 
 const sqlInsertDbCompound = `
-INSERT INTO %s%s (
+INSERT INTO %s (
 	alpha,
 	beta,
 	category
@@ -541,7 +522,7 @@ func (tbl DbCompoundTable) updateFields(wh where.Expression, fields ...sql.Named
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
 	whs, wargs := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whs)
+	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.name, assignments, whs)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -566,7 +547,7 @@ func (tbl DbCompoundTable) Delete(wh where.Expression) (int64, error) {
 
 func (tbl DbCompoundTable) deleteRows(wh where.Expression) (string, []interface{}) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whs)
+	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }
 

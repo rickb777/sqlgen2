@@ -18,11 +18,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type AUserTable struct {
-	prefix, name string
-	db           sqlgen2.Execer
-	ctx          context.Context
-	dialect      schema.Dialect
-	logger       *log.Logger
+	name    sqlgen2.TableName
+	db      sqlgen2.Execer
+	ctx     context.Context
+	dialect schema.Dialect
+	logger  *log.Logger
 }
 
 // Type conformance check
@@ -30,19 +30,18 @@ var _ sqlgen2.TableWithIndexes = &AUserTable{}
 
 // NewAUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
-// The table name prefix is initially blank and the request context is the background.
-func NewAUserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) AUserTable {
-	if name == "" {
-		name = "users"
+// The request context is initialised with the background.
+func NewAUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) AUserTable {
+	if name.Name == "" {
+		name.Name = "users"
 	}
-	return AUserTable{"", name, d, context.Background(), dialect, nil}
+	return AUserTable{name, d, context.Background(), dialect, nil}
 }
 
 // CopyTableAsAUserTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'User'.
 func CopyTableAsAUserTable(origin sqlgen2.Table) AUserTable {
 	return AUserTable{
-		prefix:  origin.Prefix(),
 		name:    origin.Name(),
 		db:      origin.DB(),
 		ctx:     origin.Ctx(),
@@ -53,7 +52,7 @@ func CopyTableAsAUserTable(origin sqlgen2.Table) AUserTable {
 
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl AUserTable) WithPrefix(pfx string) AUserTable {
-	tbl.prefix = pfx
+	tbl.name.Prefix = pfx
 	return tbl
 }
 
@@ -91,26 +90,8 @@ func (tbl AUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl AUserTable) Name() string {
+func (tbl AUserTable) Name() sqlgen2.TableName {
 	return tbl.name
-}
-
-// Prefix gets the table name prefix.
-func (tbl AUserTable) Prefix() string {
-	return tbl.prefix
-}
-
-// FullName gets the concatenated prefix and table name.
-func (tbl AUserTable) FullName() string {
-	return tbl.prefix + tbl.name
-}
-
-func (tbl AUserTable) prefixWithoutDot() string {
-	last := len(tbl.prefix)-1
-	if last > 0 && tbl.prefix[last] == '.' {
-		return tbl.prefix[0:last]
-	}
-	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -169,7 +150,7 @@ func (tbl AUserTable) createTableSql(ifNotExists bool) string {
     case schema.Mysql: stmt = sqlCreateAUserTableMysql
     }
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.prefix, tbl.name)
+	query := fmt.Sprintf(stmt, extra, tbl.name)
 	return query
 }
 
@@ -187,12 +168,12 @@ func (tbl AUserTable) DropTable(ifExists bool) (int64, error) {
 
 func (tbl AUserTable) dropTableSql(ifExists bool) string {
 	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s%s", extra, tbl.prefix, tbl.name)
+	query := fmt.Sprintf("DROP TABLE %s%s", extra, tbl.name)
 	return query
 }
 
 const sqlCreateAUserTableSqlite = `
-CREATE TABLE %s%s%s (
+CREATE TABLE %s%s (
  uid          integer primary key autoincrement,
  login        text,
  emailaddress text,
@@ -207,7 +188,7 @@ CREATE TABLE %s%s%s (
 `
 
 const sqlCreateAUserTablePostgres = `
-CREATE TABLE %s%s%s (
+CREATE TABLE %s%s (
  uid          bigserial primary key,
  login        varchar(255),
  emailaddress varchar(255),
@@ -222,7 +203,7 @@ CREATE TABLE %s%s%s (
 `
 
 const sqlCreateAUserTableMysql = `
-CREATE TABLE %s%s%s (
+CREATE TABLE %s%s (
  uid          bigint primary key auto_increment,
  login        varchar(255),
  emailaddress varchar(255),
@@ -281,9 +262,9 @@ func (tbl AUserTable) CreateUserEmailIndex(ifNotExist bool) error {
 }
 
 func (tbl AUserTable) createAUserEmailIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.prefix, tbl.name, sqlAUserEmailIndexColumns)
+	indexPrefix := tbl.name.PrefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s (%s)", ifNotExists, indexPrefix,
+		tbl.name, sqlAUserEmailIndexColumns)
 }
 
 // DropUserEmailIndex drops the user_email index.
@@ -295,8 +276,8 @@ func (tbl AUserTable) DropUserEmailIndex(ifExists bool) error {
 func (tbl AUserTable) dropAUserEmailIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
-	indexPrefix := tbl.prefixWithoutDot()
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	indexPrefix := tbl.name.PrefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ie, indexPrefix, onTbl)
 }
 
@@ -317,9 +298,9 @@ func (tbl AUserTable) CreateUserLoginIndex(ifNotExist bool) error {
 }
 
 func (tbl AUserTable) createAUserLoginIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.prefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s%s (%s)", ifNotExists, indexPrefix,
-		tbl.prefix, tbl.name, sqlAUserLoginIndexColumns)
+	indexPrefix := tbl.name.PrefixWithoutDot()
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s (%s)", ifNotExists, indexPrefix,
+		tbl.name, sqlAUserLoginIndexColumns)
 }
 
 // DropUserLoginIndex drops the user_login index.
@@ -331,8 +312,8 @@ func (tbl AUserTable) DropUserLoginIndex(ifExists bool) error {
 func (tbl AUserTable) dropAUserLoginIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s%s", tbl.prefix, tbl.name), "")
-	indexPrefix := tbl.prefixWithoutDot()
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	indexPrefix := tbl.name.PrefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ie, indexPrefix, onTbl)
 }
 
@@ -368,7 +349,7 @@ const sqlAUserLoginIndexColumns = "login"
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
 func (tbl AUserTable) Truncate(force bool) (err error) {
-	for _, query := range tbl.dialect.TruncateDDL(tbl.FullName(), force) {
+	for _, query := range tbl.dialect.TruncateDDL(tbl.Name().String(), force) {
 		_, err = tbl.Exec(query)
 		if err != nil {
 			return err
@@ -424,7 +405,7 @@ func (tbl AUserTable) doQuery(firstOnly bool, query string, args ...interface{})
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl AUserTable) GetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", AUserColumnNames, tbl.prefix, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?", AUserColumnNames, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 
@@ -434,7 +415,7 @@ func (tbl AUserTable) GetUser(id int64) (*User, error) {
 func (tbl AUserTable) GetUsers(id ...int64) (list []*User, err error) {
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid IN (%s)", AUserColumnNames, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE uid IN (%s)", AUserColumnNames, tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -454,7 +435,7 @@ func (tbl AUserTable) GetUsers(id ...int64) (list []*User, err error) {
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
 func (tbl AUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", AUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", AUserColumnNames, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -472,7 +453,7 @@ func (tbl AUserTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl AUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", AUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", AUserColumnNames, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
@@ -488,7 +469,7 @@ func (tbl AUserTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*
 // CountSA counts Users in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
 func (tbl AUserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
@@ -559,7 +540,7 @@ func (tbl AUserTable) SliceLastupdated(wh where.Expression, qc where.QueryConstr
 func (tbl AUserTable) getboollist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -582,7 +563,7 @@ func (tbl AUserTable) getboollist(sqlname string, wh where.Expression, qc where.
 func (tbl AUserTable) getint64list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -605,7 +586,7 @@ func (tbl AUserTable) getint64list(sqlname string, wh where.Expression, qc where
 func (tbl AUserTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", sqlname, tbl.prefix, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -640,7 +621,7 @@ func (tbl AUserTable) Insert(vv ...*User) error {
 		params = sAUserDataColumnParamsSimple
 	}
 
-	query := fmt.Sprintf(sqlInsertAUser, tbl.prefix, tbl.name, params)
+	query := fmt.Sprintf(sqlInsertAUser, tbl.name, params)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -674,7 +655,7 @@ func (tbl AUserTable) Insert(vv ...*User) error {
 }
 
 const sqlInsertAUser = `
-INSERT INTO %s%s (
+INSERT INTO %s (
 	login,
 	emailaddress,
 	avatar,
@@ -704,7 +685,7 @@ func (tbl AUserTable) updateFields(wh where.Expression, fields ...sql.NamedArg) 
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
 	whs, wargs := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s%s SET %s %s", tbl.prefix, tbl.name, assignments, whs)
+	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.name, assignments, whs)
 	args := append(list.Values(), wargs...)
 	return query, args
 }
@@ -722,7 +703,7 @@ func (tbl AUserTable) Update(vv ...*User) (int64, error) {
 		stmt = sqlUpdateAUserByPkSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.prefix, tbl.name)
+	query := fmt.Sprintf(stmt, tbl.name)
 
 	var count int64
 	for _, v := range vv {
@@ -747,7 +728,7 @@ func (tbl AUserTable) Update(vv ...*User) (int64, error) {
 }
 
 const sqlUpdateAUserByPkSimple = `
-UPDATE %s%s SET
+UPDATE %s SET
 	login=?,
 	emailaddress=?,
 	avatar=?,
@@ -761,7 +742,7 @@ WHERE uid=?
 `
 
 const sqlUpdateAUserByPkPostgres = `
-UPDATE %s%s SET
+UPDATE %s SET
 	login=$2,
 	emailaddress=$3,
 	avatar=$4,
@@ -801,7 +782,7 @@ func sliceAUserWithoutPk(v *User) ([]interface{}, error) {
 // The list of ids can be arbitrarily long.
 func (tbl AUserTable) DeleteUsers(id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s%s WHERE uid IN (%s)"
+	const qt = "DELETE FROM %s WHERE uid IN (%s)"
 
 	var count, n int64
 	var err error
@@ -813,7 +794,7 @@ func (tbl AUserTable) DeleteUsers(id ...int64) (int64, error) {
 
 	if len(id) > batch {
 		pl := tbl.dialect.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -832,7 +813,7 @@ func (tbl AUserTable) DeleteUsers(id ...int64) (int64, error) {
 
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]
@@ -854,7 +835,7 @@ func (tbl AUserTable) Delete(wh where.Expression) (int64, error) {
 
 func (tbl AUserTable) deleteRows(wh where.Expression) (string, []interface{}) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("DELETE FROM %s%s %s", tbl.prefix, tbl.name, whs)
+	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }
 

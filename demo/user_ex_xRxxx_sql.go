@@ -17,11 +17,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type RUserTable struct {
-	prefix, name string
-	db           sqlgen2.Execer
-	ctx          context.Context
-	dialect      schema.Dialect
-	logger       *log.Logger
+	name    sqlgen2.TableName
+	db      sqlgen2.Execer
+	ctx     context.Context
+	dialect schema.Dialect
+	logger  *log.Logger
 }
 
 // Type conformance check
@@ -29,19 +29,18 @@ var _ sqlgen2.Table = &RUserTable{}
 
 // NewRUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
-// The table name prefix is initially blank and the request context is the background.
-func NewRUserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) RUserTable {
-	if name == "" {
-		name = "users"
+// The request context is initialised with the background.
+func NewRUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) RUserTable {
+	if name.Name == "" {
+		name.Name = "users"
 	}
-	return RUserTable{"", name, d, context.Background(), dialect, nil}
+	return RUserTable{name, d, context.Background(), dialect, nil}
 }
 
 // CopyTableAsRUserTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'User'.
 func CopyTableAsRUserTable(origin sqlgen2.Table) RUserTable {
 	return RUserTable{
-		prefix:  origin.Prefix(),
 		name:    origin.Name(),
 		db:      origin.DB(),
 		ctx:     origin.Ctx(),
@@ -52,7 +51,7 @@ func CopyTableAsRUserTable(origin sqlgen2.Table) RUserTable {
 
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl RUserTable) WithPrefix(pfx string) RUserTable {
-	tbl.prefix = pfx
+	tbl.name.Prefix = pfx
 	return tbl
 }
 
@@ -90,26 +89,8 @@ func (tbl RUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl RUserTable) Name() string {
+func (tbl RUserTable) Name() sqlgen2.TableName {
 	return tbl.name
-}
-
-// Prefix gets the table name prefix.
-func (tbl RUserTable) Prefix() string {
-	return tbl.prefix
-}
-
-// FullName gets the concatenated prefix and table name.
-func (tbl RUserTable) FullName() string {
-	return tbl.prefix + tbl.name
-}
-
-func (tbl RUserTable) prefixWithoutDot() string {
-	last := len(tbl.prefix)-1
-	if last > 0 && tbl.prefix[last] == '.' {
-		return tbl.prefix[0:last]
-	}
-	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
@@ -190,7 +171,7 @@ func (tbl RUserTable) doQuery(firstOnly bool, query string, args ...interface{})
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl RUserTable) GetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid=?", RUserColumnNames, tbl.prefix, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?", RUserColumnNames, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 
@@ -200,7 +181,7 @@ func (tbl RUserTable) GetUser(id int64) (*User, error) {
 func (tbl RUserTable) GetUsers(id ...int64) (list []*User, err error) {
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s%s WHERE uid IN (%s)", RUserColumnNames, tbl.prefix, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE uid IN (%s)", RUserColumnNames, tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -220,7 +201,7 @@ func (tbl RUserTable) GetUsers(id ...int64) (list []*User, err error) {
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
 func (tbl RUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s LIMIT 1", RUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", RUserColumnNames, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -238,7 +219,7 @@ func (tbl RUserTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl RUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s%s %s %s", RUserColumnNames, tbl.prefix, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", RUserColumnNames, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 
@@ -254,7 +235,7 @@ func (tbl RUserTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*
 // CountSA counts Users in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
 func (tbl RUserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s%s %s", tbl.prefix, tbl.name, where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)

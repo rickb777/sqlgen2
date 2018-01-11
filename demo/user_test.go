@@ -49,7 +49,7 @@ func user(i int) *User {
 }
 
 func TestCreateTable_postgres(t *testing.T) {
-	tbl := NewDbUserTable("users", nil, schema.Postgres).WithPrefix("prefix_")
+	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, schema.Postgres).WithPrefix("prefix_")
 	sql := tbl.createTableSql(true)
 	expected := `
 CREATE TABLE IF NOT EXISTS prefix_users (
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS prefix_users (
 }
 
 func TestCreateIndexSql(t *testing.T) {
-	tbl := NewDbUserTable("users", nil, schema.Postgres).WithPrefix("prefix_")
+	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, schema.Postgres).WithPrefix("prefix_")
 	sql := tbl.createDbUserEmailIndexSql("IF NOT EXISTS ")
 	expected := `CREATE UNIQUE INDEX IF NOT EXISTS prefix_user_email ON prefix_users (emailaddress)`
 	if sql != expected {
@@ -90,7 +90,7 @@ func TestDropIndexSql(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		tbl := NewDbUserTable("users", nil, c.d).WithPrefix("prefix_")
+		tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, c.d).WithPrefix("prefix_")
 		sql := tbl.dropDbUserEmailIndexSql(true)
 		if sql != c.expected {
 			t.Errorf("got %s", sql)
@@ -109,7 +109,7 @@ func TestUpdateFieldsSql(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		tbl := NewDbUserTable("users", nil, c.d).WithPrefix("prefix_")
+		tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, c.d).WithPrefix("prefix_")
 
 		sql, args := tbl.updateFields(where.Null("EmailAddress"),
 			sqlgen2.Named("EmailAddress", "foo@x.com"), sqlgen2.Named("Hash", "abc123"))
@@ -126,7 +126,7 @@ func TestUpdateFieldsSql(t *testing.T) {
 func TestUpdateFields_ok(t *testing.T) {
 	mockDb := mockExecer{RowsAffected: 1}
 
-	tbl := NewDbUserTable("users", mockDb, schema.Mysql)
+	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
 
 	n, err := tbl.UpdateFields(where.NoOp(),
 		sqlgen2.Named("EmailAddress", "foo@x.com"),
@@ -143,7 +143,7 @@ func TestUpdateFields_error(t *testing.T) {
 	exp := Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
-	tbl := NewDbUserTable("users", mockDb, schema.Mysql)
+	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
 
 	_, err := tbl.UpdateFields(where.NoOp(),
 		sqlgen2.Named("EmailAddress", "foo@x.com"),
@@ -157,7 +157,7 @@ func TestUpdateFields_error(t *testing.T) {
 func TestUpdate_ok(t *testing.T) {
 	mockDb := mockExecer{RowsAffected: 1}
 
-	tbl := NewDbUserTable("users", mockDb, schema.Mysql)
+	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
 
 	n, err := tbl.Update(&User{})
 
@@ -172,7 +172,7 @@ func TestUpdate_error(t *testing.T) {
 	exp := Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
-	tbl := NewDbUserTable("users", mockDb, schema.Mysql)
+	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
 
 	_, err := tbl.Update(&User{})
 
@@ -186,7 +186,7 @@ func TestUpdate_error(t *testing.T) {
 func TestCrudUsingSqlite(t *testing.T) {
 	defer cleanup()
 
-	tbl := NewDbUserTable("users", connect(), schema.Sqlite)
+	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, connect(), schema.Sqlite)
 	if testing.Verbose() {
 		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
 	}
@@ -290,7 +290,7 @@ func TestCrudUsingSqlite(t *testing.T) {
 func TestGettersUsingSqlite(t *testing.T) {
 	defer cleanup()
 
-	tbl := NewDbUserTable("users", connect(), schema.Sqlite)
+	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, connect(), schema.Sqlite)
 	if testing.Verbose() {
 		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
 	}
@@ -333,7 +333,7 @@ func TestGettersUsingSqlite(t *testing.T) {
 func TestBulkDeleteUsingSqlite(t *testing.T) {
 	defer cleanup()
 
-	tbl := NewDbUserTable("users", connect(), schema.Sqlite)
+	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, connect(), schema.Sqlite)
 	if testing.Verbose() {
 		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
 	}

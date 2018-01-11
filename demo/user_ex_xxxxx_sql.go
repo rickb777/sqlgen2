@@ -15,11 +15,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type XUserTable struct {
-	prefix, name string
-	db           sqlgen2.Execer
-	ctx          context.Context
-	dialect      schema.Dialect
-	logger       *log.Logger
+	name    sqlgen2.TableName
+	db      sqlgen2.Execer
+	ctx     context.Context
+	dialect schema.Dialect
+	logger  *log.Logger
 }
 
 // Type conformance check
@@ -27,19 +27,18 @@ var _ sqlgen2.Table = &XUserTable{}
 
 // NewXUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
-// The table name prefix is initially blank and the request context is the background.
-func NewXUserTable(name string, d sqlgen2.Execer, dialect schema.Dialect) XUserTable {
-	if name == "" {
-		name = "users"
+// The request context is initialised with the background.
+func NewXUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) XUserTable {
+	if name.Name == "" {
+		name.Name = "users"
 	}
-	return XUserTable{"", name, d, context.Background(), dialect, nil}
+	return XUserTable{name, d, context.Background(), dialect, nil}
 }
 
 // CopyTableAsXUserTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'User'.
 func CopyTableAsXUserTable(origin sqlgen2.Table) XUserTable {
 	return XUserTable{
-		prefix:  origin.Prefix(),
 		name:    origin.Name(),
 		db:      origin.DB(),
 		ctx:     origin.Ctx(),
@@ -50,7 +49,7 @@ func CopyTableAsXUserTable(origin sqlgen2.Table) XUserTable {
 
 // WithPrefix sets the table name prefix for subsequent queries.
 func (tbl XUserTable) WithPrefix(pfx string) XUserTable {
-	tbl.prefix = pfx
+	tbl.name.Prefix = pfx
 	return tbl
 }
 
@@ -88,26 +87,8 @@ func (tbl XUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl XUserTable) Name() string {
+func (tbl XUserTable) Name() sqlgen2.TableName {
 	return tbl.name
-}
-
-// Prefix gets the table name prefix.
-func (tbl XUserTable) Prefix() string {
-	return tbl.prefix
-}
-
-// FullName gets the concatenated prefix and table name.
-func (tbl XUserTable) FullName() string {
-	return tbl.prefix + tbl.name
-}
-
-func (tbl XUserTable) prefixWithoutDot() string {
-	last := len(tbl.prefix)-1
-	if last > 0 && tbl.prefix[last] == '.' {
-		return tbl.prefix[0:last]
-	}
-	return tbl.prefix
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
