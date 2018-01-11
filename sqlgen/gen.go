@@ -20,7 +20,7 @@ func main() {
 	var flags = funcFlags{}
 	var all, sselect, insert, gofmt bool
 
-	flag.StringVar(&oFile, "o", "", "Output file name (or file path); optional.\n" +
+	flag.StringVar(&oFile, "o", "", "Output file name; optional. Use '-' for stdout.\n" +
 		"\tIf omitted, the first input filename is used with '_sql.go' suffix.")
 	flag.StringVar(&typeName, "type", "", "The type to analyse; required.\n" +
 		"\tThis is expressed in the form 'pkg.Name'")
@@ -29,7 +29,7 @@ func main() {
 	flag.StringVar(&list, "list", "", "List type for slice of model objects; optional.")
 	flag.StringVar(&kind, "kind", "Table", "Kind of model: you could use 'Table', 'View', 'Join' etc as required")
 	flag.StringVar(&tagsFile, "tags", "", "A YAML file containing tags that augment and override any in the Go struct(s); optional.\n" +
-		"Tags control the SQL type, size, column name, indexes etc.")
+		"\tTags control the SQL type, size, column name, indexes etc.")
 	flag.BoolVar(&Verbose, "v", false, "Show progress messages.")
 	flag.BoolVar(&parse.Debug, "z", false, "Show debug messages.")
 	flag.BoolVar(&parse.PrintAST, "ast", false, "Trace the whole astract syntax tree (very verbose).")
@@ -51,7 +51,7 @@ func main() {
 
 	flag.Parse()
 
-	Require(flag.NArg() > 0, "at least one input file is required; put this after the other args\n")
+	Require(flag.NArg() > 0, "At least one input file (or path) is required; put this after the other arguments.\n")
 
 	if sselect {
 		flags.sselect = true
@@ -65,6 +65,7 @@ func main() {
 		flags = allFuncFlags
 	}
 
+	Require(len(typeName) > 3, "-type is required. This must specify a type, qualified with its local package in the form 'pkg.Name'.\n", typeName)
 	words := strings.Split(typeName, ".")
 	Require(len(words) == 2, "type %q requires a package name prefix.\n", typeName)
 	pkg, name := words[0], words[1]

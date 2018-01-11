@@ -10,6 +10,7 @@ import (
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"github.com/rickb777/sqlgen2/sqlgen/output"
 	"github.com/kortschak/utter"
+	"sort"
 )
 
 type context struct {
@@ -38,6 +39,10 @@ func load(pkgStore parse.PackageStore, name parse.LType, mainPkg string, fileTag
 	for _, idx := range ctx.indices {
 		table.Index = append(table.Index, idx)
 	}
+
+	sort.Slice(table.Index, func(i, j int) bool {
+		return table.Index[i].Name < table.Index[j].Name
+	})
 
 	checkNoConflictingNames(name, table)
 
