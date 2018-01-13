@@ -16,5 +16,6 @@ sqlgen -type demo.User -o user_ex_xxxxS_sql.go -v -prefix S -schema=false -creat
 sqlgen -type demo.User -o user_ex_CRUDS_sql.go -v -prefix A -schema=false -all user.go
 
 go get github.com/mattn/go-sqlite3
+go get github.com/onsi/gomega
 
 go test .

@@ -102,12 +102,12 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 	var err error
 	var vv []*Example
 
-	var v0 Category
-	var v1 string
-	var v2 string
-	var v3 string
-
 	for rows.Next() {
+		var v0 Category
+		var v1 string
+		var v2 string
+		var v3 string
+
 		err = rows.Scan(
 			&v0,
 			&v1,
@@ -165,20 +165,20 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 	var err error
 	var vv []*Example
 
-	var v0 int64
-	var v1 Category
-	var v2 string
-	var v3 sql.NullString
-	var v4 sql.NullInt64
-	var v5 sql.NullInt64
-	var v6 sql.NullFloat64
-	var v7 bool
-	var v8 []byte
-	var v9 []byte
-	var v10 []byte
-	var v11 []byte
-
 	for rows.Next() {
+		var v0 int64
+		var v1 Category
+		var v2 string
+		var v3 sql.NullString
+		var v4 sql.NullInt64
+		var v5 sql.NullInt64
+		var v6 sql.NullFloat64
+		var v7 bool
+		var v8 []byte
+		var v9 []byte
+		var v10 []byte
+		var v11 []byte
+
 		err = rows.Scan(
 			&v0,
 			&v1,

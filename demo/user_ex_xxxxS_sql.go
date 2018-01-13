@@ -193,7 +193,7 @@ func (tbl SUserTable) SliceEmailaddress(wh where.Expression, qc where.QueryConst
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceAvatar(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("avatar", wh, qc)
+	return tbl.getstringPtrlist("avatar", wh, qc)
 }
 
 // SliceActive gets the Active column for all rows that match the 'where' condition.
@@ -287,24 +287,47 @@ func (tbl SUserTable) getstringlist(sqlname string, wh where.Expression, qc wher
 	return list, nil
 }
 
+func (tbl SUserTable) getstringPtrlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v string
+	list := make([]string, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
 
 // scanSUsers reads table records into a slice of values.
 func scanSUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	var err error
 	var vv []*User
 
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 int64
-	var v8 string
-	var v9 string
-
 	for rows.Next() {
+		var v0 int64
+		var v1 string
+		var v2 string
+		var v3 sql.NullString
+		var v4 bool
+		var v5 bool
+		var v6 []byte
+		var v7 int64
+		var v8 string
+		var v9 string
+
 		err = rows.Scan(
 			&v0,
 			&v1,
@@ -325,7 +348,10 @@ func scanSUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 		v.Uid = v0
 		v.Login = v1
 		v.EmailAddress = v2
-		v.Avatar = v3
+		if v3.Valid {
+			a := v3.String
+			v.Avatar = &a
+		}
 		v.Active = v4
 		v.Admin = v5
 		err = json.Unmarshal(v6, &v.Fave)

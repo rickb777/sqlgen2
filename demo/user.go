@@ -14,10 +14,10 @@ type User struct {
 	Uid          int64   `sql:"pk: true, auto: true"`
 	Login        string  `sql:"unique: user_login"`
 	EmailAddress string  `sql:"unique: user_email"`
-	Avatar       string
+	Avatar       *string
 	Active       bool
 	Admin        bool
-	Fave         big.Int `sql:"encode: json"`
+	Fave         *big.Int `sql:"encode: json"`
 	LastUpdated  int64
 
 	// oauth token and secret

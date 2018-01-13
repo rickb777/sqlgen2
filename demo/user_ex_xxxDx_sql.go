@@ -236,18 +236,18 @@ func scanDUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	var err error
 	var vv []*User
 
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 int64
-	var v8 string
-	var v9 string
-
 	for rows.Next() {
+		var v0 int64
+		var v1 string
+		var v2 string
+		var v3 sql.NullString
+		var v4 bool
+		var v5 bool
+		var v6 []byte
+		var v7 int64
+		var v8 string
+		var v9 string
+
 		err = rows.Scan(
 			&v0,
 			&v1,
@@ -268,7 +268,10 @@ func scanDUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 		v.Uid = v0
 		v.Login = v1
 		v.EmailAddress = v2
-		v.Avatar = v3
+		if v3.Valid {
+			a := v3.String
+			v.Avatar = &a
+		}
 		v.Active = v4
 		v.Admin = v5
 		err = json.Unmarshal(v6, &v.Fave)

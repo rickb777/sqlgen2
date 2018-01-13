@@ -558,11 +558,11 @@ func scanDbCompounds(rows *sql.Rows, firstOnly bool) ([]*Compound, error) {
 	var err error
 	var vv []*Compound
 
-	var v0 string
-	var v1 string
-	var v2 Category
-
 	for rows.Next() {
+		var v0 string
+		var v1 string
+		var v2 Category
+
 		err = rows.Scan(
 			&v0,
 			&v1,

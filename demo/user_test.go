@@ -2,6 +2,7 @@ package demo
 
 import (
 	"testing"
+	. "github.com/onsi/gomega"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
 	_ "github.com/mattn/go-sqlite3"
@@ -39,16 +40,17 @@ func cleanup() {
 }
 
 func user(i int) *User {
-	fave := big.NewInt(int64(i))
 	return &User{
 		Login:        Sprintf("user%02d", i),
 		EmailAddress: Sprintf("foo%d@x.z", i),
 		Active:       true,
-		Fave:         *fave,
+		Fave:         big.NewInt(int64(i)),
 	}
 }
 
 func TestCreateTable_postgres(t *testing.T) {
+	RegisterTestingT(t)
+
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, schema.Postgres).WithPrefix("prefix_")
 	sql := tbl.createTableSql(true)
 	expected := `
@@ -56,7 +58,7 @@ CREATE TABLE IF NOT EXISTS prefix_users (
  uid          bigserial primary key,
  login        varchar(255),
  emailaddress varchar(255),
- avatar       varchar(255),
+ avatar       varchar(255) default null,
  active       boolean,
  admin        boolean,
  fave         json,
@@ -71,15 +73,17 @@ CREATE TABLE IF NOT EXISTS prefix_users (
 }
 
 func TestCreateIndexSql(t *testing.T) {
+	RegisterTestingT(t)
+
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, schema.Postgres).WithPrefix("prefix_")
-	sql := tbl.createDbUserEmailIndexSql("IF NOT EXISTS ")
+	s := tbl.createDbUserEmailIndexSql("IF NOT EXISTS ")
 	expected := `CREATE UNIQUE INDEX IF NOT EXISTS prefix_user_email ON prefix_users (emailaddress)`
-	if sql != expected {
-		t.Errorf("got %s", sql)
-	}
+	Ω(s).Should(Equal(expected))
 }
 
 func TestDropIndexSql(t *testing.T) {
+	RegisterTestingT(t)
+
 	cases := []struct {
 		d        schema.Dialect
 		expected string
@@ -91,14 +95,14 @@ func TestDropIndexSql(t *testing.T) {
 
 	for _, c := range cases {
 		tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, c.d).WithPrefix("prefix_")
-		sql := tbl.dropDbUserEmailIndexSql(true)
-		if sql != c.expected {
-			t.Errorf("got %s", sql)
-		}
+		s := tbl.dropDbUserEmailIndexSql(true)
+		Ω(s).Should(Equal(c.expected))
 	}
 }
 
 func TestUpdateFieldsSql(t *testing.T) {
+	RegisterTestingT(t)
+
 	cases := []struct {
 		d        schema.Dialect
 		expected string
@@ -111,19 +115,17 @@ func TestUpdateFieldsSql(t *testing.T) {
 	for _, c := range cases {
 		tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, c.d).WithPrefix("prefix_")
 
-		sql, args := tbl.updateFields(where.Null("EmailAddress"),
+		s, args := tbl.updateFields(where.Null("EmailAddress"),
 			sqlgen2.Named("EmailAddress", "foo@x.com"), sqlgen2.Named("Hash", "abc123"))
 
-		if sql != c.expected {
-			t.Errorf("expected %s\ngot %s", c.expected, sql)
-		}
-		if !reflect.DeepEqual(args, []interface{}{"foo@x.com", "abc123"}) {
-			t.Errorf("got %+v", args)
-		}
+		Ω(s).Should(Equal(c.expected))
+		Ω(args).Should(Equal([]interface{}{"foo@x.com", "abc123"}))
 	}
 }
 
 func TestUpdateFields_ok(t *testing.T) {
+	RegisterTestingT(t)
+
 	mockDb := mockExecer{RowsAffected: 1}
 
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
@@ -132,14 +134,13 @@ func TestUpdateFields_ok(t *testing.T) {
 		sqlgen2.Named("EmailAddress", "foo@x.com"),
 		sqlgen2.Named("Hash", "abc123"))
 
-	if err != nil {
-		t.Errorf("%v", err)
-	} else if n != 1 {
-		t.Errorf("expected 1\ngot %d", n)
-	}
+	Ω(err).Should(BeNil())
+	Ω(n).Should(Equal(int64(1)))
 }
 
 func TestUpdateFields_error(t *testing.T) {
+	RegisterTestingT(t)
+
 	exp := Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
@@ -149,26 +150,25 @@ func TestUpdateFields_error(t *testing.T) {
 		sqlgen2.Named("EmailAddress", "foo@x.com"),
 		sqlgen2.Named("Hash", "abc123"))
 
-	if err != exp {
-		t.Errorf("expected an error, got %v", err)
-	}
+	Ω(err).Should(Equal(exp))
 }
 
 func TestUpdate_ok(t *testing.T) {
+	RegisterTestingT(t)
+
 	mockDb := mockExecer{RowsAffected: 1}
 
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
 
 	n, err := tbl.Update(&User{})
 
-	if err != nil {
-		t.Errorf("%v", err)
-	} else if n != 1 {
-		t.Errorf("expected 1\ngot %d", n)
-	}
+	Ω(err).Should(BeNil())
+	Ω(n).Should(Equal(int64(1)))
 }
 
 func TestUpdate_error(t *testing.T) {
+	RegisterTestingT(t)
+
 	exp := Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
@@ -176,14 +176,13 @@ func TestUpdate_error(t *testing.T) {
 
 	_, err := tbl.Update(&User{})
 
-	if err != exp {
-		t.Errorf("expected an error, got %v", err)
-	}
+	Ω(err).Should(Equal(exp))
 }
 
 // inserts are harder to test because they use prepared statements
 
 func TestCrudUsingSqlite(t *testing.T) {
+	RegisterTestingT(t)
 	defer cleanup()
 
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, connect(), schema.Sqlite)
@@ -192,31 +191,23 @@ func TestCrudUsingSqlite(t *testing.T) {
 	}
 
 	err := tbl.CreateTableWithIndexes(false)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 
 	c1, err := tbl.Count(where.NoOp())
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 	if c1 != 0 {
 		t.Errorf("expected 0, got %d", c1)
 	}
 
 	user1 := &User{Login: "user1", EmailAddress: "foo@x.z"}
 	err = tbl.Insert(user1)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 	if user1.hash != "PreInsert" {
 		t.Fatalf("%q", user1.hash)
 	}
 
 	user2, err := tbl.GetUser(user1.Uid)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 	if user2.hash != "PostGet" {
 		t.Fatalf("%q", user2.hash)
 	}
@@ -226,33 +217,25 @@ func TestCrudUsingSqlite(t *testing.T) {
 	}
 
 	user3, err := tbl.GetUser(user1.Uid + 100000)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 	if user3 != nil {
 		t.Fatalf("%v", user3)
 	}
 
 	c1, err = tbl.Count(where.Eq("Login", "user1"))
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 	if c1 != 1 {
 		t.Errorf("expected 1, got %d", c1)
 	}
 
 	ul1, err := tbl.Select(where.Eq("Login", "unknown"), nil)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 	if len(ul1) != 0 {
 		t.Errorf("expected 0, got %v", ul1)
 	}
 
 	ul2, err := tbl.Select(where.Eq("Login", "user1"), nil)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 	if len(ul2) != 1 || ul2[0].Login != "user1" {
 		t.Errorf("expected 1, got %v", ul2)
 	}
@@ -260,9 +243,7 @@ func TestCrudUsingSqlite(t *testing.T) {
 	ul2[0].EmailAddress = "bah0@zzz.com"
 
 	n, err := tbl.Update(ul2[0])
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 	if n != 1 {
 		t.Errorf("expected 1, got %v", n)
 	}
@@ -271,23 +252,20 @@ func TestCrudUsingSqlite(t *testing.T) {
 	}
 
 	u1, err := tbl.SelectOne(where.Eq("Login", "user1"), nil)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 	if u1 == nil || u1.Login != "user1" {
 		t.Errorf("expected 1, got %v", ul2)
 	}
 
 	n, err = tbl.Delete(where.Eq("Login", "user1"))
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 	if n != 1 {
 		t.Errorf("expected 1, got %d", n)
 	}
 }
 
-func TestGettersUsingSqlite(t *testing.T) {
+func TestMultiSelectUsingSqlite(t *testing.T) {
+	RegisterTestingT(t)
 	defer cleanup()
 
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, connect(), schema.Sqlite)
@@ -296,33 +274,63 @@ func TestGettersUsingSqlite(t *testing.T) {
 	}
 
 	err := tbl.CreateTableWithIndexes(false)
-	if err != nil {
-		t.Fatalf("%v", err)
+	Ω(err).Should(BeNil())
+
+	const n = 3
+
+	var users []*User
+	for i := 0; i <= n; i++ {
+		fave := big.NewInt(int64(i))
+		user := &User{Fave: fave}
+		user = user.SetLogin(Sprintf("user%d", i))
+		user = user.SetEmailAddress(Sprintf("foo%d@x.z", i))
+		user = user.SetAvatar(Sprintf("user%d-avatar%d", i, i))
+		users = append(users, user)
 	}
+
+	err = tbl.Insert(users...)
+	Ω(err).Should(BeNil())
+
+	list, err := tbl.Select(where.NotEq("Login", "nobody"), where.OrderBy("Login").Desc())
+	Ω(err).Should(BeNil())
+	Ω(len(list)).Should(Equal(n+1))
+	for i := 0; i <= n; i++ {
+		users[n-i].hash = "PostGet"
+		Ω(list[i]).Should(Equal(users[n-i]))
+	}
+}
+
+func TestGettersUsingSqlite(t *testing.T) {
+	RegisterTestingT(t)
+	defer cleanup()
+
+	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, connect(), schema.Sqlite)
+	if testing.Verbose() {
+		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
+	}
+
+	err := tbl.CreateTableWithIndexes(false)
+	Ω(err).Should(BeNil())
 
 	err = tbl.Truncate(true)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 
-	list := make([]*User, 20)
-	for i := 0; i < 20; i++ {
+	const n = 20
+
+	list := make([]*User, n)
+	for i := 0; i < n; i++ {
 		list[i] = user(i)
 	}
 
 	err = tbl.Insert(list...)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 
 	logins, err := tbl.SliceLogin(where.NoOp(), where.OrderBy("login"))
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-	if len(logins) != 20 {
+	Ω(err).Should(BeNil())
+	if len(logins) != n {
 		t.Errorf("expected 20, got %d", len(logins))
 	}
-	for i := 0; i < 20; i++ {
+	for i := 0; i < n; i++ {
 		exp := Sprintf("user%02d", i)
 		if logins[i] != exp {
 			t.Errorf("expected %s, got %s", exp, logins[i])
@@ -331,6 +339,7 @@ func TestGettersUsingSqlite(t *testing.T) {
 }
 
 func TestBulkDeleteUsingSqlite(t *testing.T) {
+	RegisterTestingT(t)
 	defer cleanup()
 
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, connect(), schema.Sqlite)
@@ -339,14 +348,10 @@ func TestBulkDeleteUsingSqlite(t *testing.T) {
 	}
 
 	err := tbl.CreateTableWithIndexes(false)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 
 	err = tbl.Truncate(true)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 
 	const n = 17
 
@@ -356,9 +361,7 @@ func TestBulkDeleteUsingSqlite(t *testing.T) {
 	}
 
 	err = tbl.Insert(list...)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 
 	ids := make([]int64, n)
 	for i := 0; i < n; i++ {
@@ -366,9 +369,7 @@ func TestBulkDeleteUsingSqlite(t *testing.T) {
 	}
 
 	j, err := tbl.DeleteUsers(ids...)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	Ω(err).Should(BeNil())
 	if j != n {
 		t.Errorf("Got %d", j)
 	}

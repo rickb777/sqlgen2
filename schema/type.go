@@ -20,6 +20,13 @@ func (t Type) Tag() string {
 	return t.Name
 }
 
+func (t Type) Star() string {
+	if t.IsPtr {
+		return "*"
+	}
+	return ""
+}
+
 func (t Type) Type() string {
 	if len(t.PkgName) > 0 {
 		return fmt.Sprintf("%s.%s", t.PkgName, t.Name)
@@ -29,7 +36,7 @@ func (t Type) Type() string {
 }
 
 func (t Type) IsNullable() bool {
-	return t.IsPtr && t.PkgName == ""
+	return t.IsPtr
 }
 
 func (t Type) NullableValue() string {
@@ -50,9 +57,5 @@ func (t Type) NullableValue() string {
 }
 
 func (t Type) String() string {
-	p := ""
-	if t.IsPtr {
-		p = "*"
-	}
-	return fmt.Sprintf("%s%s (%v)", p, t.Type(), t.Base)
+	return fmt.Sprintf("%s%s (%v)", t.Star(), t.Type(), t.Base)
 }

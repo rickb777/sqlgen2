@@ -180,7 +180,7 @@ CREATE TABLE %s%s (
  uid          integer primary key autoincrement,
  login        text,
  emailaddress text,
- avatar       text,
+ avatar       text default null,
  active       boolean,
  admin        boolean,
  fave         text,
@@ -195,7 +195,7 @@ CREATE TABLE %s%s (
  uid          bigserial primary key,
  login        varchar(255),
  emailaddress varchar(255),
- avatar       varchar(255),
+ avatar       varchar(255) default null,
  active       boolean,
  admin        boolean,
  fave         json,
@@ -210,7 +210,7 @@ CREATE TABLE %s%s (
  uid          bigint primary key auto_increment,
  login        varchar(255),
  emailaddress varchar(255),
- avatar       varchar(255),
+ avatar       varchar(255) default null,
  active       tinyint(1),
  admin        tinyint(1),
  fave         json,
@@ -515,7 +515,7 @@ func (tbl DbUserTable) SliceEmailaddress(wh where.Expression, qc where.QueryCons
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceAvatar(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("avatar", wh, qc)
+	return tbl.getstringPtrlist("avatar", wh, qc)
 }
 
 // SliceActive gets the Active column for all rows that match the 'where' condition.
@@ -586,6 +586,29 @@ func (tbl DbUserTable) getint64list(sqlname string, wh where.Expression, qc wher
 }
 
 func (tbl DbUserTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v string
+	list := make([]string, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
+}
+
+func (tbl DbUserTable) getstringPtrlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
@@ -846,18 +869,18 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 	var err error
 	var vv []*User
 
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 bool
-	var v5 bool
-	var v6 []byte
-	var v7 int64
-	var v8 string
-	var v9 string
-
 	for rows.Next() {
+		var v0 int64
+		var v1 string
+		var v2 string
+		var v3 sql.NullString
+		var v4 bool
+		var v5 bool
+		var v6 []byte
+		var v7 int64
+		var v8 string
+		var v9 string
+
 		err = rows.Scan(
 			&v0,
 			&v1,
@@ -878,7 +901,10 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 		v.Uid = v0
 		v.Login = v1
 		v.EmailAddress = v2
-		v.Avatar = v3
+		if v3.Valid {
+			a := v3.String
+			v.Avatar = &a
+		}
 		v.Active = v4
 		v.Admin = v5
 		err = json.Unmarshal(v6, &v.Fave)
@@ -929,7 +955,7 @@ func (v *User) SetEmailAddress(x string) *User {
 
 // SetAvatar sets the Avatar field and returns the modified User.
 func (v *User) SetAvatar(x string) *User {
-	v.Avatar = x
+	v.Avatar = &x
 	return v
 }
 
@@ -947,7 +973,7 @@ func (v *User) SetAdmin(x bool) *User {
 
 // SetFave sets the Fave field and returns the modified User.
 func (v *User) SetFave(x big.Int) *User {
-	v.Fave = x
+	v.Fave = &x
 	return v
 }
 

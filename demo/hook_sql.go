@@ -884,25 +884,25 @@ func scanHooks(rows *sql.Rows, firstOnly bool) (HookList, error) {
 	var err error
 	var vv HookList
 
-	var v0 int64
-	var v1 string
-	var v2 string
-	var v3 string
-	var v4 Category
-	var v5 bool
-	var v6 bool
-	var v7 bool
-	var v8 string
-	var v9 string
-	var v10 string
-	var v11 string
-	var v12 Email
-	var v13 string
-	var v14 string
-	var v15 Email
-	var v16 string
-
 	for rows.Next() {
+		var v0 int64
+		var v1 string
+		var v2 string
+		var v3 string
+		var v4 Category
+		var v5 bool
+		var v6 bool
+		var v7 bool
+		var v8 string
+		var v9 string
+		var v10 string
+		var v11 string
+		var v12 Email
+		var v13 string
+		var v14 string
+		var v15 Email
+		var v16 string
+
 		err = rows.Scan(
 			&v0,
 			&v1,

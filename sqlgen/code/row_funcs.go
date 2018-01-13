@@ -20,12 +20,12 @@ func WriteRowsFunc(w io.Writer, view View) {
 		// temporary variable declaration
 		switch field.Encode {
 		case schema.ENCJSON, schema.ENCTEXT:
-			l1 := Sprintf("\tvar v%d %s\n", i, "[]byte")
+			l1 := Sprintf("\t\tvar v%d %s\n", i, "[]byte")
 			view.Body1 = append(view.Body1, l1)
 		default:
-			l1 := Sprintf("\tvar v%d %s\n", i, field.Type.Type())
+			l1 := Sprintf("\t\tvar v%d %s\n", i, field.Type.Type())
 			if nullable != "" {
-				l1 = Sprintf("\tvar v%d sql.Null%s\n", i, nullable)
+				l1 = Sprintf("\t\tvar v%d sql.Null%s\n", i, nullable)
 			}
 			view.Body1 = append(view.Body1, l1)
 		}

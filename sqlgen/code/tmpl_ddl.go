@@ -134,8 +134,8 @@ func scan{{.Prefix}}{{.Types}}(rows *sql.Rows, firstOnly bool) ({{.List}}, error
 	var err error
 	var vv {{.List}}
 
-{{range .Body1}}{{.}}{{- end}}
 	for rows.Next() {
+{{range .Body1}}{{.}}{{- end}}
 		err = rows.Scan(
 {{- range .Body2}}
 			{{.}},

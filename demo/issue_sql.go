@@ -807,16 +807,16 @@ func scanIssues(rows *sql.Rows, firstOnly bool) ([]*Issue, error) {
 	var err error
 	var vv []*Issue
 
-	var v0 int64
-	var v1 int
-	var v2 Date
-	var v3 string
-	var v4 string
-	var v5 string
-	var v6 string
-	var v7 []byte
-
 	for rows.Next() {
+		var v0 int64
+		var v1 int
+		var v2 Date
+		var v3 string
+		var v4 string
+		var v5 string
+		var v6 string
+		var v7 []byte
+
 		err = rows.Scan(
 			&v0,
 			&v1,

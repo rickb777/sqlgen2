@@ -707,14 +707,14 @@ func scanAssociations(rows *sql.Rows, firstOnly bool) ([]*Association, error) {
 	var err error
 	var vv []*Association
 
-	var v0 int64
-	var v1 sql.NullString
-	var v2 sql.NullString
-	var v3 sql.NullInt64
-	var v4 sql.NullInt64
-	var v5 sql.NullInt64
-
 	for rows.Next() {
+		var v0 int64
+		var v1 sql.NullString
+		var v2 sql.NullString
+		var v3 sql.NullInt64
+		var v4 sql.NullInt64
+		var v5 sql.NullInt64
+
 		err = rows.Scan(
 			&v0,
 			&v1,
