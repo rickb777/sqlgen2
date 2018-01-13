@@ -187,7 +187,7 @@ var tSliceRow = template.Must(template.New("SliceRow").Funcs(funcMap).Parse(sSli
 const sSetter = `
 // Set{{.Setter.Name}} sets the {{.Setter.Name}} field and returns the modified {{.Type}}.
 func (v *{{.Type}}) Set{{.Setter.Name}}(x {{.Setter.Type.Type}}) *{{.Type}} {
-	{{if .Setter.Type.IsNullable -}}
+	{{if .Setter.Type.IsPtr -}}
 	v.{{.Setter.Name}} = &x
 {{- else -}}
 	v.{{.Setter.Name}} = x

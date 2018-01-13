@@ -35,12 +35,8 @@ func (t Type) Type() string {
 	}
 }
 
-func (t Type) IsNullable() bool {
-	return t.IsPtr
-}
-
 func (t Type) NullableValue() string {
-	if t.IsNullable() {
+	if t.IsPtr {
 		switch t.Base {
 		case String:
 			return "String"

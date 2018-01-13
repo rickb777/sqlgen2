@@ -46,7 +46,7 @@ func WriteRowsFunc(w io.Writer, view View) {
 		default:
 			if nullable != "" {
 				l3a := Sprintf("\t\tif v%d.Valid {\n", i)
-				l3b := Sprintf("\t\t\ta := %s(v%d.%s)\n", field.Type.Name, i, nullable)
+				l3b := Sprintf("\t\t\ta := %s(v%d.%s)\n", field.Type.Type(), i, nullable)
 				if field.Type.Name == strings.ToLower(nullable){
 					l3b = Sprintf("\t\t\ta := v%d.%s\n", i, nullable)
 				}
