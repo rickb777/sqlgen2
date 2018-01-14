@@ -20,6 +20,7 @@ type {{.Prefix}}{{.Type}}{{.Thing}} struct {
 	ctx     context.Context
 	dialect schema.Dialect
 	logger  *log.Logger
+	wrapper interface{}
 }
 
 // Type conformance check
@@ -32,12 +33,12 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name sqlgen2.TableName, d sqlgen2.Execer,
 	if name.Name == "" {
 		name.Name = "{{.DbName}}"
 	}
-	return {{.Prefix}}{{.Type}}{{.Thing}}{name, d, context.Background(), dialect, nil}
+	return {{.Prefix}}{{.Type}}{{.Thing}}{name, d, context.Background(), dialect, nil, nil}
 }
 
 // CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}} copies a table instance, retaining the name etc but
 // providing methods appropriate for '{{.Type}}'.
-func CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}}(origin sqlgen2.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
+func CopyTableAs{{camel .Prefix}}{{.Type}}{{.Thing}}(origin sqlgen2.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
 		name:    origin.Name(),
 		db:      origin.DB(),
@@ -83,6 +84,17 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Logger() *log.Logger {
 // SetLogger sets the logger for subsequent queries, returning the interface.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// Wrapper gets the user-defined wrapper.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Wrapper() interface{} {
+	return tbl.wrapper
+}
+
+// SetWrapper sets the user-defined wrapper.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SetWrapper(wrapper interface{}) sqlgen2.Table {
+	tbl.wrapper = wrapper
 	return tbl
 }
 

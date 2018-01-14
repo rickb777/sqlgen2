@@ -20,6 +20,7 @@ type XUserTable struct {
 	ctx     context.Context
 	dialect schema.Dialect
 	logger  *log.Logger
+	wrapper interface{}
 }
 
 // Type conformance check
@@ -32,7 +33,7 @@ func NewXUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dial
 	if name.Name == "" {
 		name.Name = "users"
 	}
-	return XUserTable{name, d, context.Background(), dialect, nil}
+	return XUserTable{name, d, context.Background(), dialect, nil, nil}
 }
 
 // CopyTableAsXUserTable copies a table instance, retaining the name etc but
@@ -83,6 +84,17 @@ func (tbl XUserTable) Logger() *log.Logger {
 // SetLogger sets the logger for subsequent queries, returning the interface.
 func (tbl XUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// Wrapper gets the user-defined wrapper.
+func (tbl XUserTable) Wrapper() interface{} {
+	return tbl.wrapper
+}
+
+// SetWrapper sets the user-defined wrapper.
+func (tbl XUserTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
+	tbl.wrapper = wrapper
 	return tbl
 }
 

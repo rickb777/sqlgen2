@@ -22,6 +22,7 @@ type SUserTable struct {
 	ctx     context.Context
 	dialect schema.Dialect
 	logger  *log.Logger
+	wrapper interface{}
 }
 
 // Type conformance check
@@ -34,7 +35,7 @@ func NewSUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dial
 	if name.Name == "" {
 		name.Name = "users"
 	}
-	return SUserTable{name, d, context.Background(), dialect, nil}
+	return SUserTable{name, d, context.Background(), dialect, nil, nil}
 }
 
 // CopyTableAsSUserTable copies a table instance, retaining the name etc but
@@ -85,6 +86,17 @@ func (tbl SUserTable) Logger() *log.Logger {
 // SetLogger sets the logger for subsequent queries, returning the interface.
 func (tbl SUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// Wrapper gets the user-defined wrapper.
+func (tbl SUserTable) Wrapper() interface{} {
+	return tbl.wrapper
+}
+
+// SetWrapper sets the user-defined wrapper.
+func (tbl SUserTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
+	tbl.wrapper = wrapper
 	return tbl
 }
 

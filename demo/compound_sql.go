@@ -22,6 +22,7 @@ type DbCompoundTable struct {
 	ctx     context.Context
 	dialect schema.Dialect
 	logger  *log.Logger
+	wrapper interface{}
 }
 
 // Type conformance check
@@ -34,7 +35,7 @@ func NewDbCompoundTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema
 	if name.Name == "" {
 		name.Name = "compounds"
 	}
-	return DbCompoundTable{name, d, context.Background(), dialect, nil}
+	return DbCompoundTable{name, d, context.Background(), dialect, nil, nil}
 }
 
 // CopyTableAsDbCompoundTable copies a table instance, retaining the name etc but
@@ -85,6 +86,17 @@ func (tbl DbCompoundTable) Logger() *log.Logger {
 // SetLogger sets the logger for subsequent queries, returning the interface.
 func (tbl DbCompoundTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// Wrapper gets the user-defined wrapper.
+func (tbl DbCompoundTable) Wrapper() interface{} {
+	return tbl.wrapper
+}
+
+// SetWrapper sets the user-defined wrapper.
+func (tbl DbCompoundTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
+	tbl.wrapper = wrapper
 	return tbl
 }
 

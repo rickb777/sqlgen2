@@ -22,6 +22,7 @@ type HookTable struct {
 	ctx     context.Context
 	dialect schema.Dialect
 	logger  *log.Logger
+	wrapper interface{}
 }
 
 // Type conformance check
@@ -34,7 +35,7 @@ func NewHookTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Diale
 	if name.Name == "" {
 		name.Name = "hooks"
 	}
-	return HookTable{name, d, context.Background(), dialect, nil}
+	return HookTable{name, d, context.Background(), dialect, nil, nil}
 }
 
 // CopyTableAsHookTable copies a table instance, retaining the name etc but
@@ -85,6 +86,17 @@ func (tbl HookTable) Logger() *log.Logger {
 // SetLogger sets the logger for subsequent queries, returning the interface.
 func (tbl HookTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// Wrapper gets the user-defined wrapper.
+func (tbl HookTable) Wrapper() interface{} {
+	return tbl.wrapper
+}
+
+// SetWrapper sets the user-defined wrapper.
+func (tbl HookTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
+	tbl.wrapper = wrapper
 	return tbl
 }
 

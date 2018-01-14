@@ -100,6 +100,9 @@ type Table interface {
 
 	// SetLogger sets the trace logger.
 	SetLogger(logger *log.Logger) Table
+
+	// Wrapper gets whatever structure is present, as needed.
+	Wrapper() interface{}
 }
 
 type TableCreator interface {

@@ -23,6 +23,7 @@ type IssueTable struct {
 	ctx     context.Context
 	dialect schema.Dialect
 	logger  *log.Logger
+	wrapper interface{}
 }
 
 // Type conformance check
@@ -35,7 +36,7 @@ func NewIssueTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dial
 	if name.Name == "" {
 		name.Name = "issues"
 	}
-	return IssueTable{name, d, context.Background(), dialect, nil}
+	return IssueTable{name, d, context.Background(), dialect, nil, nil}
 }
 
 // CopyTableAsIssueTable copies a table instance, retaining the name etc but
@@ -86,6 +87,17 @@ func (tbl IssueTable) Logger() *log.Logger {
 // SetLogger sets the logger for subsequent queries, returning the interface.
 func (tbl IssueTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// Wrapper gets the user-defined wrapper.
+func (tbl IssueTable) Wrapper() interface{} {
+	return tbl.wrapper
+}
+
+// SetWrapper sets the user-defined wrapper.
+func (tbl IssueTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
+	tbl.wrapper = wrapper
 	return tbl
 }
 
