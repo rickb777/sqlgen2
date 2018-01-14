@@ -103,6 +103,9 @@ type Table interface {
 
 	// Wrapper gets whatever structure is present, as needed.
 	Wrapper() interface{}
+
+	// SetWrapper sets a user-defined wrapper or container.
+	SetWrapper(wrapper interface{}) Table
 }
 
 type TableCreator interface {

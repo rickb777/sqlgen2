@@ -45,6 +45,10 @@ func (v View) DbName() string {
 	return ToLower(v.Types)
 }
 
+func (v View) CamelName() string {
+	return v.Prefix + inflect.Camelize(v.Table.Type)
+}
+
 var funcMap = template.FuncMap{
 	"q": func(s interface{}) string {
 		return fmt.Sprintf("%q", s)
@@ -54,5 +58,8 @@ var funcMap = template.FuncMap{
 	},
 	"ticked": func(s interface{}) string {
 		return fmt.Sprintf("`\n%s\n`", s)
+	},
+	"title": func(s interface{}) string {
+		return Title(fmt.Sprintf("%s", s))
 	},
 }

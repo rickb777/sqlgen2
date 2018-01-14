@@ -80,7 +80,7 @@ const sGetRow = `{{if .Table.Primary}}
 // Get{{.Type}} gets the record with a given primary key value.
 // If not found, *{{.Type}} will be nil.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}}=?", {{.Prefix}}{{.Type}}ColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}}=?", {{.CamelName}}ColumnNames, tbl.name)
 	return tbl.QueryOne(query, id)
 }
 
@@ -90,7 +90,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}(id ...{{.Table.Primary.Type.Name}}) (list {{.List}}, err error) {
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}} IN (%s)", {{.Prefix}}{{.Type}}ColumnNames, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}} IN (%s)", {{.CamelName}}ColumnNames, tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -115,7 +115,7 @@ const sSelectRows = `
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneSA(where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", {{.Prefix}}{{.Type}}ColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", {{.CamelName}}ColumnNames, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
 
@@ -133,7 +133,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(wh where.Expression, qc wher
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectSA(where, orderBy string, args ...interface{}) ({{.List}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", {{.Prefix}}{{.Type}}ColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", {{.CamelName}}ColumnNames, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
 

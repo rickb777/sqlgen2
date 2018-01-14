@@ -32,9 +32,9 @@ func WriteSelectRowsFuncs(w io.Writer, view View) {
 	must(tSelectRows.Execute(w, view))
 	must(tCountRows.Execute(w, view))
 
-	tableName := view.Prefix + view.Table.Type
+	tableName := view.CamelName()
 	fmt.Fprintf(w, constStringQ,
-		identifier("", tableName, "ColumnNames"), strings.Join(view.Table.ColumnNames(true), ", "))
+		tableName+"ColumnNames", strings.Join(view.Table.ColumnNames(true), ", "))
 }
 
 func WriteInsertFunc(w io.Writer, view View) {
@@ -46,15 +46,15 @@ func WriteInsertFunc(w io.Writer, view View) {
 		must(tInsertSimple.Execute(w, view))
 	}
 
-	tableName := view.Prefix + view.Table.Type
+	tableName := view.CamelName()
 	fmt.Fprintf(w, constStringWithTicks,
-		identifier("sqlInsert", tableName, ""), schema.Sqlite.InsertDML(view.Table))
+		"sqlInsert"+tableName, schema.Sqlite.InsertDML(view.Table))
 
 	fmt.Fprintf(w, constStringQ,
-		identifier("s", tableName, "DataColumnParamsSimple"), schema.Sqlite.Placeholders(view.Table.NumColumnNames(false)))
+		"s"+tableName+"DataColumnParamsSimple", schema.Sqlite.Placeholders(view.Table.NumColumnNames(false)))
 
 	fmt.Fprintf(w, constStringQ,
-		identifier("s", tableName, "DataColumnParamsPostgres"), schema.Postgres.Placeholders(view.Table.NumColumnNames(false)))
+		"s"+tableName+"DataColumnParamsPostgres", schema.Postgres.Placeholders(view.Table.NumColumnNames(false)))
 
 }
 
@@ -66,12 +66,12 @@ func WriteUpdateFunc(w io.Writer, view View) {
 	if view.Table.HasPrimaryKey() {
 		must(tUpdate.Execute(w, view))
 
-		tableName := view.Prefix + view.Table.Type
+		tableName := view.CamelName()
 		fmt.Fprintf(w, constStringWithTicks,
-			identifier("sqlUpdate", tableName, "ByPkSimple"), schema.Sqlite.UpdateDML(view.Table))
+			"sqlUpdate"+tableName+"ByPkSimple", schema.Sqlite.UpdateDML(view.Table))
 
 		fmt.Fprintf(w, constStringWithTicks,
-			identifier("sqlUpdate", tableName, "ByPkPostgres"), schema.Postgres.UpdateDML(view.Table))
+			"sqlUpdate"+tableName+"ByPkPostgres", schema.Postgres.UpdateDML(view.Table))
 	}
 }
 

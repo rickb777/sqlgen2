@@ -5,8 +5,8 @@ import (
 	"io"
 	. "strings"
 
-	"bitbucket.org/pkg/inflect"
 	"github.com/rickb777/sqlgen2/schema"
+	"bitbucket.org/pkg/inflect"
 )
 
 const sectionBreak = "\n//--------------------------------------------------------------------------------"
@@ -29,23 +29,23 @@ func WritePackage(w io.Writer, name string) {
 // writeSchema writes SQL statements to CREATE, INSERT,
 // UPDATE and DELETE values from Table t.
 func WriteSchema(w io.Writer, view View) {
-	tableName := view.Prefix + view.Table.Type
+	tableName := view.CamelName()
 
 	fmt.Fprintln(w, sectionBreak)
 
 	fmt.Fprintf(w, "\nconst %s = %d\n",
-		identifier("Num", tableName, "Columns"), view.Table.NumColumnNames(true))
+		"Num"+tableName+"Columns", view.Table.NumColumnNames(true))
 
 	fmt.Fprintf(w, "\nconst %s = %d\n",
-		identifier("Num", tableName, "DataColumns"), view.Table.NumColumnNames(false))
+		"Num"+tableName+"DataColumns", view.Table.NumColumnNames(false))
 
 	if view.Table.HasPrimaryKey() {
 		fmt.Fprintf(w, constStringQ,
-			identifier("", tableName, "Pk"), view.Table.Primary.Name)
+			tableName+"Pk", view.Table.Primary.Name)
 	}
 
 	fmt.Fprintf(w, constStringQ,
-		identifier("", tableName, "DataColumnNames"), Join(view.Table.ColumnNames(false), ", "))
+		tableName+"DataColumnNames", Join(view.Table.ColumnNames(false), ", "))
 
 	fmt.Fprintln(w, sectionBreak)
 
@@ -55,7 +55,7 @@ func WriteSchema(w io.Writer, view View) {
 		ds := d.String()
 
 		fmt.Fprintf(w, constStringWithTicks,
-			identifier("sqlCreate", tableName, view.Thing+ds),
+			"sqlCreate"+tableName+view.Thing+ds,
 			"CREATE TABLE %s%s ("+d.TableDDL(view.Table)+"\n)"+d.CreateTableSettings())
 	}
 
@@ -68,15 +68,11 @@ func WriteSchema(w io.Writer, view View) {
 
 		for _, ix := range view.Table.Index {
 			fmt.Fprintf(w, constStringQ,
-				identifier("sql"+view.Prefix, ix.Name, "IndexColumns"), ix.Columns())
+				"sql"+view.Prefix+inflect.Camelize(ix.Name)+"IndexColumns", ix.Columns())
 		}
 	}
 
 	fmt.Fprintln(w, sectionBreak)
 
 	must(tTruncate.Execute(w, view))
-}
-
-func identifier(prefix, id, suffix string) string {
-	return prefix + inflect.Camelize(id) + suffix
 }

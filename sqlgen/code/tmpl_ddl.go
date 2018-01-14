@@ -38,7 +38,7 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name sqlgen2.TableName, d sqlgen2.Execer,
 
 // CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}} copies a table instance, retaining the name etc but
 // providing methods appropriate for '{{.Type}}'.
-func CopyTableAs{{camel .Prefix}}{{.Type}}{{.Thing}}(origin sqlgen2.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
+func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin sqlgen2.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
 		name:    origin.Name(),
 		db:      origin.DB(),
