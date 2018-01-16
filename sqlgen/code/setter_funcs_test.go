@@ -85,6 +85,30 @@ func (v *Example) SetAvatar(x []byte) *Example {
 	return v
 }
 
+// SetFoo1 sets the Foo1 field and returns the modified Example.
+func (v *Example) SetFoo1(x Foo) *Example {
+	v.Foo1 = x
+	return v
+}
+
+// SetFoo2 sets the Foo2 field and returns the modified Example.
+func (v *Example) SetFoo2(x Foo) *Example {
+	v.Foo2 = &x
+	return v
+}
+
+// SetBar1 sets the Bar1 field and returns the modified Example.
+func (v *Example) SetBar1(x Bar) *Example {
+	v.Bar1 = x
+	return v
+}
+
+// SetBar2 sets the Bar2 field and returns the modified Example.
+func (v *Example) SetBar2(x Bar) *Example {
+	v.Bar2 = &x
+	return v
+}
+
 // SetUpdated sets the Updated field and returns the modified Example.
 func (v *Example) SetUpdated(x time.Time) *Example {
 	v.Updated = x
@@ -177,6 +201,30 @@ func (v *Example) SetAvatar(x []byte) *Example {
 	return v
 }
 
+// SetFoo1 sets the Foo1 field and returns the modified Example.
+func (v *Example) SetFoo1(x Foo) *Example {
+	v.Foo1 = x
+	return v
+}
+
+// SetFoo2 sets the Foo2 field and returns the modified Example.
+func (v *Example) SetFoo2(x Foo) *Example {
+	v.Foo2 = &x
+	return v
+}
+
+// SetBar1 sets the Bar1 field and returns the modified Example.
+func (v *Example) SetBar1(x Bar) *Example {
+	v.Bar1 = x
+	return v
+}
+
+// SetBar2 sets the Bar2 field and returns the modified Example.
+func (v *Example) SetBar2(x Bar) *Example {
+	v.Bar2 = &x
+	return v
+}
+
 // SetUpdated sets the Updated field and returns the modified Example.
 func (v *Example) SetUpdated(x time.Time) *Example {
 	v.Updated = x
@@ -224,6 +272,18 @@ func (v *Example) SetAge(x uint32) *Example {
 // SetBmi sets the Bmi field and returns the modified Example.
 func (v *Example) SetBmi(x float32) *Example {
 	v.Bmi = &x
+	return v
+}
+
+// SetFoo2 sets the Foo2 field and returns the modified Example.
+func (v *Example) SetFoo2(x Foo) *Example {
+	v.Foo2 = &x
+	return v
+}
+
+// SetBar2 sets the Bar2 field and returns the modified Example.
+func (v *Example) SetBar2(x Bar) *Example {
+	v.Bar2 = &x
 	return v
 }
 `

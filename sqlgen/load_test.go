@@ -16,11 +16,13 @@ import (
 
 const demoPath = "github.com/rickb777/sqlgen2/demo"
 
-func TestParseAndLoad_typesWithAllFieldsUnexported(t *testing.T) {
+func TestParseAndLoad_typesWithAllFieldsUnexported_butNotScannerValuer(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 
 	template := `package pkg1
+
+import "database/sql/driver"
 
 type Example struct {
 	Event    Date    %s
@@ -37,15 +39,173 @@ type Date struct {
 	}{
 		{
 			"",
-			&Field{Node{"Event", Type{"", "", "Date", false, Struct}, nil}, "event", ENCNONE, Tag{}},
+			&Field{Node{"Event", Type{Name: "Date", Base: Struct}, nil}, "event", ENCNONE, Tag{}},
+		},
+		{
+			"`sql:\"encode: text\"`",
+			&Field{Node{"Event", Type{Name: "Date", Base: Struct}, nil}, "event", ENCTEXT, Tag{Encode: "text"}},
 		},
 		{
 			"`sql:\"encode: json\"`",
-			&Field{Node{"Event", Type{"", "", "Date", false, Struct}, nil}, "event", ENCJSON, Tag{Encode: "json"}},
+			&Field{Node{"Event", Type{Name: "Date", Base: Struct}, nil}, "event", ENCJSON, Tag{Encode: "json"}},
+		},
+		{
+			"`sql:\"encode: driver\"`",
+			&Field{Node{"Event", Type{Name: "Date", Base: Struct}, nil}, "event", ENCDRIVER, Tag{Encode: "driver"}},
 		},
 		{
 			"`sql:\"type: integer\"`",
-			&Field{Node{"Event", Type{"", "", "Date", false, Int}, nil}, "event", ENCNONE, Tag{Type: "integer"}},
+			&Field{Node{"Event", Type{Name: "Date", Base: Int}, nil}, "event", ENCNONE, Tag{Type: "integer"}},
+		},
+	}
+
+	for i, c := range cases {
+		code := fmt.Sprintf(template, c.tag)
+		source := Source{"issue.go", bytes.NewBufferString(code)}
+
+		pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+		if err != nil {
+			t.Fatalf("Error parsing: %s", err)
+		}
+
+		table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
+		if err != nil {
+			t.Fatalf("Error loading: %s", err)
+		}
+
+		expected := &TableDescription{
+			Type: "Example",
+			Name: "examples",
+			Fields: FieldList{
+				c.date,
+			},
+		}
+
+		if !reflect.DeepEqual(table, expected) {
+			ex := utter.Sdump(expected)
+			ac := utter.Sdump(table)
+			outputDiff(ex, "expected.txt")
+			outputDiff(ac, "got.txt")
+			t.Errorf("%d: expected | got\n%s\n", i, sideBySideDiff(ex, ac))
+		}
+	}
+}
+
+func TestParseAndLoad_typesWithAllFieldsUnexported_andIsScannerValuer(t *testing.T) {
+	exit.TestableExit()
+	Debug = true
+
+	template := `package pkg1
+
+import "database/sql/driver"
+
+type Example struct {
+	Event    Date    %s
+}
+
+type Date struct {
+	day int32
+}
+
+func (d *Date) Scan(value interface{}) (err error) {
+	*d = Date{value.(int32)}
+	return nil
+}
+
+func (d Date) Value() (driver.Value, error) {
+	return int64(d.day), nil
+}
+`
+
+	cases := []struct {
+		tag  string
+		date *Field
+	}{
+		{
+			"",
+			&Field{Node{"Event", Type{Name: "Date", IsScanner: true, IsValuer: true, Base: Struct}, nil}, "event", ENCNONE, Tag{}},
+		},
+		{
+			"`sql:\"encode: json\"`",
+			&Field{Node{"Event", Type{Name: "Date", IsScanner: true, IsValuer: true, Base: Struct}, nil}, "event", ENCJSON, Tag{Encode: "json"}},
+		},
+		{
+			"`sql:\"encode: driver\"`",
+			&Field{Node{"Event", Type{Name: "Date", IsScanner: true, IsValuer: true, Base: Struct}, nil}, "event", ENCDRIVER, Tag{Encode: "driver"}},
+		},
+		{
+			"`sql:\"type: integer\"`",
+			&Field{Node{"Event", Type{Name: "Date", IsScanner: true, IsValuer: true, Base: Int}, nil}, "event", ENCNONE, Tag{Type: "integer"}},
+		},
+	}
+
+	for i, c := range cases {
+		code := fmt.Sprintf(template, c.tag)
+		source := Source{"issue.go", bytes.NewBufferString(code)}
+
+		pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+		if err != nil {
+			t.Fatalf("Error parsing: %s", err)
+		}
+
+		table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
+		if err != nil {
+			t.Fatalf("Error loading: %s", err)
+		}
+
+		expected := &TableDescription{
+			Type: "Example",
+			Name: "examples",
+			Fields: FieldList{
+				c.date,
+			},
+		}
+
+		if !reflect.DeepEqual(table, expected) {
+			ex := utter.Sdump(expected)
+			ac := utter.Sdump(table)
+			outputDiff(ex, "expected.txt")
+			outputDiff(ac, "got.txt")
+			t.Errorf("%d: expected | got\n%s\n", i, sideBySideDiff(ex, ac))
+		}
+	}
+}
+
+func TestParseAndLoad_simpleNamedType_whichIsScannerValuer(t *testing.T) {
+	exit.TestableExit()
+	Debug = true
+
+	template := `package pkg1
+
+import "database/sql/driver"
+
+type Example struct {
+	Event    Date    %s
+}
+
+type Date int64
+
+func (d *Date) Scan(value interface{}) (err error) {
+	*d = Date{value.(int64)}
+	return nil
+}
+
+func (d Date) Value() (driver.Value, error) {
+	return int64(d), nil
+}
+`
+
+	cases := []struct {
+		tag  string
+		date *Field
+	}{
+		{
+			"",
+			&Field{Node{"Event", Type{Name: "Date", IsScanner: true, IsValuer: true, Base: Int64}, nil}, "event", ENCNONE, Tag{}},
+		},
+		{
+			"`sql:\"encode: json\"`",
+			&Field{Node{"Event", Type{Name: "Date", IsScanner: true, IsValuer: true, Base: Int64}, nil}, "event", ENCJSON, Tag{Encode: "json"}},
 		},
 	}
 
@@ -158,8 +318,8 @@ type Category int32
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	labels := &Field{Node{"Labels", Type{"", "", "[]string", false, Slice}, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
-	categories := &Field{Node{"Categories", Type{"", "", "Category", false, Slice}, nil}, "categories", ENCJSON, Tag{Encode: "json"}}
+	labels := &Field{Node{"Labels", Type{Name: "[]string", Base: Slice}, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
+	categories := &Field{Node{"Categories", Type{Name: "Category", Base: Slice}, nil}, "categories", ENCJSON, Tag{Encode: "json"}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -201,8 +361,8 @@ type Example struct {
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	aaa := &Field{Node{"Aaa", Type{"", "", "string", false, String}, nil}, "aaa", ENCNONE, Tag{Size: 32, Index: "foo"}}
-	bbb := &Field{Node{"Bbb", Type{"", "", "string", false, String}, nil}, "bbb", ENCNONE, Tag{Size: 32, Index: "foo"}}
+	aaa := &Field{Node{"Aaa", Type{Name: "string", Base: String}, nil}, "aaa", ENCNONE, Tag{Size: 32, Index: "foo"}}
+	bbb := &Field{Node{"Bbb", Type{Name: "string", Base: String}, nil}, "bbb", ENCNONE, Tag{Size: 32, Index: "foo"}}
 
 	idx := &Index{"foo", false, FieldList{aaa, bbb}}
 
@@ -250,7 +410,7 @@ type Author struct {
 	}
 
 	fileTags := map[string]Tag{
-		"Aaa": Tag{Name: "xxx", Size: 10},
+		"Aaa":  Tag{Name: "xxx", Size: 10},
 		"Name": Tag{Name: "writer"},
 	}
 
@@ -261,8 +421,8 @@ type Author struct {
 
 	p1 := &Node{Name: "Author", Type: Type{PkgName: "pkg1", Name: "Author", Base: Struct}}
 
-	aaa := &Field{Node{"Aaa", Type{"", "", "string", false, String}, nil}, "xxx", ENCNONE, Tag{Name: "xxx", Size: 10}}
-	name := &Field{Node{"Name", Type{"", "", "string", false, String}, p1}, "writer", ENCNONE, Tag{Name: "writer"}}
+	aaa := &Field{Node{"Aaa", Type{Name: "string", Base: String}, nil}, "xxx", ENCNONE, Tag{Name: "xxx", Size: 10}}
+	name := &Field{Node{"Name", Type{Name: "string", Base: String}, p1}, "writer", ENCNONE, Tag{Name: "writer"}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -327,14 +487,14 @@ type Author struct {
 	p2 := &Node{Name: "Author", Type: Type{PkgName: "pkg1", Name: "Author", Base: Struct}, Parent: p1}
 	p3 := &Node{Name: "Position", Type: Type{PkgPath: "go/token", PkgName: "token", Name: "Position", Base: Struct}}
 
-	category := &Field{Node{"Cat", Type{"", "", "Category", false, Int32}, nil}, "cat", ENCNONE, Tag{}}
-	name := &Field{Node{"Name", Type{"", "", "string", false, String}, p2}, "name", ENCNONE, Tag{}}
-	email := &Field{Node{"Email", Type{"", "", "string", false, String}, p2}, "email", ENCNONE, Tag{}}
-	message := &Field{Node{"Message", Type{"", "", "string", false, String}, p1}, "message", ENCNONE, Tag{}}
-	filename := &Field{Node{"Filename", Type{"", "", "string", false, String}, p3}, "filename", ENCNONE, Tag{}}
-	offset := &Field{Node{"Offset", Type{"", "", "int", false, Int}, p3}, "offset", ENCNONE, Tag{}}
-	line := &Field{Node{"Line", Type{"", "", "int", false, Int}, p3}, "line", ENCNONE, Tag{}}
-	column := &Field{Node{"Column", Type{"", "", "int", false, Int}, p3}, "column", ENCNONE, Tag{}}
+	category := &Field{Node{"Cat", Type{Name: "Category", Base: Int32}, nil}, "cat", ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{Name: "string", Base: String}, p2}, "name", ENCNONE, Tag{}}
+	email := &Field{Node{"Email", Type{Name: "string", Base: String}, p2}, "email", ENCNONE, Tag{}}
+	message := &Field{Node{"Message", Type{Name: "string", Base: String}, p1}, "message", ENCNONE, Tag{}}
+	filename := &Field{Node{"Filename", Type{Name: "string", Base: String}, p3}, "filename", ENCNONE, Tag{}}
+	offset := &Field{Node{"Offset", Type{Name: "int", Base: Int}, p3}, "offset", ENCNONE, Tag{}}
+	line := &Field{Node{"Line", Type{Name: "int", Base: Int}, p3}, "line", ENCNONE, Tag{}}
+	column := &Field{Node{"Column", Type{Name: "int", Base: Int}, p3}, "column", ENCNONE, Tag{}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -390,10 +550,10 @@ type Example struct {
 
 	p1 := &Node{Name: "Dates", Type: Type{PkgPath: demoPath, PkgName: "demo", Name: "Dates", Base: Struct}}
 
-	category := &Field{Node{"Cat", Type{demoPath, "demo", "Category", false, Uint8}, nil}, "cat", ENCNONE, Tag{}}
-	after := &Field{Node{"After", Type{"", "", "string", false, String}, p1}, "after", ENCNONE, Tag{Size: 20}}
-	before := &Field{Node{"Before", Type{"", "", "string", false, String}, p1}, "before", ENCNONE, Tag{Size: 20}}
-	name := &Field{Node{"Name", Type{"", "", "string", false, String}, nil}, "name", ENCNONE, Tag{}}
+	category := &Field{Node{"Cat", Type{PkgPath: demoPath, PkgName: "demo", Name: "Category", Base: Uint8}, nil}, "cat", ENCNONE, Tag{}}
+	after := &Field{Node{"After", Type{Name: "string", Base: String}, p1}, "after", ENCNONE, Tag{Size: 20}}
+	before := &Field{Node{"Before", Type{Name: "string", Base: String}, p1}, "before", ENCNONE, Tag{Size: 20}}
+	name := &Field{Node{"Name", Type{Name: "string", Base: String}, nil}, "name", ENCNONE, Tag{}}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -465,23 +625,23 @@ type Commit struct {
 	p1 := &Node{Name: "Commit", Type: Type{Name: "Commit", IsPtr: true, Base: Struct}}
 	p2 := &Node{Name: "Author", Type: Type{PkgPath: demoPath, PkgName: "demo", Name: "Author", IsPtr: true, Base: Struct}, Parent: p1}
 
-	id := &Field{Node{"Id", Type{"", "", "uint64", false, Uint64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
-	super := &Field{Node{"SupersededBy", Type{"", "", "uint64", true, Uint64}, nil}, "supersededby", ENCNONE, Tag{}}
-	number := &Field{Node{"Number", Type{"", "", "int", false, Int}, nil}, "number", ENCNONE, Tag{}}
-	category := &Field{Node{"Category", Type{demoPath, "demo", "Category", false, Uint8}, nil}, "category", ENCNONE, Tag{}}
-	commitMessage := &Field{Node{"Message", Type{"", "", "string", false, String}, p1}, "text", ENCNONE, Tag{Size: 2048, Name: "text"}}
+	id := &Field{Node{"Id", Type{Name: "uint64", Base: Uint64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
+	super := &Field{Node{"SupersededBy", Type{Name: "uint64", IsPtr: true, Base: Uint64}, nil}, "supersededby", ENCNONE, Tag{}}
+	number := &Field{Node{"Number", Type{Name: "int", Base: Int}, nil}, "number", ENCNONE, Tag{}}
+	category := &Field{Node{"Category", Type{PkgPath: demoPath, PkgName: "demo", Name: "Category", Base: Uint8}, nil}, "category", ENCNONE, Tag{}}
+	commitMessage := &Field{Node{"Message", Type{Name: "string", Base: String}, p1}, "text", ENCNONE, Tag{Size: 2048, Name: "text"}}
 	//commitTimestamp := &Field{Node{"Timestamp", Type{"time", "Time", String}, p1}, "commit_timestamp", VARCHAR, ENCNONE, Tag{}}
-	authorName := &Field{Node{"Name", Type{"", "", "string", false, String}, p2}, "commit_author_name", ENCNONE, Tag{Prefixed: true}}
-	authorEmail := &Field{Node{"Email", Type{demoPath, "demo", "Email", false, String}, p2}, "commit_author_email", ENCNONE, Tag{Prefixed: true}}
-	authorUser := &Field{Node{"Username", Type{"", "", "string", false, String}, p2}, "commit_author_username", ENCNONE, Tag{Prefixed: true}}
-	title := &Field{Node{"Title", Type{"", "", "string", false, String}, nil}, "title", ENCNONE, Tag{Index: "titleIdx"}}
+	authorName := &Field{Node{"Name", Type{Name: "string", Base: String}, p2}, "commit_author_name", ENCNONE, Tag{Prefixed: true}}
+	authorEmail := &Field{Node{"Email", Type{PkgPath: demoPath, PkgName: "demo", Name: "Email", Base: String}, p2}, "commit_author_email", ENCNONE, Tag{Prefixed: true}}
+	authorUser := &Field{Node{"Username", Type{Name: "string", Base: String}, p2}, "commit_author_username", ENCNONE, Tag{Prefixed: true}}
+	title := &Field{Node{"Title", Type{Name: "string", Base: String}, nil}, "title", ENCNONE, Tag{Index: "titleIdx"}}
 	////owner := &Field{"Owner", "team_owner", VARCHAR, Tag{}}
-	hobby := &Field{Node{"Hobby", Type{"", "", "string", false, String}, nil}, "hobby", ENCNONE, Tag{Size: 2048}}
-	labels := &Field{Node{"Labels", Type{"", "", "[]string", false, Slice}, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
-	active := &Field{Node{"Active", Type{"", "", "bool", false, Bool}, nil}, "active", ENCNONE, Tag{}}
-	avatar := &Field{Node{"Avatar", Type{"", "", "[]byte", false, Slice}, nil}, "avatar", ENCNONE, Tag{}}
-	fave := &Field{Node{"Fave", Type{"math/big", "big", "Int", false, Struct}, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
-	updated := &Field{Node{"Updated", Type{"time", "time", "Time", false, Struct}, nil}, "updated", ENCTEXT, Tag{Encode: "text"}}
+	hobby := &Field{Node{"Hobby", Type{Name: "string", Base: String}, nil}, "hobby", ENCNONE, Tag{Size: 2048}}
+	labels := &Field{Node{"Labels", Type{Name: "[]string", Base: Slice}, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
+	active := &Field{Node{"Active", Type{Name: "bool", Base: Bool}, nil}, "active", ENCNONE, Tag{}}
+	avatar := &Field{Node{"Avatar", Type{Name: "[]byte", Base: Slice}, nil}, "avatar", ENCNONE, Tag{}}
+	fave := &Field{Node{"Fave", Type{PkgPath: "math/big", PkgName: "big", Name: "Int", Base: Struct}, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
+	updated := &Field{Node{"Updated", Type{PkgPath: "time", PkgName: "time", Name: "Time", Base: Struct}, nil}, "updated", ENCTEXT, Tag{Encode: "text"}}
 
 	ititle := &Index{"titleIdx", false, FieldList{title}}
 

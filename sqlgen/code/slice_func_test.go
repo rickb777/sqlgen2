@@ -27,7 +27,7 @@ func sliceXExample(v *Example) ([]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	v11, err := encoding.MarshalText(&v.Updated)
+	v15, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,11 @@ func sliceXExample(v *Example) ([]interface{}, error) {
 		v8,
 		v9,
 		v.Avatar,
-		v11,
+		v.Foo1,
+		v.Foo2,
+		v.Bar1,
+		v.Bar2,
+		v15,
 
 	}, nil
 }
@@ -77,7 +81,7 @@ func sliceXExampleWithoutPk(v *Example) ([]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	v11, err := encoding.MarshalText(&v.Updated)
+	v15, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +97,11 @@ func sliceXExampleWithoutPk(v *Example) ([]interface{}, error) {
 		v8,
 		v9,
 		v.Avatar,
-		v11,
+		v.Foo1,
+		v.Foo2,
+		v.Bar1,
+		v.Bar2,
+		v15,
 
 	}, nil
 }

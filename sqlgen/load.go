@@ -63,7 +63,53 @@ func mergeTags(structTags, fileTags parse.Tags) parse.Tags {
 
 //-------------------------------------------------------------------------------------------------
 
-func (ctx *context) examineStruct(nm *types.Named, name parse.LType, tags parse.Tags, parent *Node) bool {
+func isBasicInterface(t types.Type) bool {
+	_, isInterface := t.(*types.Interface)
+	return isInterface
+}
+
+func isTypeNamed(name string, t types.Type) bool {
+	nm, isNamed := t.(*types.Named)
+	if !isNamed {
+		return false
+	}
+	return nm.Obj().Name() == name
+}
+
+func recogniseScannerValuer(nm *types.Named) (isScanner, isValuer bool) {
+	for i := 0; i < nm.NumMethods(); i++ {
+		method := nm.Method(i)
+		name := method.Name()
+		tp := method.Type().(*types.Signature)
+		params := tp.Params()
+		recvType := tp.Recv().Type()
+		results := tp.Results()
+
+		switch name {
+		case "Scan":
+			_, isPtr := recvType.(*types.Pointer)
+			if isPtr && !tp.Variadic() && params.Len() == 1 && results.Len() == 1 {
+				p0IsInterface := isBasicInterface(params.At(0).Type())
+				r0IsError := isTypeNamed("error", results.At(0).Type())
+				isScanner = p0IsInterface && r0IsError
+				parse.DevInfo("recogniseScannerValuer %s %s %v\n", nm, method.FullName(), isScanner)
+			}
+
+		case "Value":
+			if !tp.Variadic() && params.Len() == 0 && results.Len() == 2 {
+				r0IsValue := isTypeNamed("Value", results.At(0).Type())
+				r1IsError := isTypeNamed("error", results.At(1).Type())
+				isValuer = r0IsValue && r1IsError
+				parse.DevInfo("recogniseScannerValuer %s %s %v\n", nm, method.FullName(), isValuer)
+			}
+		}
+	}
+	return
+}
+
+//-------------------------------------------------------------------------------------------------
+
+func (ctx *context) examineStruct(nm *types.Named, name parse.LType, tags parse.Tags, parent *Node) (addStructAsField bool) {
 	merged := mergeTags(tags, ctx.fileTags)
 	parse.DevInfo("examineStruct %s %+v\n -- tags\n%v\n", name, nm, merged)
 	if nm == nil {
@@ -89,7 +135,7 @@ func (ctx *context) examineStruct(nm *types.Named, name parse.LType, tags parse.
 
 	if len(unexportedFields) == str.NumFields() {
 		output.Info("%s: Info: %s contains no exported fields; it must implement sql.Scanner and driver.Valuer.\n", name, str.String())
-		return true // add this struct as a field; assume the type implements Scanner/Valuer
+		return true
 
 	} else if len(unexportedFields) > 0 {
 		output.Info("%s: Warning: %s.%s contains unexported fields %s.\n"+
@@ -247,6 +293,8 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags pars
 		setTypeName(&tp, tObj, pkg, ctx.mainPkg)
 		parse.DevInfo("named %+v\n", tp)
 
+		tp.IsScanner, tp.IsValuer = recogniseScannerValuer(nm)
+
 		switch u := nm.Underlying().(type) {
 		case *types.Basic:
 			tp.Base = parse.Kind(u.Kind())
@@ -256,7 +304,7 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags pars
 
 		case *types.Struct:
 			tp.Base = parse.Struct
-			if canRecurse {
+			if canRecurse && !tp.IsScanner && !tp.IsValuer {
 				addStructTags(tags, u)
 				ok := ctx.examineStruct(nm, parse.LType{pkg, leaf.Name()}, tags, &node)
 				node.Type = tp
@@ -296,8 +344,8 @@ func setTypeName(tp *Type, tn *types.TypeName, pkg, mainPkg string) {
 	} else if pkg != mainPkg {
 		tp.PkgName = pkg
 		//parse.DevInfo("setTypeName %s - %s\n", tp.Name, tp.PkgName)
-	//} else {
-	//	parse.DevInfo("setTypeName %s - -\n", tp.Name)
+		//} else {
+		//	parse.DevInfo("setTypeName %s - -\n", tp.Name)
 	}
 }
 

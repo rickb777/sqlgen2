@@ -299,6 +299,32 @@ type User struct {
 }
 ```
 
+### Driver Encoding
+
+If you have a field type that implements `sql.Scanner`, `driver.Valuer` and you want to use this explicitly as the column encoding to string data, specify `encode: driver`, e.g.
+
+```
+type User struct {
+    ID     int64    `sql:"pk: true"`
+    Stuff  MyStruct `sql:"encode: driver"`
+}
+```
+
+You don't always have to do this because your types are inspected and will normally be auto-detected. However, for struct types that contain other fields, ambiguity arises. You can use this setting to resolve the ambiguity; otherwise the internal fields will be treated as table columns.
+
+### Text Encoding
+
+If you have a field type that implements `encoding.MashalText`, `encoding.UnmashalText` and you want to use this as the column encoding to string data, specify `encode: text`, e.g.
+
+```
+type User struct {
+    ID     int64    `sql:"pk: true"`
+    Thing  MyStruct `sql:"encode: text"`
+}
+```
+
+There is no auto-detection for these enciding interfaces. Use this setting as and when you need it.
+
 ### Dialects
 
 The generated code supports the following SQL dialects: `postgres`, `mysql` and `sqlite`. You decide at runtime which you need to use.

@@ -12,18 +12,22 @@ import (
 )
 
 func fixtureTable() *TableDescription {
-	i64 := Type{"", "", "int64", false, Int64}
-	boo := Type{"", "", "bool", false, Bool}
-	cat := Type{"", "", "Category", false, Int32}
-	str := Type{"", "", "string", false, String}
-	spt := Type{"", "", "string", true, String}
-	ipt := Type{"", "", "int32", true, Int32}
-	upt := Type{"", "", "uint32", true, Uint32}
-	fpt := Type{"", "", "float32", true, Float32}
-	sli := Type{"", "", "[]string", false, Slice}
-	bgi := Type{"math/big", "big", "Int", false, Struct}
-	bys := Type{"", "", "[]byte", false, Slice}
-	tim := Type{"time", "time", "Time", false, Struct}
+	i64 := Type{Name: "int64", Base: Int64}
+	boo := Type{Name: "bool", Base: Bool}
+	cat := Type{Name: "Category", Base: Int32}
+	str := Type{Name: "string", Base: String}
+	spt := Type{Name: "string", IsPtr: true, Base: String}
+	ipt := Type{Name: "int32", IsPtr: true, Base: Int32}
+	upt := Type{Name: "uint32", IsPtr: true, Base: Uint32}
+	fpt := Type{Name: "float32", IsPtr: true, Base: Float32}
+	sli := Type{Name: "[]string", Base: Slice}
+	bgi := Type{PkgPath: "math/big", PkgName: "big", Name: "Int", Base: Struct}
+	bys := Type{Name: "[]byte", Base: Slice}
+	scv1 := Type{Name: "Foo", IsScanner: true, IsValuer: true, Base: String}
+	scv2 := Type{Name: "Foo", IsScanner: true, IsValuer: true, Base: String, IsPtr: true}
+	bar1 := Type{Name: "Bar", Base: String}
+	bar2 := Type{Name: "Bar", Base: String, IsPtr: true}
+	tim := Type{PkgPath: "time", PkgName: "time", Name: "Time", Base: Struct}
 
 	id := &Field{Node{"Id", i64, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
 	category := &Field{Node{"Cat", cat, nil}, "cat", ENCNONE, Tag{Index: "catIdx"}}
@@ -36,6 +40,10 @@ func fixtureTable() *TableDescription {
 	labels := &Field{Node{"Labels", sli, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
 	fave := &Field{Node{"Fave", bgi, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
 	avatar := &Field{Node{"Avatar", bys, nil}, "avatar", ENCNONE, Tag{}}
+	fooey1 := &Field{Node{"Foo1", scv1, nil}, "foo1", ENCNONE, Tag{}}
+	fooey2 := &Field{Node{"Foo2", scv2, nil}, "foo2", ENCNONE, Tag{}}
+	barey1 := &Field{Node{"Bar1", bar1, nil}, "bar1", ENCDRIVER, Tag{Encode: "driver"}}
+	barey2 := &Field{Node{"Bar2", bar2, nil}, "bar2", ENCDRIVER, Tag{Encode: "driver"}}
 	updated := &Field{Node{"Updated", tim, nil}, "updated", ENCTEXT, Tag{Size: 100, Encode: "text"}}
 
 	icat := &Index{"catIdx", false, FieldList{category}}
@@ -56,6 +64,10 @@ func fixtureTable() *TableDescription {
 			labels,
 			fave,
 			avatar,
+			fooey1,
+			fooey2,
+			barey1,
+			barey2,
 			updated,
 		},
 		Index: []*Index{
@@ -72,10 +84,10 @@ func TestWriteRowsFunc1(t *testing.T) {
 	p1 := &Node{Name: "Commit"}
 	p2 := &Node{Name: "Author", Parent: p1}
 
-	category := &Field{Node{"Cat", Type{"", "", "Category", false, Int32}, nil}, "cat", ENCNONE, Tag{}}
-	name := &Field{Node{"Name", Type{"", "", "string", false, String}, p2}, "commit_author_name", ENCNONE, Tag{}}
-	email := &Field{Node{"Email", Type{"", "", "string", false, String}, p2}, "commit_author_email", ENCNONE, Tag{}}
-	message := &Field{Node{"Message", Type{"", "", "string", false, String}, p1}, "commit_message", ENCNONE, Tag{}}
+	category := &Field{Node{"Cat", Type{Name: "Category", Base: Int32}, nil}, "cat", ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{Name: "string", Base: String}, p2}, "commit_author_name", ENCNONE, Tag{}}
+	email := &Field{Node{"Email", Type{Name: "string", Base: String}, p2}, "commit_author_email", ENCNONE, Tag{}}
+	message := &Field{Node{"Message", Type{Name: "string", Base: String}, p1}, "commit_message", ENCNONE, Tag{}}
 
 	table := &TableDescription{
 		Type: "Example",
@@ -177,7 +189,11 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 		var v8 []byte
 		var v9 []byte
 		var v10 []byte
-		var v11 []byte
+		var v11 Foo
+		var v12 Foo
+		var v13 Bar
+		var v14 Bar
+		var v15 []byte
 
 		err = rows.Scan(
 			&v0,
@@ -192,6 +208,10 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 			&v9,
 			&v10,
 			&v11,
+			&v12,
+			&v13,
+			&v14,
+			&v15,
 		)
 		if err != nil {
 			return vv, err
@@ -227,7 +247,11 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 			return nil, err
 		}
 		v.Avatar = v10
-		err = encoding.UnmarshalText(v11, &v.Updated)
+		v.Foo1 = v11
+		v.Foo2 = &v12
+		v.Bar1 = v13
+		v.Bar2 = &v14
+		err = encoding.UnmarshalText(v15, &v.Updated)
 		if err != nil {
 			return nil, err
 		}

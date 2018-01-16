@@ -17,18 +17,24 @@ func WriteRowsFunc(w io.Writer, view View) {
 
 		nullable := field.Type.NullableValue()
 
+		if field.Type.IsScanner || field.Encode == schema.ENCDRIVER {
+			nullable = ""
+		}
+
 		// temporary variable declaration
+		l1 := ""
 		switch field.Encode {
 		case schema.ENCJSON, schema.ENCTEXT:
-			l1 := Sprintf("\t\tvar v%d %s\n", i, "[]byte")
-			view.Body1 = append(view.Body1, l1)
+			l1 = Sprintf("\t\tvar v%d %s\n", i, "[]byte")
+		case schema.ENCDRIVER:
+			l1 = Sprintf("\t\tvar v%d %s\n", i, field.Type.Type())
 		default:
-			l1 := Sprintf("\t\tvar v%d %s\n", i, field.Type.Type())
+			l1 = Sprintf("\t\tvar v%d %s\n", i, field.Type.Type())
 			if nullable != "" {
 				l1 = Sprintf("\t\tvar v%d sql.Null%s\n", i, nullable)
 			}
-			view.Body1 = append(view.Body1, l1)
 		}
+		view.Body1 = append(view.Body1, l1)
 
 		// variable scanning
 		l2 := Sprintf("&v%d", i)

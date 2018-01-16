@@ -6,18 +6,18 @@ import (
 )
 
 func TestDistinctTypes(t *testing.T) {
-	i64 := Type{"", "", "int64", false, Int64}
-	boo := Type{"", "", "bool", false, Bool}
-	cat := Type{"", "", "Category", false, Int32}
-	str := Type{"", "", "string", false, String}
-	spt := Type{"", "", "string", true, String}
-	ipt := Type{"", "", "int32", true, Int32}
-	upt := Type{"", "", "uint32", true, Uint32}
-	fpt := Type{"", "", "float32", true, Float32}
-	sli := Type{"", "", "[]string", false, Slice}
-	bgi := Type{"math/big", "big", "Int", false, Struct}
-	bys := Type{"", "", "[]byte", false, Slice}
-	tim := Type{"time", "time", "Time", false, Struct}
+	i64 := Type{Name: "int64", Base: Int64}
+	boo := Type{Name: "bool", Base: Bool}
+	cat := Type{Name: "Category", Base: Int32}
+	str := Type{Name: "string", Base: String}
+	spt := Type{Name: "string", IsPtr: true, Base: String}
+	ipt := Type{Name: "int32", IsPtr: true, Base: Int32}
+	upt := Type{Name: "uint32", IsPtr: true, Base: Uint32}
+	fpt := Type{Name: "float32", IsPtr: true, Base: Float32}
+	sli := Type{Name: "[]string", Base: Slice}
+	bgi := Type{PkgPath: "math/big", PkgName: "big", Name: "Int", Base: Struct}
+	bys := Type{Name: "[]byte", Base: Slice}
+	tim := Type{PkgPath: "time", PkgName: "time", Name: "Time", Base: Struct}
 
 	id := &Field{Node{"Id", i64, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
 	category := &Field{Node{"Cat", cat, nil}, "cat", ENCNONE, Tag{Index: "catIdx"}}

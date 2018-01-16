@@ -6,11 +6,13 @@ import (
 )
 
 type Type struct {
-	PkgPath string // package name (full path)
-	PkgName string // package name (short name)
-	Name    string // name of source code type.
-	IsPtr   bool
-	Base    Kind // underlying source code kind.
+	PkgPath   string // package name (full path)
+	PkgName   string // package name (short name)
+	Name      string // name of source code type.
+	IsPtr     bool
+	IsScanner bool
+	IsValuer  bool
+	Base      Kind // underlying source code kind.
 }
 
 func (t Type) Tag() string {

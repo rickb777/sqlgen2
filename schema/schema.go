@@ -14,6 +14,7 @@ const (
 	ENCNONE SqlEncode = iota
 	ENCJSON
 	ENCTEXT
+	ENCDRIVER // SQL driver uses Scan() & Value() to encode & decode
 )
 
 type SqlToken int

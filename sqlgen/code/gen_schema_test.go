@@ -20,13 +20,13 @@ func TestWriteSchema(t *testing.T) {
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
-const NumXExampleColumns = 12
+const NumXExampleColumns = 16
 
-const NumXExampleDataColumns = 11
+const NumXExampleDataColumns = 15
 
 const XExamplePk = "Id"
 
-const XExampleDataColumnNames = "cat, username, qual, diff, age, bmi, active, labels, fave, avatar, updated"
+const XExampleDataColumnNames = "cat, username, qual, diff, age, bmi, active, labels, fave, avatar, foo1, foo2, bar1, bar2, updated"
 
 //--------------------------------------------------------------------------------
 
@@ -78,6 +78,10 @@ CREATE TABLE %s%s (
  labels   text,
  fave     text,
  avatar   blob,
+ foo1     text,
+ foo2     text default null,
+ bar1     text,
+ bar2     text default null,
  updated  text
 )
 |
@@ -95,6 +99,10 @@ CREATE TABLE %s%s (
  labels   json,
  fave     json,
  avatar   byteaa,
+ foo1     varchar(255),
+ foo2     varchar(255) default null,
+ bar1     varchar(255),
+ bar2     varchar(255) default null,
  updated  varchar(100)
 )
 |
@@ -112,6 +120,10 @@ CREATE TABLE %s%s (
  labels   json,
  fave     json,
  avatar   mediumblob,
+ foo1     varchar(255),
+ foo2     varchar(255) default null,
+ bar1     varchar(255),
+ bar2     varchar(255) default null,
  updated  varchar(100)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 |
