@@ -279,7 +279,11 @@ func TestMultiSelectUsingSqlite(t *testing.T) {
 	const n = 3
 
 	var users []*User
-	for i := 0; i <= n; i++ {
+	user0 := &User{Login: "user0", EmailAddress: "foo0@x.z"}
+	// fave, avatar are null
+	users = append(users, user0)
+
+	for i := 1; i <= n; i++ {
 		fave := big.NewInt(int64(i))
 		user := &User{Fave: fave}
 		user = user.SetLogin(Sprintf("user%d", i))
@@ -293,7 +297,7 @@ func TestMultiSelectUsingSqlite(t *testing.T) {
 
 	list, err := tbl.Select(where.NotEq("Login", "nobody"), where.OrderBy("Login").Desc())
 	Ω(err).Should(BeNil())
-	Ω(len(list)).Should(Equal(n+1))
+	Ω(len(list)).Should(Equal(n + 1))
 	for i := 0; i <= n; i++ {
 		users[n-i].hash = "PostGet"
 		Ω(list[i]).Should(Equal(users[n-i]))
