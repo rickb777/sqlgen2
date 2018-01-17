@@ -53,19 +53,34 @@ func CopyTableAsDbUserTable(origin sqlgen2.Table) DbUserTable {
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl DbUserTable) WithPrefix(pfx string) DbUserTable {
 	tbl.name.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl DbUserTable) WithContext(ctx context.Context) DbUserTable {
 	tbl.ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl DbUserTable) WithLogger(logger *log.Logger) DbUserTable {
+	tbl.logger = logger
+	return tbl
+}
+
+// Logger gets the trace logger.
+func (tbl DbUserTable) Logger() *log.Logger {
+	return tbl.logger
+}
+
+// SetLogger sets the logger for subsequent queries, returning the interface.
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl DbUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
 	return tbl
 }
@@ -80,23 +95,13 @@ func (tbl DbUserTable) Dialect() schema.Dialect {
 	return tbl.dialect
 }
 
-// Logger gets the trace logger.
-func (tbl DbUserTable) Logger() *log.Logger {
-	return tbl.logger
-}
-
-// SetLogger sets the logger for subsequent queries, returning the interface.
-func (tbl DbUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.logger = logger
-	return tbl
-}
-
 // Wrapper gets the user-defined wrapper.
 func (tbl DbUserTable) Wrapper() interface{} {
 	return tbl.wrapper
 }
 
 // SetWrapper sets the user-defined wrapper.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl DbUserTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
 	tbl.wrapper = wrapper
 	return tbl
@@ -126,11 +131,20 @@ func (tbl DbUserTable) IsTx() bool {
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl DbUserTable) BeginTx(opts *sql.TxOptions) (DbUserTable, error) {
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
 	return tbl, err
+}
+
+// Using returns a modified Table using the transaction supplied. This is needed
+// when making multiple queries across several tables within a single transaction.
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl DbUserTable) Using(tx *sql.Tx) DbUserTable {
+	tbl.db = tx
+	return tbl
 }
 
 func (tbl DbUserTable) logQuery(query string, args ...interface{}) {
@@ -445,11 +459,11 @@ func (tbl DbUserTable) GetUsers(id ...int64) (list []*User, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause
+// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
-func (tbl DbUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
+func (tbl DbUserTable) SelectOneWhere(where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", DbUserColumnNames, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
@@ -461,13 +475,13 @@ func (tbl DbUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (
 func (tbl DbUserTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*User, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectOneSA(whs, orderBy, args...)
+	return tbl.SelectOneWhere(whs, orderBy, args...)
 }
 
-// SelectSA allows Users to be obtained from the table that match a 'where' clause.
+// SelectWhere allows Users to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
-func (tbl DbUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
+func (tbl DbUserTable) SelectWhere(where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", DbUserColumnNames, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
@@ -478,12 +492,12 @@ func (tbl DbUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*
 func (tbl DbUserTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectSA(whs, orderBy, args...)
+	return tbl.SelectWhere(whs, orderBy, args...)
 }
 
-// CountSA counts Users in the table that match a 'where' clause.
+// CountWhere counts Users in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
-func (tbl DbUserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
+func (tbl DbUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
@@ -495,7 +509,7 @@ func (tbl DbUserTable) CountSA(where string, args ...interface{}) (count int64, 
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl DbUserTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
-	return tbl.CountSA(whs, args...)
+	return tbl.CountWhere(whs, args...)
 }
 
 const DbUserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"

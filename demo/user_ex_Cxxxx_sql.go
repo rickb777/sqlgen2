@@ -50,19 +50,34 @@ func CopyTableAsCUserTable(origin sqlgen2.Table) CUserTable {
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl CUserTable) WithPrefix(pfx string) CUserTable {
 	tbl.name.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl CUserTable) WithContext(ctx context.Context) CUserTable {
 	tbl.ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl CUserTable) WithLogger(logger *log.Logger) CUserTable {
+	tbl.logger = logger
+	return tbl
+}
+
+// Logger gets the trace logger.
+func (tbl CUserTable) Logger() *log.Logger {
+	return tbl.logger
+}
+
+// SetLogger sets the logger for subsequent queries, returning the interface.
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl CUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
 	return tbl
 }
@@ -77,23 +92,13 @@ func (tbl CUserTable) Dialect() schema.Dialect {
 	return tbl.dialect
 }
 
-// Logger gets the trace logger.
-func (tbl CUserTable) Logger() *log.Logger {
-	return tbl.logger
-}
-
-// SetLogger sets the logger for subsequent queries, returning the interface.
-func (tbl CUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.logger = logger
-	return tbl
-}
-
 // Wrapper gets the user-defined wrapper.
 func (tbl CUserTable) Wrapper() interface{} {
 	return tbl.wrapper
 }
 
 // SetWrapper sets the user-defined wrapper.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl CUserTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
 	tbl.wrapper = wrapper
 	return tbl
@@ -123,11 +128,20 @@ func (tbl CUserTable) IsTx() bool {
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl CUserTable) BeginTx(opts *sql.TxOptions) (CUserTable, error) {
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
 	return tbl, err
+}
+
+// Using returns a modified Table using the transaction supplied. This is needed
+// when making multiple queries across several tables within a single transaction.
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl CUserTable) Using(tx *sql.Tx) CUserTable {
+	tbl.db = tx
+	return tbl
 }
 
 func (tbl CUserTable) logQuery(query string, args ...interface{}) {

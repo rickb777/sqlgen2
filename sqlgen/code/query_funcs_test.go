@@ -181,11 +181,11 @@ func TestWriteSelectRow(t *testing.T) {
 	expected := `
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause
+// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
-func (tbl XExampleTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Example, error) {
+func (tbl XExampleTable) SelectOneWhere(where, orderBy string, args ...interface{}) (*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", XExampleColumnNames, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
@@ -197,13 +197,13 @@ func (tbl XExampleTable) SelectOneSA(where, orderBy string, args ...interface{})
 func (tbl XExampleTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Example, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectOneSA(whs, orderBy, args...)
+	return tbl.SelectOneWhere(whs, orderBy, args...)
 }
 
-// SelectSA allows Examples to be obtained from the table that match a 'where' clause.
+// SelectWhere allows Examples to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
-func (tbl XExampleTable) SelectSA(where, orderBy string, args ...interface{}) ([]*Example, error) {
+func (tbl XExampleTable) SelectWhere(where, orderBy string, args ...interface{}) ([]*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", XExampleColumnNames, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
@@ -214,12 +214,12 @@ func (tbl XExampleTable) SelectSA(where, orderBy string, args ...interface{}) ([
 func (tbl XExampleTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Example, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectSA(whs, orderBy, args...)
+	return tbl.SelectWhere(whs, orderBy, args...)
 }
 
-// CountSA counts Examples in the table that match a 'where' clause.
+// CountWhere counts Examples in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
-func (tbl XExampleTable) CountSA(where string, args ...interface{}) (count int64, err error) {
+func (tbl XExampleTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
@@ -231,7 +231,7 @@ func (tbl XExampleTable) CountSA(where string, args ...interface{}) (count int64
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl XExampleTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
-	return tbl.CountSA(whs, args...)
+	return tbl.CountWhere(whs, args...)
 }
 
 const XExampleColumnNames = "id, name, age"

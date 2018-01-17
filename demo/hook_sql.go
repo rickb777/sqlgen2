@@ -51,19 +51,34 @@ func CopyTableAsHookTable(origin sqlgen2.Table) HookTable {
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl HookTable) WithPrefix(pfx string) HookTable {
 	tbl.name.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl HookTable) WithContext(ctx context.Context) HookTable {
 	tbl.ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl HookTable) WithLogger(logger *log.Logger) HookTable {
+	tbl.logger = logger
+	return tbl
+}
+
+// Logger gets the trace logger.
+func (tbl HookTable) Logger() *log.Logger {
+	return tbl.logger
+}
+
+// SetLogger sets the logger for subsequent queries, returning the interface.
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl HookTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
 	return tbl
 }
@@ -78,23 +93,13 @@ func (tbl HookTable) Dialect() schema.Dialect {
 	return tbl.dialect
 }
 
-// Logger gets the trace logger.
-func (tbl HookTable) Logger() *log.Logger {
-	return tbl.logger
-}
-
-// SetLogger sets the logger for subsequent queries, returning the interface.
-func (tbl HookTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.logger = logger
-	return tbl
-}
-
 // Wrapper gets the user-defined wrapper.
 func (tbl HookTable) Wrapper() interface{} {
 	return tbl.wrapper
 }
 
 // SetWrapper sets the user-defined wrapper.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl HookTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
 	tbl.wrapper = wrapper
 	return tbl
@@ -124,11 +129,20 @@ func (tbl HookTable) IsTx() bool {
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl HookTable) BeginTx(opts *sql.TxOptions) (HookTable, error) {
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
 	return tbl, err
+}
+
+// Using returns a modified Table using the transaction supplied. This is needed
+// when making multiple queries across several tables within a single transaction.
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl HookTable) Using(tx *sql.Tx) HookTable {
+	tbl.db = tx
+	return tbl
 }
 
 func (tbl HookTable) logQuery(query string, args ...interface{}) {
@@ -340,11 +354,11 @@ func (tbl HookTable) GetHooks(id ...int64) (list HookList, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause
+// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
-func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*Hook, error) {
+func (tbl HookTable) SelectOneWhere(where, orderBy string, args ...interface{}) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", HookColumnNames, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
@@ -356,13 +370,13 @@ func (tbl HookTable) SelectOneSA(where, orderBy string, args ...interface{}) (*H
 func (tbl HookTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Hook, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectOneSA(whs, orderBy, args...)
+	return tbl.SelectOneWhere(whs, orderBy, args...)
 }
 
-// SelectSA allows Hooks to be obtained from the table that match a 'where' clause.
+// SelectWhere allows Hooks to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
-func (tbl HookTable) SelectSA(where, orderBy string, args ...interface{}) (HookList, error) {
+func (tbl HookTable) SelectWhere(where, orderBy string, args ...interface{}) (HookList, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", HookColumnNames, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
@@ -373,12 +387,12 @@ func (tbl HookTable) SelectSA(where, orderBy string, args ...interface{}) (HookL
 func (tbl HookTable) Select(wh where.Expression, qc where.QueryConstraint) (HookList, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectSA(whs, orderBy, args...)
+	return tbl.SelectWhere(whs, orderBy, args...)
 }
 
-// CountSA counts Hooks in the table that match a 'where' clause.
+// CountWhere counts Hooks in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
-func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, err error) {
+func (tbl HookTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
@@ -390,7 +404,7 @@ func (tbl HookTable) CountSA(where string, args ...interface{}) (count int64, er
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl HookTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
-	return tbl.CountSA(whs, args...)
+	return tbl.CountWhere(whs, args...)
 }
 
 const HookColumnNames = "id, sha, after, before, category, created, deleted, forced, commit_id, message, timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"

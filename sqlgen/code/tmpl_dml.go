@@ -110,11 +110,11 @@ var tGetRow = template.Must(template.New("GetRow").Funcs(funcMap).Parse(sGetRow)
 //-------------------------------------------------------------------------------------------------
 
 const sSelectRows = `
-// SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause
+// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneSA(where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", {{.CamelName}}ColumnNames, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
@@ -126,13 +126,13 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneSA(where, orderBy string, arg
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(wh where.Expression, qc where.QueryConstraint) (*{{.Type}}, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectOneSA(whs, orderBy, args...)
+	return tbl.SelectOneWhere(whs, orderBy, args...)
 }
 
-// SelectSA allows {{.Types}} to be obtained from the table that match a 'where' clause.
+// SelectWhere allows {{.Types}} to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectSA(where, orderBy string, args ...interface{}) ({{.List}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(where, orderBy string, args ...interface{}) ({{.List}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", {{.CamelName}}ColumnNames, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
@@ -143,7 +143,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectSA(where, orderBy string, args .
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Select(wh where.Expression, qc where.QueryConstraint) ({{.List}}, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectSA(whs, orderBy, args...)
+	return tbl.SelectWhere(whs, orderBy, args...)
 }
 `
 
@@ -152,9 +152,9 @@ var tSelectRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(
 //-------------------------------------------------------------------------------------------------
 
 const sCountRows = `
-// CountSA counts {{.Types}} in the table that match a 'where' clause.
+// CountWhere counts {{.Types}} in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountSA(where string, args ...interface{}) (count int64, err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
@@ -166,7 +166,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountSA(where string, args ...interfac
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
-	return tbl.CountSA(whs, args...)
+	return tbl.CountWhere(whs, args...)
 }
 `
 

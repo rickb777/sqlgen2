@@ -51,19 +51,34 @@ func CopyTableAsRUserTable(origin sqlgen2.Table) RUserTable {
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl RUserTable) WithPrefix(pfx string) RUserTable {
 	tbl.name.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl RUserTable) WithContext(ctx context.Context) RUserTable {
 	tbl.ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl RUserTable) WithLogger(logger *log.Logger) RUserTable {
+	tbl.logger = logger
+	return tbl
+}
+
+// Logger gets the trace logger.
+func (tbl RUserTable) Logger() *log.Logger {
+	return tbl.logger
+}
+
+// SetLogger sets the logger for subsequent queries, returning the interface.
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl RUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
 	return tbl
 }
@@ -78,23 +93,13 @@ func (tbl RUserTable) Dialect() schema.Dialect {
 	return tbl.dialect
 }
 
-// Logger gets the trace logger.
-func (tbl RUserTable) Logger() *log.Logger {
-	return tbl.logger
-}
-
-// SetLogger sets the logger for subsequent queries, returning the interface.
-func (tbl RUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.logger = logger
-	return tbl
-}
-
 // Wrapper gets the user-defined wrapper.
 func (tbl RUserTable) Wrapper() interface{} {
 	return tbl.wrapper
 }
 
 // SetWrapper sets the user-defined wrapper.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl RUserTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
 	tbl.wrapper = wrapper
 	return tbl
@@ -124,11 +129,20 @@ func (tbl RUserTable) IsTx() bool {
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
+// The result is a modified copy of the table; the original is unchanged.
 func (tbl RUserTable) BeginTx(opts *sql.TxOptions) (RUserTable, error) {
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
 	return tbl, err
+}
+
+// Using returns a modified Table using the transaction supplied. This is needed
+// when making multiple queries across several tables within a single transaction.
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl RUserTable) Using(tx *sql.Tx) RUserTable {
+	tbl.db = tx
+	return tbl
 }
 
 func (tbl RUserTable) logQuery(query string, args ...interface{}) {
@@ -208,11 +222,11 @@ func (tbl RUserTable) GetUsers(id ...int64) (list []*User, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SelectOneSA allows a single Example to be obtained from the table that match a 'where' clause
+// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
-func (tbl RUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*User, error) {
+func (tbl RUserTable) SelectOneWhere(where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", RUserColumnNames, tbl.name, where, orderBy)
 	return tbl.QueryOne(query, args...)
 }
@@ -224,13 +238,13 @@ func (tbl RUserTable) SelectOneSA(where, orderBy string, args ...interface{}) (*
 func (tbl RUserTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*User, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectOneSA(whs, orderBy, args...)
+	return tbl.SelectOneWhere(whs, orderBy, args...)
 }
 
-// SelectSA allows Users to be obtained from the table that match a 'where' clause.
+// SelectWhere allows Users to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
-func (tbl RUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*User, error) {
+func (tbl RUserTable) SelectWhere(where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", RUserColumnNames, tbl.name, where, orderBy)
 	return tbl.Query(query, args...)
 }
@@ -241,12 +255,12 @@ func (tbl RUserTable) SelectSA(where, orderBy string, args ...interface{}) ([]*U
 func (tbl RUserTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectSA(whs, orderBy, args...)
+	return tbl.SelectWhere(whs, orderBy, args...)
 }
 
-// CountSA counts Users in the table that match a 'where' clause.
+// CountWhere counts Users in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
-func (tbl RUserTable) CountSA(where string, args ...interface{}) (count int64, err error) {
+func (tbl RUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
@@ -258,7 +272,7 @@ func (tbl RUserTable) CountSA(where string, args ...interface{}) (count int64, e
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl RUserTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
-	return tbl.CountSA(whs, args...)
+	return tbl.CountWhere(whs, args...)
 }
 
 const RUserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"

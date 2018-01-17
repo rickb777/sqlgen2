@@ -66,7 +66,7 @@ func (tn TableName) String() string {
 func (tn TableName) PrefixWithoutDot() string {
 	last := len(tn.Prefix)-1
 	if last > 0 && tn.Prefix[last] == '.' {
-		return tn.Prefix[0:last]
+		return tn.Prefix[:last]
 	}
 	return tn.Prefix
 }
@@ -106,6 +106,30 @@ type Table interface {
 
 	// SetWrapper sets a user-defined wrapper or container.
 	SetWrapper(wrapper interface{}) Table
+
+	//---------------------------------------------------------------------------------------------
+	// The following type-specific methods are also provided (but are not part of this interface).
+
+	// WithPrefix sets the table name prefix for subsequent queries.
+	// The result is a modified copy of the table; the original is unchanged.
+	// WithPrefix(pfx string) SomeTypeTable
+
+	// WithContext sets the context for subsequent queries.
+	// The result is a modified copy of the table; the original is unchanged.
+	//WithContext(ctx context.Context) SomeTypeTable {
+
+	// WithLogger sets the logger for subsequent queries. An alias for SetLogger.
+	// The result is a modified copy of the table; the original is unchanged.
+	//WithLogger(logger *log.Logger) SomeTypeTable {
+
+	// Begin starts a transaction. The default isolation level is dependent on the driver.
+	// The result is a modified copy of the table; the original is unchanged.
+	//BeginTx(opts *sql.TxOptions) (SomeTypeTable, error)
+
+	// Using returns a modified Table using the transaction supplied. This is needed
+	// when making multiple queries across several tables within a single transaction.
+	// The result is a modified copy of the table; the original is unchanged.
+	//Using(tx *sql.Tx) SomeTypeTable
 }
 
 type TableCreator interface {
@@ -141,8 +165,8 @@ type TableWithCrud interface {
 	// It returns the number of rows affected (if the DB supports that).
 	Exec(query string, args ...interface{}) (int64, error)
 
-	// CountSA counts records that match a 'where' predicate.
-	CountSA(where string, args ...interface{}) (count int64, err error)
+	// CountWhere counts records that match a 'where' predicate.
+	CountWhere(where string, args ...interface{}) (count int64, err error)
 
 	// Count counts records that match a 'where' predicate.
 	Count(where where.Expression) (count int64, err error)
@@ -155,12 +179,14 @@ type TableWithCrud interface {
 	// It returns the number of rows affected (if the DB supports that).
 	Delete(where where.Expression) (int64, error)
 
-	// These methods are provided but have a specific record type so do not conform to a general interface.
+	//---------------------------------------------------------------------------------------------
+	// The following type-specific methods are also provided (but are not part of this interface).
+
 	//QueryOne(query string, args ...interface{}) (*User, error)
 	//Query(query string, args ...interface{}) ([]*User, error)
-	//SelectOneSA(where, orderBy string, args ...interface{}) (*User, error)
+	//SelectOneWhere(where, orderBy string, args ...interface{}) (*User, error)
 	//SelectOne(where where.Expression, orderBy string) (*User, error)
-	//SelectSA(where, orderBy string, args ...interface{}) ([]*User, error)
+	//SelectWhere(where, orderBy string, args ...interface{}) ([]*User, error)
 	//Select(where where.Expression, orderBy string) ([]*User, error)
 	//Insert(vv ...*User) error
 	//Update(vv ...*User) (int64, error)
