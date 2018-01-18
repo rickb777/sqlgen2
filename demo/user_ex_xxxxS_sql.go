@@ -11,6 +11,7 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
+	"strings"
 )
 
 // SUserTable holds a given table name with the database reference, providing access methods below.
@@ -166,20 +167,28 @@ func (tbl SUserTable) Exec(query string, args ...interface{}) (int64, error) {
 
 //--------------------------------------------------------------------------------
 
-// QueryOne is the low-level access function for one User.
+// Query is the low-level access method for Users.
+// Note that this applies ReplaceTableName to the query string.
+func (tbl SUserTable) Query(query string, args ...interface{}) ([]*User, error) {
+	query = tbl.ReplaceTableName(query)
+	return tbl.doQuery(false, query, args...)
+}
+
+// QueryOne is the low-level access method for one User.
+// Note that this applies ReplaceTableName to the query string.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *User will be nil.
 func (tbl SUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+	query = tbl.ReplaceTableName(query)
+	return tbl.doQueryOne(query, args...)
+}
+
+func (tbl SUserTable) doQueryOne(query string, args ...interface{}) (*User, error) {
 	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
-}
-
-// Query is the low-level access function for Users.
-func (tbl SUserTable) Query(query string, args ...interface{}) ([]*User, error) {
-	return tbl.doQuery(false, query, args...)
 }
 
 func (tbl SUserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
@@ -190,6 +199,77 @@ func (tbl SUserTable) doQuery(firstOnly bool, query string, args ...interface{})
 	}
 	defer rows.Close()
 	return scanSUsers(rows, firstOnly)
+}
+
+// QueryOneNullString is a low-level access method for one string. This can be used for function queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// Note that this applies ReplaceTableName to the query string.
+func (tbl SUserTable) QueryOneNullString(query string, args ...interface{}) (sql.NullString, error) {
+	var result sql.NullString
+	query = tbl.ReplaceTableName(query)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(&result)
+		if err == sql.ErrNoRows {
+			err = nil // not needed; result will be invalid
+		}
+	}
+	return result, err
+}
+
+// QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// Note that this applies ReplaceTableName to the query string.
+func (tbl SUserTable) QueryOneNullInt64(query string, args ...interface{}) (sql.NullInt64, error) {
+	var result sql.NullInt64
+	query = tbl.ReplaceTableName(query)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(&result)
+		if err == sql.ErrNoRows {
+			err = nil // not needed; result will be invalid
+		}
+	}
+	return result, err
+}
+
+// QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// Note that this applies ReplaceTableName to the query string.
+func (tbl SUserTable) QueryOneNullFloat64(query string, args ...interface{}) (sql.NullFloat64, error) {
+	var result sql.NullFloat64
+	query = tbl.ReplaceTableName(query)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(&result)
+		if err == sql.ErrNoRows {
+			err = nil // not needed; result will be invalid
+		}
+	}
+	return result, err
+}
+
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl SUserTable) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 
 //--------------------------------------------------------------------------------

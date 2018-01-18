@@ -400,20 +400,28 @@ func (tbl AUserTable) Exec(query string, args ...interface{}) (int64, error) {
 
 //--------------------------------------------------------------------------------
 
-// QueryOne is the low-level access function for one User.
+// Query is the low-level access method for Users.
+// Note that this applies ReplaceTableName to the query string.
+func (tbl AUserTable) Query(query string, args ...interface{}) ([]*User, error) {
+	query = tbl.ReplaceTableName(query)
+	return tbl.doQuery(false, query, args...)
+}
+
+// QueryOne is the low-level access method for one User.
+// Note that this applies ReplaceTableName to the query string.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *User will be nil.
 func (tbl AUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
+	query = tbl.ReplaceTableName(query)
+	return tbl.doQueryOne(query, args...)
+}
+
+func (tbl AUserTable) doQueryOne(query string, args ...interface{}) (*User, error) {
 	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
-}
-
-// Query is the low-level access function for Users.
-func (tbl AUserTable) Query(query string, args ...interface{}) ([]*User, error) {
-	return tbl.doQuery(false, query, args...)
 }
 
 func (tbl AUserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
@@ -426,13 +434,84 @@ func (tbl AUserTable) doQuery(firstOnly bool, query string, args ...interface{})
 	return scanAUsers(rows, firstOnly)
 }
 
+// QueryOneNullString is a low-level access method for one string. This can be used for function queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// Note that this applies ReplaceTableName to the query string.
+func (tbl AUserTable) QueryOneNullString(query string, args ...interface{}) (sql.NullString, error) {
+	var result sql.NullString
+	query = tbl.ReplaceTableName(query)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(&result)
+		if err == sql.ErrNoRows {
+			err = nil // not needed; result will be invalid
+		}
+	}
+	return result, err
+}
+
+// QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// Note that this applies ReplaceTableName to the query string.
+func (tbl AUserTable) QueryOneNullInt64(query string, args ...interface{}) (sql.NullInt64, error) {
+	var result sql.NullInt64
+	query = tbl.ReplaceTableName(query)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(&result)
+		if err == sql.ErrNoRows {
+			err = nil // not needed; result will be invalid
+		}
+	}
+	return result, err
+}
+
+// QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// Note that this applies ReplaceTableName to the query string.
+func (tbl AUserTable) QueryOneNullFloat64(query string, args ...interface{}) (sql.NullFloat64, error) {
+	var result sql.NullFloat64
+	query = tbl.ReplaceTableName(query)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(&result)
+		if err == sql.ErrNoRows {
+			err = nil // not needed; result will be invalid
+		}
+	}
+	return result, err
+}
+
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl AUserTable) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
+}
+
 //--------------------------------------------------------------------------------
 
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl AUserTable) GetUser(id int64) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?", AUserColumnNames, tbl.name)
-	return tbl.QueryOne(query, id)
+	return tbl.doQueryOne(query, id)
 }
 
 // GetUsers gets records from the table according to a list of primary keys.
@@ -448,7 +527,7 @@ func (tbl AUserTable) GetUsers(id ...int64) (list []*User, err error) {
 			args[i] = v
 		}
 
-		list, err = tbl.Query(query, args...)
+		list, err = tbl.doQuery(false, query, args...)
 	}
 
 	return list, err
@@ -462,7 +541,7 @@ func (tbl AUserTable) GetUsers(id ...int64) (list []*User, err error) {
 // If not found, *Example will be nil.
 func (tbl AUserTable) SelectOneWhere(where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", AUserColumnNames, tbl.name, where, orderBy)
-	return tbl.QueryOne(query, args...)
+	return tbl.doQueryOne(query, args...)
 }
 
 // SelectOne allows a single User to be obtained from the sqlgen2.
@@ -480,7 +559,7 @@ func (tbl AUserTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl AUserTable) SelectWhere(where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", AUserColumnNames, tbl.name, where, orderBy)
-	return tbl.Query(query, args...)
+	return tbl.doQuery(false, query, args...)
 }
 
 // Select allows Users to be obtained from the table that match a 'where' clause.

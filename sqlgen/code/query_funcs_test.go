@@ -56,20 +56,28 @@ func TestWriteQueryFuncs(t *testing.T) {
 	expected := `
 //--------------------------------------------------------------------------------
 
-// QueryOne is the low-level access function for one Example.
+// Query is the low-level access method for Examples.
+// Note that this applies ReplaceTableName to the query string.
+func (tbl XExampleTable) Query(query string, args ...interface{}) ([]*Example, error) {
+	query = tbl.ReplaceTableName(query)
+	return tbl.doQuery(false, query, args...)
+}
+
+// QueryOne is the low-level access method for one Example.
+// Note that this applies ReplaceTableName to the query string.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) QueryOne(query string, args ...interface{}) (*Example, error) {
+	query = tbl.ReplaceTableName(query)
+	return tbl.doQueryOne(query, args...)
+}
+
+func (tbl XExampleTable) doQueryOne(query string, args ...interface{}) (*Example, error) {
 	list, err := tbl.doQuery(true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
-}
-
-// Query is the low-level access function for Examples.
-func (tbl XExampleTable) Query(query string, args ...interface{}) ([]*Example, error) {
-	return tbl.doQuery(false, query, args...)
 }
 
 func (tbl XExampleTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*Example, error) {
@@ -80,6 +88,77 @@ func (tbl XExampleTable) doQuery(firstOnly bool, query string, args ...interface
 	}
 	defer rows.Close()
 	return scanXExamples(rows, firstOnly)
+}
+
+// QueryOneNullString is a low-level access method for one string. This can be used for function queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// Note that this applies ReplaceTableName to the query string.
+func (tbl XExampleTable) QueryOneNullString(query string, args ...interface{}) (sql.NullString, error) {
+	var result sql.NullString
+	query = tbl.ReplaceTableName(query)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(&result)
+		if err == sql.ErrNoRows {
+			err = nil // not needed; result will be invalid
+		}
+	}
+	return result, err
+}
+
+// QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// Note that this applies ReplaceTableName to the query string.
+func (tbl XExampleTable) QueryOneNullInt64(query string, args ...interface{}) (sql.NullInt64, error) {
+	var result sql.NullInt64
+	query = tbl.ReplaceTableName(query)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(&result)
+		if err == sql.ErrNoRows {
+			err = nil // not needed; result will be invalid
+		}
+	}
+	return result, err
+}
+
+// QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// Note that this applies ReplaceTableName to the query string.
+func (tbl XExampleTable) QueryOneNullFloat64(query string, args ...interface{}) (sql.NullFloat64, error) {
+	var result sql.NullFloat64
+	query = tbl.ReplaceTableName(query)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(&result)
+		if err == sql.ErrNoRows {
+			err = nil // not needed; result will be invalid
+		}
+	}
+	return result, err
+}
+
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl XExampleTable) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 `
 	if code != expected {
@@ -109,7 +188,7 @@ func TestWriteGetRow(t *testing.T) {
 // If not found, *Example will be nil.
 func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", XExampleColumnNames, tbl.name)
-	return tbl.QueryOne(query, id)
+	return tbl.doQueryOne(query, id)
 }
 
 // GetExamples gets records from the table according to a list of primary keys.
@@ -125,7 +204,7 @@ func (tbl XExampleTable) GetExamples(id ...int64) (list []*Example, err error) {
 			args[i] = v
 		}
 
-		list, err = tbl.Query(query, args...)
+		list, err = tbl.doQuery(false, query, args...)
 	}
 
 	return list, err
@@ -187,7 +266,7 @@ func TestWriteSelectRow(t *testing.T) {
 // If not found, *Example will be nil.
 func (tbl XExampleTable) SelectOneWhere(where, orderBy string, args ...interface{}) (*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", XExampleColumnNames, tbl.name, where, orderBy)
-	return tbl.QueryOne(query, args...)
+	return tbl.doQueryOne(query, args...)
 }
 
 // SelectOne allows a single Example to be obtained from the sqlgen2.
@@ -205,7 +284,7 @@ func (tbl XExampleTable) SelectOne(wh where.Expression, qc where.QueryConstraint
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 func (tbl XExampleTable) SelectWhere(where, orderBy string, args ...interface{}) ([]*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", XExampleColumnNames, tbl.name, where, orderBy)
-	return tbl.Query(query, args...)
+	return tbl.doQuery(false, query, args...)
 }
 
 // Select allows Examples to be obtained from the table that match a 'where' clause.

@@ -164,6 +164,7 @@ func packagesToImport(flags funcFlags, hasPrimaryKey bool) StringSet {
 		"context",
 		"database/sql",
 		"log",
+		"strings",
 		"github.com/rickb777/sqlgen2",
 		"github.com/rickb777/sqlgen2/schema",
 	)
@@ -173,9 +174,6 @@ func packagesToImport(flags funcFlags, hasPrimaryKey bool) StringSet {
 	}
 	if flags.sselect || flags.slice || flags.update || flags.delete {
 		imports.Add("github.com/rickb777/sqlgen2/where")
-	}
-	if flags.update {
-		imports.Add("strings")
 	}
 	return imports
 }
