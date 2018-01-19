@@ -8,13 +8,14 @@ import (
 //   * indexes
 //   * unexported fields
 
-//go:generate sqlgen -type demo.User -o user_sql.go -gofmt -v -prefix Db -all -setters=all user.go
+//go:generate sqlgen -type demo.User -o user_sql.go -gofmt -v -prefix Db -all -setters=all user.go role.go
 
 type User struct {
-	Uid          int64   `sql:"pk: true, auto: true"`
-	Login        string  `sql:"unique: user_login"`
-	EmailAddress string  `sql:"unique: user_email"`
+	Uid          int64    `sql:"pk: true, auto: true"`
+	Login        string   `sql:"unique: user_login"`
+	EmailAddress string   `sql:"unique: user_email"`
 	Avatar       *string
+	Role         *Role
 	Active       bool
 	Admin        bool
 	Fave         *big.Int `sql:"encode: json"`

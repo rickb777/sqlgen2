@@ -153,13 +153,13 @@ func (tbl DbUserTable) logQuery(query string, args ...interface{}) {
 
 //--------------------------------------------------------------------------------
 
-const NumDbUserColumns = 10
+const NumDbUserColumns = 11
 
-const NumDbUserDataColumns = 9
+const NumDbUserDataColumns = 10
 
 const DbUserPk = "Uid"
 
-const DbUserDataColumnNames = "login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"
+const DbUserDataColumnNames = "login, emailaddress, avatar, role, active, admin, fave, lastupdated, token, secret"
 
 //--------------------------------------------------------------------------------
 
@@ -207,6 +207,7 @@ CREATE TABLE %s%s (
  login        text,
  emailaddress text,
  avatar       text default null,
+ role         tinyint default null,
  active       boolean,
  admin        boolean,
  fave         text,
@@ -222,6 +223,7 @@ CREATE TABLE %s%s (
  login        varchar(255),
  emailaddress varchar(255),
  avatar       varchar(255) default null,
+ role         tinyint default null,
  active       boolean,
  admin        boolean,
  fave         json,
@@ -237,6 +239,7 @@ CREATE TABLE %s%s (
  login        varchar(255),
  emailaddress varchar(255),
  avatar       varchar(255) default null,
+ role         tinyint default null,
  active       tinyint(1),
  admin        tinyint(1),
  fave         json,
@@ -591,7 +594,7 @@ func (tbl DbUserTable) Count(wh where.Expression) (count int64, err error) {
 	return tbl.CountWhere(whs, args...)
 }
 
-const DbUserColumnNames = "uid, login, emailaddress, avatar, active, admin, fave, lastupdated, token, secret"
+const DbUserColumnNames = "uid, login, emailaddress, avatar, role, active, admin, fave, lastupdated, token, secret"
 
 //--------------------------------------------------------------------------------
 
@@ -623,6 +626,13 @@ func (tbl DbUserTable) SliceAvatar(wh where.Expression, qc where.QueryConstraint
 	return tbl.getstringPtrlist("avatar", wh, qc)
 }
 
+// SliceRole gets the Role column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbUserTable) SliceRole(wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
+	return tbl.getRolePtrlist("role", wh, qc)
+}
+
 // SliceActive gets the Active column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
@@ -642,6 +652,29 @@ func (tbl DbUserTable) SliceAdmin(wh where.Expression, qc where.QueryConstraint)
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceLastupdated(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list("lastupdated", wh, qc)
+}
+
+func (tbl DbUserTable) getRolePtrlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v Role
+	list := make([]Role, 0, 10)
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return list, err
+		}
+		list = append(list, v)
+	}
+	return list, nil
 }
 
 func (tbl DbUserTable) getboollist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
@@ -788,6 +821,7 @@ INSERT INTO %s (
 	login,
 	emailaddress,
 	avatar,
+	role,
 	active,
 	admin,
 	fave,
@@ -797,9 +831,9 @@ INSERT INTO %s (
 ) VALUES (%s)
 `
 
-const sDbUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?"
+const sDbUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?,?"
 
-const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
+const sDbUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10"
 
 //--------------------------------------------------------------------------------
 
@@ -861,6 +895,7 @@ UPDATE %s SET
 	login=?,
 	emailaddress=?,
 	avatar=?,
+	role=?,
 	active=?,
 	admin=?,
 	fave=?,
@@ -875,18 +910,19 @@ UPDATE %s SET
 	login=$2,
 	emailaddress=$3,
 	avatar=$4,
-	active=$5,
-	admin=$6,
-	fave=$7,
-	lastupdated=$8,
-	token=$9,
-	secret=$10
+	role=$5,
+	active=$6,
+	admin=$7,
+	fave=$8,
+	lastupdated=$9,
+	token=$10,
+	secret=$11
 WHERE uid=$1
 `
 
 func sliceDbUserWithoutPk(v *User) ([]interface{}, error) {
 
-	v6, err := json.Marshal(&v.Fave)
+	v7, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
@@ -895,9 +931,10 @@ func sliceDbUserWithoutPk(v *User) ([]interface{}, error) {
 		v.Login,
 		v.EmailAddress,
 		v.Avatar,
+		v.Role,
 		v.Active,
 		v.Admin,
-		v6,
+		v7,
 		v.LastUpdated,
 		v.token,
 		v.secret,
@@ -979,12 +1016,13 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 		var v1 string
 		var v2 string
 		var v3 sql.NullString
-		var v4 bool
+		var v4 *Role
 		var v5 bool
-		var v6 []byte
-		var v7 int64
-		var v8 string
+		var v6 bool
+		var v7 []byte
+		var v8 int64
 		var v9 string
+		var v10 string
 
 		err = rows.Scan(
 			&v0,
@@ -997,6 +1035,7 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 			&v7,
 			&v8,
 			&v9,
+			&v10,
 		)
 		if err != nil {
 			return vv, err
@@ -1010,15 +1049,16 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 			a := v3.String
 			v.Avatar = &a
 		}
-		v.Active = v4
-		v.Admin = v5
-		err = json.Unmarshal(v6, &v.Fave)
+		v.Role = v4
+		v.Active = v5
+		v.Admin = v6
+		err = json.Unmarshal(v7, &v.Fave)
 		if err != nil {
 			return nil, err
 		}
-		v.LastUpdated = v7
-		v.token = v8
-		v.secret = v9
+		v.LastUpdated = v8
+		v.token = v9
+		v.secret = v10
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
@@ -1061,6 +1101,12 @@ func (v *User) SetEmailAddress(x string) *User {
 // SetAvatar sets the Avatar field and returns the modified User.
 func (v *User) SetAvatar(x string) *User {
 	v.Avatar = &x
+	return v
+}
+
+// SetRole sets the Role field and returns the modified User.
+func (v *User) SetRole(x Role) *User {
+	v.Role = &x
 	return v
 }
 

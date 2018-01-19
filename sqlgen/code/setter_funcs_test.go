@@ -37,6 +37,12 @@ func (v *Example) SetName(x string) *Example {
 	return v
 }
 
+// SetMobile sets the Mobile field and returns the modified Example.
+func (v *Example) SetMobile(x PhoneNumber) *Example {
+	v.Mobile = &x
+	return v
+}
+
 // SetQual sets the Qual field and returns the modified Example.
 func (v *Example) SetQual(x string) *Example {
 	v.Qual = &x
@@ -153,6 +159,12 @@ func (v *Example) SetName(x string) *Example {
 	return v
 }
 
+// SetMobile sets the Mobile field and returns the modified Example.
+func (v *Example) SetMobile(x PhoneNumber) *Example {
+	v.Mobile = &x
+	return v
+}
+
 // SetQual sets the Qual field and returns the modified Example.
 func (v *Example) SetQual(x string) *Example {
 	v.Qual = &x
@@ -250,6 +262,12 @@ func TestWriteSetters_optional(t *testing.T) {
 	code := buf.String()
 	expected := `
 //--------------------------------------------------------------------------------
+
+// SetMobile sets the Mobile field and returns the modified Example.
+func (v *Example) SetMobile(x PhoneNumber) *Example {
+	v.Mobile = &x
+	return v
+}
 
 // SetQual sets the Qual field and returns the modified Example.
 func (v *Example) SetQual(x string) *Example {

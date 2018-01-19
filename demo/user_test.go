@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS prefix_users (
  login        varchar(255),
  emailaddress varchar(255),
  avatar       varchar(255) default null,
+ role         tinyint default null,
  active       boolean,
  admin        boolean,
  fave         json,
@@ -200,6 +201,7 @@ func TestCrudUsingSqlite(t *testing.T) {
 	}
 
 	user1 := &User{Login: "user1", EmailAddress: "foo@x.z"}
+	user1 = user1.SetRole(UserRole)
 	err = tbl.Insert(user1)
 	Ω(err).Should(BeNil())
 	if user1.hash != "PreInsert" {
@@ -286,6 +288,7 @@ func TestMultiSelectUsingSqlite(t *testing.T) {
 	for i := 1; i <= n; i++ {
 		fave := big.NewInt(int64(i))
 		user := &User{Fave: fave}
+		user = user.SetRole(UserRole)
 		user = user.SetLogin(Sprintf("user%d", i))
 		user = user.SetEmailAddress(Sprintf("foo%d@x.z", i))
 		user = user.SetAvatar(Sprintf("user%d-avatar%d", i, i))

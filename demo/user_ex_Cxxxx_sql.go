@@ -323,6 +323,7 @@ INSERT INTO %s (
 	login,
 	emailaddress,
 	avatar,
+	role,
 	active,
 	admin,
 	fave,
@@ -332,13 +333,13 @@ INSERT INTO %s (
 ) VALUES (%s)
 `
 
-const sCUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?"
+const sCUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?,?"
 
-const sCUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
+const sCUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10"
 
 func sliceCUserWithoutPk(v *User) ([]interface{}, error) {
 
-	v6, err := json.Marshal(&v.Fave)
+	v7, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
@@ -347,9 +348,10 @@ func sliceCUserWithoutPk(v *User) ([]interface{}, error) {
 		v.Login,
 		v.EmailAddress,
 		v.Avatar,
+		v.Role,
 		v.Active,
 		v.Admin,
-		v6,
+		v7,
 		v.LastUpdated,
 		v.token,
 		v.secret,
@@ -367,12 +369,13 @@ func scanCUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 		var v1 string
 		var v2 string
 		var v3 sql.NullString
-		var v4 bool
+		var v4 *Role
 		var v5 bool
-		var v6 []byte
-		var v7 int64
-		var v8 string
+		var v6 bool
+		var v7 []byte
+		var v8 int64
 		var v9 string
+		var v10 string
 
 		err = rows.Scan(
 			&v0,
@@ -385,6 +388,7 @@ func scanCUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 			&v7,
 			&v8,
 			&v9,
+			&v10,
 		)
 		if err != nil {
 			return vv, err
@@ -398,15 +402,16 @@ func scanCUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 			a := v3.String
 			v.Avatar = &a
 		}
-		v.Active = v4
-		v.Admin = v5
-		err = json.Unmarshal(v6, &v.Fave)
+		v.Role = v4
+		v.Active = v5
+		v.Admin = v6
+		err = json.Unmarshal(v7, &v.Fave)
 		if err != nil {
 			return nil, err
 		}
-		v.LastUpdated = v7
-		v.token = v8
-		v.secret = v9
+		v.LastUpdated = v8
+		v.token = v9
+		v.secret = v10
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {

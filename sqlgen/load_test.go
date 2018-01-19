@@ -16,7 +16,7 @@ import (
 
 const demoPath = "github.com/rickb777/sqlgen2/demo"
 
-func TestParseAndLoad_typesWithAllFieldsUnexported_butNotScannerValuer(t *testing.T) {
+func TestParseAndLoad_types_with_all_fields_unexported_but_not_ScannerValuer(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 
@@ -91,7 +91,7 @@ type Date struct {
 	}
 }
 
-func TestParseAndLoad_typesWithAllFieldsUnexported_andIsScannerValuer(t *testing.T) {
+func TestParseAndLoad_types_with_all_fields_unexported_and_is_ScannerValuer(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 
@@ -171,7 +171,7 @@ func (d Date) Value() (driver.Value, error) {
 	}
 }
 
-func TestParseAndLoad_simpleNamedType_whichIsScannerValuer(t *testing.T) {
+func TestParseAndLoad_simple_named_type_which_is_ScannerValuer(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 
@@ -241,7 +241,7 @@ func (d Date) Value() (driver.Value, error) {
 	}
 }
 
-func TestParseAndLoad_nestingWithPointers(t *testing.T) {
+func TestParseAndLoad_nesting_with_pointers(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 	code := strings.Replace(`package pkg1
@@ -252,11 +252,14 @@ type Example struct {
 
 type Commit struct {
 	Author   *Author
+	Mobile   *PhoneNumber
 }
 
 type Author struct {
 	Name     string
 }
+
+type PhoneNumber string
 
 `, "|", "`", -1)
 
@@ -275,12 +278,14 @@ type Author struct {
 	p1 := &Node{Name: "Commit", Type: Type{Name: "Commit", IsPtr: true, Base: Struct}}
 	p2 := &Node{Name: "Author", Type: Type{Name: "Author", IsPtr: true, Base: Struct}, Parent: p1}
 	author := &Field{Node{"Name", Type{Name: "string", IsPtr: false, Base: String}, p2}, "name", ENCNONE, Tag{}}
+	mobile := &Field{Node{"Mobile", Type{Name: "PhoneNumber", IsPtr: true, Base: String}, p1}, "mobile", ENCNONE, Tag{}}
 
 	expected := &TableDescription{
 		Type: "Example",
 		Name: "examples",
 		Fields: FieldList{
 			author,
+			mobile,
 		},
 	}
 
@@ -339,7 +344,7 @@ type Category int32
 	}
 }
 
-func TestParseAndLoad_multipleNamesWithTags(t *testing.T) {
+func TestParseAndLoad_multiple_names_with_tags(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 	code := strings.Replace(`package pkg1
@@ -387,7 +392,7 @@ type Example struct {
 	}
 }
 
-func TestParseAndLoad_overriddenTags(t *testing.T) {
+func TestParseAndLoad_overridden_tags(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 	code := strings.Replace(`package pkg1
@@ -444,7 +449,7 @@ type Author struct {
 
 //-------------------------------------------------------------------------------------------------
 
-func TestParseAndLoad_embeddedTypes(t *testing.T) {
+func TestParseAndLoad_embedded_types(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 	code := strings.Replace(`package pkg1
@@ -520,7 +525,7 @@ type Author struct {
 	}
 }
 
-func TestParseAndLoad_embeddedTypes_inDifferentPackages(t *testing.T) {
+func TestParseAndLoad_embedded_types_in_different_packages(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 	code := strings.Replace(`package pkg1
@@ -528,7 +533,8 @@ func TestParseAndLoad_embeddedTypes_inDifferentPackages(t *testing.T) {
 import "github.com/rickb777/sqlgen2/demo"
 
 type Example struct {
-	Cat      demo.Category
+	Cat1     demo.Category
+	Cat2     *demo.Category
 	demo.Dates
 	Name     string
 }
@@ -550,7 +556,8 @@ type Example struct {
 
 	p1 := &Node{Name: "Dates", Type: Type{PkgPath: demoPath, PkgName: "demo", Name: "Dates", Base: Struct}}
 
-	category := &Field{Node{"Cat", Type{PkgPath: demoPath, PkgName: "demo", Name: "Category", Base: Uint8}, nil}, "cat", ENCNONE, Tag{}}
+	cat1 := &Field{Node{"Cat1", Type{PkgPath: demoPath, PkgName: "demo", Name: "Category", Base: Uint8}, nil}, "cat1", ENCNONE, Tag{}}
+	cat2 := &Field{Node{"Cat2", Type{PkgPath: demoPath, PkgName: "demo", Name: "Category", IsPtr: true, Base: Uint8}, nil}, "cat2", ENCNONE, Tag{}}
 	after := &Field{Node{"After", Type{Name: "string", Base: String}, p1}, "after", ENCNONE, Tag{Size: 20}}
 	before := &Field{Node{"Before", Type{Name: "string", Base: String}, p1}, "before", ENCNONE, Tag{Size: 20}}
 	name := &Field{Node{"Name", Type{Name: "string", Base: String}, nil}, "name", ENCNONE, Tag{}}
@@ -559,7 +566,8 @@ type Example struct {
 		Type: "Example",
 		Name: "examples",
 		Fields: FieldList{
-			category,
+			cat1,
+			cat2,
 			after,
 			before,
 			name,
@@ -575,7 +583,7 @@ type Example struct {
 	}
 }
 
-func TestParseAndLoad_multiplePackagesWithPrimaryAndIndexes(t *testing.T) {
+func TestParseAndLoad_multiple_packages_with_primary_and_indexes(t *testing.T) {
 	exit.TestableExit()
 	Debug = true
 	code := strings.Replace(`package pkg1

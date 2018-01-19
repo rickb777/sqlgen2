@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="go test sqlgen" type="GoTestRunConfiguration" factoryName="Go Test">
+  <configuration default="false" name="go test schema" type="GoTestRunConfiguration" factoryName="Go Test">
     <module name="sqlgen2" />
-    <working_directory value="$PROJECT_DIR$/sqlgen" />
+    <working_directory value="$PROJECT_DIR$/schema" />
     <framework value="gotest" />
     <kind value="DIRECTORY" />
     <package value="github.com/rickb777/sqlgen2" />
-    <directory value="$PROJECT_DIR$/sqlgen" />
+    <directory value="$PROJECT_DIR$/schema" />
     <filePath value="$PROJECT_DIR$" />
     <method />
   </configuration>

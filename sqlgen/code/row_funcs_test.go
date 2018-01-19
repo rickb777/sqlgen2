@@ -11,73 +11,6 @@ import (
 	. "github.com/rickb777/sqlgen2/sqlgen/parse"
 )
 
-func fixtureTable() *TableDescription {
-	i64 := Type{Name: "int64", Base: Int64}
-	boo := Type{Name: "bool", Base: Bool}
-	cat := Type{Name: "Category", Base: Int32}
-	str := Type{Name: "string", Base: String}
-	spt := Type{Name: "string", IsPtr: true, Base: String}
-	ipt := Type{Name: "int32", IsPtr: true, Base: Int32}
-	upt := Type{Name: "uint32", IsPtr: true, Base: Uint32}
-	fpt := Type{Name: "float32", IsPtr: true, Base: Float32}
-	sli := Type{Name: "[]string", Base: Slice}
-	bgi := Type{PkgPath: "math/big", PkgName: "big", Name: "Int", Base: Struct}
-	bys := Type{Name: "[]byte", Base: Slice}
-	scv1 := Type{Name: "Foo", IsScanner: true, IsValuer: true, Base: String}
-	scv2 := Type{Name: "Foo", IsScanner: true, IsValuer: true, Base: String, IsPtr: true}
-	bar1 := Type{Name: "Bar", Base: String}
-	bar2 := Type{Name: "Bar", Base: String, IsPtr: true}
-	tim := Type{PkgPath: "time", PkgName: "time", Name: "Time", Base: Struct}
-
-	id := &Field{Node{"Id", i64, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
-	category := &Field{Node{"Cat", cat, nil}, "cat", ENCNONE, Tag{Index: "catIdx"}}
-	name := &Field{Node{"Name", str, nil}, "username", ENCNONE, Tag{Size: 2048, Name: "username", Unique: "nameIdx"}}
-	active := &Field{Node{"Active", boo, nil}, "active", ENCNONE, Tag{}}
-	qual := &Field{Node{"Qual", spt, nil}, "qual", ENCNONE, Tag{}}
-	diff := &Field{Node{"Diff", ipt, nil}, "diff", ENCNONE, Tag{}}
-	age := &Field{Node{"Age", upt, nil}, "age", ENCNONE, Tag{}}
-	bmi := &Field{Node{"Bmi", fpt, nil}, "bmi", ENCNONE, Tag{}}
-	labels := &Field{Node{"Labels", sli, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
-	fave := &Field{Node{"Fave", bgi, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
-	avatar := &Field{Node{"Avatar", bys, nil}, "avatar", ENCNONE, Tag{}}
-	fooey1 := &Field{Node{"Foo1", scv1, nil}, "foo1", ENCNONE, Tag{}}
-	fooey2 := &Field{Node{"Foo2", scv2, nil}, "foo2", ENCNONE, Tag{}}
-	barey1 := &Field{Node{"Bar1", bar1, nil}, "bar1", ENCDRIVER, Tag{Encode: "driver"}}
-	barey2 := &Field{Node{"Bar2", bar2, nil}, "bar2", ENCDRIVER, Tag{Encode: "driver"}}
-	updated := &Field{Node{"Updated", tim, nil}, "updated", ENCTEXT, Tag{Size: 100, Encode: "text"}}
-
-	icat := &Index{"catIdx", false, FieldList{category}}
-	iname := &Index{"nameIdx", true, FieldList{name}}
-
-	return &TableDescription{
-		Type: "Example",
-		Name: "examples",
-		Fields: FieldList{
-			id,
-			category,
-			name,
-			qual,
-			diff,
-			age,
-			bmi,
-			active,
-			labels,
-			fave,
-			avatar,
-			fooey1,
-			fooey2,
-			barey1,
-			barey2,
-			updated,
-		},
-		Index: []*Index{
-			icat,
-			iname,
-		},
-		Primary: id,
-	}
-}
-
 func TestWriteRowsFunc1(t *testing.T) {
 	exit.TestableExit()
 
@@ -182,18 +115,19 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 		var v1 Category
 		var v2 string
 		var v3 sql.NullString
-		var v4 sql.NullInt64
+		var v4 sql.NullString
 		var v5 sql.NullInt64
-		var v6 sql.NullFloat64
-		var v7 bool
-		var v8 []byte
+		var v6 sql.NullInt64
+		var v7 sql.NullFloat64
+		var v8 bool
 		var v9 []byte
 		var v10 []byte
-		var v11 Foo
+		var v11 []byte
 		var v12 Foo
-		var v13 Bar
+		var v13 *Foo
 		var v14 Bar
-		var v15 []byte
+		var v15 *Bar
+		var v16 []byte
 
 		err = rows.Scan(
 			&v0,
@@ -211,7 +145,8 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 			&v12,
 			&v13,
 			&v14,
-			&v15,
+			v15,
+			&v16,
 		)
 		if err != nil {
 			return vv, err
@@ -222,36 +157,40 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 		v.Cat = v1
 		v.Name = v2
 		if v3.Valid {
-			a := v3.String
-			v.Qual = &a
+			a := PhoneNumber(v3.String)
+			v.Mobile = &a
 		}
 		if v4.Valid {
-			a := int32(v4.Int64)
-			v.Diff = &a
+			a := v4.String
+			v.Qual = &a
 		}
 		if v5.Valid {
-			a := uint32(v5.Int64)
-			v.Age = &a
+			a := int32(v5.Int64)
+			v.Diff = &a
 		}
 		if v6.Valid {
-			a := float32(v6.Float64)
+			a := uint32(v6.Int64)
+			v.Age = &a
+		}
+		if v7.Valid {
+			a := float32(v7.Float64)
 			v.Bmi = &a
 		}
-		v.Active = v7
-		err = json.Unmarshal(v8, &v.Labels)
+		v.Active = v8
+		err = json.Unmarshal(v9, &v.Labels)
 		if err != nil {
 			return nil, err
 		}
-		err = json.Unmarshal(v9, &v.Fave)
+		err = json.Unmarshal(v10, &v.Fave)
 		if err != nil {
 			return nil, err
 		}
-		v.Avatar = v10
-		v.Foo1 = v11
-		v.Foo2 = &v12
-		v.Bar1 = v13
-		v.Bar2 = &v14
-		err = encoding.UnmarshalText(v15, &v.Updated)
+		v.Avatar = v11
+		v.Foo1 = v12
+		v.Foo2 = v13
+		v.Bar1 = v14
+		v.Bar2 = v15
+		err = encoding.UnmarshalText(v16, &v.Updated)
 		if err != nil {
 			return nil, err
 		}

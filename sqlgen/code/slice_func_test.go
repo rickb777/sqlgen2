@@ -19,15 +19,15 @@ func TestWriteSliceFuncWithPk(t *testing.T) {
 	expected := `
 func sliceXExample(v *Example) ([]interface{}, error) {
 
-	v8, err := json.Marshal(&v.Labels)
+	v9, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
 	}
-	v9, err := json.Marshal(&v.Fave)
+	v10, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
-	v15, err := encoding.MarshalText(&v.Updated)
+	v16, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
 		return nil, err
 	}
@@ -36,19 +36,20 @@ func sliceXExample(v *Example) ([]interface{}, error) {
 		v.Id,
 		v.Cat,
 		v.Name,
+		v.Mobile,
 		v.Qual,
 		v.Diff,
 		v.Age,
 		v.Bmi,
 		v.Active,
-		v8,
 		v9,
+		v10,
 		v.Avatar,
 		v.Foo1,
 		v.Foo2,
 		v.Bar1,
 		v.Bar2,
-		v15,
+		v16,
 
 	}, nil
 }
@@ -73,15 +74,15 @@ func TestWriteSliceFuncWithoutPk(t *testing.T) {
 	expected := `
 func sliceXExampleWithoutPk(v *Example) ([]interface{}, error) {
 
-	v8, err := json.Marshal(&v.Labels)
+	v9, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
 	}
-	v9, err := json.Marshal(&v.Fave)
+	v10, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
-	v15, err := encoding.MarshalText(&v.Updated)
+	v16, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
 		return nil, err
 	}
@@ -89,19 +90,20 @@ func sliceXExampleWithoutPk(v *Example) ([]interface{}, error) {
 	return []interface{}{
 		v.Cat,
 		v.Name,
+		v.Mobile,
 		v.Qual,
 		v.Diff,
 		v.Age,
 		v.Bmi,
 		v.Active,
-		v8,
 		v9,
+		v10,
 		v.Avatar,
 		v.Foo1,
 		v.Foo2,
 		v.Bar1,
 		v.Bar2,
-		v15,
+		v16,
 
 	}, nil
 }
