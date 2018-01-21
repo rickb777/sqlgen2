@@ -162,22 +162,6 @@ func (tbl SUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
-// Exec executes a query without returning any rows.
-// It returns the number of rows affected (if the database driver supports this).
-//
-// The args are for any placeholder parameters in the query.
-func (tbl SUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	tbl.logQuery(query, args...)
-	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
-	if err != nil {
-		return 0, tbl.logError(err)
-	}
-	n, err := res.RowsAffected()
-	return n, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
-}
-
-//--------------------------------------------------------------------------------
-
 // Query is the low-level access method for Users.
 //
 // It places a requirement, which may be nil, on the size of the expected results: this

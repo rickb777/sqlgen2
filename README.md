@@ -17,34 +17,69 @@ go get -u github.com/rickb777/sqlgen2
 ```
 sqlgen [option [arg]] file.go ...
 
-Options:
-  -type pkg.Type
-    	primary type to analyse, which must be a struct type; required
-  -o string
-    	output file name; required
-  -tags string
-    	a YAML file containing tags that augment and override any attached to the fields in Go struct(s); optional
-  -list string
-    	names some type that is a collection of the primary type; optional; otherwise []*Type is used
+Usage of sqlgen:
+
   -prefix string
-        prefix for names of generated types; optional, default is blank
+    	Prefix for names of generated types; optional. Use this if you need to avoid name collisions.
+
+  -type string
+    	The type to analyse; required. This is expressed in the form 'pkg.Name'
+
   -kind string
-    	suffix for names of generated types to indicate the intent; optional, default is "Table" but you might find nouns like "Join" or "View" are helpful
-  -schema=true
-    	generate sql schema and queries; default true
-  -funcs=true
-    	generate sql crud functions; default true
-  -setters string
-    	generate setter methods for fields in the primary type: none, optional (i.e. fields that are pointers), exported, all; default: none
+    	Kind of model: you could use 'Table', 'View', 'Join' etc as required (default "Table")
+
+  -list string
+    	List type for slice of model objects; optional.
+
+  -tags string
+    	A YAML file containing tags that augment and override any in the Go struct(s); optional. Tags control the SQL type, size, column name, indexes etc.
+
+  -o string
+    	Output file name; optional. Use '-' for stdout. If omitted, the first input filename is used with '_sql.go' suffix.
+
   -gofmt
-    	format and simplify the generated code nicely; default false
-  -v
-    	verbose progress; default false
-  -z
-    	debug info; default false
+    	Format and simplify the generated code nicely.
+
+Options:
+
+  -schema
+    	Generate SQL schema create/drop methods.
+
+  -exec
+        Generate Exec method. This is also provided with -update or -delete
+
+  -read
+  -select
+    	Generate SQL select (read) methods.
+
+  -create
+  -insert
+    	Generate SQL create (insert) methods.
+
+  -update
+    	Generate SQL update methods.
+
+  -delete
+    	Generate SQL delete methods.
+
+  -slice
+    	Generate SQL slice (column select) methods.
+
+  -all
+    	Shorthand for '-schema -create -read -update -delete -slice'; recommended. This does not affect -setters.
+
+  -setters string
+    	Generate setters for fields of your type (see -type): none, optional, exported, all. Fields that are pointers are assumed to be optional. (default "none")
+
+Information:
+
+  -v	Show progress messages.
+  -z	Show debug messages.
   -ast
-    	debug AST info; default false
+    	Trace the whole astract syntax tree (very verbose).
 ```
+
+The options `-schema`, `-read`, `-insert`, -`update`, `-delete`, and `-slice` are all off by default; **you should normally include `-all`**, unless you have other needs.
 
 ### Tutorial
 
@@ -70,29 +105,35 @@ We can run the following command:
 sqlgen -file user.go -type User -pkg demo
 ```
 
-The tool outputs the following generated code:
+The tool outputs the following generated code (slightly simplified for clarity):
 
 ```Go
-func ScanUser(row *sql.Row) (*User, error) {
-	var v0 int64
-	var v1 string
-	var v2 string
+func scanUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error) {
+	for rows.Next() {
+		n++
 
-	err := row.Scan(
-		&v0,
-		&v1,
-		&v2,
-	)
-	if err != nil {
-		return nil, err
+        var v0 int64
+        var v1 string
+        var v2 string
+
+        err := row.Scan(
+            &v0,
+            &v1,
+            &v2,
+        )
+        if err != nil {
+            return nil, err
+        }
+    
+        v := &User{}
+        v.ID = v0
+        v.Login = v1
+        v.Email = v2
+
+		vv = append(vv, v)
 	}
 
-	v := &User{}
-	v.ID = v0
-	v.Login = v1
-	v.Email = v2
-
-	return v, nil
+	return vv, n, rows.Err()
 }
 
 const CreateUserStmt = `
@@ -103,25 +144,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 `
 
-const SelectUserStmt = `
-SELECT 
- id,
- login,
- email
-FROM users 
-`
-
-const SelectUserRangeStmt = `
-SELECT 
- id,
- login,
- email
-FROM users 
-LIMIT ? OFFSET ?
-`
-
-
-// more functions and sql statements not displayed
+// many other functions and sql statements not displayed
 ```
 
 This is a great start, but what if we want to specify primary keys, column sizes and more? This may be acheived by annotating your code using Go tags. For example, we can tag the `ID` field to indicate it is a primary key and will auto increment:
@@ -190,44 +213,21 @@ const CreateUserLogin = `
 CREATE UNIQUE INDEX IF NOT EXISTS user_login ON users (user_login)
 ```
 
-The tool also assumes that we probably intend to fetch data from the database using this index. The tool will therefore automatically generate the following queries:
-
-```Go
-const SelectUserLoginStmt = `
-SELECT 
- id,
- login,
- email
-WHERE user_login=?
-`
-
-const UpdateUserLoginStmt = `
-UPDATE users SET 
- id=?,
- login=?,
- email=?
-WHERE user_login=?
-`
-
-const DeleteUserLoginStmt = `
-DELETE FROM users 
-WHERE user_login=?
-`
-```
-
 #### Tags Summary
 
 | Tag      | Value         | Purpose                                                      |
 | -------- | ------------- | ------------------------------------------------------------ |
 | pk       | true or false | the column is the primary key                                |
 | auto     | true or false | the column is auto-incrementing (ignored if not using MySQL) |
-| prefixed | true or false | the column name is made unique using a computed prefixed     |
+| prefixed | true or false | the column name is made unique using a computed prefix       |
 | name     | string        | the column name                                              |
 | type     | string        | overrides the column type explicitly                         |
 | size     | integer       | sets the storage size for the column                         |
-| encode   | string        | encodes as "json" or "text"                                  |
+| encode   | string        | encodes as "json", "text" or using the "driver"              |
 | index    | string        | the column has an index                                      |
 | unique   | string        | the column has a unique index                                |
+
+Driver encoding means explicitly deferring to the `sql.Scanner` and `driver.Valuer` methods on your type.
 
 ### Nesting
 
@@ -288,7 +288,7 @@ Name:
 
 ### JSON Encoding
 
-Some types in your struct may not have native equivalents in your database such as `[]string`. These values can be marshaled and stored as JSON in the database.
+Some types in your struct may not have native equivalents in your database such as `[]string`. These values can be marshalled and stored as JSON in the database.
 
 ```diff
 type User struct {
@@ -312,6 +312,7 @@ type User struct {
 
 You don't always have to do this because your types are inspected and will normally be auto-detected. However, for struct types that contain other fields, ambiguity arises. You can use this setting to resolve the ambiguity; otherwise the internal fields will be treated as table columns.
 
+
 ### Text Encoding
 
 If you have a field type that implements `encoding.MashalText`, `encoding.UnmashalText` and you want to use this as the column encoding to string data, specify `encode: text`, e.g.
@@ -324,6 +325,7 @@ type User struct {
 ```
 
 There is no auto-detection for these enciding interfaces. Use this setting as and when you need it.
+
 
 ### Dialects
 
@@ -345,19 +347,75 @@ type User struct {
 }
 ```
 
-### Where-expressions
+## Joins and Views
 
-Select, count amd update methods accept where-expressions as parameters. Example:
+Writing join queries is easy if you already know how to write the SQL. Sqlgen2 doesn't do this for you, but provides a `Query` method to do the heavy lifting.
+
+All you need to write is a view type that is a Go struct to match the columns returned from the join. I like to name these something like `FirstSecondJoin`, referring to the first and second table types (and more if needed).
+
+Because the only use-case is via the `Query` method, don't enable any of the command-line `-select`, `-update` etc flags. You won't need `schema` either.
+
+You will probably find it helpful to use `-kind View`, which will cause your generated code to be `FirstSecondJoinView` (instead of `FirstSecondJoinTable`).  
+
+
+## The API
+
+The generated API contains a useful range of data-definition methods (create table, etc) and data-manipulation methods. The latter are all specialisations of Query and Exec. Query is the only method that is always included.
+
+The API is summarised in [package sqlgen2](https://godoc.org/github.com/rickb777/sqlgen2) and [execer.go](https://github.com/rickb777/sqlgen2/blob/master/execer.go). See the interfaces `Table`, `TableCreator`, `TableWithIndexes`, and especially `TableWithCrud`.
+
+But these interfaces are only part of the story. Where appropriate, the methods are type-safe. So, `Query` returns `[]User` (in the case of supporting the type `User`).
+
+Because of the nature of Go's interfaces, the type-safe methods aren't expressly listed in the `TableWithCrud` interface. It's really useful to examine the generated code directly, in order to understand what's going on. There are some examples in the `demo` folder - see in particular [**user_sql.go**](https://github.com/rickb777/sqlgen2/blob/master/demo/user_sql.go), also [**shown here**](https://godoc.org/github.com/rickb777/sqlgen2/demo#DbUserTable).
+ 
+
+### Declarative requirements
+
+Exec, Select, Insert, Update and many other generated API methods accept a `require.Requirement` argument as the first parameter.
+
+The requirement specifies the expected size of the result set, or the number of rows affected, as appropriate. If a requirement is not met, an error is returned with helpful diagnostics.
 
 ```Go
-    ...  set up tbl
+    err := tbl.Insert(require.Exactly(5), a, b c, d, e)
+    ...
+```
+
+This can be easily ignored (just set it to nil). But it is often very useful, especially for Insert, Update and Delete methods.
+
+
+### Where-expressions
+
+Select, Count, Update and Delete methods accept where-expressions as parameters. Example:
+
+```Go
     wh := where.Eq("name", "Andy").And(where.Gt("age", 18))
-    value, err := tbl.SelectOne(wh)
+    value, err := tbl.Select(nil, wh, nil)
+    ...
+```
+
+### Query Constraints
+
+Select, Count, Update and Delete methods also accept query constraints as parameters. These specify result ordering and limit/offset parameters. Example:
+
+```Go
+    qc := where.OrderBy("name").Limit(10)
+    value, err := tbl.Select(nil, nil, qc)
     ...
 ```
 
 
-### Go Generate
+### Slice methods
+
+This `SliceXxxx` set of methods returns vertical slices from the table, i.e. a set of values (strings, ints or floats) that come from one column of the table. They have a common format
+
+```Go
+SliceXxxx(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]T, error)
+```
+
+where *T* is the type of the corresponding field.
+
+
+## Go Generate
 
 Example use with `go:generate`:
 
@@ -378,7 +436,7 @@ The current version is not smart enough to find the whole tree of source code co
 to list all the Go source files you want it to parse. This is an implementation limitation in the current version.
 
 
-### Benchmarks
+## Benchmarks
 
 This tool demonstrates performance gains, albeit small, over light-weight ORM packages such as `sqlx` and `meddler`. Over time I plan to expand the benchmarks to include additional ORM packages.
 
@@ -410,13 +468,13 @@ BenchmarkSqlgenRows-4       2000       700673 ns/op
 ```
 
 
-### Restrictions
+## Restrictions
 
 * Compound primaries are not supported
 * In the structs used for tables, the imports must not use '.' or be renamed.
 
 
-### Credits
+## Credits
 
 This tool was derived from [sqlgen](https://github.com/drone/sqlgen) by drone.io, which was itself
 inspired by [scaneo](https://github.com/variadico/scaneo).

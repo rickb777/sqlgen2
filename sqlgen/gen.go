@@ -45,6 +45,7 @@ func main() {
 	flag.BoolVar(&insert, "insert", false, "Alias for -create")
 	flag.BoolVar(&flags.schema, "schema", false, "Generate SQL schema create/drop methods.")
 	flag.BoolVar(&flags.insert, "create", false, "Generate SQL create (insert) methods.")
+	flag.BoolVar(&flags.exec, "exec", false, "Generate Exec method. This is also provided with -update or -delete.")
 	flag.BoolVar(&flags.sselect, "read", false, "Generate SQL select (read) methods.")
 	flag.BoolVar(&flags.update, "update", false, "Generate SQL update methods.")
 	flag.BoolVar(&flags.delete, "delete", false, "Generate SQL delete methods.")
@@ -121,7 +122,10 @@ func main() {
 		WriteSchema(buf, view)
 	}
 
-	WriteExecFunc(buf, view)
+	if flags.exec || flags.update || flags.delete {
+		WriteExecFunc(buf, view)
+	}
+
 	WriteQueryRows(buf, view)
 	WriteRowsFunc(buf, view)
 	WriteQueryThings(buf, view)
@@ -208,7 +212,7 @@ func primaryInterface(table *schema.TableDescription, genSchema bool) string {
 //-------------------------------------------------------------------------------------------------
 
 type funcFlags struct {
-	schema, sselect, insert, update, delete, slice bool
+	schema, exec, sselect, insert, update, delete, slice bool
 }
 
-var allFuncFlags = funcFlags{true, true, true, true, true, true}
+var allFuncFlags = funcFlags{true, true, true, true, true, true, true}
