@@ -12,10 +12,16 @@ func WriteType(w io.Writer, view View) {
 	must(tTable.Execute(w, view))
 }
 
-func WriteQueryFuncs(w io.Writer, view View) {
+func WriteQueryRows(w io.Writer, view View) {
 	fmt.Fprintln(w, sectionBreak)
 
 	must(tQueryRows.Execute(w, view))
+}
+
+func WriteQueryThings(w io.Writer, view View) {
+	fmt.Fprintln(w, sectionBreak)
+
+	must(tQueryThings.Execute(w, view))
 }
 
 func WriteGetRow(w io.Writer, view View) {
@@ -40,11 +46,7 @@ func WriteSelectRowsFuncs(w io.Writer, view View) {
 func WriteInsertFunc(w io.Writer, view View) {
 	fmt.Fprintln(w, sectionBreak)
 
-	if view.Table.HasLastInsertId() {
-		must(tInsertAndGetLastId.Execute(w, view))
-	} else {
-		must(tInsertSimple.Execute(w, view))
-	}
+	must(tInsert.Execute(w, view))
 
 	tableName := view.CamelName()
 	fmt.Fprintf(w, constStringWithTicks,

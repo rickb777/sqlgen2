@@ -32,7 +32,7 @@ const XExampleDataColumnNames = "cat, username, mobile, qual, diff, age, bmi, ac
 
 // CreateTable creates the table.
 func (tbl XExampleTable) CreateTable(ifNotExists bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExists))
+	return tbl.Exec(nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl XExampleTable) createTableSql(ifNotExists bool) string {
@@ -56,7 +56,7 @@ func (tbl XExampleTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl XExampleTable) DropTable(ifExists bool) (int64, error) {
-	return tbl.Exec(tbl.dropTableSql(ifExists))
+	return tbl.Exec(nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl XExampleTable) dropTableSql(ifExists bool) string {
@@ -171,7 +171,7 @@ func (tbl XExampleTable) CreateCatIdxIndex(ifNotExist bool) error {
 		ine = ""
 	}
 
-	_, err := tbl.Exec(tbl.createXCatIdxIndexSql(ine))
+	_, err := tbl.Exec(nil, tbl.createXCatIdxIndexSql(ine))
 	return err
 }
 
@@ -183,7 +183,7 @@ func (tbl XExampleTable) createXCatIdxIndexSql(ifNotExists string) string {
 
 // DropCatIdxIndex drops the catIdx index.
 func (tbl XExampleTable) DropCatIdxIndex(ifExists bool) error {
-	_, err := tbl.Exec(tbl.dropXCatIdxIndexSql(ifExists))
+	_, err := tbl.Exec(nil, tbl.dropXCatIdxIndexSql(ifExists))
 	return err
 }
 
@@ -207,7 +207,7 @@ func (tbl XExampleTable) CreateNameIdxIndex(ifNotExist bool) error {
 		ine = ""
 	}
 
-	_, err := tbl.Exec(tbl.createXNameIdxIndexSql(ine))
+	_, err := tbl.Exec(nil, tbl.createXNameIdxIndexSql(ine))
 	return err
 }
 
@@ -219,7 +219,7 @@ func (tbl XExampleTable) createXNameIdxIndexSql(ifNotExists string) string {
 
 // DropNameIdxIndex drops the nameIdx index.
 func (tbl XExampleTable) DropNameIdxIndex(ifExists bool) error {
-	_, err := tbl.Exec(tbl.dropXNameIdxIndexSql(ifExists))
+	_, err := tbl.Exec(nil, tbl.dropXNameIdxIndexSql(ifExists))
 	return err
 }
 
@@ -264,7 +264,7 @@ const sqlXNameIdxIndexColumns = "username"
 // are also truncated.
 func (tbl XExampleTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.dialect.TruncateDDL(tbl.Name().String(), force) {
-		_, err = tbl.Exec(query)
+		_, err = tbl.Exec(nil, query)
 		if err != nil {
 			return err
 		}

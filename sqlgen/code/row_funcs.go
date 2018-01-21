@@ -74,7 +74,7 @@ func writeRowAssignment(i int, field *schema.Field, nullable string) []string {
 		l1 := Sprintf(indent+"err = json.Unmarshal(v%d, &v.%s)\n", i, field.JoinParts(0, "."))
 		lines = append(lines, l1)
 		lines = append(lines, indent+"if err != nil {\n")
-		lines = append(lines, indent+"\treturn nil, err\n")
+		lines = append(lines, indent+"\treturn nil, n, err\n")
 		lines = append(lines, indent+"}\n")
 
 	case schema.ENCTEXT:
@@ -82,7 +82,7 @@ func writeRowAssignment(i int, field *schema.Field, nullable string) []string {
 			i, field.JoinParts(0, "."))
 		lines = append(lines, l1)
 		lines = append(lines, indent+"if err != nil {\n")
-		lines = append(lines, indent+"\treturn nil, err\n")
+		lines = append(lines, indent+"\treturn nil, n, err\n")
 		lines = append(lines, indent+"}\n")
 
 	case schema.ENCDRIVER:

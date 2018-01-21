@@ -42,12 +42,10 @@ func TestWriteRowsFunc1(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-// scanXExamples reads table records into a slice of values.
-func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
-	var err error
-	var vv []*Example
-
+func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err error) {
 	for rows.Next() {
+		n++
+
 		var v0 Category
 		var v1 string
 		var v2 string
@@ -60,7 +58,7 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 			&v3,
 		)
 		if err != nil {
-			return vv, err
+			return vv, n, err
 		}
 
 		v := &Example{}
@@ -73,18 +71,21 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, err
+				return vv, n, err
 			}
 		}
 
 		vv = append(vv, v)
 
 		if firstOnly {
-			return vv, rows.Err()
+			if rows.Next() {
+				n++
+			}
+			return vv, n, rows.Err()
 		}
 	}
 
-	return vv, rows.Err()
+	return vv, n, rows.Err()
 }
 `
 	if code != expected {
@@ -105,12 +106,10 @@ func TestWriteRowFunc2(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-// scanXExamples reads table records into a slice of values.
-func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
-	var err error
-	var vv []*Example
-
+func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err error) {
 	for rows.Next() {
+		n++
+
 		var v0 int64
 		var v1 Category
 		var v2 string
@@ -149,7 +148,7 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 			&v16,
 		)
 		if err != nil {
-			return vv, err
+			return vv, n, err
 		}
 
 		v := &Example{}
@@ -179,11 +178,11 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 		v.Active = v8
 		err = json.Unmarshal(v9, &v.Labels)
 		if err != nil {
-			return nil, err
+			return nil, n, err
 		}
 		err = json.Unmarshal(v10, &v.Fave)
 		if err != nil {
-			return nil, err
+			return nil, n, err
 		}
 		v.Avatar = v11
 		v.Foo1 = v12
@@ -192,25 +191,28 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) ([]*Example, error) {
 		v.Bar2 = v15
 		err = encoding.UnmarshalText(v16, &v.Updated)
 		if err != nil {
-			return nil, err
+			return nil, n, err
 		}
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, err
+				return vv, n, err
 			}
 		}
 
 		vv = append(vv, v)
 
 		if firstOnly {
-			return vv, rows.Err()
+			if rows.Next() {
+				n++
+			}
+			return vv, n, rows.Err()
 		}
 	}
 
-	return vv, rows.Err()
+	return vv, n, rows.Err()
 }
 `
 	if code != expected {

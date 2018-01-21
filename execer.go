@@ -3,9 +3,9 @@ package sqlgen2
 import (
 	"database/sql"
 	"context"
-	"github.com/rickb777/sqlgen2/where"
 	"log"
 	"github.com/rickb777/sqlgen2/schema"
+	"github.com/rickb777/sqlgen2/where"
 )
 
 // Execer describes the methods of the core database API. See database/sql/DB and database/sql/Tx.

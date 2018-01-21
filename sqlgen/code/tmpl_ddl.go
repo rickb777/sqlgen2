@@ -132,7 +132,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) BeginTx(opts *sql.TxOptions) ({{.Prefi
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
-	return tbl, err
+	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -147,6 +147,14 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logQuery(query string, args ...interfa
 	sqlgen2.LogQuery(tbl.logger, query, args...)
 }
 
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logError(err error) error {
+	return sqlgen2.LogError(tbl.logger, err)
+}
+
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logIfError(err error) error {
+	return sqlgen2.LogIfError(tbl.logger, err)
+}
+
 `
 
 var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
@@ -155,12 +163,10 @@ var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
 
 // function template to scan multiple rows.
 const sScanRows = `
-// scan{{.Prefix}}{{.Types}} reads table records into a slice of values.
-func scan{{.Prefix}}{{.Types}}(rows *sql.Rows, firstOnly bool) ({{.List}}, error) {
-	var err error
-	var vv {{.List}}
-
+func scan{{.Prefix}}{{.Types}}(rows *sql.Rows, firstOnly bool) (vv {{.List}}, n int64, err error) {
 	for rows.Next() {
+		n++
+
 {{range .Body1}}{{.}}{{- end}}
 		err = rows.Scan(
 {{- range .Body2}}
@@ -168,7 +174,7 @@ func scan{{.Prefix}}{{.Types}}(rows *sql.Rows, firstOnly bool) ({{.List}}, error
 {{- end}}
 		)
 		if err != nil {
-			return vv, err
+			return vv, n, err
 		}
 
 		v := &{{.Type}}{}
@@ -177,18 +183,21 @@ func scan{{.Prefix}}{{.Types}}(rows *sql.Rows, firstOnly bool) ({{.List}}, error
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, err
+				return vv, n, err
 			}
 		}
 
 		vv = append(vv, v)
 
 		if firstOnly {
-			return vv, rows.Err()
+			if rows.Next() {
+				n++
+			}
+			return vv, n, rows.Err()
 		}
 	}
 
-	return vv, rows.Err()
+	return vv, n, rows.Err()
 }
 `
 
@@ -236,7 +245,7 @@ const sTruncate = `
 // are also truncated.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Truncate(force bool) (err error) {
 	for _, query := range tbl.dialect.TruncateDDL(tbl.Name().String(), force) {
-		_, err = tbl.Exec(query)
+		_, err = tbl.Exec(nil, query)
 		if err != nil {
 			return err
 		}
@@ -253,7 +262,7 @@ var tTruncate = template.Must(template.New("Truncate").Funcs(funcMap).Parse(sTru
 const sCreateTableFunc = `
 // CreateTable creates the table.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateTable(ifNotExists bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExists))
+	return tbl.Exec(nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) createTableSql(ifNotExists bool) string {
@@ -277,7 +286,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) ternary(flag bool, a, b string) string
 
 // DropTable drops the table, destroying all its data.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DropTable(ifExists bool) (int64, error) {
-	return tbl.Exec(tbl.dropTableSql(ifExists))
+	return tbl.Exec(nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) dropTableSql(ifExists bool) string {
@@ -323,7 +332,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ifNotExi
 		ine = ""
 	}
 
-	_, err := tbl.Exec(tbl.create{{$.Prefix}}{{camel .Name}}IndexSql(ine))
+	_, err := tbl.Exec(nil, tbl.create{{$.Prefix}}{{camel .Name}}IndexSql(ine))
 	return err
 }
 
@@ -335,7 +344,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) create{{$.Prefix}}{{camel .Name}}In
 
 // Drop{{camel .Name}}Index drops the {{.Name}} index.
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Drop{{camel .Name}}Index(ifExists bool) error {
-	_, err := tbl.Exec(tbl.drop{{$.Prefix}}{{camel .Name}}IndexSql(ifExists))
+	_, err := tbl.Exec(nil, tbl.drop{{$.Prefix}}{{camel .Name}}IndexSql(ifExists))
 	return err
 }
 

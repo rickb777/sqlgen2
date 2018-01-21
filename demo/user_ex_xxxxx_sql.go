@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"log"
 	"strings"
@@ -133,7 +134,7 @@ func (tbl XUserTable) BeginTx(opts *sql.TxOptions) (XUserTable, error) {
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
-	return tbl, err
+	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -148,134 +149,95 @@ func (tbl XUserTable) logQuery(query string, args ...interface{}) {
 	sqlgen2.LogQuery(tbl.logger, query, args...)
 }
 
+func (tbl XUserTable) logError(err error) error {
+	return sqlgen2.LogError(tbl.logger, err)
+}
+
+func (tbl XUserTable) logIfError(err error) error {
+	return sqlgen2.LogIfError(tbl.logger, err)
+}
+
 
 //--------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
+// It returns the number of rows affected (if the database driver supports this).
+//
 // The args are for any placeholder parameters in the query.
-// It returns the number of rows affected (of the database drive supports this).
-func (tbl XUserTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl XUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
 	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
-		return 0, err
+		return 0, tbl.logError(err)
 	}
-	return res.RowsAffected()
+	n, err := res.RowsAffected()
+	return n, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
 
 // Query is the low-level access method for Users.
-// Note that this applies ReplaceTableName to the query string.
-func (tbl XUserTable) Query(query string, args ...interface{}) ([]*User, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: this
+// controls whether an error is generated when this expectation is not met.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl XUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
 	query = tbl.ReplaceTableName(query)
-	return tbl.doQuery(false, query, args...)
+	vv, err := tbl.doQuery(req, false, query, args...)
+	return vv, err
 }
 
 // QueryOne is the low-level access method for one User.
-// Note that this applies ReplaceTableName to the query string.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *User will be nil.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
 func (tbl XUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(query, args...)
+	return tbl.doQueryOne(nil, query, args...)
 }
 
-func (tbl XUserTable) doQueryOne(query string, args ...interface{}) (*User, error) {
-	list, err := tbl.doQuery(true, query, args...)
+// MustQueryOne is the low-level access method for one User.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl XUserTable) MustQueryOne(query string, args ...interface{}) (*User, error) {
+	query = tbl.ReplaceTableName(query)
+	return tbl.doQueryOne(require.One, query, args...)
+}
+
+func (tbl XUserTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*User, error) {
+	list, err := tbl.doQuery(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
 }
 
-func (tbl XUserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func (tbl XUserTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return scanXUsers(rows, firstOnly)
-}
-
-// QueryOneNullString is a low-level access method for one string. This can be used for function queries and
-// such like. If the query selected many rows, only the first is returned; the rest are discarded.
-// Note that this applies ReplaceTableName to the query string.
-func (tbl XUserTable) QueryOneNullString(query string, args ...interface{}) (sql.NullString, error) {
-	var result sql.NullString
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return result, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
 
-	if rows.Next() {
-		err = rows.Scan(&result)
-		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
-		}
-	}
-	return result, err
+	vv, n, err := scanXUsers(rows, firstOnly)
+	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
-// QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-// such like. If the query selected many rows, only the first is returned; the rest are discarded.
-// Note that this applies ReplaceTableName to the query string.
-func (tbl XUserTable) QueryOneNullInt64(query string, args ...interface{}) (sql.NullInt64, error) {
-	var result sql.NullInt64
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return result, err
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		err = rows.Scan(&result)
-		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
-		}
-	}
-	return result, err
-}
-
-// QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-// such like. If the query selected many rows, only the first is returned; the rest are discarded.
-// Note that this applies ReplaceTableName to the query string.
-func (tbl XUserTable) QueryOneNullFloat64(query string, args ...interface{}) (sql.NullFloat64, error) {
-	var result sql.NullFloat64
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return result, err
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		err = rows.Scan(&result)
-		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
-		}
-	}
-	return result, err
-}
-
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl XUserTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
-
-// scanXUsers reads table records into a slice of values.
-func scanXUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
-	var err error
-	var vv []*User
-
+func scanXUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error) {
 	for rows.Next() {
+		n++
+
 		var v0 int64
 		var v1 string
 		var v2 string
@@ -302,7 +264,7 @@ func scanXUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 			&v10,
 		)
 		if err != nil {
-			return vv, err
+			return vv, n, err
 		}
 
 		v := &User{}
@@ -318,7 +280,7 @@ func scanXUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 		v.Admin = v6
 		err = json.Unmarshal(v7, &v.Fave)
 		if err != nil {
-			return nil, err
+			return nil, n, err
 		}
 		v.LastUpdated = v8
 		v.token = v9
@@ -328,16 +290,129 @@ func scanXUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, err
+				return vv, n, err
 			}
 		}
 
 		vv = append(vv, v)
 
 		if firstOnly {
-			return vv, rows.Err()
+			if rows.Next() {
+				n++
+			}
+			return vv, n, rows.Err()
 		}
 	}
 
-	return vv, rows.Err()
+	return vv, n, rows.Err()
+}
+
+//--------------------------------------------------------------------------------
+
+// QueryOneNullString is a low-level access method for one string. This can be used for function queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl XUserTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
+
+// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl XUserTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	return result, err
+}
+
+// QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl XUserTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
+
+// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl XUserTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	return result, err
+}
+
+// QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl XUserTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
+
+// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl XUserTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	return result, err
+}
+
+func (tbl XUserTable) doQueryOneNullThing(req require.Requirement, holder interface{}, query string, args ...interface{}) error {
+	var n int64 = 0
+	query = tbl.ReplaceTableName(query)
+	tbl.logQuery(query, args...)
+
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return tbl.logError(err)
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(holder)
+
+		if err == sql.ErrNoRows {
+			return tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, 0))
+		} else {
+			n++
+		}
+
+		if rows.Next() {
+			n++ // not singular
+		}
+	}
+
+	return tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
+}
+
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl XUserTable) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }

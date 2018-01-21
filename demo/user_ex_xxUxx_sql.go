@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
@@ -135,7 +136,7 @@ func (tbl UUserTable) BeginTx(opts *sql.TxOptions) (UUserTable, error) {
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
-	return tbl, err
+	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -150,121 +151,267 @@ func (tbl UUserTable) logQuery(query string, args ...interface{}) {
 	sqlgen2.LogQuery(tbl.logger, query, args...)
 }
 
+func (tbl UUserTable) logError(err error) error {
+	return sqlgen2.LogError(tbl.logger, err)
+}
+
+func (tbl UUserTable) logIfError(err error) error {
+	return sqlgen2.LogIfError(tbl.logger, err)
+}
+
 
 //--------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
+// It returns the number of rows affected (if the database driver supports this).
+//
 // The args are for any placeholder parameters in the query.
-// It returns the number of rows affected (of the database drive supports this).
-func (tbl UUserTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl UUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
 	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
-		return 0, err
+		return 0, tbl.logError(err)
 	}
-	return res.RowsAffected()
+	n, err := res.RowsAffected()
+	return n, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
 
 // Query is the low-level access method for Users.
-// Note that this applies ReplaceTableName to the query string.
-func (tbl UUserTable) Query(query string, args ...interface{}) ([]*User, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: this
+// controls whether an error is generated when this expectation is not met.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl UUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
 	query = tbl.ReplaceTableName(query)
-	return tbl.doQuery(false, query, args...)
+	vv, err := tbl.doQuery(req, false, query, args...)
+	return vv, err
 }
 
 // QueryOne is the low-level access method for one User.
-// Note that this applies ReplaceTableName to the query string.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *User will be nil.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
 func (tbl UUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
 	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(query, args...)
+	return tbl.doQueryOne(nil, query, args...)
 }
 
-func (tbl UUserTable) doQueryOne(query string, args ...interface{}) (*User, error) {
-	list, err := tbl.doQuery(true, query, args...)
+// MustQueryOne is the low-level access method for one User.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl UUserTable) MustQueryOne(query string, args ...interface{}) (*User, error) {
+	query = tbl.ReplaceTableName(query)
+	return tbl.doQueryOne(require.One, query, args...)
+}
+
+func (tbl UUserTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*User, error) {
+	list, err := tbl.doQuery(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
 }
 
-func (tbl UUserTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func (tbl UUserTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
-	return scanUUsers(rows, firstOnly)
+
+	vv, n, err := scanUUsers(rows, firstOnly)
+	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
+
+func scanUUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error) {
+	for rows.Next() {
+		n++
+
+		var v0 int64
+		var v1 string
+		var v2 string
+		var v3 sql.NullString
+		var v4 *Role
+		var v5 bool
+		var v6 bool
+		var v7 []byte
+		var v8 int64
+		var v9 string
+		var v10 string
+
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+			&v3,
+			&v4,
+			&v5,
+			&v6,
+			&v7,
+			&v8,
+			&v9,
+			&v10,
+		)
+		if err != nil {
+			return vv, n, err
+		}
+
+		v := &User{}
+		v.Uid = v0
+		v.Login = v1
+		v.EmailAddress = v2
+		if v3.Valid {
+			a := v3.String
+			v.Avatar = &a
+		}
+		v.Role = v4
+		v.Active = v5
+		v.Admin = v6
+		err = json.Unmarshal(v7, &v.Fave)
+		if err != nil {
+			return nil, n, err
+		}
+		v.LastUpdated = v8
+		v.token = v9
+		v.secret = v10
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, n, err
+			}
+		}
+
+		vv = append(vv, v)
+
+		if firstOnly {
+			if rows.Next() {
+				n++
+			}
+			return vv, n, rows.Err()
+		}
+	}
+
+	return vv, n, rows.Err()
+}
+
+//--------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
 // Note that this applies ReplaceTableName to the query string.
-func (tbl UUserTable) QueryOneNullString(query string, args ...interface{}) (sql.NullString, error) {
-	var result sql.NullString
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return result, err
-	}
-	defer rows.Close()
+//
+// The args are for any placeholder parameters in the query.
+func (tbl UUserTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
 
-	if rows.Next() {
-		err = rows.Scan(&result)
-		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
-		}
-	}
+// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl UUserTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
 	return result, err
 }
 
 // QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
 // Note that this applies ReplaceTableName to the query string.
-func (tbl UUserTable) QueryOneNullInt64(query string, args ...interface{}) (sql.NullInt64, error) {
-	var result sql.NullInt64
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return result, err
-	}
-	defer rows.Close()
+//
+// The args are for any placeholder parameters in the query.
+func (tbl UUserTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
 
-	if rows.Next() {
-		err = rows.Scan(&result)
-		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
-		}
-	}
+// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl UUserTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
 	return result, err
 }
 
 // QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
 // Note that this applies ReplaceTableName to the query string.
-func (tbl UUserTable) QueryOneNullFloat64(query string, args ...interface{}) (sql.NullFloat64, error) {
-	var result sql.NullFloat64
+//
+// The args are for any placeholder parameters in the query.
+func (tbl UUserTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
+
+// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl UUserTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	return result, err
+}
+
+func (tbl UUserTable) doQueryOneNullThing(req require.Requirement, holder interface{}, query string, args ...interface{}) error {
+	var n int64 = 0
 	query = tbl.ReplaceTableName(query)
 	tbl.logQuery(query, args...)
+
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return result, err
+		return tbl.logError(err)
 	}
 	defer rows.Close()
 
 	if rows.Next() {
-		err = rows.Scan(&result)
+		err = rows.Scan(holder)
+
 		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
+			return tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, 0))
+		} else {
+			n++
+		}
+
+		if rows.Next() {
+			n++ // not singular
 		}
 	}
-	return result, err
+
+	return tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
 }
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
@@ -275,10 +422,11 @@ func (tbl UUserTable) ReplaceTableName(query string) string {
 //--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
+//
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl UUserTable) UpdateFields(wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+func (tbl UUserTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	query, args := tbl.updateFields(wh, fields...)
-	return tbl.Exec(query, args...)
+	return tbl.Exec(req, query, args...)
 }
 
 func (tbl UUserTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
@@ -294,7 +442,7 @@ func (tbl UUserTable) updateFields(wh where.Expression, fields ...sql.NamedArg) 
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The User.PreUpdate(Execer) method will be called, if it exists.
-func (tbl UUserTable) Update(vv ...*User) (int64, error) {
+func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error) {
 	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
@@ -303,28 +451,36 @@ func (tbl UUserTable) Update(vv ...*User) (int64, error) {
 		stmt = sqlUpdateUUserByPkSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.name)
+	if req == require.All {
+		req = require.Exactly(len(vv))
+	}
 
 	var count int64
+	query := fmt.Sprintf(stmt, tbl.name)
+
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
-			hook.PreUpdate()
+			err := hook.PreUpdate()
+			if err != nil {
+				return count, tbl.logError(err)
+			}
 		}
 
 		args, err := sliceUUserWithoutPk(v)
+		args = append(args, v.Uid)
 		if err != nil {
-			return count, err
+			return count, tbl.logError(err)
 		}
 
-		args = append(args, v.Uid)
-		n, err := tbl.Exec(query, args...)
+		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
 		}
 		count += n
 	}
-	return count, nil
+
+	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 const sqlUpdateUUserByPkSimple = `
@@ -377,76 +533,4 @@ func sliceUUserWithoutPk(v *User) ([]interface{}, error) {
 		v.secret,
 
 	}, nil
-}
-
-// scanUUsers reads table records into a slice of values.
-func scanUUsers(rows *sql.Rows, firstOnly bool) ([]*User, error) {
-	var err error
-	var vv []*User
-
-	for rows.Next() {
-		var v0 int64
-		var v1 string
-		var v2 string
-		var v3 sql.NullString
-		var v4 *Role
-		var v5 bool
-		var v6 bool
-		var v7 []byte
-		var v8 int64
-		var v9 string
-		var v10 string
-
-		err = rows.Scan(
-			&v0,
-			&v1,
-			&v2,
-			&v3,
-			&v4,
-			&v5,
-			&v6,
-			&v7,
-			&v8,
-			&v9,
-			&v10,
-		)
-		if err != nil {
-			return vv, err
-		}
-
-		v := &User{}
-		v.Uid = v0
-		v.Login = v1
-		v.EmailAddress = v2
-		if v3.Valid {
-			a := v3.String
-			v.Avatar = &a
-		}
-		v.Role = v4
-		v.Active = v5
-		v.Admin = v6
-		err = json.Unmarshal(v7, &v.Fave)
-		if err != nil {
-			return nil, err
-		}
-		v.LastUpdated = v8
-		v.token = v9
-		v.secret = v10
-
-		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
-			err = hook.PostGet()
-			if err != nil {
-				return vv, err
-			}
-		}
-
-		vv = append(vv, v)
-
-		if firstOnly {
-			return vv, rows.Err()
-		}
-	}
-
-	return vv, rows.Err()
 }

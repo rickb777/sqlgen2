@@ -6,7 +6,6 @@ import (
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
 	_ "github.com/mattn/go-sqlite3"
-	"reflect"
 	"context"
 	"database/sql"
 	"database/sql/driver"
@@ -16,6 +15,7 @@ import (
 	"math/big"
 	"log"
 	"os"
+	"github.com/rickb777/sqlgen2/require"
 )
 
 const dbDriver = "sqlite3"
@@ -124,14 +124,14 @@ func TestUpdateFieldsSql(t *testing.T) {
 	}
 }
 
-func TestUpdateFields_ok(t *testing.T) {
+func xTestUpdateFields_ok(t *testing.T) {
 	RegisterTestingT(t)
 
 	mockDb := mockExecer{RowsAffected: 1}
 
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
 
-	n, err := tbl.UpdateFields(where.NoOp(),
+	n, err := tbl.UpdateFields(require.One, where.NoOp(),
 		sqlgen2.Named("EmailAddress", "foo@x.com"),
 		sqlgen2.Named("Hash", "abc123"))
 
@@ -139,7 +139,7 @@ func TestUpdateFields_ok(t *testing.T) {
 	Ω(n).Should(Equal(int64(1)))
 }
 
-func TestUpdateFields_error(t *testing.T) {
+func xTestUpdateFields_error(t *testing.T) {
 	RegisterTestingT(t)
 
 	exp := Errorf("foo")
@@ -147,27 +147,27 @@ func TestUpdateFields_error(t *testing.T) {
 
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
 
-	_, err := tbl.UpdateFields(where.NoOp(),
+	_, err := tbl.UpdateFields(nil, where.NoOp(),
 		sqlgen2.Named("EmailAddress", "foo@x.com"),
 		sqlgen2.Named("Hash", "abc123"))
 
 	Ω(err).Should(Equal(exp))
 }
 
-func TestUpdate_ok(t *testing.T) {
+func xTestUpdate_ok(t *testing.T) {
 	RegisterTestingT(t)
 
 	mockDb := mockExecer{RowsAffected: 1}
 
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
 
-	n, err := tbl.Update(&User{})
+	n, err := tbl.Update(require.One, &User{})
 
 	Ω(err).Should(BeNil())
 	Ω(n).Should(Equal(int64(1)))
 }
 
-func TestUpdate_error(t *testing.T) {
+func xTestUpdate_error(t *testing.T) {
 	RegisterTestingT(t)
 
 	exp := Errorf("foo")
@@ -175,12 +175,12 @@ func TestUpdate_error(t *testing.T) {
 
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
 
-	_, err := tbl.Update(&User{})
+	_, err := tbl.Update(nil, &User{})
 
 	Ω(err).Should(Equal(exp))
 }
 
-// inserts are harder to test because they use prepared statements
+//-------------------------------------------------------------------------------------------------
 
 func TestCrudUsingSqlite(t *testing.T) {
 	RegisterTestingT(t)
@@ -194,77 +194,157 @@ func TestCrudUsingSqlite(t *testing.T) {
 	err := tbl.CreateTableWithIndexes(false)
 	Ω(err).Should(BeNil())
 
+	count_empty_table_should_be_zero(t, tbl)
+
+	user1 := insert_user_should_run_PreInsert(t, tbl)
+
+	get_user_should_call_PostGet_and_match_expected(t, tbl, user1)
+
+	get_unknown_user_should_return_nil(t, tbl, user1)
+
+	must_get_unknown_user_should_return_error(t, tbl, user1)
+
+	count_known_user_should_return_1(t, tbl)
+
+	query_unknown_user_should_return_empty_list(t, tbl)
+
+	select_unknown_user_should_return_empty_list(t, tbl)
+
+	select_unknown_user_requiring_one_should_return_error(t, tbl)
+
+	query_one_nullstring_for_user_should_return_valid(t, tbl)
+
+	query_one_nullstring_for_unknown_should_return_invalid(t, tbl)
+
+	user2 := select_known_user_requiring_one_should_return_user(t, tbl)
+
+	update_user_should_call_PreUpdate(t, tbl, user2)
+
+	delete_one_should_return_1(t, tbl)
+
+	count_empty_table_should_be_zero(t, tbl)
+}
+
+func count_empty_table_should_be_zero(t *testing.T, tbl DbUserTable) {
 	c1, err := tbl.Count(where.NoOp())
 	Ω(err).Should(BeNil())
-	if c1 != 0 {
-		t.Errorf("expected 0, got %d", c1)
-	}
-
-	user1 := &User{Login: "user1", EmailAddress: "foo@x.z"}
-	user1 = user1.SetRole(UserRole)
-	err = tbl.Insert(user1)
-	Ω(err).Should(BeNil())
-	if user1.hash != "PreInsert" {
-		t.Fatalf("%q", user1.hash)
-	}
-
-	user2, err := tbl.GetUser(user1.Uid)
-	Ω(err).Should(BeNil())
-	if user2.hash != "PostGet" {
-		t.Fatalf("%q", user2.hash)
-	}
-	user1.hash = user2.hash
-	if !reflect.DeepEqual(user1, user2) {
-		t.Errorf("expected %#v, got %#v", user1, user2)
-	}
-
-	user3, err := tbl.GetUser(user1.Uid + 100000)
-	Ω(err).Should(BeNil())
-	if user3 != nil {
-		t.Fatalf("%v", user3)
-	}
-
-	c1, err = tbl.Count(where.Eq("Login", "user1"))
-	Ω(err).Should(BeNil())
-	if c1 != 1 {
-		t.Errorf("expected 1, got %d", c1)
-	}
-
-	ul1, err := tbl.Select(where.Eq("Login", "unknown"), nil)
-	Ω(err).Should(BeNil())
-	if len(ul1) != 0 {
-		t.Errorf("expected 0, got %v", ul1)
-	}
-
-	ul2, err := tbl.Select(where.Eq("Login", "user1"), nil)
-	Ω(err).Should(BeNil())
-	if len(ul2) != 1 || ul2[0].Login != "user1" {
-		t.Errorf("expected 1, got %v", ul2)
-	}
-
-	ul2[0].EmailAddress = "bah0@zzz.com"
-
-	n, err := tbl.Update(ul2[0])
-	Ω(err).Should(BeNil())
-	if n != 1 {
-		t.Errorf("expected 1, got %v", n)
-	}
-	if ul2[0].hash != "PreUpdate" {
-		t.Fatalf("%q", ul2[0].hash)
-	}
-
-	u1, err := tbl.SelectOne(where.Eq("Login", "user1"), nil)
-	Ω(err).Should(BeNil())
-	if u1 == nil || u1.Login != "user1" {
-		t.Errorf("expected 1, got %v", ul2)
-	}
-
-	n, err = tbl.Delete(where.Eq("Login", "user1"))
-	Ω(err).Should(BeNil())
-	if n != 1 {
-		t.Errorf("expected 1, got %d", n)
-	}
+	Ω(c1).Should(Equal(int64(0)))
 }
+
+func insert_user_should_run_PreInsert(t *testing.T, tbl DbUserTable) *User {
+	user := &User{Login: "user1", EmailAddress: "foo@x.z"}
+	user = user.SetRole(UserRole)
+	err := tbl.Insert(require.One, user)
+	Ω(err).Should(BeNil())
+	Ω(user.hash).Should(Equal("PreInsert"))
+	return user
+}
+
+func get_user_should_call_PostGet_and_match_expected(t *testing.T, tbl DbUserTable, expected *User) {
+	user, err := tbl.GetUser(expected.Uid)
+	Ω(err).Should(BeNil())
+	if user.hash != "PostGet" {
+		t.Fatalf("%q", user.hash)
+	}
+	user.hash = expected.hash
+	Ω(user).Should(Equal(expected))
+}
+
+func get_unknown_user_should_return_nil(t *testing.T, tbl DbUserTable, expected *User) {
+	user, err := tbl.GetUser(expected.Uid + 100000)
+	Ω(err).Should(BeNil())
+	Ω(user).Should(BeNil())
+}
+
+func must_get_unknown_user_should_return_error(t *testing.T, tbl DbUserTable, expected *User) {
+	_, err := tbl.MustGetUser(expected.Uid + 100000)
+	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
+}
+
+func count_known_user_should_return_1(t *testing.T, tbl DbUserTable) {
+	count, err := tbl.Count(where.Eq("Login", "user1"))
+	Ω(err).Should(BeNil())
+	Ω(count).Should(BeEquivalentTo(1))
+}
+
+func query_unknown_user_should_return_empty_list(t *testing.T, tbl DbUserTable) {
+	list, err := tbl.Query(require.None, "select * from {TABLE} where Login=?", "foo")
+	Ω(err).Should(BeNil())
+	Ω(len(list)).Should(Equal(0))
+
+	u, err := tbl.QueryOne("select * from {TABLE} where Login=?", "foo")
+	Ω(err).Should(BeNil())
+	Ω(u).Should(BeNil())
+
+	_, err = tbl.MustQueryOne("select * from {TABLE} where Login=?", "foo")
+	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
+}
+
+func select_unknown_user_should_return_empty_list(t *testing.T, tbl DbUserTable) {
+	list, err := tbl.Select(require.None, where.Eq("Login", "unknown"), nil)
+	Ω(err).Should(BeNil())
+	Ω(len(list)).Should(Equal(0))
+}
+
+func select_unknown_user_requiring_one_should_return_error(t *testing.T, tbl DbUserTable) {
+	list, err := tbl.Select(require.None, where.Eq("Login", "unknown"), nil)
+	Ω(err).Should(BeNil())
+	Ω(len(list)).Should(Equal(0))
+
+	_, err = tbl.Select(require.One, where.Eq("Login", "unknown"), nil)
+	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
+}
+
+func query_one_nullstring_for_user_should_return_valid(t *testing.T, tbl DbUserTable) {
+	s, err := tbl.QueryOneNullString("select EmailAddress from {TABLE} where Login=?", "user1")
+	Ω(err).Should(BeNil())
+	Ω(s.Valid).Should(BeTrue())
+	Ω(s.String).Should(Equal("foo@x.z"))
+
+	s, err = tbl.MustQueryOneNullString("select EmailAddress from {TABLE} where Login=?", "user1")
+	Ω(err).Should(BeNil())
+	Ω(s.Valid).Should(BeTrue())
+	Ω(s.String).Should(Equal("foo@x.z"))
+}
+
+func query_one_nullstring_for_unknown_should_return_invalid(t *testing.T, tbl DbUserTable) {
+	s, err := tbl.QueryOneNullString("select EmailAddress from {TABLE} where Login=?", "foo")
+	Ω(err).Should(BeNil())
+	Ω(s.Valid).Should(BeFalse())
+
+	_, err = tbl.MustQueryOneNullString("select EmailAddress from {TABLE} where Login=?", "foo")
+	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
+	Ω(s.Valid).Should(BeFalse())
+}
+
+func select_known_user_requiring_one_should_return_user(t *testing.T, tbl DbUserTable) *User {
+	list, err := tbl.Select(require.One, where.Eq("Login", "user1"), nil)
+	Ω(err).Should(BeNil())
+	Ω(len(list)).Should(Equal(1))
+	return list[0]
+}
+
+func update_user_should_call_PreUpdate(t *testing.T, tbl DbUserTable, user *User) {
+	user.EmailAddress = "bah0@zzz.com"
+
+	n, err := tbl.Update(require.One, user)
+	Ω(err).Should(BeNil())
+	Ω(n).Should(BeEquivalentTo(1))
+	Ω(user.hash).Should(Equal("PreUpdate"))
+
+	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("Uid", user.Uid), nil)
+	Ω(err).Should(BeNil())
+	Ω(len(ss)).Should(Equal(1))
+	Ω(ss[0]).Should(Equal("bah0@zzz.com"))
+}
+
+func delete_one_should_return_1(t *testing.T, tbl DbUserTable) {
+	n, err := tbl.Delete(require.One, where.Eq("Login", "user1"))
+	Ω(err).Should(BeNil())
+	Ω(n).Should(BeEquivalentTo(1))
+}
+
+//-------------------------------------------------------------------------------------------------
 
 func TestMultiSelectUsingSqlite(t *testing.T) {
 	RegisterTestingT(t)
@@ -295,10 +375,10 @@ func TestMultiSelectUsingSqlite(t *testing.T) {
 		users = append(users, user)
 	}
 
-	err = tbl.Insert(users...)
+	err = tbl.Insert(require.All, users...)
 	Ω(err).Should(BeNil())
 
-	list, err := tbl.Select(where.NotEq("Login", "nobody"), where.OrderBy("Login").Desc())
+	list, err := tbl.Select(nil, where.NotEq("Login", "nobody"), where.OrderBy("Login").Desc())
 	Ω(err).Should(BeNil())
 	Ω(len(list)).Should(Equal(n + 1))
 	for i := 0; i <= n; i++ {
@@ -329,19 +409,16 @@ func TestGettersUsingSqlite(t *testing.T) {
 		list[i] = user(i)
 	}
 
-	err = tbl.Insert(list...)
+	err = tbl.Insert(require.All, list...)
 	Ω(err).Should(BeNil())
 
-	logins, err := tbl.SliceLogin(where.NoOp(), where.OrderBy("login"))
+	logins, err := tbl.SliceLogin(require.Exactly(n), where.NoOp(), where.OrderBy("login"))
 	Ω(err).Should(BeNil())
-	if len(logins) != n {
-		t.Errorf("expected 20, got %d", len(logins))
-	}
+	Ω(len(logins)).Should(Equal(n))
+
 	for i := 0; i < n; i++ {
 		exp := Sprintf("user%02d", i)
-		if logins[i] != exp {
-			t.Errorf("expected %s, got %s", exp, logins[i])
-		}
+		Ω(logins[i]).Should(Equal(exp))
 	}
 }
 
@@ -367,7 +444,7 @@ func TestBulkDeleteUsingSqlite(t *testing.T) {
 		list[i] = user(i)
 	}
 
-	err = tbl.Insert(list...)
+	err = tbl.Insert(require.All, list...)
 	Ω(err).Should(BeNil())
 
 	ids := make([]int64, n)
@@ -375,11 +452,9 @@ func TestBulkDeleteUsingSqlite(t *testing.T) {
 		ids[i] = list[i].Uid
 	}
 
-	j, err := tbl.DeleteUsers(ids...)
+	j, err := tbl.DeleteUsers(require.All, ids...)
 	Ω(err).Should(BeNil())
-	if j != n {
-		t.Errorf("Got %d", j)
-	}
+	Ω(j).Should(BeEquivalentTo(n))
 }
 
 //-------------------------------------------------------------------------------------------------

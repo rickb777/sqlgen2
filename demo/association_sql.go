@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
@@ -134,7 +135,7 @@ func (tbl AssociationTable) BeginTx(opts *sql.TxOptions) (AssociationTable, erro
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
-	return tbl, err
+	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -147,6 +148,14 @@ func (tbl AssociationTable) Using(tx *sql.Tx) AssociationTable {
 
 func (tbl AssociationTable) logQuery(query string, args ...interface{}) {
 	sqlgen2.LogQuery(tbl.logger, query, args...)
+}
+
+func (tbl AssociationTable) logError(err error) error {
+	return sqlgen2.LogError(tbl.logger, err)
+}
+
+func (tbl AssociationTable) logIfError(err error) error {
+	return sqlgen2.LogIfError(tbl.logger, err)
 }
 
 
@@ -164,7 +173,7 @@ const AssociationDataColumnNames = "name, quality, ref1, ref2, category"
 
 // CreateTable creates the table.
 func (tbl AssociationTable) CreateTable(ifNotExists bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExists))
+	return tbl.Exec(nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
@@ -188,7 +197,7 @@ func (tbl AssociationTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl AssociationTable) DropTable(ifExists bool) (int64, error) {
-	return tbl.Exec(tbl.dropTableSql(ifExists))
+	return tbl.Exec(nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl AssociationTable) dropTableSql(ifExists bool) string {
@@ -241,7 +250,7 @@ CREATE TABLE %s%s (
 // are also truncated.
 func (tbl AssociationTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.dialect.TruncateDDL(tbl.Name().String(), force) {
-		_, err = tbl.Exec(query)
+		_, err = tbl.Exec(nil, query)
 		if err != nil {
 			return err
 		}
@@ -252,117 +261,249 @@ func (tbl AssociationTable) Truncate(force bool) (err error) {
 //--------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
+// It returns the number of rows affected (if the database driver supports this).
+//
 // The args are for any placeholder parameters in the query.
-// It returns the number of rows affected (of the database drive supports this).
-func (tbl AssociationTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl AssociationTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
 	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
-		return 0, err
+		return 0, tbl.logError(err)
 	}
-	return res.RowsAffected()
+	n, err := res.RowsAffected()
+	return n, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
 
 // Query is the low-level access method for Associations.
-// Note that this applies ReplaceTableName to the query string.
-func (tbl AssociationTable) Query(query string, args ...interface{}) ([]*Association, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: this
+// controls whether an error is generated when this expectation is not met.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl AssociationTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Association, error) {
 	query = tbl.ReplaceTableName(query)
-	return tbl.doQuery(false, query, args...)
+	vv, err := tbl.doQuery(req, false, query, args...)
+	return vv, err
 }
 
 // QueryOne is the low-level access method for one Association.
-// Note that this applies ReplaceTableName to the query string.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *Association will be nil.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) QueryOne(query string, args ...interface{}) (*Association, error) {
 	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(query, args...)
+	return tbl.doQueryOne(nil, query, args...)
 }
 
-func (tbl AssociationTable) doQueryOne(query string, args ...interface{}) (*Association, error) {
-	list, err := tbl.doQuery(true, query, args...)
+// MustQueryOne is the low-level access method for one Association.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl AssociationTable) MustQueryOne(query string, args ...interface{}) (*Association, error) {
+	query = tbl.ReplaceTableName(query)
+	return tbl.doQueryOne(require.One, query, args...)
+}
+
+func (tbl AssociationTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Association, error) {
+	list, err := tbl.doQuery(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
 }
 
-func (tbl AssociationTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*Association, error) {
+func (tbl AssociationTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Association, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
-	return scanAssociations(rows, firstOnly)
+
+	vv, n, err := scanAssociations(rows, firstOnly)
+	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
+
+func scanAssociations(rows *sql.Rows, firstOnly bool) (vv []*Association, n int64, err error) {
+	for rows.Next() {
+		n++
+
+		var v0 int64
+		var v1 sql.NullString
+		var v2 sql.NullString
+		var v3 sql.NullInt64
+		var v4 sql.NullInt64
+		var v5 sql.NullInt64
+
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+			&v3,
+			&v4,
+			&v5,
+		)
+		if err != nil {
+			return vv, n, err
+		}
+
+		v := &Association{}
+		v.Id = v0
+		if v1.Valid {
+			a := v1.String
+			v.Name = &a
+		}
+		if v2.Valid {
+			a := v2.String
+			v.Quality = &a
+		}
+		if v3.Valid {
+			a := v3.Int64
+			v.Ref1 = &a
+		}
+		if v4.Valid {
+			a := v4.Int64
+			v.Ref2 = &a
+		}
+		if v5.Valid {
+			a := Category(v5.Int64)
+			v.Category = &a
+		}
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, n, err
+			}
+		}
+
+		vv = append(vv, v)
+
+		if firstOnly {
+			if rows.Next() {
+				n++
+			}
+			return vv, n, rows.Err()
+		}
+	}
+
+	return vv, n, rows.Err()
+}
+
+//--------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
 // Note that this applies ReplaceTableName to the query string.
-func (tbl AssociationTable) QueryOneNullString(query string, args ...interface{}) (sql.NullString, error) {
-	var result sql.NullString
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return result, err
-	}
-	defer rows.Close()
+//
+// The args are for any placeholder parameters in the query.
+func (tbl AssociationTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
 
-	if rows.Next() {
-		err = rows.Scan(&result)
-		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
-		}
-	}
+// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl AssociationTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
 	return result, err
 }
 
 // QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
 // Note that this applies ReplaceTableName to the query string.
-func (tbl AssociationTable) QueryOneNullInt64(query string, args ...interface{}) (sql.NullInt64, error) {
-	var result sql.NullInt64
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return result, err
-	}
-	defer rows.Close()
+//
+// The args are for any placeholder parameters in the query.
+func (tbl AssociationTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
 
-	if rows.Next() {
-		err = rows.Scan(&result)
-		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
-		}
-	}
+// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl AssociationTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
 	return result, err
 }
 
 // QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
 // Note that this applies ReplaceTableName to the query string.
-func (tbl AssociationTable) QueryOneNullFloat64(query string, args ...interface{}) (sql.NullFloat64, error) {
-	var result sql.NullFloat64
+//
+// The args are for any placeholder parameters in the query.
+func (tbl AssociationTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
+
+// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl AssociationTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	return result, err
+}
+
+func (tbl AssociationTable) doQueryOneNullThing(req require.Requirement, holder interface{}, query string, args ...interface{}) error {
+	var n int64 = 0
 	query = tbl.ReplaceTableName(query)
 	tbl.logQuery(query, args...)
+
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return result, err
+		return tbl.logError(err)
 	}
 	defer rows.Close()
 
 	if rows.Next() {
-		err = rows.Scan(&result)
+		err = rows.Scan(holder)
+
 		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
+			return tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, 0))
+		} else {
+			n++
+		}
+
+		if rows.Next() {
+			n++ // not singular
 		}
 	}
-	return result, err
+
+	return tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
 }
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
@@ -376,14 +517,30 @@ func (tbl AssociationTable) ReplaceTableName(query string) string {
 // If not found, *Association will be nil.
 func (tbl AssociationTable) GetAssociation(id int64) (*Association, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", AssociationColumnNames, tbl.name)
-	return tbl.doQueryOne(query, id)
+	v, err := tbl.doQueryOne(nil, query, id)
+	return v, err
+}
+
+// MustGetAssociation gets the record with a given primary key value.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+func (tbl AssociationTable) MustGetAssociation(id int64) (*Association, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", AssociationColumnNames, tbl.name)
+	v, err := tbl.doQueryOne(require.One, query, id)
+	return v, err
 }
 
 // GetAssociations gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
-func (tbl AssociationTable) GetAssociations(id ...int64) (list []*Association, err error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
+// controls whether an error is generated not all the ids produce a result.
+func (tbl AssociationTable) GetAssociations(req require.Requirement, id ...int64) (list []*Association, err error) {
 	if len(id) > 0 {
+		if req == require.All {
+			req = require.Exactly(len(id))
+		}
 		pl := tbl.dialect.Placeholders(len(id))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)", AssociationColumnNames, tbl.name, pl)
 		args := make([]interface{}, len(id))
@@ -392,7 +549,7 @@ func (tbl AssociationTable) GetAssociations(id ...int64) (list []*Association, e
 			args[i] = v
 		}
 
-		list, err = tbl.doQuery(false, query, args...)
+		list, err = tbl.doQuery(req, false, query, args...)
 	}
 
 	return list, err
@@ -404,46 +561,66 @@ func (tbl AssociationTable) GetAssociations(id ...int64) (list []*Association, e
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
-func (tbl AssociationTable) SelectOneWhere(where, orderBy string, args ...interface{}) (*Association, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.One
+// controls whether an error is generated when no result is found.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl AssociationTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", AssociationColumnNames, tbl.name, where, orderBy)
-	return tbl.doQueryOne(query, args...)
+	v, err := tbl.doQueryOne(req, query, args...)
+	return v, err
 }
 
 // SelectOne allows a single Association to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
-func (tbl AssociationTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Association, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.One
+// controls whether an error is generated when no result is found.
+func (tbl AssociationTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Association, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectOneWhere(whs, orderBy, args...)
+	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
 // SelectWhere allows Associations to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
-func (tbl AssociationTable) SelectWhere(where, orderBy string, args ...interface{}) ([]*Association, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
+// controls whether an error is generated when no result is found.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl AssociationTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", AssociationColumnNames, tbl.name, where, orderBy)
-	return tbl.doQuery(false, query, args...)
+	vv, err := tbl.doQuery(req, false, query, args...)
+	return vv, err
 }
 
 // Select allows Associations to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Association, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
+// controls whether an error is generated when no result is found.
+func (tbl AssociationTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Association, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectWhere(whs, orderBy, args...)
+	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
 // CountWhere counts Associations in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
+//
+// The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
-	return count, err
+	return count, tbl.logIfError(err)
 }
 
 // Count counts the Associations in the table that match a 'where' clause.
@@ -460,145 +637,153 @@ const AssociationColumnNames = "id, name, quality, ref1, ref2, category"
 // SliceId gets the Id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceId(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64list("id", wh, qc)
+func (tbl AssociationTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64list(req, "id", wh, qc)
 }
 
 // SliceName gets the Name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceName(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringPtrlist("name", wh, qc)
+func (tbl AssociationTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringPtrlist(req, "name", wh, qc)
 }
 
 // SliceQuality gets the Quality column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceQuality(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringPtrlist("quality", wh, qc)
+func (tbl AssociationTable) SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringPtrlist(req, "quality", wh, qc)
 }
 
 // SliceRef1 gets the Ref1 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceRef1(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64Ptrlist("ref1", wh, qc)
+func (tbl AssociationTable) SliceRef1(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64Ptrlist(req, "ref1", wh, qc)
 }
 
 // SliceRef2 gets the Ref2 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceRef2(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64Ptrlist("ref2", wh, qc)
+func (tbl AssociationTable) SliceRef2(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64Ptrlist(req, "ref2", wh, qc)
 }
 
 // SliceCategory gets the Category column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceCategory(wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return tbl.getCategoryPtrlist("category", wh, qc)
+func (tbl AssociationTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	return tbl.getCategoryPtrlist(req, "category", wh, qc)
 }
 
 
-func (tbl AssociationTable) getCategoryPtrlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+func (tbl AssociationTable) getCategoryPtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
 
 	var v Category
 	list := make([]Category, 0, 10)
+
 	for rows.Next() {
 		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
 		}
-		list = append(list, v)
 	}
-	return list, nil
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl AssociationTable) getint64list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl AssociationTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
 
 	var v int64
 	list := make([]int64, 0, 10)
+
 	for rows.Next() {
 		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
 		}
-		list = append(list, v)
 	}
-	return list, nil
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl AssociationTable) getint64Ptrlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl AssociationTable) getint64Ptrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
 
 	var v int64
 	list := make([]int64, 0, 10)
+
 	for rows.Next() {
 		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
 		}
-		list = append(list, v)
 	}
-	return list, nil
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl AssociationTable) getstringPtrlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl AssociationTable) getstringPtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
 
 	var v string
 	list := make([]string, 0, 10)
+
 	for rows.Next() {
 		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
 		}
-		list = append(list, v)
 	}
-	return list, nil
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 
 //--------------------------------------------------------------------------------
 
-// Insert adds new records for the Associations. The Associations have their primary key fields
-// set to the new record identifiers.
+// Insert adds new records for the Associations.
+// The Associations have their primary key fields set to the new record identifiers.
 // The Association.PreInsert(Execer) method will be called, if it exists.
-func (tbl AssociationTable) Insert(vv ...*Association) error {
+func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) error {
 	var params string
 	switch tbl.dialect {
 	case schema.Postgres:
@@ -607,6 +792,11 @@ func (tbl AssociationTable) Insert(vv ...*Association) error {
 		params = sAssociationDataColumnParamsSimple
 	}
 
+	if req == require.All {
+		req = require.Exactly(len(vv))
+	}
+
+	var count int64
 	query := fmt.Sprintf(sqlInsertAssociation, tbl.name, params)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
@@ -617,27 +807,36 @@ func (tbl AssociationTable) Insert(vv ...*Association) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert()
+			err := hook.PreInsert()
+			if err != nil {
+				return tbl.logError(err)
+			}
 		}
 
 		fields, err := sliceAssociationWithoutPk(v)
 		if err != nil {
-			return err
+			return tbl.logError(err)
 		}
 
 		tbl.logQuery(query, fields...)
-		res, err := st.Exec(fields...)
+		res, err := st.ExecContext(tbl.ctx, fields...)
 		if err != nil {
-			return err
+			return tbl.logError(err)
 		}
 
 		v.Id, err = res.LastInsertId()
 		if err != nil {
-			return err
+			return tbl.logError(err)
 		}
+
+		n, err := res.RowsAffected()
+		if err != nil {
+			return tbl.logError(err)
+		}
+		count += n
 	}
 
-	return nil
+	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 const sqlInsertAssociation = `
@@ -657,10 +856,11 @@ const sAssociationDataColumnParamsPostgres = "$1,$2,$3,$4,$5"
 //--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
+//
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl AssociationTable) UpdateFields(wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+func (tbl AssociationTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	query, args := tbl.updateFields(wh, fields...)
-	return tbl.Exec(query, args...)
+	return tbl.Exec(req, query, args...)
 }
 
 func (tbl AssociationTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
@@ -676,7 +876,7 @@ func (tbl AssociationTable) updateFields(wh where.Expression, fields ...sql.Name
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Association.PreUpdate(Execer) method will be called, if it exists.
-func (tbl AssociationTable) Update(vv ...*Association) (int64, error) {
+func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) (int64, error) {
 	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
@@ -685,28 +885,36 @@ func (tbl AssociationTable) Update(vv ...*Association) (int64, error) {
 		stmt = sqlUpdateAssociationByPkSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.name)
+	if req == require.All {
+		req = require.Exactly(len(vv))
+	}
 
 	var count int64
+	query := fmt.Sprintf(stmt, tbl.name)
+
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
-			hook.PreUpdate()
+			err := hook.PreUpdate()
+			if err != nil {
+				return count, tbl.logError(err)
+			}
 		}
 
 		args, err := sliceAssociationWithoutPk(v)
+		args = append(args, v.Id)
 		if err != nil {
-			return count, err
+			return count, tbl.logError(err)
 		}
 
-		args = append(args, v.Id)
-		n, err := tbl.Exec(query, args...)
+		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
 		}
 		count += n
 	}
-	return count, nil
+
+	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 const sqlUpdateAssociationByPkSimple = `
@@ -746,9 +954,13 @@ func sliceAssociationWithoutPk(v *Association) ([]interface{}, error) {
 
 // DeleteAssociations deletes rows from the table, given some primary keys.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteAssociations(id ...int64) (int64, error) {
+func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE id IN (%s)"
+
+	if req == require.All {
+		req = require.Exactly(len(id))
+	}
 
 	var count, n int64
 	var err error
@@ -767,7 +979,7 @@ func (tbl AssociationTable) DeleteAssociations(id ...int64) (int64, error) {
 				args[i] = id[i]
 			}
 
-			n, err = tbl.Exec(query, args...)
+			n, err = tbl.Exec(nil, query, args...)
 			count += n
 			if err != nil {
 				return count, err
@@ -785,18 +997,18 @@ func (tbl AssociationTable) DeleteAssociations(id ...int64) (int64, error) {
 			args[i] = id[i]
 		}
 
-		n, err = tbl.Exec(query, args...)
+		n, err = tbl.Exec(nil, query, args...)
 		count += n
 	}
 
-	return count, err
+	return count, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl AssociationTable) Delete(wh where.Expression) (int64, error) {
+func (tbl AssociationTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := tbl.deleteRows(wh)
-	return tbl.Exec(query, args...)
+	return tbl.Exec(req, query, args...)
 }
 
 func (tbl AssociationTable) deleteRows(wh where.Expression) (string, []interface{}) {
@@ -806,69 +1018,3 @@ func (tbl AssociationTable) deleteRows(wh where.Expression) (string, []interface
 }
 
 //--------------------------------------------------------------------------------
-
-// scanAssociations reads table records into a slice of values.
-func scanAssociations(rows *sql.Rows, firstOnly bool) ([]*Association, error) {
-	var err error
-	var vv []*Association
-
-	for rows.Next() {
-		var v0 int64
-		var v1 sql.NullString
-		var v2 sql.NullString
-		var v3 sql.NullInt64
-		var v4 sql.NullInt64
-		var v5 sql.NullInt64
-
-		err = rows.Scan(
-			&v0,
-			&v1,
-			&v2,
-			&v3,
-			&v4,
-			&v5,
-		)
-		if err != nil {
-			return vv, err
-		}
-
-		v := &Association{}
-		v.Id = v0
-		if v1.Valid {
-			a := v1.String
-			v.Name = &a
-		}
-		if v2.Valid {
-			a := v2.String
-			v.Quality = &a
-		}
-		if v3.Valid {
-			a := v3.Int64
-			v.Ref1 = &a
-		}
-		if v4.Valid {
-			a := v4.Int64
-			v.Ref2 = &a
-		}
-		if v5.Valid {
-			a := Category(v5.Int64)
-			v.Category = &a
-		}
-
-		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
-			err = hook.PostGet()
-			if err != nil {
-				return vv, err
-			}
-		}
-
-		vv = append(vv, v)
-
-		if firstOnly {
-			return vv, rows.Err()
-		}
-	}
-
-	return vv, rows.Err()
-}

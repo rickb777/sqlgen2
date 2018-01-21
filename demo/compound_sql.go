@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
@@ -134,7 +135,7 @@ func (tbl DbCompoundTable) BeginTx(opts *sql.TxOptions) (DbCompoundTable, error)
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
-	return tbl, err
+	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -149,6 +150,14 @@ func (tbl DbCompoundTable) logQuery(query string, args ...interface{}) {
 	sqlgen2.LogQuery(tbl.logger, query, args...)
 }
 
+func (tbl DbCompoundTable) logError(err error) error {
+	return sqlgen2.LogError(tbl.logger, err)
+}
+
+func (tbl DbCompoundTable) logIfError(err error) error {
+	return sqlgen2.LogIfError(tbl.logger, err)
+}
+
 //--------------------------------------------------------------------------------
 
 const NumDbCompoundColumns = 3
@@ -161,7 +170,7 @@ const DbCompoundDataColumnNames = "alpha, beta, category"
 
 // CreateTable creates the table.
 func (tbl DbCompoundTable) CreateTable(ifNotExists bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExists))
+	return tbl.Exec(nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
@@ -188,7 +197,7 @@ func (tbl DbCompoundTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl DbCompoundTable) DropTable(ifExists bool) (int64, error) {
-	return tbl.Exec(tbl.dropTableSql(ifExists))
+	return tbl.Exec(nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl DbCompoundTable) dropTableSql(ifExists bool) string {
@@ -256,7 +265,7 @@ func (tbl DbCompoundTable) CreateAlphaBetaIndex(ifNotExist bool) error {
 		ine = ""
 	}
 
-	_, err := tbl.Exec(tbl.createDbAlphaBetaIndexSql(ine))
+	_, err := tbl.Exec(nil, tbl.createDbAlphaBetaIndexSql(ine))
 	return err
 }
 
@@ -268,7 +277,7 @@ func (tbl DbCompoundTable) createDbAlphaBetaIndexSql(ifNotExists string) string 
 
 // DropAlphaBetaIndex drops the alpha_beta index.
 func (tbl DbCompoundTable) DropAlphaBetaIndex(ifExists bool) error {
-	_, err := tbl.Exec(tbl.dropDbAlphaBetaIndexSql(ifExists))
+	_, err := tbl.Exec(nil, tbl.dropDbAlphaBetaIndexSql(ifExists))
 	return err
 }
 
@@ -306,7 +315,7 @@ const sqlDbAlphaBetaIndexColumns = "alpha, beta"
 // are also truncated.
 func (tbl DbCompoundTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.dialect.TruncateDDL(tbl.Name().String(), force) {
-		_, err = tbl.Exec(query)
+		_, err = tbl.Exec(nil, query)
 		if err != nil {
 			return err
 		}
@@ -317,117 +326,225 @@ func (tbl DbCompoundTable) Truncate(force bool) (err error) {
 //--------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
+// It returns the number of rows affected (if the database driver supports this).
+//
 // The args are for any placeholder parameters in the query.
-// It returns the number of rows affected (of the database drive supports this).
-func (tbl DbCompoundTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl DbCompoundTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
 	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
-		return 0, err
+		return 0, tbl.logError(err)
 	}
-	return res.RowsAffected()
+	n, err := res.RowsAffected()
+	return n, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
 
 // Query is the low-level access method for Compounds.
-// Note that this applies ReplaceTableName to the query string.
-func (tbl DbCompoundTable) Query(query string, args ...interface{}) ([]*Compound, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: this
+// controls whether an error is generated when this expectation is not met.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl DbCompoundTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Compound, error) {
 	query = tbl.ReplaceTableName(query)
-	return tbl.doQuery(false, query, args...)
+	vv, err := tbl.doQuery(req, false, query, args...)
+	return vv, err
 }
 
 // QueryOne is the low-level access method for one Compound.
-// Note that this applies ReplaceTableName to the query string.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *Compound will be nil.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) QueryOne(query string, args ...interface{}) (*Compound, error) {
 	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(query, args...)
+	return tbl.doQueryOne(nil, query, args...)
 }
 
-func (tbl DbCompoundTable) doQueryOne(query string, args ...interface{}) (*Compound, error) {
-	list, err := tbl.doQuery(true, query, args...)
+// MustQueryOne is the low-level access method for one Compound.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl DbCompoundTable) MustQueryOne(query string, args ...interface{}) (*Compound, error) {
+	query = tbl.ReplaceTableName(query)
+	return tbl.doQueryOne(require.One, query, args...)
+}
+
+func (tbl DbCompoundTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Compound, error) {
+	list, err := tbl.doQuery(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
 }
 
-func (tbl DbCompoundTable) doQuery(firstOnly bool, query string, args ...interface{}) ([]*Compound, error) {
+func (tbl DbCompoundTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Compound, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
-	return scanDbCompounds(rows, firstOnly)
+
+	vv, n, err := scanDbCompounds(rows, firstOnly)
+	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
+
+func scanDbCompounds(rows *sql.Rows, firstOnly bool) (vv []*Compound, n int64, err error) {
+	for rows.Next() {
+		n++
+
+		var v0 string
+		var v1 string
+		var v2 Category
+
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+		)
+		if err != nil {
+			return vv, n, err
+		}
+
+		v := &Compound{}
+		v.Alpha = v0
+		v.Beta = v1
+		v.Category = v2
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, n, err
+			}
+		}
+
+		vv = append(vv, v)
+
+		if firstOnly {
+			if rows.Next() {
+				n++
+			}
+			return vv, n, rows.Err()
+		}
+	}
+
+	return vv, n, rows.Err()
+}
+
+//--------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
 // Note that this applies ReplaceTableName to the query string.
-func (tbl DbCompoundTable) QueryOneNullString(query string, args ...interface{}) (sql.NullString, error) {
-	var result sql.NullString
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return result, err
-	}
-	defer rows.Close()
+//
+// The args are for any placeholder parameters in the query.
+func (tbl DbCompoundTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
 
-	if rows.Next() {
-		err = rows.Scan(&result)
-		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
-		}
-	}
+// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl DbCompoundTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
 	return result, err
 }
 
 // QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
 // Note that this applies ReplaceTableName to the query string.
-func (tbl DbCompoundTable) QueryOneNullInt64(query string, args ...interface{}) (sql.NullInt64, error) {
-	var result sql.NullInt64
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return result, err
-	}
-	defer rows.Close()
+//
+// The args are for any placeholder parameters in the query.
+func (tbl DbCompoundTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
 
-	if rows.Next() {
-		err = rows.Scan(&result)
-		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
-		}
-	}
+// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl DbCompoundTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
 	return result, err
 }
 
 // QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
 // Note that this applies ReplaceTableName to the query string.
-func (tbl DbCompoundTable) QueryOneNullFloat64(query string, args ...interface{}) (sql.NullFloat64, error) {
-	var result sql.NullFloat64
+//
+// The args are for any placeholder parameters in the query.
+func (tbl DbCompoundTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
+
+// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl DbCompoundTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	return result, err
+}
+
+func (tbl DbCompoundTable) doQueryOneNullThing(req require.Requirement, holder interface{}, query string, args ...interface{}) error {
+	var n int64 = 0
 	query = tbl.ReplaceTableName(query)
 	tbl.logQuery(query, args...)
+
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return result, err
+		return tbl.logError(err)
 	}
 	defer rows.Close()
 
 	if rows.Next() {
-		err = rows.Scan(&result)
+		err = rows.Scan(holder)
+
 		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
+			return tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, 0))
+		} else {
+			n++
+		}
+
+		if rows.Next() {
+			n++ // not singular
 		}
 	}
-	return result, err
+
+	return tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
 }
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
@@ -441,46 +558,66 @@ func (tbl DbCompoundTable) ReplaceTableName(query string) string {
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
-func (tbl DbCompoundTable) SelectOneWhere(where, orderBy string, args ...interface{}) (*Compound, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.One
+// controls whether an error is generated when no result is found.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl DbCompoundTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Compound, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", DbCompoundColumnNames, tbl.name, where, orderBy)
-	return tbl.doQueryOne(query, args...)
+	v, err := tbl.doQueryOne(req, query, args...)
+	return v, err
 }
 
 // SelectOne allows a single Compound to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
-func (tbl DbCompoundTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Compound, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.One
+// controls whether an error is generated when no result is found.
+func (tbl DbCompoundTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Compound, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectOneWhere(whs, orderBy, args...)
+	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
 // SelectWhere allows Compounds to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
-func (tbl DbCompoundTable) SelectWhere(where, orderBy string, args ...interface{}) ([]*Compound, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
+// controls whether an error is generated when no result is found.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl DbCompoundTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Compound, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", DbCompoundColumnNames, tbl.name, where, orderBy)
-	return tbl.doQuery(false, query, args...)
+	vv, err := tbl.doQuery(req, false, query, args...)
+	return vv, err
 }
 
 // Select allows Compounds to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbCompoundTable) Select(wh where.Expression, qc where.QueryConstraint) ([]*Compound, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
+// controls whether an error is generated when no result is found.
+func (tbl DbCompoundTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Compound, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectWhere(whs, orderBy, args...)
+	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
 // CountWhere counts Compounds in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
+//
+// The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
-	return count, err
+	return count, tbl.logIfError(err)
 }
 
 // Count counts the Compounds in the table that match a 'where' clause.
@@ -497,75 +634,80 @@ const DbCompoundColumnNames = "alpha, beta, category"
 // SliceAlpha gets the Alpha column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbCompoundTable) SliceAlpha(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("alpha", wh, qc)
+func (tbl DbCompoundTable) SliceAlpha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "alpha", wh, qc)
 }
 
 // SliceBeta gets the Beta column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbCompoundTable) SliceBeta(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("beta", wh, qc)
+func (tbl DbCompoundTable) SliceBeta(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "beta", wh, qc)
 }
 
 // SliceCategory gets the Category column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbCompoundTable) SliceCategory(wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return tbl.getCategorylist("category", wh, qc)
+func (tbl DbCompoundTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	return tbl.getCategorylist(req, "category", wh, qc)
 }
 
-func (tbl DbCompoundTable) getCategorylist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+func (tbl DbCompoundTable) getCategorylist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
 
 	var v Category
 	list := make([]Category, 0, 10)
+
 	for rows.Next() {
 		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
 		}
-		list = append(list, v)
 	}
-	return list, nil
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl DbCompoundTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl DbCompoundTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
 
 	var v string
 	list := make([]string, 0, 10)
+
 	for rows.Next() {
 		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
 		}
-		list = append(list, v)
 	}
-	return list, nil
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 //--------------------------------------------------------------------------------
 
 // Insert adds new records for the Compounds.
+
 // The Compound.PreInsert(Execer) method will be called, if it exists.
-func (tbl DbCompoundTable) Insert(vv ...*Compound) error {
+func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) error {
 	var params string
 	switch tbl.dialect {
 	case schema.Postgres:
@@ -574,6 +716,11 @@ func (tbl DbCompoundTable) Insert(vv ...*Compound) error {
 		params = sDbCompoundDataColumnParamsSimple
 	}
 
+	if req == require.All {
+		req = require.Exactly(len(vv))
+	}
+
+	var count int64
 	query := fmt.Sprintf(sqlInsertDbCompound, tbl.name, params)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
@@ -584,22 +731,35 @@ func (tbl DbCompoundTable) Insert(vv ...*Compound) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert()
+			err := hook.PreInsert()
+			if err != nil {
+				return tbl.logError(err)
+			}
 		}
 
 		fields, err := sliceDbCompound(v)
 		if err != nil {
-			return err
+			return tbl.logError(err)
 		}
 
 		tbl.logQuery(query, fields...)
-		_, err = st.Exec(fields...)
+		res, err := st.ExecContext(tbl.ctx, fields...)
 		if err != nil {
-			return err
+			return tbl.logError(err)
 		}
+
+		if err != nil {
+			return tbl.logError(err)
+		}
+
+		n, err := res.RowsAffected()
+		if err != nil {
+			return tbl.logError(err)
+		}
+		count += n
 	}
 
-	return nil
+	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 const sqlInsertDbCompound = `
@@ -617,10 +777,11 @@ const sDbCompoundDataColumnParamsPostgres = "$1,$2,$3"
 //--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
+//
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl DbCompoundTable) UpdateFields(wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+func (tbl DbCompoundTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	query, args := tbl.updateFields(wh, fields...)
-	return tbl.Exec(query, args...)
+	return tbl.Exec(req, query, args...)
 }
 
 func (tbl DbCompoundTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
@@ -645,9 +806,9 @@ func sliceDbCompound(v *Compound) ([]interface{}, error) {
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl DbCompoundTable) Delete(wh where.Expression) (int64, error) {
+func (tbl DbCompoundTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := tbl.deleteRows(wh)
-	return tbl.Exec(query, args...)
+	return tbl.Exec(req, query, args...)
 }
 
 func (tbl DbCompoundTable) deleteRows(wh where.Expression) (string, []interface{}) {
@@ -657,45 +818,3 @@ func (tbl DbCompoundTable) deleteRows(wh where.Expression) (string, []interface{
 }
 
 //--------------------------------------------------------------------------------
-
-// scanDbCompounds reads table records into a slice of values.
-func scanDbCompounds(rows *sql.Rows, firstOnly bool) ([]*Compound, error) {
-	var err error
-	var vv []*Compound
-
-	for rows.Next() {
-		var v0 string
-		var v1 string
-		var v2 Category
-
-		err = rows.Scan(
-			&v0,
-			&v1,
-			&v2,
-		)
-		if err != nil {
-			return vv, err
-		}
-
-		v := &Compound{}
-		v.Alpha = v0
-		v.Beta = v1
-		v.Category = v2
-
-		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
-			err = hook.PostGet()
-			if err != nil {
-				return vv, err
-			}
-		}
-
-		vv = append(vv, v)
-
-		if firstOnly {
-			return vv, rows.Err()
-		}
-	}
-
-	return vv, rows.Err()
-}

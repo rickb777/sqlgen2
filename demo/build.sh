@@ -1,5 +1,6 @@
 #!/bin/bash -e
 cd $(dirname $0)
+PATH=$HOME/gopath/bin:$GOPATH/bin:$PATH
 rm -f *_sql.go
 
 go generate .

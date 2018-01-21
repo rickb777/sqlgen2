@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
@@ -134,7 +135,7 @@ func (tbl HookTable) BeginTx(opts *sql.TxOptions) (HookTable, error) {
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
-	return tbl, err
+	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -147,6 +148,14 @@ func (tbl HookTable) Using(tx *sql.Tx) HookTable {
 
 func (tbl HookTable) logQuery(query string, args ...interface{}) {
 	sqlgen2.LogQuery(tbl.logger, query, args...)
+}
+
+func (tbl HookTable) logError(err error) error {
+	return sqlgen2.LogError(tbl.logger, err)
+}
+
+func (tbl HookTable) logIfError(err error) error {
+	return sqlgen2.LogIfError(tbl.logger, err)
 }
 
 
@@ -164,7 +173,7 @@ const HookDataColumnNames = "sha, after, before, category, created, deleted, for
 
 // CreateTable creates the table.
 func (tbl HookTable) CreateTable(ifNotExists bool) (int64, error) {
-	return tbl.Exec(tbl.createTableSql(ifNotExists))
+	return tbl.Exec(nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl HookTable) createTableSql(ifNotExists bool) string {
@@ -188,7 +197,7 @@ func (tbl HookTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl HookTable) DropTable(ifExists bool) (int64, error) {
-	return tbl.Exec(tbl.dropTableSql(ifExists))
+	return tbl.Exec(nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl HookTable) dropTableSql(ifExists bool) string {
@@ -274,7 +283,7 @@ CREATE TABLE %s%s (
 // are also truncated.
 func (tbl HookTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.dialect.TruncateDDL(tbl.Name().String(), force) {
-		_, err = tbl.Exec(query)
+		_, err = tbl.Exec(nil, query)
 		if err != nil {
 			return err
 		}
@@ -285,117 +294,267 @@ func (tbl HookTable) Truncate(force bool) (err error) {
 //--------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
+// It returns the number of rows affected (if the database driver supports this).
+//
 // The args are for any placeholder parameters in the query.
-// It returns the number of rows affected (of the database drive supports this).
-func (tbl HookTable) Exec(query string, args ...interface{}) (int64, error) {
+func (tbl HookTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
 	tbl.logQuery(query, args...)
 	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
 	if err != nil {
-		return 0, err
+		return 0, tbl.logError(err)
 	}
-	return res.RowsAffected()
+	n, err := res.RowsAffected()
+	return n, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
 
 // Query is the low-level access method for Hooks.
-// Note that this applies ReplaceTableName to the query string.
-func (tbl HookTable) Query(query string, args ...interface{}) (HookList, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: this
+// controls whether an error is generated when this expectation is not met.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) Query(req require.Requirement, query string, args ...interface{}) (HookList, error) {
 	query = tbl.ReplaceTableName(query)
-	return tbl.doQuery(false, query, args...)
+	vv, err := tbl.doQuery(req, false, query, args...)
+	return vv, err
 }
 
 // QueryOne is the low-level access method for one Hook.
-// Note that this applies ReplaceTableName to the query string.
 // If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, *Hook will be nil.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
 func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) {
 	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(query, args...)
+	return tbl.doQueryOne(nil, query, args...)
 }
 
-func (tbl HookTable) doQueryOne(query string, args ...interface{}) (*Hook, error) {
-	list, err := tbl.doQuery(true, query, args...)
+// MustQueryOne is the low-level access method for one Hook.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this method applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) MustQueryOne(query string, args ...interface{}) (*Hook, error) {
+	query = tbl.ReplaceTableName(query)
+	return tbl.doQueryOne(require.One, query, args...)
+}
+
+func (tbl HookTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Hook, error) {
+	list, err := tbl.doQuery(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
 }
 
-func (tbl HookTable) doQuery(firstOnly bool, query string, args ...interface{}) (HookList, error) {
+func (tbl HookTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) (HookList, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
-	return scanHooks(rows, firstOnly)
+
+	vv, n, err := scanHooks(rows, firstOnly)
+	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
+
+func scanHooks(rows *sql.Rows, firstOnly bool) (vv HookList, n int64, err error) {
+	for rows.Next() {
+		n++
+
+		var v0 int64
+		var v1 string
+		var v2 string
+		var v3 string
+		var v4 Category
+		var v5 bool
+		var v6 bool
+		var v7 bool
+		var v8 string
+		var v9 string
+		var v10 string
+		var v11 string
+		var v12 Email
+		var v13 string
+		var v14 string
+		var v15 Email
+		var v16 string
+
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+			&v3,
+			&v4,
+			&v5,
+			&v6,
+			&v7,
+			&v8,
+			&v9,
+			&v10,
+			&v11,
+			&v12,
+			&v13,
+			&v14,
+			&v15,
+			&v16,
+		)
+		if err != nil {
+			return vv, n, err
+		}
+
+		v := &Hook{}
+		v.Id = v0
+		v.Sha = v1
+		v.Dates.After = v2
+		v.Dates.Before = v3
+		v.Category = v4
+		v.Created = v5
+		v.Deleted = v6
+		v.Forced = v7
+		v.HeadCommit.ID = v8
+		v.HeadCommit.Message = v9
+		v.HeadCommit.Timestamp = v10
+		v.HeadCommit.Author.Name = v11
+		v.HeadCommit.Author.Email = v12
+		v.HeadCommit.Author.Username = v13
+		v.HeadCommit.Committer.Name = v14
+		v.HeadCommit.Committer.Email = v15
+		v.HeadCommit.Committer.Username = v16
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, n, err
+			}
+		}
+
+		vv = append(vv, v)
+
+		if firstOnly {
+			if rows.Next() {
+				n++
+			}
+			return vv, n, rows.Err()
+		}
+	}
+
+	return vv, n, rows.Err()
+}
+
+//--------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
 // Note that this applies ReplaceTableName to the query string.
-func (tbl HookTable) QueryOneNullString(query string, args ...interface{}) (sql.NullString, error) {
-	var result sql.NullString
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return result, err
-	}
-	defer rows.Close()
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
 
-	if rows.Next() {
-		err = rows.Scan(&result)
-		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
-		}
-	}
+// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
 	return result, err
 }
 
 // QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
 // Note that this applies ReplaceTableName to the query string.
-func (tbl HookTable) QueryOneNullInt64(query string, args ...interface{}) (sql.NullInt64, error) {
-	var result sql.NullInt64
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return result, err
-	}
-	defer rows.Close()
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
 
-	if rows.Next() {
-		err = rows.Scan(&result)
-		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
-		}
-	}
+// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
 	return result, err
 }
 
 // QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
 // Note that this applies ReplaceTableName to the query string.
-func (tbl HookTable) QueryOneNullFloat64(query string, args ...interface{}) (sql.NullFloat64, error) {
-	var result sql.NullFloat64
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	return result, err
+}
+
+// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	return result, err
+}
+
+func (tbl HookTable) doQueryOneNullThing(req require.Requirement, holder interface{}, query string, args ...interface{}) error {
+	var n int64 = 0
 	query = tbl.ReplaceTableName(query)
 	tbl.logQuery(query, args...)
+
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return result, err
+		return tbl.logError(err)
 	}
 	defer rows.Close()
 
 	if rows.Next() {
-		err = rows.Scan(&result)
+		err = rows.Scan(holder)
+
 		if err == sql.ErrNoRows {
-			err = nil // not needed; result will be invalid
+			return tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, 0))
+		} else {
+			n++
+		}
+
+		if rows.Next() {
+			n++ // not singular
 		}
 	}
-	return result, err
+
+	return tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
 }
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
@@ -409,14 +568,30 @@ func (tbl HookTable) ReplaceTableName(query string) string {
 // If not found, *Hook will be nil.
 func (tbl HookTable) GetHook(id int64) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", HookColumnNames, tbl.name)
-	return tbl.doQueryOne(query, id)
+	v, err := tbl.doQueryOne(nil, query, id)
+	return v, err
+}
+
+// MustGetHook gets the record with a given primary key value.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+func (tbl HookTable) MustGetHook(id int64) (*Hook, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", HookColumnNames, tbl.name)
+	v, err := tbl.doQueryOne(require.One, query, id)
+	return v, err
 }
 
 // GetHooks gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
-func (tbl HookTable) GetHooks(id ...int64) (list HookList, err error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
+// controls whether an error is generated not all the ids produce a result.
+func (tbl HookTable) GetHooks(req require.Requirement, id ...int64) (list HookList, err error) {
 	if len(id) > 0 {
+		if req == require.All {
+			req = require.Exactly(len(id))
+		}
 		pl := tbl.dialect.Placeholders(len(id))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)", HookColumnNames, tbl.name, pl)
 		args := make([]interface{}, len(id))
@@ -425,7 +600,7 @@ func (tbl HookTable) GetHooks(id ...int64) (list HookList, err error) {
 			args[i] = v
 		}
 
-		list, err = tbl.doQuery(false, query, args...)
+		list, err = tbl.doQuery(req, false, query, args...)
 	}
 
 	return list, err
@@ -437,46 +612,66 @@ func (tbl HookTable) GetHooks(id ...int64) (list HookList, err error) {
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
-func (tbl HookTable) SelectOneWhere(where, orderBy string, args ...interface{}) (*Hook, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.One
+// controls whether an error is generated when no result is found.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", HookColumnNames, tbl.name, where, orderBy)
-	return tbl.doQueryOne(query, args...)
+	v, err := tbl.doQueryOne(req, query, args...)
+	return v, err
 }
 
 // SelectOne allows a single Hook to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
-func (tbl HookTable) SelectOne(wh where.Expression, qc where.QueryConstraint) (*Hook, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.One
+// controls whether an error is generated when no result is found.
+func (tbl HookTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Hook, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectOneWhere(whs, orderBy, args...)
+	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
 // SelectWhere allows Hooks to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
-func (tbl HookTable) SelectWhere(where, orderBy string, args ...interface{}) (HookList, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
+// controls whether an error is generated when no result is found.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) (HookList, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", HookColumnNames, tbl.name, where, orderBy)
-	return tbl.doQuery(false, query, args...)
+	vv, err := tbl.doQuery(req, false, query, args...)
+	return vv, err
 }
 
 // Select allows Hooks to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) Select(wh where.Expression, qc where.QueryConstraint) (HookList, error) {
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
+// controls whether an error is generated when no result is found.
+func (tbl HookTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (HookList, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	return tbl.SelectWhere(whs, orderBy, args...)
+	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
 // CountWhere counts Hooks in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
+//
+// The args are for any placeholder parameters in the query.
 func (tbl HookTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
-	return count, err
+	return count, tbl.logIfError(err)
 }
 
 // Count counts the Hooks in the table that match a 'where' clause.
@@ -493,245 +688,255 @@ const HookColumnNames = "id, sha, after, before, category, created, deleted, for
 // SliceId gets the Id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceId(wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64list("id", wh, qc)
+func (tbl HookTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64list(req, "id", wh, qc)
 }
 
 // SliceSha gets the Sha column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceSha(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("sha", wh, qc)
+func (tbl HookTable) SliceSha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "sha", wh, qc)
 }
 
 // SliceAfter gets the After column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceAfter(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("after", wh, qc)
+func (tbl HookTable) SliceAfter(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "after", wh, qc)
 }
 
 // SliceBefore gets the Before column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceBefore(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("before", wh, qc)
+func (tbl HookTable) SliceBefore(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "before", wh, qc)
 }
 
 // SliceCategory gets the Category column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceCategory(wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return tbl.getCategorylist("category", wh, qc)
+func (tbl HookTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	return tbl.getCategorylist(req, "category", wh, qc)
 }
 
 // SliceCreated gets the Created column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceCreated(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
-	return tbl.getboollist("created", wh, qc)
+func (tbl HookTable) SliceCreated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+	return tbl.getboollist(req, "created", wh, qc)
 }
 
 // SliceDeleted gets the Deleted column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceDeleted(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
-	return tbl.getboollist("deleted", wh, qc)
+func (tbl HookTable) SliceDeleted(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+	return tbl.getboollist(req, "deleted", wh, qc)
 }
 
 // SliceForced gets the Forced column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceForced(wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
-	return tbl.getboollist("forced", wh, qc)
+func (tbl HookTable) SliceForced(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+	return tbl.getboollist(req, "forced", wh, qc)
 }
 
 // SliceID gets the ID column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceCommitId(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("commit_id", wh, qc)
+func (tbl HookTable) SliceCommitId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "commit_id", wh, qc)
 }
 
 // SliceMessage gets the Message column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceMessage(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("message", wh, qc)
+func (tbl HookTable) SliceMessage(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "message", wh, qc)
 }
 
 // SliceTimestamp gets the Timestamp column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceTimestamp(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("timestamp", wh, qc)
+func (tbl HookTable) SliceTimestamp(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "timestamp", wh, qc)
 }
 
 // SliceName gets the Name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceHeadCommitAuthorName(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("head_commit_author_name", wh, qc)
+func (tbl HookTable) SliceHeadCommitAuthorName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "head_commit_author_name", wh, qc)
 }
 
 // SliceEmail gets the Email column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceHeadCommitAuthorEmail(wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
-	return tbl.getEmaillist("head_commit_author_email", wh, qc)
+func (tbl HookTable) SliceHeadCommitAuthorEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+	return tbl.getEmaillist(req, "head_commit_author_email", wh, qc)
 }
 
 // SliceUsername gets the Username column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceHeadCommitAuthorUsername(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("head_commit_author_username", wh, qc)
+func (tbl HookTable) SliceHeadCommitAuthorUsername(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "head_commit_author_username", wh, qc)
 }
 
 // SliceName gets the Name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceHeadCommitCommitterName(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("head_commit_committer_name", wh, qc)
+func (tbl HookTable) SliceHeadCommitCommitterName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "head_commit_committer_name", wh, qc)
 }
 
 // SliceEmail gets the Email column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceHeadCommitCommitterEmail(wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
-	return tbl.getEmaillist("head_commit_committer_email", wh, qc)
+func (tbl HookTable) SliceHeadCommitCommitterEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+	return tbl.getEmaillist(req, "head_commit_committer_email", wh, qc)
 }
 
 // SliceUsername gets the Username column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceHeadCommitCommitterUsername(wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist("head_commit_committer_username", wh, qc)
+func (tbl HookTable) SliceHeadCommitCommitterUsername(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "head_commit_committer_username", wh, qc)
 }
 
 
-func (tbl HookTable) getCategorylist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+func (tbl HookTable) getCategorylist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
 
 	var v Category
 	list := make([]Category, 0, 10)
+
 	for rows.Next() {
 		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
 		}
-		list = append(list, v)
 	}
-	return list, nil
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl HookTable) getEmaillist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+func (tbl HookTable) getEmaillist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
 
 	var v Email
 	list := make([]Email, 0, 10)
+
 	for rows.Next() {
 		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
 		}
-		list = append(list, v)
 	}
-	return list, nil
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl HookTable) getboollist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
+func (tbl HookTable) getboollist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
 
 	var v bool
 	list := make([]bool, 0, 10)
+
 	for rows.Next() {
 		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
 		}
-		list = append(list, v)
 	}
-	return list, nil
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl HookTable) getint64list(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl HookTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
 
 	var v int64
 	list := make([]int64, 0, 10)
+
 	for rows.Next() {
 		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
 		}
-		list = append(list, v)
 	}
-	return list, nil
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl HookTable) getstringlist(sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl HookTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, tbl.logError(err)
 	}
 	defer rows.Close()
 
 	var v string
 	list := make([]string, 0, 10)
+
 	for rows.Next() {
 		err = rows.Scan(&v)
-		if err != nil {
-			return list, err
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
 		}
-		list = append(list, v)
 	}
-	return list, nil
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 
 //--------------------------------------------------------------------------------
 
-// Insert adds new records for the Hooks. The Hooks have their primary key fields
-// set to the new record identifiers.
+// Insert adds new records for the Hooks.
+// The Hooks have their primary key fields set to the new record identifiers.
 // The Hook.PreInsert(Execer) method will be called, if it exists.
-func (tbl HookTable) Insert(vv ...*Hook) error {
+func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 	var params string
 	switch tbl.dialect {
 	case schema.Postgres:
@@ -740,6 +945,11 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 		params = sHookDataColumnParamsSimple
 	}
 
+	if req == require.All {
+		req = require.Exactly(len(vv))
+	}
+
+	var count int64
 	query := fmt.Sprintf(sqlInsertHook, tbl.name, params)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
@@ -750,27 +960,36 @@ func (tbl HookTable) Insert(vv ...*Hook) error {
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
-			hook.PreInsert()
+			err := hook.PreInsert()
+			if err != nil {
+				return tbl.logError(err)
+			}
 		}
 
 		fields, err := sliceHookWithoutPk(v)
 		if err != nil {
-			return err
+			return tbl.logError(err)
 		}
 
 		tbl.logQuery(query, fields...)
-		res, err := st.Exec(fields...)
+		res, err := st.ExecContext(tbl.ctx, fields...)
 		if err != nil {
-			return err
+			return tbl.logError(err)
 		}
 
 		v.Id, err = res.LastInsertId()
 		if err != nil {
-			return err
+			return tbl.logError(err)
 		}
+
+		n, err := res.RowsAffected()
+		if err != nil {
+			return tbl.logError(err)
+		}
+		count += n
 	}
 
-	return nil
+	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 const sqlInsertHook = `
@@ -801,10 +1020,11 @@ const sHookDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$1
 //--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
+//
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl HookTable) UpdateFields(wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+func (tbl HookTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	query, args := tbl.updateFields(wh, fields...)
-	return tbl.Exec(query, args...)
+	return tbl.Exec(req, query, args...)
 }
 
 func (tbl HookTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
@@ -820,7 +1040,7 @@ func (tbl HookTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Hook.PreUpdate(Execer) method will be called, if it exists.
-func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
+func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error) {
 	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
@@ -829,28 +1049,36 @@ func (tbl HookTable) Update(vv ...*Hook) (int64, error) {
 		stmt = sqlUpdateHookByPkSimple
 	}
 
-	query := fmt.Sprintf(stmt, tbl.name)
+	if req == require.All {
+		req = require.Exactly(len(vv))
+	}
 
 	var count int64
+	query := fmt.Sprintf(stmt, tbl.name)
+
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
-			hook.PreUpdate()
+			err := hook.PreUpdate()
+			if err != nil {
+				return count, tbl.logError(err)
+			}
 		}
 
 		args, err := sliceHookWithoutPk(v)
+		args = append(args, v.Id)
 		if err != nil {
-			return count, err
+			return count, tbl.logError(err)
 		}
 
-		args = append(args, v.Id)
-		n, err := tbl.Exec(query, args...)
+		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
 		}
 		count += n
 	}
-	return count, nil
+
+	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 const sqlUpdateHookByPkSimple = `
@@ -923,9 +1151,13 @@ func sliceHookWithoutPk(v *Hook) ([]interface{}, error) {
 
 // DeleteHooks deletes rows from the table, given some primary keys.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteHooks(id ...int64) (int64, error) {
+func (tbl HookTable) DeleteHooks(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE id IN (%s)"
+
+	if req == require.All {
+		req = require.Exactly(len(id))
+	}
 
 	var count, n int64
 	var err error
@@ -944,7 +1176,7 @@ func (tbl HookTable) DeleteHooks(id ...int64) (int64, error) {
 				args[i] = id[i]
 			}
 
-			n, err = tbl.Exec(query, args...)
+			n, err = tbl.Exec(nil, query, args...)
 			count += n
 			if err != nil {
 				return count, err
@@ -962,18 +1194,18 @@ func (tbl HookTable) DeleteHooks(id ...int64) (int64, error) {
 			args[i] = id[i]
 		}
 
-		n, err = tbl.Exec(query, args...)
+		n, err = tbl.Exec(nil, query, args...)
 		count += n
 	}
 
-	return count, err
+	return count, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl HookTable) Delete(wh where.Expression) (int64, error) {
+func (tbl HookTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := tbl.deleteRows(wh)
-	return tbl.Exec(query, args...)
+	return tbl.Exec(req, query, args...)
 }
 
 func (tbl HookTable) deleteRows(wh where.Expression) (string, []interface{}) {
@@ -983,87 +1215,3 @@ func (tbl HookTable) deleteRows(wh where.Expression) (string, []interface{}) {
 }
 
 //--------------------------------------------------------------------------------
-
-// scanHooks reads table records into a slice of values.
-func scanHooks(rows *sql.Rows, firstOnly bool) (HookList, error) {
-	var err error
-	var vv HookList
-
-	for rows.Next() {
-		var v0 int64
-		var v1 string
-		var v2 string
-		var v3 string
-		var v4 Category
-		var v5 bool
-		var v6 bool
-		var v7 bool
-		var v8 string
-		var v9 string
-		var v10 string
-		var v11 string
-		var v12 Email
-		var v13 string
-		var v14 string
-		var v15 Email
-		var v16 string
-
-		err = rows.Scan(
-			&v0,
-			&v1,
-			&v2,
-			&v3,
-			&v4,
-			&v5,
-			&v6,
-			&v7,
-			&v8,
-			&v9,
-			&v10,
-			&v11,
-			&v12,
-			&v13,
-			&v14,
-			&v15,
-			&v16,
-		)
-		if err != nil {
-			return vv, err
-		}
-
-		v := &Hook{}
-		v.Id = v0
-		v.Sha = v1
-		v.Dates.After = v2
-		v.Dates.Before = v3
-		v.Category = v4
-		v.Created = v5
-		v.Deleted = v6
-		v.Forced = v7
-		v.HeadCommit.ID = v8
-		v.HeadCommit.Message = v9
-		v.HeadCommit.Timestamp = v10
-		v.HeadCommit.Author.Name = v11
-		v.HeadCommit.Author.Email = v12
-		v.HeadCommit.Author.Username = v13
-		v.HeadCommit.Committer.Name = v14
-		v.HeadCommit.Committer.Email = v15
-		v.HeadCommit.Committer.Username = v16
-
-		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
-			err = hook.PostGet()
-			if err != nil {
-				return vv, err
-			}
-		}
-
-		vv = append(vv, v)
-
-		if firstOnly {
-			return vv, rows.Err()
-		}
-	}
-
-	return vv, rows.Err()
-}

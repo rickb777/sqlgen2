@@ -119,7 +119,9 @@ func main() {
 	}
 
 	WriteExecFunc(buf, view)
-	WriteQueryFuncs(buf, view)
+	WriteQueryRows(buf, view)
+	WriteRowsFunc(buf, view)
+	WriteQueryThings(buf, view)
 
 	if flags.sselect {
 		WriteGetRow(buf, view)
@@ -146,7 +148,6 @@ func main() {
 		WriteDeleteFunc(buf, view)
 	}
 
-	WriteRowsFunc(buf, view)
 	WriteSetters(buf, view, setters)
 
 	// formats the generated file using gofmt
@@ -166,6 +167,7 @@ func packagesToImport(flags funcFlags, hasPrimaryKey bool) StringSet {
 		"log",
 		"strings",
 		"github.com/rickb777/sqlgen2",
+		"github.com/rickb777/sqlgen2/require",
 		"github.com/rickb777/sqlgen2/schema",
 	)
 
