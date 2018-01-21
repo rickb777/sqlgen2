@@ -27,8 +27,9 @@ type AUserTable struct {
 	wrapper interface{}
 }
 
-// Type conformance check
+// Type conformance checks
 var _ sqlgen2.TableWithIndexes = &AUserTable{}
+var _ sqlgen2.TableWithCrud = &AUserTable{}
 
 // NewAUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.

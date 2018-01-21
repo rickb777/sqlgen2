@@ -23,8 +23,9 @@ type {{.Prefix}}{{.Type}}{{.Thing}} struct {
 	wrapper interface{}
 }
 
-// Type conformance check
-var _ {{.Interface}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
+// Type conformance checks
+var _ {{.Interface1}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
+var _ {{.Interface2}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
 
 // New{{.Prefix}}{{.Type}}{{.Thing}} returns a new table instance.
 // If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.

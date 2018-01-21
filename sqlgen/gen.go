@@ -106,7 +106,8 @@ func main() {
 	view := NewView(name, prefix, list)
 	view.Table = table
 	view.Thing = kind
-	view.Interface = primaryInterface(table, flags.schema)
+	view.Interface1 = primaryInterface(table, flags.schema)
+	view.Interface2 = secondaryInterface(flags)
 
 	setters := view.FilterSetters(genSetters)
 
@@ -207,6 +208,13 @@ func primaryInterface(table *schema.TableDescription, genSchema bool) string {
 		return "sqlgen2.TableCreator"
 	}
 	return "sqlgen2.TableWithIndexes"
+}
+
+func secondaryInterface(flags funcFlags) string {
+	if flags.exec && flags.sselect && flags.insert && flags.update && flags.delete && flags.slice {
+		return "sqlgen2.TableWithCrud"
+	}
+	return "sqlgen2.Table"
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -11,19 +11,20 @@ import (
 )
 
 type View struct {
-	Prefix    string
-	Type      string
-	Types     string
-	Thing     string
-	Interface string
-	List      string
-	Suffix    string
-	Body1     []string
-	Body2     []string
-	Body3     []string
-	Dialects  []string
-	Table     *schema.TableDescription
-	Setter    *schema.Field
+	Prefix     string
+	Type       string
+	Types      string
+	Thing      string
+	Interface1 string
+	Interface2 string
+	List       string
+	Suffix     string
+	Body1      []string
+	Body2      []string
+	Body3      []string
+	Dialects   []string
+	Table      *schema.TableDescription
+	Setter     *schema.Field
 }
 
 func NewView(name, prefix, list string) View {
@@ -31,13 +32,14 @@ func NewView(name, prefix, list string) View {
 		list = fmt.Sprintf("[]*%s", name)
 	}
 	return View{
-		Prefix:    prefix,
-		Type:      name,
-		Types:     Pluralize(name),
-		Thing:     "Table",
-		Interface: "sqlgen2.Table",
-		List:      list,
-		Dialects:  schema.Dialects,
+		Prefix:     prefix,
+		Type:       name,
+		Types:      Pluralize(name),
+		Thing:      "Table",
+		Interface1: "sqlgen2.Table",
+		Interface2: "sqlgen2.Table",
+		List:       list,
+		Dialects:   schema.Dialects,
 	}
 }
 

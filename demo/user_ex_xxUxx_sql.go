@@ -27,7 +27,8 @@ type UUserTable struct {
 	wrapper interface{}
 }
 
-// Type conformance check
+// Type conformance checks
+var _ sqlgen2.Table = &UUserTable{}
 var _ sqlgen2.Table = &UUserTable{}
 
 // NewUUserTable returns a new table instance.

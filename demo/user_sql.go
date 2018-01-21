@@ -28,8 +28,9 @@ type DbUserTable struct {
 	wrapper interface{}
 }
 
-// Type conformance check
+// Type conformance checks
 var _ sqlgen2.TableWithIndexes = &DbUserTable{}
+var _ sqlgen2.TableWithCrud = &DbUserTable{}
 
 // NewDbUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.

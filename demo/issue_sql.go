@@ -27,8 +27,9 @@ type IssueTable struct {
 	wrapper interface{}
 }
 
-// Type conformance check
+// Type conformance checks
 var _ sqlgen2.TableWithIndexes = &IssueTable{}
+var _ sqlgen2.TableWithCrud = &IssueTable{}
 
 // NewIssueTable returns a new table instance.
 // If a blank table name is supplied, the default name "issues" will be used instead.

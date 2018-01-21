@@ -26,8 +26,9 @@ type AssociationTable struct {
 	wrapper interface{}
 }
 
-// Type conformance check
+// Type conformance checks
 var _ sqlgen2.TableCreator = &AssociationTable{}
+var _ sqlgen2.TableWithCrud = &AssociationTable{}
 
 // NewAssociationTable returns a new table instance.
 // If a blank table name is supplied, the default name "associations" will be used instead.

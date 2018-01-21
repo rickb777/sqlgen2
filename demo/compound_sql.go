@@ -26,8 +26,9 @@ type DbCompoundTable struct {
 	wrapper interface{}
 }
 
-// Type conformance check
+// Type conformance checks
 var _ sqlgen2.TableWithIndexes = &DbCompoundTable{}
+var _ sqlgen2.TableWithCrud = &DbCompoundTable{}
 
 // NewDbCompoundTable returns a new table instance.
 // If a blank table name is supplied, the default name "compounds" will be used instead.

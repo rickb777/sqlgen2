@@ -26,8 +26,9 @@ type HookTable struct {
 	wrapper interface{}
 }
 
-// Type conformance check
+// Type conformance checks
 var _ sqlgen2.TableCreator = &HookTable{}
+var _ sqlgen2.TableWithCrud = &HookTable{}
 
 // NewHookTable returns a new table instance.
 // If a blank table name is supplied, the default name "hooks" will be used instead.

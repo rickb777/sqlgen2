@@ -214,11 +214,11 @@ type TableWithCrud interface {
 
 	// UpdateFields writes new values to the specified columns for rows that match the 'where' predicate.
 	// It returns the number of rows affected (if the DB supports that).
-	UpdateFields(where where.Expression, fields ...sql.NamedArg) (int64, error)
+	UpdateFields(req require.Requirement, where where.Expression, fields ...sql.NamedArg) (int64, error)
 
 	// Delete deletes rows that match the 'where' predicate.
 	// It returns the number of rows affected (if the DB supports that).
-	Delete(where where.Expression) (int64, error)
+	Delete(req require.Requirement, wh where.Expression) (int64, error)
 
 	//---------------------------------------------------------------------------------------------
 	// The following type-specific methods are also provided (but are not part of this interface).
