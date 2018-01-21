@@ -13,9 +13,12 @@ import (
 	"os"
 	"strings"
 	"path/filepath"
+	"time"
 )
 
 func main() {
+	start := time.Now()
+
 	var oFile, typeName, prefix, list, kind, tagsFile, genSetters string
 	var flags = funcFlags{}
 	var all, sselect, insert, gofmt bool
@@ -158,6 +161,8 @@ func main() {
 	}
 
 	o.Write(pretty, os.Stdout)
+
+	Info("%s took %v\n", o.Path(), time.Now().Sub(start))
 }
 
 func packagesToImport(flags funcFlags, hasPrimaryKey bool) StringSet {
