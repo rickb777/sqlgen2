@@ -39,7 +39,7 @@ func NewView(name, prefix, list string) View {
 		Interface1: "sqlgen2.Table",
 		Interface2: "sqlgen2.Table",
 		List:       list,
-		Dialects:   schema.Dialects,
+		Dialects:   schema.DialectNames(),
 	}
 }
 

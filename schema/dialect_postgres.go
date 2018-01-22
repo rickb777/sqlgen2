@@ -15,6 +15,10 @@ func (d postgres) String() string {
 	return "Postgres"
 }
 
+func (d postgres) Alias() string {
+	return "PostgreSQL"
+}
+
 // https://www.postgresql.org/docs/9.5/static/datatype.html
 
 func (dialect postgres) FieldAsColumn(field *Field) string {

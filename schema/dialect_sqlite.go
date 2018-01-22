@@ -17,6 +17,10 @@ func (d sqlite) String() string {
 	return "Sqlite"
 }
 
+func (d sqlite) Alias() string {
+	return "SQLite3"
+}
+
 // For integers, the value is a signed integer, stored in 1, 2, 3, 4, 6, or 8 bytes depending on the magnitude of the value
 // For reals, the value is a floating point value, stored as an 8-byte IEEE floating point number.
 

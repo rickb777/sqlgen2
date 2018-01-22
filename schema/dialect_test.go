@@ -2,9 +2,12 @@ package schema
 
 import (
 	"testing"
+	. "github.com/onsi/gomega"
 )
 
 func TestPlaceholders(t *testing.T) {
+	RegisterTestingT(t)
+
 	cases := []struct {
 		di       Dialect
 		n        int
@@ -22,21 +25,35 @@ func TestPlaceholders(t *testing.T) {
 	}
 	for _, c := range cases {
 		s := c.di.Placeholders(c.n)
-		if s != c.expected {
-			t.Errorf("expected %q but got %q", c.expected, s)
-		}
+		Ω(s).Should(Equal(c.expected))
 	}
 }
 
 func TestReplacePlaceholders(t *testing.T) {
+	RegisterTestingT(t)
+
 	s := Mysql.ReplacePlaceholders("?,?,?,?,?,?,?,?,?,?,?")
-	if s != "?,?,?,?,?,?,?,?,?,?,?" {
-		t.Errorf("expected ?,?,?,?,?,?,?,?,?,?,? but got %q", s)
-	}
+	Ω(s).Should(Equal("?,?,?,?,?,?,?,?,?,?,?"))
 
 	s = Postgres.ReplacePlaceholders("?,?,?,?,?,?,?,?,?,?,?")
-	if s != "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11" {
-		t.Errorf("expected $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 but got %q", s)
-	}
+	Ω(s).Should(Equal("$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11"))
+}
 
+func TestPickDialect(t *testing.T) {
+	RegisterTestingT(t)
+
+	cases := []struct {
+		di   Dialect
+		name string
+	}{
+		{Mysql, "MySQL"},
+		{Postgres, "Postgres"},
+		{Postgres, "PostgreSQL"},
+		{Sqlite, "SQLite"},
+		{Sqlite, "sqlite3"},
+	}
+	for _, c := range cases {
+		s := PickDialect(c.name)
+		Ω(s).Should(Equal(c.di))
+	}
 }

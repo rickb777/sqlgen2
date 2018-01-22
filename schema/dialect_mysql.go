@@ -14,6 +14,10 @@ func (d mysql) String() string {
 	return "Mysql"
 }
 
+func (d mysql) Alias() string {
+	return "MySQL"
+}
+
 // see https://dev.mysql.com/doc/refman/5.7/en/data-types.html
 
 func (dialect mysql) FieldAsColumn(field *Field) string {
