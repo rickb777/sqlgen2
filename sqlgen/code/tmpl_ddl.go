@@ -15,12 +15,13 @@ const sTable = `
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type {{.Prefix}}{{.Type}}{{.Thing}} struct {
-	name    sqlgen2.TableName
-	db      sqlgen2.Execer
-	ctx     context.Context
-	dialect schema.Dialect
-	logger  *log.Logger
-	wrapper interface{}
+	name        sqlgen2.TableName
+	db          sqlgen2.Execer
+	constraints sqlgen2.Constraints
+	ctx         context.Context
+	dialect     schema.Dialect
+	logger      *log.Logger
+	wrapper     interface{}
 }
 
 // Type conformance checks
@@ -34,18 +35,22 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name sqlgen2.TableName, d sqlgen2.Execer,
 	if name.Name == "" {
 		name.Name = "{{.DbName}}"
 	}
-	return {{.Prefix}}{{.Type}}{{.Thing}}{name, d, context.Background(), dialect, nil, nil}
+	return {{.Prefix}}{{.Type}}{{.Thing}}{name, d, nil, context.Background(), dialect, nil, nil}
 }
 
-// CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}} copies a table instance, retaining the name etc but
-// providing methods appropriate for '{{.Type}}'.
+// CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}} copies a table instance, copying the name's prefix, the DB, the context,
+// the dialect and the logger. However, it sets the table name to "{{.DbName}}" and doesn't copy the constraints'.
+//
+// It serves to provide methods appropriate for '{{.Type}}'. This is most useulf when thie is used to represent a
+// join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin sqlgen2.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
-		name:    origin.Name(),
-		db:      origin.DB(),
-		ctx:     origin.Ctx(),
-		dialect: origin.Dialect(),
-		logger:  origin.Logger(),
+		name:        sqlgen2.TableName{origin.Name().Prefix, "{{.DbName}}"},
+		db:          origin.DB(),
+		constraints: nil,
+		ctx:         origin.Ctx(),
+		dialect:     origin.Dialect(),
+		logger:      origin.Logger(),
 	}
 }
 
@@ -79,6 +84,12 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Logger() *log.Logger {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// AddConstraint returns a modified Table with added data consistency constraints.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) AddConstraint(cc ...sqlgen2.Constraint) {{.Prefix}}{{.Type}}{{.Thing}} {
+	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
 
@@ -274,7 +285,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) createTableSql(ifNotExists bool) strin
     {{end -}}
 	}
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.name)
+	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
+	if cs != "" {
+		cs = "\n " + cs + "\n"
+	}
+	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
 	return query
 }
 

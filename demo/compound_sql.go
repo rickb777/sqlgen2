@@ -18,12 +18,13 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DbCompoundTable struct {
-	name    sqlgen2.TableName
-	db      sqlgen2.Execer
-	ctx     context.Context
-	dialect schema.Dialect
-	logger  *log.Logger
-	wrapper interface{}
+	name        sqlgen2.TableName
+	db          sqlgen2.Execer
+	constraints sqlgen2.Constraints
+	ctx         context.Context
+	dialect     schema.Dialect
+	logger      *log.Logger
+	wrapper     interface{}
 }
 
 // Type conformance checks
@@ -37,18 +38,22 @@ func NewDbCompoundTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema
 	if name.Name == "" {
 		name.Name = "compounds"
 	}
-	return DbCompoundTable{name, d, context.Background(), dialect, nil, nil}
+	return DbCompoundTable{name, d, nil, context.Background(), dialect, nil, nil}
 }
 
-// CopyTableAsDbCompoundTable copies a table instance, retaining the name etc but
-// providing methods appropriate for 'Compound'.
+// CopyTableAsDbCompoundTable copies a table instance, copying the name's prefix, the DB, the context,
+// the dialect and the logger. However, it sets the table name to "compounds" and doesn't copy the constraints'.
+//
+// It serves to provide methods appropriate for 'Compound'. This is most useulf when thie is used to represent a
+// join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsDbCompoundTable(origin sqlgen2.Table) DbCompoundTable {
 	return DbCompoundTable{
-		name:    origin.Name(),
-		db:      origin.DB(),
-		ctx:     origin.Ctx(),
-		dialect: origin.Dialect(),
-		logger:  origin.Logger(),
+		name:        sqlgen2.TableName{origin.Name().Prefix, "compounds"},
+		db:          origin.DB(),
+		constraints: nil,
+		ctx:         origin.Ctx(),
+		dialect:     origin.Dialect(),
+		logger:      origin.Logger(),
 	}
 }
 
@@ -82,6 +87,12 @@ func (tbl DbCompoundTable) Logger() *log.Logger {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DbCompoundTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// AddConstraint returns a modified Table with added data consistency constraints.
+func (tbl DbCompoundTable) AddConstraint(cc ...sqlgen2.Constraint) DbCompoundTable {
+	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
 
@@ -185,7 +196,11 @@ func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
 		stmt = sqlCreateDbCompoundTableMysql
 	}
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.name)
+	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
+	if cs != "" {
+		cs = "\n " + cs + "\n"
+	}
+	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
 	return query
 }
 
@@ -212,7 +227,7 @@ CREATE TABLE %s%s (
  alpha    text,
  beta     text,
  category tinyint unsigned
-)
+%s)
 `
 
 const sqlCreateDbCompoundTablePostgres = `
@@ -220,7 +235,7 @@ CREATE TABLE %s%s (
  alpha    varchar(255),
  beta     varchar(255),
  category tinyint unsigned
-)
+%s)
 `
 
 const sqlCreateDbCompoundTableMysql = `
@@ -228,7 +243,7 @@ CREATE TABLE %s%s (
  alpha    varchar(255),
  beta     varchar(255),
  category tinyint unsigned
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
+%s) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 
 //--------------------------------------------------------------------------------

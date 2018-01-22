@@ -18,12 +18,13 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type AssociationTable struct {
-	name    sqlgen2.TableName
-	db      sqlgen2.Execer
-	ctx     context.Context
-	dialect schema.Dialect
-	logger  *log.Logger
-	wrapper interface{}
+	name        sqlgen2.TableName
+	db          sqlgen2.Execer
+	constraints sqlgen2.Constraints
+	ctx         context.Context
+	dialect     schema.Dialect
+	logger      *log.Logger
+	wrapper     interface{}
 }
 
 // Type conformance checks
@@ -37,18 +38,22 @@ func NewAssociationTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schem
 	if name.Name == "" {
 		name.Name = "associations"
 	}
-	return AssociationTable{name, d, context.Background(), dialect, nil, nil}
+	return AssociationTable{name, d, nil, context.Background(), dialect, nil, nil}
 }
 
-// CopyTableAsAssociationTable copies a table instance, retaining the name etc but
-// providing methods appropriate for 'Association'.
+// CopyTableAsAssociationTable copies a table instance, copying the name's prefix, the DB, the context,
+// the dialect and the logger. However, it sets the table name to "associations" and doesn't copy the constraints'.
+//
+// It serves to provide methods appropriate for 'Association'. This is most useulf when thie is used to represent a
+// join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsAssociationTable(origin sqlgen2.Table) AssociationTable {
 	return AssociationTable{
-		name:    origin.Name(),
-		db:      origin.DB(),
-		ctx:     origin.Ctx(),
-		dialect: origin.Dialect(),
-		logger:  origin.Logger(),
+		name:        sqlgen2.TableName{origin.Name().Prefix, "associations"},
+		db:          origin.DB(),
+		constraints: nil,
+		ctx:         origin.Ctx(),
+		dialect:     origin.Dialect(),
+		logger:      origin.Logger(),
 	}
 }
 
@@ -82,6 +87,12 @@ func (tbl AssociationTable) Logger() *log.Logger {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AssociationTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// AddConstraint returns a modified Table with added data consistency constraints.
+func (tbl AssociationTable) AddConstraint(cc ...sqlgen2.Constraint) AssociationTable {
+	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
 
@@ -185,7 +196,11 @@ func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
     case schema.Mysql: stmt = sqlCreateAssociationTableMysql
     }
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.name)
+	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
+	if cs != "" {
+		cs = "\n " + cs + "\n"
+	}
+	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
 	return query
 }
 
@@ -215,7 +230,7 @@ CREATE TABLE %s%s (
  ref1     bigint default null,
  ref2     bigint default null,
  category tinyint unsigned default null
-)
+%s)
 `
 
 const sqlCreateAssociationTablePostgres = `
@@ -226,7 +241,7 @@ CREATE TABLE %s%s (
  ref1     bigint default null,
  ref2     bigint default null,
  category tinyint unsigned default null
-)
+%s)
 `
 
 const sqlCreateAssociationTableMysql = `
@@ -237,7 +252,7 @@ CREATE TABLE %s%s (
  ref1     bigint default null,
  ref2     bigint default null,
  category tinyint unsigned default null
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
+%s) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 
 //--------------------------------------------------------------------------------

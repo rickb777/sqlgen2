@@ -131,6 +131,9 @@ type Table interface {
 	// when making multiple queries across several tables within a single transaction.
 	// The result is a modified copy of the table; the original is unchanged.
 	//Using(tx *sql.Tx) SomeTypeTable
+
+	// AddConstraint returns a modified Table with added data consistency constraints.
+	//AddConstraint(cc ...sqlgen2.Constraint) SomeTypeTable {
 }
 
 type TableCreator interface {

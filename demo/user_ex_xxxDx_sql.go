@@ -19,12 +19,13 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DUserTable struct {
-	name    sqlgen2.TableName
-	db      sqlgen2.Execer
-	ctx     context.Context
-	dialect schema.Dialect
-	logger  *log.Logger
-	wrapper interface{}
+	name        sqlgen2.TableName
+	db          sqlgen2.Execer
+	constraints sqlgen2.Constraints
+	ctx         context.Context
+	dialect     schema.Dialect
+	logger      *log.Logger
+	wrapper     interface{}
 }
 
 // Type conformance checks
@@ -38,18 +39,22 @@ func NewDUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dial
 	if name.Name == "" {
 		name.Name = "users"
 	}
-	return DUserTable{name, d, context.Background(), dialect, nil, nil}
+	return DUserTable{name, d, nil, context.Background(), dialect, nil, nil}
 }
 
-// CopyTableAsDUserTable copies a table instance, retaining the name etc but
-// providing methods appropriate for 'User'.
+// CopyTableAsDUserTable copies a table instance, copying the name's prefix, the DB, the context,
+// the dialect and the logger. However, it sets the table name to "users" and doesn't copy the constraints'.
+//
+// It serves to provide methods appropriate for 'User'. This is most useulf when thie is used to represent a
+// join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsDUserTable(origin sqlgen2.Table) DUserTable {
 	return DUserTable{
-		name:    origin.Name(),
-		db:      origin.DB(),
-		ctx:     origin.Ctx(),
-		dialect: origin.Dialect(),
-		logger:  origin.Logger(),
+		name:        sqlgen2.TableName{origin.Name().Prefix, "users"},
+		db:          origin.DB(),
+		constraints: nil,
+		ctx:         origin.Ctx(),
+		dialect:     origin.Dialect(),
+		logger:      origin.Logger(),
 	}
 }
 
@@ -83,6 +88,12 @@ func (tbl DUserTable) Logger() *log.Logger {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// AddConstraint returns a modified Table with added data consistency constraints.
+func (tbl DUserTable) AddConstraint(cc ...sqlgen2.Constraint) DUserTable {
+	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
 
@@ -244,14 +255,15 @@ func scanDUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 		var v0 int64
 		var v1 string
 		var v2 string
-		var v3 sql.NullString
-		var v4 *Role
-		var v5 bool
+		var v3 sql.NullInt64
+		var v4 sql.NullString
+		var v5 *Role
 		var v6 bool
-		var v7 []byte
-		var v8 int64
-		var v9 string
+		var v7 bool
+		var v8 []byte
+		var v9 int64
 		var v10 string
+		var v11 string
 
 		err = rows.Scan(
 			&v0,
@@ -265,6 +277,7 @@ func scanDUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 			&v8,
 			&v9,
 			&v10,
+			&v11,
 		)
 		if err != nil {
 			return vv, n, err
@@ -275,19 +288,23 @@ func scanDUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 		v.Login = v1
 		v.EmailAddress = v2
 		if v3.Valid {
-			a := v3.String
+			a := v3.Int64
+			v.AddressId = &a
+		}
+		if v4.Valid {
+			a := v4.String
 			v.Avatar = &a
 		}
-		v.Role = v4
-		v.Active = v5
-		v.Admin = v6
-		err = json.Unmarshal(v7, &v.Fave)
+		v.Role = v5
+		v.Active = v6
+		v.Admin = v7
+		err = json.Unmarshal(v8, &v.Fave)
 		if err != nil {
 			return nil, n, err
 		}
-		v.LastUpdated = v8
-		v.token = v9
-		v.secret = v10
+		v.LastUpdated = v9
+		v.token = v10
+		v.secret = v11
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {

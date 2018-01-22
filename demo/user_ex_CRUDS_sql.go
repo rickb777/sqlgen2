@@ -19,12 +19,13 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type AUserTable struct {
-	name    sqlgen2.TableName
-	db      sqlgen2.Execer
-	ctx     context.Context
-	dialect schema.Dialect
-	logger  *log.Logger
-	wrapper interface{}
+	name        sqlgen2.TableName
+	db          sqlgen2.Execer
+	constraints sqlgen2.Constraints
+	ctx         context.Context
+	dialect     schema.Dialect
+	logger      *log.Logger
+	wrapper     interface{}
 }
 
 // Type conformance checks
@@ -38,18 +39,22 @@ func NewAUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dial
 	if name.Name == "" {
 		name.Name = "users"
 	}
-	return AUserTable{name, d, context.Background(), dialect, nil, nil}
+	return AUserTable{name, d, nil, context.Background(), dialect, nil, nil}
 }
 
-// CopyTableAsAUserTable copies a table instance, retaining the name etc but
-// providing methods appropriate for 'User'.
+// CopyTableAsAUserTable copies a table instance, copying the name's prefix, the DB, the context,
+// the dialect and the logger. However, it sets the table name to "users" and doesn't copy the constraints'.
+//
+// It serves to provide methods appropriate for 'User'. This is most useulf when thie is used to represent a
+// join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsAUserTable(origin sqlgen2.Table) AUserTable {
 	return AUserTable{
-		name:    origin.Name(),
-		db:      origin.DB(),
-		ctx:     origin.Ctx(),
-		dialect: origin.Dialect(),
-		logger:  origin.Logger(),
+		name:        sqlgen2.TableName{origin.Name().Prefix, "users"},
+		db:          origin.DB(),
+		constraints: nil,
+		ctx:         origin.Ctx(),
+		dialect:     origin.Dialect(),
+		logger:      origin.Logger(),
 	}
 }
 
@@ -83,6 +88,12 @@ func (tbl AUserTable) Logger() *log.Logger {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// AddConstraint returns a modified Table with added data consistency constraints.
+func (tbl AUserTable) AddConstraint(cc ...sqlgen2.Constraint) AUserTable {
+	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
 
@@ -163,13 +174,13 @@ func (tbl AUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
-const NumAUserColumns = 11
+const NumAUserColumns = 12
 
-const NumAUserDataColumns = 10
+const NumAUserDataColumns = 11
 
 const AUserPk = "Uid"
 
-const AUserDataColumnNames = "login, emailaddress, avatar, role, active, admin, fave, lastupdated, token, secret"
+const AUserDataColumnNames = "login, emailaddress, addressid, avatar, role, active, admin, fave, lastupdated, token, secret"
 
 //--------------------------------------------------------------------------------
 
@@ -186,7 +197,11 @@ func (tbl AUserTable) createTableSql(ifNotExists bool) string {
     case schema.Mysql: stmt = sqlCreateAUserTableMysql
     }
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.name)
+	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
+	if cs != "" {
+		cs = "\n " + cs + "\n"
+	}
+	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
 	return query
 }
 
@@ -213,6 +228,7 @@ CREATE TABLE %s%s (
  uid          integer primary key autoincrement,
  login        text,
  emailaddress text,
+ addressid    bigint default null,
  avatar       text default null,
  role         tinyint default null,
  active       boolean,
@@ -221,7 +237,7 @@ CREATE TABLE %s%s (
  lastupdated  bigint,
  token        text,
  secret       text
-)
+%s)
 `
 
 const sqlCreateAUserTablePostgres = `
@@ -229,6 +245,7 @@ CREATE TABLE %s%s (
  uid          bigserial primary key,
  login        varchar(255),
  emailaddress varchar(255),
+ addressid    bigint default null,
  avatar       varchar(255) default null,
  role         tinyint default null,
  active       boolean,
@@ -237,7 +254,7 @@ CREATE TABLE %s%s (
  lastupdated  bigint,
  token        varchar(255),
  secret       varchar(255)
-)
+%s)
 `
 
 const sqlCreateAUserTableMysql = `
@@ -245,6 +262,7 @@ CREATE TABLE %s%s (
  uid          bigint primary key auto_increment,
  login        varchar(255),
  emailaddress varchar(255),
+ addressid    bigint default null,
  avatar       varchar(255) default null,
  role         tinyint default null,
  active       tinyint(1),
@@ -253,7 +271,7 @@ CREATE TABLE %s%s (
  lastupdated  bigint,
  token        varchar(255),
  secret       varchar(255)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
+%s) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 
 //--------------------------------------------------------------------------------
@@ -480,14 +498,15 @@ func scanAUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 		var v0 int64
 		var v1 string
 		var v2 string
-		var v3 sql.NullString
-		var v4 *Role
-		var v5 bool
+		var v3 sql.NullInt64
+		var v4 sql.NullString
+		var v5 *Role
 		var v6 bool
-		var v7 []byte
-		var v8 int64
-		var v9 string
+		var v7 bool
+		var v8 []byte
+		var v9 int64
 		var v10 string
+		var v11 string
 
 		err = rows.Scan(
 			&v0,
@@ -501,6 +520,7 @@ func scanAUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 			&v8,
 			&v9,
 			&v10,
+			&v11,
 		)
 		if err != nil {
 			return vv, n, err
@@ -511,19 +531,23 @@ func scanAUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 		v.Login = v1
 		v.EmailAddress = v2
 		if v3.Valid {
-			a := v3.String
+			a := v3.Int64
+			v.AddressId = &a
+		}
+		if v4.Valid {
+			a := v4.String
 			v.Avatar = &a
 		}
-		v.Role = v4
-		v.Active = v5
-		v.Admin = v6
-		err = json.Unmarshal(v7, &v.Fave)
+		v.Role = v5
+		v.Active = v6
+		v.Admin = v7
+		err = json.Unmarshal(v8, &v.Fave)
 		if err != nil {
 			return nil, n, err
 		}
-		v.LastUpdated = v8
-		v.token = v9
-		v.secret = v10
+		v.LastUpdated = v9
+		v.token = v10
+		v.secret = v11
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
@@ -775,7 +799,7 @@ func (tbl AUserTable) Count(wh where.Expression) (count int64, err error) {
 	return tbl.CountWhere(whs, args...)
 }
 
-const AUserColumnNames = "uid, login, emailaddress, avatar, role, active, admin, fave, lastupdated, token, secret"
+const AUserColumnNames = "uid, login, emailaddress, addressid, avatar, role, active, admin, fave, lastupdated, token, secret"
 
 //--------------------------------------------------------------------------------
 
@@ -798,6 +822,13 @@ func (tbl AUserTable) SliceLogin(req require.Requirement, wh where.Expression, q
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AUserTable) SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist(req, "emailaddress", wh, qc)
+}
+
+// SliceAddressId gets the AddressId column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl AUserTable) SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64Ptrlist(req, "addressid", wh, qc)
 }
 
 // SliceAvatar gets the Avatar column for all rows that match the 'where' condition.
@@ -887,6 +918,31 @@ func (tbl AUserTable) getboollist(req require.Requirement, sqlname string, wh wh
 }
 
 func (tbl AUserTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v int64
+	list := make([]int64, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+func (tbl AUserTable) getint64Ptrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
@@ -1027,6 +1083,7 @@ const sqlInsertAUser = `
 INSERT INTO %s (
 	login,
 	emailaddress,
+	addressid,
 	avatar,
 	role,
 	active,
@@ -1038,9 +1095,9 @@ INSERT INTO %s (
 ) VALUES (%s)
 `
 
-const sAUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?,?"
+const sAUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?,?,?"
 
-const sAUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10"
+const sAUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11"
 
 //--------------------------------------------------------------------------------
 
@@ -1110,6 +1167,7 @@ const sqlUpdateAUserByPkSimple = `
 UPDATE %s SET
 	login=?,
 	emailaddress=?,
+	addressid=?,
 	avatar=?,
 	role=?,
 	active=?,
@@ -1125,20 +1183,21 @@ const sqlUpdateAUserByPkPostgres = `
 UPDATE %s SET
 	login=$2,
 	emailaddress=$3,
-	avatar=$4,
-	role=$5,
-	active=$6,
-	admin=$7,
-	fave=$8,
-	lastupdated=$9,
-	token=$10,
-	secret=$11
+	addressid=$4,
+	avatar=$5,
+	role=$6,
+	active=$7,
+	admin=$8,
+	fave=$9,
+	lastupdated=$10,
+	token=$11,
+	secret=$12
 WHERE uid=$1
 `
 
 func sliceAUserWithoutPk(v *User) ([]interface{}, error) {
 
-	v7, err := json.Marshal(&v.Fave)
+	v8, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
@@ -1146,11 +1205,12 @@ func sliceAUserWithoutPk(v *User) ([]interface{}, error) {
 	return []interface{}{
 		v.Login,
 		v.EmailAddress,
+		v.AddressId,
 		v.Avatar,
 		v.Role,
 		v.Active,
 		v.Admin,
-		v7,
+		v8,
 		v.LastUpdated,
 		v.token,
 		v.secret,

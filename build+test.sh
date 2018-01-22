@@ -32,7 +32,7 @@ done
 cd ..
 go install .
 
-for d in schema sqlgen where; do
+for d in require schema sqlgen where; do
   echo ./$d...
   go test $1 -covermode=count -coverprofile=./$d.out ./$d
   go tool cover -func=./$d.out

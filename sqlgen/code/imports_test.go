@@ -9,7 +9,7 @@ package code
 //	"github.com/rickb777/sqlgen2/sqlgen/parse"
 //)
 //
-//func TestWriteImports_withoutAny(t *testing.T) {
+//func xTestWriteImports_withoutAny(t *testing.T) {
 //	buf := &bytes.Buffer{}
 //
 //	WriteImports(buf, &schema.TableDescription{}, NewStringSet())
@@ -20,7 +20,7 @@ package code
 //	}
 //}
 //
-//func TestWriteImports_withoutExtras(t *testing.T) {
+//func xTestWriteImports_withoutExtras(t *testing.T) {
 //	buf := &bytes.Buffer{}
 //
 //	WriteImports(buf, &schema.TableDescription{}, NewStringSet("foo", "bar"))
@@ -37,7 +37,7 @@ package code
 //	}
 //}
 //
-//func TestWriteImports_withExtras(t *testing.T) {
+//func xTestWriteImports_withExtras(t *testing.T) {
 //	exit.TestableExit()
 //	literal := strings.Replace(`package pkg1
 //

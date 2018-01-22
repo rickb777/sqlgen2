@@ -3,18 +3,18 @@ package demo
 import (
 	"testing"
 	. "github.com/onsi/gomega"
-	"github.com/rickb777/sqlgen2"
-	"github.com/rickb777/sqlgen2/where"
 	_ "github.com/mattn/go-sqlite3"
 	"context"
 	"database/sql"
 	"database/sql/driver"
 	. "fmt"
-	"syscall"
-	"github.com/rickb777/sqlgen2/schema"
 	"math/big"
 	"log"
 	"os"
+	"syscall"
+	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/where"
+	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/require"
 )
 
@@ -51,13 +51,16 @@ func user(i int) *User {
 func TestCreateTable_postgres(t *testing.T) {
 	RegisterTestingT(t)
 
-	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, schema.Postgres).WithPrefix("prefix_")
-	sql := tbl.createTableSql(true)
-	expected := `
+	cases := []struct {
+		dialect  schema.Dialect
+		expected string
+	}{
+		{schema.Postgres, `
 CREATE TABLE IF NOT EXISTS prefix_users (
  uid          bigserial primary key,
  login        varchar(255),
  emailaddress varchar(255),
+ addressid    bigint default null,
  avatar       varchar(255) default null,
  role         tinyint default null,
  active       boolean,
@@ -66,10 +69,40 @@ CREATE TABLE IF NOT EXISTS prefix_users (
  lastupdated  bigint,
  token        varchar(255),
  secret       varchar(255)
+
+ CONSTRAINT prefix_users_c1 CHECK (role < 3)
+ CONSTRAINT prefix_users_c2 foreign key (addressid) references prefix_addresses (id) on delete cascade
 )
-`
-	if sql != expected {
-		t.Errorf("got %s", sql)
+`},
+		{schema.Mysql, `
+CREATE TABLE IF NOT EXISTS prefix_users (
+ uid          bigint primary key auto_increment,
+ login        varchar(255),
+ emailaddress varchar(255),
+ addressid    bigint default null,
+ avatar       varchar(255) default null,
+ role         tinyint default null,
+ active       tinyint(1),
+ admin        tinyint(1),
+ fave         json,
+ lastupdated  bigint,
+ token        varchar(255),
+ secret       varchar(255)
+
+ CONSTRAINT prefix_users_c1 CHECK (role < 3)
+ CONSTRAINT prefix_users_c2 foreign key (addressid) references prefix_addresses (id) on delete cascade
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+`},
+	}
+
+	for _, c := range cases {
+		tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, c.dialect).
+			WithPrefix("prefix_").
+			AddConstraint(
+			sqlgen2.CheckConstraint{"role < 3"},
+			sqlgen2.FkConstraintOn("addressid").RefersTo("addresses", "id").OnDelete(sqlgen2.Cascade))
+		s := tbl.createTableSql(true)
+		Ω(s).Should(Equal(c.expected), "%s\n%s", c.dialect, s)
 	}
 }
 

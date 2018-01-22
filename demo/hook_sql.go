@@ -18,12 +18,13 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type HookTable struct {
-	name    sqlgen2.TableName
-	db      sqlgen2.Execer
-	ctx     context.Context
-	dialect schema.Dialect
-	logger  *log.Logger
-	wrapper interface{}
+	name        sqlgen2.TableName
+	db          sqlgen2.Execer
+	constraints sqlgen2.Constraints
+	ctx         context.Context
+	dialect     schema.Dialect
+	logger      *log.Logger
+	wrapper     interface{}
 }
 
 // Type conformance checks
@@ -37,18 +38,22 @@ func NewHookTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Diale
 	if name.Name == "" {
 		name.Name = "hooks"
 	}
-	return HookTable{name, d, context.Background(), dialect, nil, nil}
+	return HookTable{name, d, nil, context.Background(), dialect, nil, nil}
 }
 
-// CopyTableAsHookTable copies a table instance, retaining the name etc but
-// providing methods appropriate for 'Hook'.
+// CopyTableAsHookTable copies a table instance, copying the name's prefix, the DB, the context,
+// the dialect and the logger. However, it sets the table name to "hooks" and doesn't copy the constraints'.
+//
+// It serves to provide methods appropriate for 'Hook'. This is most useulf when thie is used to represent a
+// join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsHookTable(origin sqlgen2.Table) HookTable {
 	return HookTable{
-		name:    origin.Name(),
-		db:      origin.DB(),
-		ctx:     origin.Ctx(),
-		dialect: origin.Dialect(),
-		logger:  origin.Logger(),
+		name:        sqlgen2.TableName{origin.Name().Prefix, "hooks"},
+		db:          origin.DB(),
+		constraints: nil,
+		ctx:         origin.Ctx(),
+		dialect:     origin.Dialect(),
+		logger:      origin.Logger(),
 	}
 }
 
@@ -82,6 +87,12 @@ func (tbl HookTable) Logger() *log.Logger {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl HookTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// AddConstraint returns a modified Table with added data consistency constraints.
+func (tbl HookTable) AddConstraint(cc ...sqlgen2.Constraint) HookTable {
+	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
 
@@ -185,7 +196,11 @@ func (tbl HookTable) createTableSql(ifNotExists bool) string {
     case schema.Mysql: stmt = sqlCreateHookTableMysql
     }
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.name)
+	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
+	if cs != "" {
+		cs = "\n " + cs + "\n"
+	}
+	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
 	return query
 }
 
@@ -226,7 +241,7 @@ CREATE TABLE %s%s (
  head_commit_committer_name     text,
  head_commit_committer_email    text,
  head_commit_committer_username text
-)
+%s)
 `
 
 const sqlCreateHookTablePostgres = `
@@ -248,7 +263,7 @@ CREATE TABLE %s%s (
  head_commit_committer_name     varchar(255),
  head_commit_committer_email    varchar(255),
  head_commit_committer_username varchar(255)
-)
+%s)
 `
 
 const sqlCreateHookTableMysql = `
@@ -270,7 +285,7 @@ CREATE TABLE %s%s (
  head_commit_committer_name     varchar(255),
  head_commit_committer_email    varchar(255),
  head_commit_committer_username varchar(255)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
+%s) ENGINE=InnoDB DEFAULT CHARSET=utf8
 `
 
 //--------------------------------------------------------------------------------

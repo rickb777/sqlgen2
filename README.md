@@ -4,7 +4,24 @@ place of a simple ORM or hand-written SQL.
 See the [demo](https://github.com/rickb777/sqlgen2/tree/master/demo) directory for examples. Look in the
 generated files `*_sql.go` and the hand-crafted files (`hook.go`, `issue.go`, `user.go`).
 
-### Install
+## Features
+
+* Auto-generates DAO-style table-support code for SQL databases.
+* Sophisticated parsing of a Go `struct` that describes records in the table.
+* Allows nesting of structs, fields that are structs or pointers to structs etc.
+* Struct tags give fine control over the semantics of each field.
+* Supports indexes and constraints.
+* Supports foreign key relationships between tables.
+* Helps you develop code for joins and views.
+* Supports JSON-encoded columns, allowing a more no-SQL model when needed.
+* Provides a builder-style API for constructing where-clauses and query constraints.
+* Allows declarative requirements on the expected result of each query, enhancing error checking. 
+* Very flexible configuration.
+* Fast and easy to use.
+
+Currently, support is included for **MySQL**, **PostgreSQL** and **SQLite**. Other dialects can be added relatively easy - send a Pull Request!
+
+## Install
 
 Install or upgrade with this command:
 
@@ -12,7 +29,7 @@ Install or upgrade with this command:
 go get -u github.com/rickb777/sqlgen2
 ```
 
-### Usage
+## Usage
 
 ```
 sqlgen [option [arg]] file.go ...
@@ -81,13 +98,14 @@ Information:
 
 The options `-schema`, `-read`, `-insert`, -`update`, `-delete`, and `-slice` are all off by default; **you should normally include `-all`**, unless you have other needs.
 
-### Tutorial
+## Tutorial
 
-`sqlgen` gives you a table-focussed view of your database. It generates code that maps each `struct`
-you specify onto a database table (or view, or join result).
+`sqlgen` gives you a table-focussed view of your database. For each table, you write a `struct` that describes the table's columns. It generates code that maps your `struct` onto its database table (this also works for views and join results).
 
 `sqlgen` is *not* an ORM: it does not automatically handle 'object' - relational mapping. It's simpler -
-but just as comprehensive. 
+but just as comprehensive.
+
+You are expected to understand your own database; `sqlgen` removes the hard work of reliably writing the necessary `database/sql` API calls.
 
 First, let's start with a simple `User` struct in `user.go`:
 

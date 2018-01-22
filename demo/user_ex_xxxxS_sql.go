@@ -19,12 +19,13 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type SUserTable struct {
-	name    sqlgen2.TableName
-	db      sqlgen2.Execer
-	ctx     context.Context
-	dialect schema.Dialect
-	logger  *log.Logger
-	wrapper interface{}
+	name        sqlgen2.TableName
+	db          sqlgen2.Execer
+	constraints sqlgen2.Constraints
+	ctx         context.Context
+	dialect     schema.Dialect
+	logger      *log.Logger
+	wrapper     interface{}
 }
 
 // Type conformance checks
@@ -38,18 +39,22 @@ func NewSUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dial
 	if name.Name == "" {
 		name.Name = "users"
 	}
-	return SUserTable{name, d, context.Background(), dialect, nil, nil}
+	return SUserTable{name, d, nil, context.Background(), dialect, nil, nil}
 }
 
-// CopyTableAsSUserTable copies a table instance, retaining the name etc but
-// providing methods appropriate for 'User'.
+// CopyTableAsSUserTable copies a table instance, copying the name's prefix, the DB, the context,
+// the dialect and the logger. However, it sets the table name to "users" and doesn't copy the constraints'.
+//
+// It serves to provide methods appropriate for 'User'. This is most useulf when thie is used to represent a
+// join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsSUserTable(origin sqlgen2.Table) SUserTable {
 	return SUserTable{
-		name:    origin.Name(),
-		db:      origin.DB(),
-		ctx:     origin.Ctx(),
-		dialect: origin.Dialect(),
-		logger:  origin.Logger(),
+		name:        sqlgen2.TableName{origin.Name().Prefix, "users"},
+		db:          origin.DB(),
+		constraints: nil,
+		ctx:         origin.Ctx(),
+		dialect:     origin.Dialect(),
+		logger:      origin.Logger(),
 	}
 }
 
@@ -83,6 +88,12 @@ func (tbl SUserTable) Logger() *log.Logger {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl SUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
+	return tbl
+}
+
+// AddConstraint returns a modified Table with added data consistency constraints.
+func (tbl SUserTable) AddConstraint(cc ...sqlgen2.Constraint) SUserTable {
+	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
 
@@ -228,14 +239,15 @@ func scanSUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 		var v0 int64
 		var v1 string
 		var v2 string
-		var v3 sql.NullString
-		var v4 *Role
-		var v5 bool
+		var v3 sql.NullInt64
+		var v4 sql.NullString
+		var v5 *Role
 		var v6 bool
-		var v7 []byte
-		var v8 int64
-		var v9 string
+		var v7 bool
+		var v8 []byte
+		var v9 int64
 		var v10 string
+		var v11 string
 
 		err = rows.Scan(
 			&v0,
@@ -249,6 +261,7 @@ func scanSUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 			&v8,
 			&v9,
 			&v10,
+			&v11,
 		)
 		if err != nil {
 			return vv, n, err
@@ -259,19 +272,23 @@ func scanSUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 		v.Login = v1
 		v.EmailAddress = v2
 		if v3.Valid {
-			a := v3.String
+			a := v3.Int64
+			v.AddressId = &a
+		}
+		if v4.Valid {
+			a := v4.String
 			v.Avatar = &a
 		}
-		v.Role = v4
-		v.Active = v5
-		v.Admin = v6
-		err = json.Unmarshal(v7, &v.Fave)
+		v.Role = v5
+		v.Active = v6
+		v.Admin = v7
+		err = json.Unmarshal(v8, &v.Fave)
 		if err != nil {
 			return nil, n, err
 		}
-		v.LastUpdated = v8
-		v.token = v9
-		v.secret = v10
+		v.LastUpdated = v9
+		v.token = v10
+		v.secret = v11
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
@@ -427,6 +444,13 @@ func (tbl SUserTable) SliceEmailaddress(req require.Requirement, wh where.Expres
 	return tbl.getstringlist(req, "emailaddress", wh, qc)
 }
 
+// SliceAddressId gets the AddressId column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl SUserTable) SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64Ptrlist(req, "addressid", wh, qc)
+}
+
 // SliceAvatar gets the Avatar column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
@@ -514,6 +538,31 @@ func (tbl SUserTable) getboollist(req require.Requirement, sqlname string, wh wh
 }
 
 func (tbl SUserTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v int64
+	list := make([]int64, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+func (tbl SUserTable) getint64Ptrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
