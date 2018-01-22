@@ -11,6 +11,7 @@ import (
 	"github.com/rickb777/sqlgen2/sqlgen/output"
 	"github.com/kortschak/utter"
 	"sort"
+	"github.com/rickb777/sqlgen2/model"
 )
 
 type context struct {
@@ -191,7 +192,7 @@ func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, par
 		tags = ctx.pkgStore.FindTags(lt)
 	}
 
-	node := &Node{Name: name, Type: Type{PkgPath: path, PkgName: pkg, Name: name, Base: parse.Struct}, Parent: parent}
+	node := &Node{Name: name, Type: model.Type{PkgPath: path, PkgName: pkg, Name: name, Base: parse.Struct}, Parent: parent}
 	ctx.examineStruct(nm, lt, tags, node)
 }
 
@@ -273,7 +274,7 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags par
 
 func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags parse.Tags, parent *Node, canRecurse bool) (Node, bool) {
 	node := Node{Name: leaf.Name(), Parent: parent}
-	tp := Type{}
+	tp := model.Type{}
 
 	lt := leaf.Type()
 
@@ -334,7 +335,7 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags pars
 	return node, true
 }
 
-func setTypeName(tp *Type, tn *types.TypeName, pkg, mainPkg string) {
+func setTypeName(tp *model.Type, tn *types.TypeName, pkg, mainPkg string) {
 	tp.Name = tn.Name()
 	tnPkg := tn.Pkg()
 	if tnPkg.Name() != mainPkg {

@@ -10,6 +10,7 @@ import (
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
+	"github.com/rickb777/sqlgen2/support"
 	"log"
 	"strings"
 )
@@ -159,15 +160,15 @@ func (tbl CUserTable) Using(tx *sql.Tx) CUserTable {
 }
 
 func (tbl CUserTable) logQuery(query string, args ...interface{}) {
-	sqlgen2.LogQuery(tbl.logger, query, args...)
+	support.LogQuery(tbl.logger, query, args...)
 }
 
 func (tbl CUserTable) logError(err error) error {
-	return sqlgen2.LogError(tbl.logger, err)
+	return support.LogError(tbl.logger, err)
 }
 
 func (tbl CUserTable) logIfError(err error) error {
-	return sqlgen2.LogIfError(tbl.logger, err)
+	return support.LogIfError(tbl.logger, err)
 }
 
 

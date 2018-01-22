@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
+	. "github.com/rickb777/sqlgen2/model"
 	. "github.com/rickb777/sqlgen2/schema"
 	. "github.com/rickb777/sqlgen2/sqlgen/parse"
 	"strings"
@@ -42,7 +43,7 @@ func simpleNoPKTable() *TableDescription {
 
 //-------------------------------------------------------------------------------------------------
 
-func xTestWriteQueryRows(t *testing.T) {
+func TestWriteQueryRows(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -123,7 +124,7 @@ func (tbl XExampleTable) doQuery(req require.Requirement, firstOnly bool, query 
 
 //-------------------------------------------------------------------------------------------------
 
-func xTestWriteQueryThings(t *testing.T) {
+func TestWriteQueryThings(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -254,7 +255,7 @@ func (tbl XExampleTable) ReplaceTableName(query string) string {
 
 //-------------------------------------------------------------------------------------------------
 
-func xTestWriteGetRow(t *testing.T) {
+func TestWriteGetRow(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -319,7 +320,7 @@ func (tbl XExampleTable) GetExamples(req require.Requirement, id ...int64) (list
 
 //-------------------------------------------------------------------------------------------------
 
-func xTestWriteSelectItem(t *testing.T) {
+func TestWriteSelectItem(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -438,7 +439,7 @@ func (tbl XExampleTable) getstringlist(req require.Requirement, sqlname string, 
 	}
 }
 
-func xTestWriteSelectRow(t *testing.T) {
+func TestWriteSelectRow(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -537,7 +538,7 @@ const XExampleColumnNames = "id, name, age"
 
 //-------------------------------------------------------------------------------------------------
 
-func xTestWriteInsertFunc_noPK(t *testing.T) {
+func TestWriteInsertFunc_noPK(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -628,7 +629,7 @@ const sXExampleDataColumnParamsPostgres = "$1,$2"
 	}
 }
 
-func xTestWriteInsertFunc_withPK(t *testing.T) {
+func TestWriteInsertFunc_withPK(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -721,7 +722,7 @@ const sXExampleDataColumnParamsPostgres = "$1,$2"
 
 //-------------------------------------------------------------------------------------------------
 
-func xTestWriteUpdateFunc_noPK(t *testing.T) {
+func TestWriteUpdateFunc_noPK(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -759,7 +760,7 @@ func (tbl XExampleTable) updateFields(wh where.Expression, fields ...sql.NamedAr
 	}
 }
 
-func xTestWriteUpdateFunc_withPK(t *testing.T) {
+func TestWriteUpdateFunc_withPK(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -856,7 +857,7 @@ WHERE id=$1
 	}
 }
 
-func xTestWriteDeleteFunc(t *testing.T) {
+func TestWriteDeleteFunc(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -944,7 +945,7 @@ func (tbl XExampleTable) deleteRows(wh where.Expression) (string, []interface{})
 	}
 }
 
-func xTestWriteExecFunc(t *testing.T) {
+func TestWriteExecFunc(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")

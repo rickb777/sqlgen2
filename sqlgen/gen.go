@@ -179,6 +179,7 @@ func packagesToImport(flags funcFlags, hasPrimaryKey bool) StringSet {
 		"github.com/rickb777/sqlgen2",
 		"github.com/rickb777/sqlgen2/require",
 		"github.com/rickb777/sqlgen2/schema",
+		"github.com/rickb777/sqlgen2/support",
 	)
 
 	if flags.schema || flags.sselect || flags.slice || flags.insert || flags.update || flags.delete {

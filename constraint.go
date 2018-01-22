@@ -69,16 +69,16 @@ type Reference struct {
 //-------------------------------------------------------------------------------------------------
 
 // FkConstraint holds a pair of references and their update/delete consequences.
-// Column is the 'owner' of the constraint.
+// ForeignKeyColumn is the 'owner' of the constraint.
 type FkConstraint struct {
-	Column         string // only one column is supported
-	Parent         Reference
-	Update, Delete Consequence
+	ForeignKeyColumn string // only one column is supported
+	Parent           Reference
+	Update, Delete   Consequence
 }
 
 // FkConstraintOn constructs a foreign key constraint in a fluent style.
 func FkConstraintOn(column string) FkConstraint {
-	return FkConstraint{Column: column}
+	return FkConstraint{ForeignKeyColumn: column}
 }
 
 // RefersTo sets the parent reference.
@@ -107,7 +107,7 @@ func (c FkConstraint) ConstraintSql(name TableName, index int) string {
 // Sql constructs the foreign key clause needed to configure the database.
 func (c FkConstraint) Sql(prefix string) string {
 	return fmt.Sprintf("foreign key (%s) references %s%s (%s)%s%s",
-		c.Column, prefix, c.Parent.TableName, c.Parent.Column,
+		c.ForeignKeyColumn, prefix, c.Parent.TableName, c.Parent.Column,
 		c.Update.Apply(" ", "update"),
 		c.Delete.Apply(" ", "delete"))
 }
@@ -124,11 +124,50 @@ func (c FkConstraint) Disabled() FkConstraint {
 
 //-------------------------------------------------------------------------------------------------
 
-//type AlterTable struct {
-//	fullName TableName
-//	stmt     string
-//}
-//
-//func (a AlterTable) Sql() string {
-//	return fmt.Sprintf("ALTER TABLE %s\n  ADD %s;", a.fullName, a.stmt)
-//}
+func (c FkConstraint) IdsUnusedAsForeignKeys(tbl Table) (map[int64]struct{}, error) {
+	// TODO benchmark two candidates and choose the better
+	// http://stackoverflow.com/questions/3427353/sql-statement-question-how-to-retrieve-records-of-a-table-where-the-primary-ke?rq=1
+	//	s := fmt.Sprintf(
+	//		`SELECT a.%s
+	//			FROM %s a
+	//			WHERE NOT EXISTS (
+	//   				SELECT 1 FROM %s b
+	//   				WHERE %s.%s = %s.%s
+	//			)`,
+	//		primary.ForeignKeyColumn, primary.TableName, foreign.TableName, primary.TableName, primary.ForeignKeyColumn, foreign.TableName, foreign.ForeignKeyColumn)
+
+	// http://stackoverflow.com/questions/13108587/selecting-primary-keys-that-does-not-has-foreign-keys-in-another-table
+	s := fmt.Sprintf(
+		`SELECT a.%s
+			FROM %s a
+			LEFT OUTER JOIN %s b ON a.%s = b.%s
+			WHERE b.%s IS null`,
+		c.Parent.Column, c.Parent.TableName, tbl.Name(), c.Parent.Column, c.ForeignKeyColumn, c.ForeignKeyColumn)
+	return fetchIds(tbl, s)
+}
+
+func (c FkConstraint) IdsUsedAsForeignKeys(tbl Table) (map[int64]struct{}, error) {
+	s := fmt.Sprintf(
+		`SELECT DISTINCT a.%s AS Id
+			FROM %s a
+			INNER JOIN %s b ON a.%s = b.%s`,
+		c.Parent.Column, c.Parent.TableName, tbl.Name(), c.Parent.Column, c.ForeignKeyColumn)
+	return fetchIds(tbl, s)
+}
+
+func fetchIds(tbl Table, s string) (map[int64]struct{}, error) {
+	rows, err := tbl.DB().QueryContext(tbl.Ctx(), s)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	set := make(map[int64]struct{})
+	for rows.Next() {
+		var id int64
+		rows.Scan(&id)
+		set[id] = struct{}{}
+	}
+	return set, rows.Err()
+}
+

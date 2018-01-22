@@ -2,16 +2,17 @@ package schema
 
 import (
 	"testing"
+	"github.com/rickb777/sqlgen2/model"
 )
 
 func TestDistinctTypes(t *testing.T) {
 	cases := []struct {
 		list     FieldList
-		expected TypeSet
+		expected model.TypeSet
 	}{
-		{FieldList{id}, NewTypeSet(i64)},
-		{FieldList{id, id, id}, NewTypeSet(i64)},
-		{FieldList{id, category}, NewTypeSet(i64, cat)},
+		{FieldList{id}, model.NewTypeSet(i64)},
+		{FieldList{id, id, id}, model.NewTypeSet(i64)},
+		{FieldList{id, category}, model.NewTypeSet(i64, cat)},
 		{FieldList{id,
 			category,
 			name,
@@ -23,11 +24,11 @@ func TestDistinctTypes(t *testing.T) {
 			labels,
 			fave,
 			avatar,
-			updated}, NewTypeSet(i64, boo, cat, str, spt, ipt, upt, fpt, bgi, sli, bys, tim)},
+			updated}, model.NewTypeSet(i64, boo, cat, str, spt, ipt, upt, fpt, bgi, sli, bys, tim)},
 	}
 	for _, c := range cases {
 		s := c.list.DistinctTypes()
-		if !NewTypeSet(s...).Equals(c.expected) {
+		if !model.NewTypeSet(s...).Equals(c.expected) {
 			t.Errorf("expected %d::%+v but got %d::%+v", len(c.expected), c.expected, len(s), s)
 		}
 	}

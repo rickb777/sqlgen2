@@ -6,7 +6,7 @@ import (
 	"bytes"
 )
 
-func xTestWriteSliceFuncWithPk(t *testing.T) {
+func TestWriteSliceFuncWithPk(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -61,7 +61,7 @@ func sliceXExample(v *Example) ([]interface{}, error) {
 	}
 }
 
-func xTestWriteSliceFuncWithoutPk(t *testing.T) {
+func TestWriteSliceFuncWithoutPk(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")

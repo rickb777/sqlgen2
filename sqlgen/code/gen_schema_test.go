@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func xTestWriteSchema(t *testing.T) {
+func TestWriteSchema(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -43,7 +43,11 @@ func (tbl XExampleTable) createTableSql(ifNotExists bool) string {
     case schema.Mysql: stmt = sqlCreateXExampleTableMysql
     }
 	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	query := fmt.Sprintf(stmt, extra, tbl.name)
+	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
+	if cs != "" {
+		cs = "\n " + cs + "\n"
+	}
+	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
 	return query
 }
 
@@ -84,7 +88,7 @@ CREATE TABLE %s%s (
  bar1     text,
  bar2     text default null,
  updated  text
-)
+%s)
 |
 
 const sqlCreateXExampleTablePostgres = |
@@ -106,7 +110,7 @@ CREATE TABLE %s%s (
  bar1     varchar(255),
  bar2     varchar(255) default null,
  updated  varchar(100)
-)
+%s)
 |
 
 const sqlCreateXExampleTableMysql = |
@@ -128,7 +132,7 @@ CREATE TABLE %s%s (
  bar1     varchar(255),
  bar2     varchar(255) default null,
  updated  varchar(100)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
+%s) ENGINE=InnoDB DEFAULT CHARSET=utf8
 |
 
 //--------------------------------------------------------------------------------

@@ -156,15 +156,15 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx *sql.Tx) {{.Prefix}}{{.Type}}
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logQuery(query string, args ...interface{}) {
-	sqlgen2.LogQuery(tbl.logger, query, args...)
+	support.LogQuery(tbl.logger, query, args...)
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logError(err error) error {
-	return sqlgen2.LogError(tbl.logger, err)
+	return support.LogError(tbl.logger, err)
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logIfError(err error) error {
-	return sqlgen2.LogIfError(tbl.logger, err)
+	return support.LogIfError(tbl.logger, err)
 }
 
 `

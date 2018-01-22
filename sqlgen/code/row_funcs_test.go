@@ -7,11 +7,12 @@ import (
 	"strings"
 	"testing"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
+	. "github.com/rickb777/sqlgen2/model"
 	. "github.com/rickb777/sqlgen2/schema"
 	. "github.com/rickb777/sqlgen2/sqlgen/parse"
 )
 
-func xTestWriteRowsFunc1(t *testing.T) {
+func TestWriteRowsFunc1(t *testing.T) {
 	exit.TestableExit()
 
 	p1 := &Node{Name: "Commit"}
@@ -95,7 +96,7 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 	}
 }
 
-func xTestWriteRowFunc2(t *testing.T) {
+func TestWriteRowFunc2(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")

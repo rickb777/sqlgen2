@@ -11,8 +11,9 @@ go get github.com/kortschak/utter
 go get gopkg.in/yaml.v2
 
 # these generated files hardly ever need to change (see github.com/rickb777/runtemplate to do so)
-[ -f schema/type_set.go ]        || runtemplate -tpl simple/set.tpl -output schema/type_set.go        Type=Type
+[ -f model/type_set.go ]         || runtemplate -tpl simple/set.tpl -output model/type_set.go         Type=Type
 [ -f sqlgen/code/string_set.go ] || runtemplate -tpl simple/set.tpl -output sqlgen/code/string_set.go Type=string
+[ -f support/int64_set.go ]      || runtemplate -tpl simple/set.tpl -output support/int64_set.go      Type=int64
 
 cd sqlgen
 go install .

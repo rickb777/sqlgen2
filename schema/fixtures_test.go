@@ -1,6 +1,7 @@
 package schema
 
 import (
+	. "github.com/rickb777/sqlgen2/model"
 	. "github.com/rickb777/sqlgen2/sqlgen/parse"
 )
 

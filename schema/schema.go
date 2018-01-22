@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"strings"
 	"bytes"
@@ -36,7 +37,7 @@ type TableDescription struct {
 
 type Node struct {
 	Name   string
-	Type   Type
+	Type   model.Type
 	Parent *Node
 }
 
@@ -151,8 +152,8 @@ func (node *Node) JoinParts(delta int, sep string) string {
 
 type FieldList []*Field
 
-func (list FieldList) DistinctTypes() []Type {
-	types := NewTypeSet()
+func (list FieldList) DistinctTypes() []model.Type {
+	types := model.NewTypeSet()
 
 	for _, field := range list {
 		types.Add(field.Type)

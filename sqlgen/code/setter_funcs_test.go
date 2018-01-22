@@ -6,7 +6,7 @@ import (
 	"bytes"
 )
 
-func xTestWriteSetters_all(t *testing.T) {
+func TestWriteSetters_all(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -128,7 +128,7 @@ func (v *Example) SetUpdated(x time.Time) *Example {
 	}
 }
 
-func xTestWriteSetters_exported(t *testing.T) {
+func TestWriteSetters_exported(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -250,7 +250,7 @@ func (v *Example) SetUpdated(x time.Time) *Example {
 	}
 }
 
-func xTestWriteSetters_optional(t *testing.T) {
+func TestWriteSetters_optional(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -312,7 +312,7 @@ func (v *Example) SetBar2(x Bar) *Example {
 	}
 }
 
-func xTestWriteSetters_none(t *testing.T) {
+func TestWriteSetters_none(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")

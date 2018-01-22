@@ -157,7 +157,7 @@ func TestUpdateFieldsSql(t *testing.T) {
 	}
 }
 
-func xTestUpdateFields_ok(t *testing.T) {
+func TestUpdateFields_ok(t *testing.T) {
 	RegisterTestingT(t)
 
 	mockDb := mockExecer{RowsAffected: 1}
@@ -172,7 +172,7 @@ func xTestUpdateFields_ok(t *testing.T) {
 	Ω(n).Should(Equal(int64(1)))
 }
 
-func xTestUpdateFields_error(t *testing.T) {
+func TestUpdateFields_error(t *testing.T) {
 	RegisterTestingT(t)
 
 	exp := Errorf("foo")
@@ -187,7 +187,7 @@ func xTestUpdateFields_error(t *testing.T) {
 	Ω(err).Should(Equal(exp))
 }
 
-func xTestUpdate_ok(t *testing.T) {
+func TestUpdate_ok(t *testing.T) {
 	RegisterTestingT(t)
 
 	mockDb := mockExecer{RowsAffected: 1}
@@ -200,7 +200,7 @@ func xTestUpdate_ok(t *testing.T) {
 	Ω(n).Should(Equal(int64(1)))
 }
 
-func xTestUpdate_error(t *testing.T) {
+func TestUpdate_error(t *testing.T) {
 	RegisterTestingT(t)
 
 	exp := Errorf("foo")
