@@ -126,6 +126,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DB() *sql.DB {
 	return tbl.db.(*sql.DB)
 }
 
+// Execer gets the wrapped database or transaction handle.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Execer() sqlgen2.Execer {
+	return tbl.db
+}
+
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Tx() *sql.Tx {

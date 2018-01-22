@@ -130,6 +130,11 @@ func (tbl AssociationTable) DB() *sql.DB {
 	return tbl.db.(*sql.DB)
 }
 
+// Execer gets the wrapped database or transaction handle.
+func (tbl AssociationTable) Execer() sqlgen2.Execer {
+	return tbl.db
+}
+
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl AssociationTable) Tx() *sql.Tx {
@@ -282,13 +287,7 @@ func (tbl AssociationTable) Truncate(force bool) (err error) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	tbl.logQuery(query, args...)
-	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
-	if err != nil {
-		return 0, tbl.logError(err)
-	}
-	n, err := res.RowsAffected()
-	return n, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+	return support.Exec(tbl, req, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -428,7 +427,7 @@ func scanAssociations(rows *sql.Rows, firstOnly bool) (vv []*Association, n int6
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -441,7 +440,7 @@ func (tbl AssociationTable) QueryOneNullString(query string, args ...interface{}
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
 
@@ -453,7 +452,7 @@ func (tbl AssociationTable) MustQueryOneNullString(query string, args ...interfa
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -466,7 +465,7 @@ func (tbl AssociationTable) QueryOneNullInt64(query string, args ...interface{})
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
 
@@ -478,7 +477,7 @@ func (tbl AssociationTable) MustQueryOneNullInt64(query string, args ...interfac
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -491,36 +490,8 @@ func (tbl AssociationTable) QueryOneNullFloat64(query string, args ...interface{
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
-}
-
-func (tbl AssociationTable) doQueryOneNullThing(req require.Requirement, holder interface{}, query string, args ...interface{}) error {
-	var n int64 = 0
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return tbl.logError(err)
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		err = rows.Scan(holder)
-
-		if err == sql.ErrNoRows {
-			return tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, 0))
-		} else {
-			n++
-		}
-
-		if rows.Next() {
-			n++ // not singular
-		}
-	}
-
-	return tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
 }
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
@@ -799,7 +770,7 @@ func (tbl AssociationTable) getstringPtrlist(req require.Requirement, sqlname st
 
 // Insert adds new records for the Associations.
 // The Associations have their primary key fields set to the new record identifiers.
-// The Association.PreInsert(Execer) method will be called, if it exists.
+// The Association.PreInsert() method will be called, if it exists.
 func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) error {
 	var params string
 	switch tbl.dialect {
@@ -876,17 +847,7 @@ const sAssociationDataColumnParamsPostgres = "$1,$2,$3,$4,$5"
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl AssociationTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	query, args := tbl.updateFields(wh, fields...)
-	return tbl.Exec(req, query, args...)
-}
-
-func (tbl AssociationTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := sqlgen2.NamedArgList(fields)
-	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
-	whs, wargs := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.name, assignments, whs)
-	args := append(list.Values(), wargs...)
-	return query, args
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------

@@ -79,6 +79,9 @@ type Table interface {
 	// Name gets the table name. without prefix
 	Name() TableName
 
+	// Execer gets the wrapped database or transaction handle.
+	Execer() Execer
+
 	// DB gets the wrapped database handle, provided this is not within a transaction.
 	// Panics if it is in the wrong state - use IsTx() if necessary.
 	DB() *sql.DB

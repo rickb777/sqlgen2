@@ -6,6 +6,8 @@ import (
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/require"
 	"log"
+	"github.com/rickb777/sqlgen2/where"
+	"fmt"
 )
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
@@ -39,6 +41,27 @@ func QueryOneNullThing(tbl sqlgen2.Table, req require.Requirement, holder interf
 	}
 
 	return LogIfError(tbl.Logger(), require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
+}
+
+//-------------------------------------------------------------------------------------------------
+
+func Exec(tbl sqlgen2.Table, req require.Requirement, query string, args ...interface{}) (int64, error) {
+	LogQuery(tbl.Logger(), query, args...)
+	res, err := tbl.Execer().ExecContext(tbl.Ctx(), query, args...)
+	if err != nil {
+		return 0, LogError(tbl.Logger(), err)
+	}
+	n, err := res.RowsAffected()
+	return n, LogIfError(tbl.Logger(), require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+}
+
+func UpdateFields(tbl sqlgen2.Table, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	list := sqlgen2.NamedArgList(fields)
+	assignments := strings.Join(list.Assignments(tbl.Dialect(), 1), ", ")
+	whs, wargs := where.BuildExpression(wh, tbl.Dialect())
+	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.Name(), assignments, whs)
+	args := append(list.Values(), wargs...)
+	return Exec(tbl, req, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------

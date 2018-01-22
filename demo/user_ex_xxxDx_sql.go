@@ -131,6 +131,11 @@ func (tbl DUserTable) DB() *sql.DB {
 	return tbl.db.(*sql.DB)
 }
 
+// Execer gets the wrapped database or transaction handle.
+func (tbl DUserTable) Execer() sqlgen2.Execer {
+	return tbl.db
+}
+
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl DUserTable) Tx() *sql.Tx {
@@ -180,13 +185,7 @@ func (tbl DUserTable) logIfError(err error) error {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	tbl.logQuery(query, args...)
-	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
-	if err != nil {
-		return 0, tbl.logError(err)
-	}
-	n, err := res.RowsAffected()
-	return n, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+	return support.Exec(tbl, req, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -338,7 +337,7 @@ func scanDUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DUserTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -351,7 +350,7 @@ func (tbl DUserTable) QueryOneNullString(query string, args ...interface{}) (res
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DUserTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
 
@@ -363,7 +362,7 @@ func (tbl DUserTable) MustQueryOneNullString(query string, args ...interface{}) 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DUserTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -376,7 +375,7 @@ func (tbl DUserTable) QueryOneNullInt64(query string, args ...interface{}) (resu
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DUserTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
 
@@ -388,7 +387,7 @@ func (tbl DUserTable) MustQueryOneNullInt64(query string, args ...interface{}) (
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DUserTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -401,36 +400,8 @@ func (tbl DUserTable) QueryOneNullFloat64(query string, args ...interface{}) (re
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DUserTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
-}
-
-func (tbl DUserTable) doQueryOneNullThing(req require.Requirement, holder interface{}, query string, args ...interface{}) error {
-	var n int64 = 0
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return tbl.logError(err)
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		err = rows.Scan(holder)
-
-		if err == sql.ErrNoRows {
-			return tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, 0))
-		} else {
-			n++
-		}
-
-		if rows.Next() {
-			n++ // not singular
-		}
-	}
-
-	return tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
 }
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.

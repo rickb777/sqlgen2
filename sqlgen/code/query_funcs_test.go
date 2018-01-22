@@ -146,7 +146,7 @@ func TestWriteQueryThings(t *testing.T) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -159,7 +159,7 @@ func (tbl XExampleTable) QueryOneNullString(query string, args ...interface{}) (
 //
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
 
@@ -171,7 +171,7 @@ func (tbl XExampleTable) MustQueryOneNullString(query string, args ...interface{
 //
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -184,7 +184,7 @@ func (tbl XExampleTable) QueryOneNullInt64(query string, args ...interface{}) (r
 //
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
 
@@ -196,7 +196,7 @@ func (tbl XExampleTable) MustQueryOneNullInt64(query string, args ...interface{}
 //
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -209,36 +209,8 @@ func (tbl XExampleTable) QueryOneNullFloat64(query string, args ...interface{}) 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
-}
-
-func (tbl XExampleTable) doQueryOneNullThing(req require.Requirement, holder interface{}, query string, args ...interface{}) error {
-	var n int64 = 0
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return tbl.logError(err)
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		err = rows.Scan(holder)
-
-		if err == sql.ErrNoRows {
-			return tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, 0))
-		} else {
-			n++
-		}
-
-		if rows.Next() {
-			n++ // not singular
-		}
-	}
-
-	return tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
 }
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
@@ -554,7 +526,7 @@ func TestWriteInsertFunc_noPK(t *testing.T) {
 
 // Insert adds new records for the Examples.
 
-// The Example.PreInsert(Execer) method will be called, if it exists.
+// The Example.PreInsert() method will be called, if it exists.
 func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	var params string
 	switch tbl.dialect {
@@ -645,7 +617,7 @@ func TestWriteInsertFunc_withPK(t *testing.T) {
 
 // Insert adds new records for the Examples.
 // The Examples have their primary key fields set to the new record identifiers.
-// The Example.PreInsert(Execer) method will be called, if it exists.
+// The Example.PreInsert() method will be called, if it exists.
 func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	var params string
 	switch tbl.dialect {
@@ -740,17 +712,7 @@ func TestWriteUpdateFunc_noPK(t *testing.T) {
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	query, args := tbl.updateFields(wh, fields...)
-	return tbl.Exec(req, query, args...)
-}
-
-func (tbl XExampleTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := sqlgen2.NamedArgList(fields)
-	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
-	whs, wargs := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.name, assignments, whs)
-	args := append(list.Values(), wargs...)
-	return query, args
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 `, "|", "`", -1)
 	if code != expected {
@@ -778,17 +740,7 @@ func TestWriteUpdateFunc_withPK(t *testing.T) {
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	query, args := tbl.updateFields(wh, fields...)
-	return tbl.Exec(req, query, args...)
-}
-
-func (tbl XExampleTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := sqlgen2.NamedArgList(fields)
-	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
-	whs, wargs := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.name, assignments, whs)
-	args := append(list.Values(), wargs...)
-	return query, args
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
@@ -964,13 +916,7 @@ func TestWriteExecFunc(t *testing.T) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	tbl.logQuery(query, args...)
-	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
-	if err != nil {
-		return 0, tbl.logError(err)
-	}
-	n, err := res.RowsAffected()
-	return n, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+	return support.Exec(tbl, req, query, args...)
 }
 `, "|", "`", -1)
 	if code != expected {

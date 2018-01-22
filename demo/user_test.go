@@ -134,29 +134,6 @@ func TestDropIndexSql(t *testing.T) {
 	}
 }
 
-func TestUpdateFieldsSql(t *testing.T) {
-	RegisterTestingT(t)
-
-	cases := []struct {
-		d        schema.Dialect
-		expected string
-	}{
-		{schema.Sqlite, `UPDATE prefix_users SET EmailAddress=?, Hash=? WHERE EmailAddress IS NULL`},
-		{schema.Mysql, `UPDATE prefix_users SET EmailAddress=?, Hash=? WHERE EmailAddress IS NULL`},
-		{schema.Postgres, `UPDATE prefix_users SET EmailAddress=$1, Hash=$2 WHERE EmailAddress IS NULL`},
-	}
-
-	for _, c := range cases {
-		tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, c.d).WithPrefix("prefix_")
-
-		s, args := tbl.updateFields(where.Null("EmailAddress"),
-			sqlgen2.Named("EmailAddress", "foo@x.com"), sqlgen2.Named("Hash", "abc123"))
-
-		Ω(s).Should(Equal(c.expected))
-		Ω(args).Should(Equal([]interface{}{"foo@x.com", "abc123"}))
-	}
-}
-
 func TestUpdateFields_ok(t *testing.T) {
 	RegisterTestingT(t)
 

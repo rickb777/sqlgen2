@@ -8,13 +8,7 @@ const sExec = `
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	tbl.logQuery(query, args...)
-	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
-	if err != nil {
-		return 0, tbl.logError(err)
-	}
-	n, err := res.RowsAffected()
-	return n, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+	return support.Exec(tbl, req, query, args...)
 }
 `
 
@@ -93,7 +87,7 @@ const sQueryThings = `
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -106,7 +100,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullString(query string, args 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
 
@@ -118,7 +112,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustQueryOneNullString(query string, a
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -131,7 +125,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullInt64(query string, args .
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
 
@@ -143,7 +137,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustQueryOneNullInt64(query string, ar
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -156,36 +150,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullFloat64(query string, args
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
-}
-
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryOneNullThing(req require.Requirement, holder interface{}, query string, args ...interface{}) error {
-	var n int64 = 0
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return tbl.logError(err)
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		err = rows.Scan(holder)
-
-		if err == sql.ErrNoRows {
-			return tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, 0))
-		} else {
-			n++
-		}
-
-		if rows.Next() {
-			n++ // not singular
-		}
-	}
-
-	return tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
 }
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
@@ -380,7 +346,7 @@ var tSliceItem = template.Must(template.New("SliceItem").Funcs(funcMap).Parse(sS
 const sInsert = `
 // Insert adds new records for the {{.Types}}.
 {{if .Table.HasLastInsertId}}// The {{.Types}} have their primary key fields set to the new record identifiers.{{end}}
-// The {{.Type}}.PreInsert(Execer) method will be called, if it exists.
+// The {{.Type}}.PreInsert() method will be called, if it exists.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...*{{.Type}}) error {
 	var params string
 	switch tbl.dialect {
@@ -455,17 +421,7 @@ const sUpdateFields = `
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	query, args := tbl.updateFields(wh, fields...)
-	return tbl.Exec(req, query, args...)
-}
-
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := sqlgen2.NamedArgList(fields)
-	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
-	whs, wargs := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.name, assignments, whs)
-	args := append(list.Values(), wargs...)
-	return query, args
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 `
 

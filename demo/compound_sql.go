@@ -130,6 +130,11 @@ func (tbl DbCompoundTable) DB() *sql.DB {
 	return tbl.db.(*sql.DB)
 }
 
+// Execer gets the wrapped database or transaction handle.
+func (tbl DbCompoundTable) Execer() sqlgen2.Execer {
+	return tbl.db
+}
+
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl DbCompoundTable) Tx() *sql.Tx {
@@ -347,13 +352,7 @@ func (tbl DbCompoundTable) Truncate(force bool) (err error) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	tbl.logQuery(query, args...)
-	res, err := tbl.db.ExecContext(tbl.ctx, query, args...)
-	if err != nil {
-		return 0, tbl.logError(err)
-	}
-	n, err := res.RowsAffected()
-	return n, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+	return support.Exec(tbl, req, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -469,7 +468,7 @@ func scanDbCompounds(rows *sql.Rows, firstOnly bool) (vv []*Compound, n int64, e
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -482,7 +481,7 @@ func (tbl DbCompoundTable) QueryOneNullString(query string, args ...interface{})
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
 
@@ -494,7 +493,7 @@ func (tbl DbCompoundTable) MustQueryOneNullString(query string, args ...interfac
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -507,7 +506,7 @@ func (tbl DbCompoundTable) QueryOneNullInt64(query string, args ...interface{}) 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
 
@@ -519,7 +518,7 @@ func (tbl DbCompoundTable) MustQueryOneNullInt64(query string, args ...interface
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = tbl.doQueryOneNullThing(nil, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
 
@@ -532,36 +531,8 @@ func (tbl DbCompoundTable) QueryOneNullFloat64(query string, args ...interface{}
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = tbl.doQueryOneNullThing(require.One, &result, query, args...)
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
-}
-
-func (tbl DbCompoundTable) doQueryOneNullThing(req require.Requirement, holder interface{}, query string, args ...interface{}) error {
-	var n int64 = 0
-	query = tbl.ReplaceTableName(query)
-	tbl.logQuery(query, args...)
-
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return tbl.logError(err)
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		err = rows.Scan(holder)
-
-		if err == sql.ErrNoRows {
-			return tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, 0))
-		} else {
-			n++
-		}
-
-		if rows.Next() {
-			n++ // not singular
-		}
-	}
-
-	return tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
 }
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
@@ -723,7 +694,7 @@ func (tbl DbCompoundTable) getstringlist(req require.Requirement, sqlname string
 
 // Insert adds new records for the Compounds.
 
-// The Compound.PreInsert(Execer) method will be called, if it exists.
+// The Compound.PreInsert() method will be called, if it exists.
 func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) error {
 	var params string
 	switch tbl.dialect {
@@ -797,17 +768,7 @@ const sDbCompoundDataColumnParamsPostgres = "$1,$2,$3"
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl DbCompoundTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	query, args := tbl.updateFields(wh, fields...)
-	return tbl.Exec(req, query, args...)
-}
-
-func (tbl DbCompoundTable) updateFields(wh where.Expression, fields ...sql.NamedArg) (string, []interface{}) {
-	list := sqlgen2.NamedArgList(fields)
-	assignments := strings.Join(list.Assignments(tbl.dialect, 1), ", ")
-	whs, wargs := where.BuildExpression(wh, tbl.dialect)
-	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.name, assignments, whs)
-	args := append(list.Values(), wargs...)
-	return query, args
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 func sliceDbCompound(v *Compound) ([]interface{}, error) {
