@@ -1,13 +1,15 @@
 package parse
 
 import (
-	"reflect"
-	"testing"
-	"os"
 	"io/ioutil"
+	"os"
+	"testing"
+	. "github.com/onsi/gomega"
 )
 
 func TestParseTag(t *testing.T) {
+	RegisterTestingT(t)
+
 	tagTests := []struct {
 		raw string
 		tag *Tag
@@ -52,23 +54,62 @@ func TestParseTag(t *testing.T) {
 			TagKey + `:"unique: fake_unique_index"`,
 			&Tag{Unique: "fake_unique_index"},
 		},
+		{
+			TagKey + `:"fk: alpha.ID, onupdate: setnull, ondelete: setdefault"`,
+			&Tag{ForeignKey: "alpha.ID", OnUpdate: "set null", OnDelete: "set default"},
+		},
 	}
 
 	for _, test := range tagTests {
-		want := test.tag
 		got, err := ParseTag(test.raw)
+		Ω(err).Should(BeNil(), test.raw)
+		Ω(got).Should(Equal(test.tag), test.raw)
+	}
+}
 
-		if err != nil {
-			t.Errorf("Error parsing Tag %s. %s", test.raw, err)
-		}
+func TestParseValidation(t *testing.T) {
+	RegisterTestingT(t)
 
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("Wanted Tag %+v, got Tag %+v", want, got)
-		}
+	tagTests := []struct {
+		raw string
+		err string
+	}{
+		{
+			TagKey + `:"encode: x"`,
+			`unrecognised encode value "x"`,
+		},
+		{
+			TagKey + `:"fk: x"`,
+			`fk value ("x") must be in 'tablename.column' form`,
+		},
+		{
+			TagKey + `:"onupdate: x"`,
+			`unr	ecognised onupdate value "x"`,
+		},
+		{
+			TagKey + `:"ondelete: x"`,
+			`unrecognised ondelete value "x"`,
+		},
+		{
+			TagKey + `:"onupdate: x, ondelete: y"`,
+			`unrecognised onupdate value "x"; unrecognised ondelete value "y"`,
+		},
+		{
+			TagKey + `:"size: -1"`,
+			`size cannot be negative (-1)`,
+		},
+	}
+
+	for _, test := range tagTests {
+		_, err := ParseTag(test.raw)
+		Ω(err).Should(Not(BeNil()), test.raw)
+		Ω(err.Error()).Should(Equal(test.err), test.raw)
 	}
 }
 
 func TestReadTagsFile(t *testing.T) {
+	RegisterTestingT(t)
+
 	file := os.TempDir() + "/sqlgen2-test.yaml"
 	defer os.Remove(file)
 
@@ -83,26 +124,15 @@ Foo:
 `
 
 	err := ioutil.WriteFile(file, []byte(yml), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
+	Ω(err).Should(BeNil())
 
 	tags, err := ReadTagsFile(file)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(tags) != 2 {
-		t.Errorf("Wanted 2, got %d", len(tags))
-	}
+	Ω(err).Should(BeNil())
+	Ω(len(tags)).Should(Equal(2))
 
 	id := tags["Id"]
-	if !reflect.DeepEqual(id, Tag{Primary: true, Auto: true}) {
-		t.Errorf("Got %+v", id)
-	}
+	Ω(id).Should(Equal(Tag{Primary: true, Auto: true}))
 
 	foo := tags["Foo"]
-	if !reflect.DeepEqual(foo, Tag{Name: "fooish", Type: "blob"}) {
-		t.Errorf("Got %+v", id)
-	}
+	Ω(foo).Should(Equal(Tag{Name: "fooish", Type: "blob"}))
 }

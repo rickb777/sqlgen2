@@ -247,6 +247,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS user_login ON users (user_login)
 
 Driver encoding means explicitly deferring to the `sql.Scanner` and `driver.Valuer` methods on your type.
 
+See more details in [TAGS.md](TAGS.md).
+
 ### Nesting
 
 Nested Go structures can be flattened into a single database table. As an example, we have a `User` and `Address` with a one-to-one relationship. In some cases, we may prefer to de-normalize our data and store in a single table, avoiding un-necessary joins.

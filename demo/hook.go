@@ -7,7 +7,7 @@ package demo
 //go:generate sqlgen -type demo.Hook -o hook_sql.go -list HookList -all -v .
 
 type Hook struct {
-	Id  int64 `sql:"pk: true, auto: true"`
+	Id  uint64 `sql:"pk: true, auto: true"`
 	Sha string
 	Dates
 	Category   Category

@@ -274,7 +274,7 @@ CREATE TABLE %s%s (
 
 const sqlCreateHookTableMysql = `
 CREATE TABLE %s%s (
- id                             bigint primary key auto_increment,
+ id                             bigint unsigned primary key auto_increment,
  sha                            varchar(255),
  after                          varchar(20),
  before                         varchar(20),
@@ -387,7 +387,7 @@ func scanHooks(rows *sql.Rows, firstOnly bool) (vv HookList, n int64, err error)
 	for rows.Next() {
 		n++
 
-		var v0 int64
+		var v0 uint64
 		var v1 string
 		var v2 string
 		var v3 string
@@ -554,7 +554,7 @@ func (tbl HookTable) ReplaceTableName(query string) string {
 
 // GetHook gets the record with a given primary key value.
 // If not found, *Hook will be nil.
-func (tbl HookTable) GetHook(id int64) (*Hook, error) {
+func (tbl HookTable) GetHook(id uint64) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", HookColumnNames, tbl.name)
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
@@ -563,7 +563,7 @@ func (tbl HookTable) GetHook(id int64) (*Hook, error) {
 // MustGetHook gets the record with a given primary key value.
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-func (tbl HookTable) MustGetHook(id int64) (*Hook, error) {
+func (tbl HookTable) MustGetHook(id uint64) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", HookColumnNames, tbl.name)
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
@@ -575,7 +575,7 @@ func (tbl HookTable) MustGetHook(id int64) (*Hook, error) {
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl HookTable) GetHooks(req require.Requirement, id ...int64) (list HookList, err error) {
+func (tbl HookTable) GetHooks(req require.Requirement, id ...uint64) (list HookList, err error) {
 	if len(id) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(id))
@@ -676,8 +676,8 @@ const HookColumnNames = "id, sha, after, before, category, created, deleted, for
 // SliceId gets the Id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64list(req, "id", wh, qc)
+func (tbl HookTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+	return tbl.getuint64list(req, "id", wh, qc)
 }
 
 // SliceSha gets the Sha column for all rows that match the 'where' condition.
@@ -868,31 +868,6 @@ func (tbl HookTable) getboollist(req require.Requirement, sqlname string, wh whe
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl HookTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v int64
-	list := make([]int64, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
 func (tbl HookTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
@@ -906,6 +881,31 @@ func (tbl HookTable) getstringlist(req require.Requirement, sqlname string, wh w
 
 	var v string
 	list := make([]string, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+func (tbl HookTable) getuint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+	whs, args := where.BuildExpression(wh, tbl.dialect)
+	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v uint64
+	list := make([]uint64, 0, 10)
 
 	for rows.Next() {
 		err = rows.Scan(&v)
@@ -965,7 +965,9 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 			return tbl.logError(err)
 		}
 
-		v.Id, err = res.LastInsertId()
+		_i64, err := res.LastInsertId()
+		v.Id = uint64(_i64)
+		
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -1129,7 +1131,7 @@ func sliceHookWithoutPk(v *Hook) ([]interface{}, error) {
 
 // DeleteHooks deletes rows from the table, given some primary keys.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteHooks(req require.Requirement, id ...int64) (int64, error) {
+func (tbl HookTable) DeleteHooks(req require.Requirement, id ...uint64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE id IN (%s)"
 
