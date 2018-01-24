@@ -3,11 +3,14 @@
 package demo
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/constraint"
+	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
@@ -20,9 +23,9 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type AUserTable struct {
-	name        sqlgen2.TableName
+	name        model.TableName
 	db          sqlgen2.Execer
-	constraints sqlgen2.Constraints
+	constraints constraint.Constraints
 	ctx         context.Context
 	dialect     schema.Dialect
 	logger      *log.Logger
@@ -36,11 +39,15 @@ var _ sqlgen2.TableWithCrud = &AUserTable{}
 // NewAUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewAUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) AUserTable {
+func NewAUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) AUserTable {
 	if name.Name == "" {
 		name.Name = "users"
 	}
-	return AUserTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := AUserTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table.constraints = append(table.constraints,
+		constraint.FkConstraint{"addressid", constraint.Reference{"address", "id"}, "restrict", "restrict"})
+	
+	return table
 }
 
 // CopyTableAsAUserTable copies a table instance, copying the name's prefix, the DB, the context,
@@ -50,7 +57,7 @@ func NewAUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dial
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsAUserTable(origin sqlgen2.Table) AUserTable {
 	return AUserTable{
-		name:        sqlgen2.TableName{origin.Name().Prefix, "users"},
+		name:        model.TableName{origin.Name().Prefix, "users"},
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -93,7 +100,7 @@ func (tbl AUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl AUserTable) AddConstraint(cc ...sqlgen2.Constraint) AUserTable {
+func (tbl AUserTable) AddConstraint(cc ...constraint.Constraint) AUserTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -121,7 +128,7 @@ func (tbl AUserTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl AUserTable) Name() sqlgen2.TableName {
+func (tbl AUserTable) Name() model.TableName {
 	return tbl.name
 }
 
@@ -196,19 +203,37 @@ func (tbl AUserTable) CreateTable(ifNotExists bool) (int64, error) {
 }
 
 func (tbl AUserTable) createTableSql(ifNotExists bool) string {
-	var stmt string
+	var columns string
+	var settings string
 	switch tbl.dialect {
-	case schema.Sqlite: stmt = sqlCreateAUserTableSqlite
-    case schema.Postgres: stmt = sqlCreateAUserTablePostgres
-    case schema.Mysql: stmt = sqlCreateAUserTableMysql
+	case schema.Sqlite:
+		columns = sqlCreateColumnsAUserTableSqlite
+		settings = sqlCreateSettingsAUserTableSqlite
+    case schema.Postgres:
+		columns = sqlCreateColumnsAUserTablePostgres
+		settings = sqlCreateSettingsAUserTablePostgres
+    case schema.Mysql:
+		columns = sqlCreateColumnsAUserTableMysql
+		settings = sqlCreateSettingsAUserTableMysql
     }
-	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
-	if cs != "" {
-		cs = "\n " + cs + "\n"
+	buf := &bytes.Buffer{}
+	buf.WriteString("CREATE TABLE ")
+	if ifNotExists {
+		buf.WriteString("IF NOT EXISTS ")
 	}
-	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
-	return query
+	buf.WriteString(tbl.name.String())
+	buf.WriteString(" (")
+	buf.WriteString(columns)
+	cs := tbl.constraints.ConstraintSql(tbl.name)
+	if len(cs) > 0 {
+		for _, c := range cs {
+			buf.WriteString(",\n ")
+			buf.WriteString(c)
+		}
+	}
+	buf.WriteString("\n)")
+	buf.WriteString(settings)
+	return buf.String()
 }
 
 func (tbl AUserTable) ternary(flag bool, a, b string) string {
@@ -224,13 +249,12 @@ func (tbl AUserTable) DropTable(ifExists bool) (int64, error) {
 }
 
 func (tbl AUserTable) dropTableSql(ifExists bool) string {
-	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", extra, tbl.name)
+	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
 
-const sqlCreateAUserTableSqlite = `
-CREATE TABLE %s%s (
+const sqlCreateColumnsAUserTableSqlite = `
  uid          integer primary key autoincrement,
  login        text,
  emailaddress text,
@@ -242,12 +266,11 @@ CREATE TABLE %s%s (
  fave         text,
  lastupdated  bigint,
  token        text,
- secret       text
-%s)
-`
+ secret       text`
 
-const sqlCreateAUserTablePostgres = `
-CREATE TABLE %s%s (
+const sqlCreateSettingsAUserTableSqlite = ""
+
+const sqlCreateColumnsAUserTablePostgres = `
  uid          bigserial primary key,
  login        varchar(255),
  emailaddress varchar(255),
@@ -259,12 +282,11 @@ CREATE TABLE %s%s (
  fave         json,
  lastupdated  bigint,
  token        varchar(255),
- secret       varchar(255)
-%s)
-`
+ secret       varchar(255)`
 
-const sqlCreateAUserTableMysql = `
-CREATE TABLE %s%s (
+const sqlCreateSettingsAUserTablePostgres = ""
+
+const sqlCreateColumnsAUserTableMysql = `
  uid          bigint primary key auto_increment,
  login        varchar(255),
  emailaddress varchar(255),
@@ -276,8 +298,12 @@ CREATE TABLE %s%s (
  fave         json,
  lastupdated  bigint,
  token        varchar(255),
- secret       varchar(255)
-%s) ENGINE=InnoDB DEFAULT CHARSET=utf8
+ secret       varchar(255)`
+
+const sqlCreateSettingsAUserTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlConstrainAUserTable = `
+ CONSTRAINT AUserc3 foreign key (addressid) references %saddress (id) on update restrict on delete restrict
 `
 
 //--------------------------------------------------------------------------------
@@ -1138,8 +1164,7 @@ UPDATE %s SET
 	lastupdated=?,
 	token=?,
 	secret=?
-WHERE uid=?
-`
+WHERE uid=?`
 
 const sqlUpdateAUserByPkPostgres = `
 UPDATE %s SET
@@ -1154,8 +1179,7 @@ UPDATE %s SET
 	lastupdated=$10,
 	token=$11,
 	secret=$12
-WHERE uid=$1
-`
+WHERE uid=$1`
 
 func sliceAUserWithoutPk(v *User) ([]interface{}, error) {
 

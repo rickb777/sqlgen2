@@ -3,11 +3,14 @@
 package demo
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/constraint"
+	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
@@ -20,9 +23,9 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type IssueTable struct {
-	name        sqlgen2.TableName
+	name        model.TableName
 	db          sqlgen2.Execer
-	constraints sqlgen2.Constraints
+	constraints constraint.Constraints
 	ctx         context.Context
 	dialect     schema.Dialect
 	logger      *log.Logger
@@ -36,11 +39,12 @@ var _ sqlgen2.TableWithCrud = &IssueTable{}
 // NewIssueTable returns a new table instance.
 // If a blank table name is supplied, the default name "issues" will be used instead.
 // The request context is initialised with the background.
-func NewIssueTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) IssueTable {
+func NewIssueTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) IssueTable {
 	if name.Name == "" {
 		name.Name = "issues"
 	}
-	return IssueTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := IssueTable{name, d, nil, context.Background(), dialect, nil, nil}
+	return table
 }
 
 // CopyTableAsIssueTable copies a table instance, copying the name's prefix, the DB, the context,
@@ -50,7 +54,7 @@ func NewIssueTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dial
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsIssueTable(origin sqlgen2.Table) IssueTable {
 	return IssueTable{
-		name:        sqlgen2.TableName{origin.Name().Prefix, "issues"},
+		name:        model.TableName{origin.Name().Prefix, "issues"},
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -93,7 +97,7 @@ func (tbl IssueTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl IssueTable) AddConstraint(cc ...sqlgen2.Constraint) IssueTable {
+func (tbl IssueTable) AddConstraint(cc ...constraint.Constraint) IssueTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -121,7 +125,7 @@ func (tbl IssueTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl IssueTable) Name() sqlgen2.TableName {
+func (tbl IssueTable) Name() model.TableName {
 	return tbl.name
 }
 
@@ -196,19 +200,37 @@ func (tbl IssueTable) CreateTable(ifNotExists bool) (int64, error) {
 }
 
 func (tbl IssueTable) createTableSql(ifNotExists bool) string {
-	var stmt string
+	var columns string
+	var settings string
 	switch tbl.dialect {
-	case schema.Sqlite: stmt = sqlCreateIssueTableSqlite
-    case schema.Postgres: stmt = sqlCreateIssueTablePostgres
-    case schema.Mysql: stmt = sqlCreateIssueTableMysql
+	case schema.Sqlite:
+		columns = sqlCreateColumnsIssueTableSqlite
+		settings = sqlCreateSettingsIssueTableSqlite
+    case schema.Postgres:
+		columns = sqlCreateColumnsIssueTablePostgres
+		settings = sqlCreateSettingsIssueTablePostgres
+    case schema.Mysql:
+		columns = sqlCreateColumnsIssueTableMysql
+		settings = sqlCreateSettingsIssueTableMysql
     }
-	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
-	if cs != "" {
-		cs = "\n " + cs + "\n"
+	buf := &bytes.Buffer{}
+	buf.WriteString("CREATE TABLE ")
+	if ifNotExists {
+		buf.WriteString("IF NOT EXISTS ")
 	}
-	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
-	return query
+	buf.WriteString(tbl.name.String())
+	buf.WriteString(" (")
+	buf.WriteString(columns)
+	cs := tbl.constraints.ConstraintSql(tbl.name)
+	if len(cs) > 0 {
+		for _, c := range cs {
+			buf.WriteString(",\n ")
+			buf.WriteString(c)
+		}
+	}
+	buf.WriteString("\n)")
+	buf.WriteString(settings)
+	return buf.String()
 }
 
 func (tbl IssueTable) ternary(flag bool, a, b string) string {
@@ -224,13 +246,12 @@ func (tbl IssueTable) DropTable(ifExists bool) (int64, error) {
 }
 
 func (tbl IssueTable) dropTableSql(ifExists bool) string {
-	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", extra, tbl.name)
+	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
 
-const sqlCreateIssueTableSqlite = `
-CREATE TABLE %s%s (
+const sqlCreateColumnsIssueTableSqlite = `
  id       integer primary key autoincrement,
  number   bigint,
  date     blob,
@@ -238,12 +259,11 @@ CREATE TABLE %s%s (
  bigbody  text,
  assignee text,
  state    text,
- labels   text
-%s)
-`
+ labels   text`
 
-const sqlCreateIssueTablePostgres = `
-CREATE TABLE %s%s (
+const sqlCreateSettingsIssueTableSqlite = ""
+
+const sqlCreateColumnsIssueTablePostgres = `
  id       bigserial primary key,
  number   bigint,
  date     byteaa,
@@ -251,12 +271,11 @@ CREATE TABLE %s%s (
  bigbody  varchar(2048),
  assignee varchar(255),
  state    varchar(50),
- labels   json
-%s)
-`
+ labels   json`
 
-const sqlCreateIssueTableMysql = `
-CREATE TABLE %s%s (
+const sqlCreateSettingsIssueTablePostgres = ""
+
+const sqlCreateColumnsIssueTableMysql = `
  id       bigint primary key auto_increment,
  number   bigint,
  date     mediumblob,
@@ -264,8 +283,11 @@ CREATE TABLE %s%s (
  bigbody  varchar(2048),
  assignee varchar(255),
  state    varchar(50),
- labels   json
-%s) ENGINE=InnoDB DEFAULT CHARSET=utf8
+ labels   json`
+
+const sqlCreateSettingsIssueTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlConstrainIssueTable = `
 `
 
 //--------------------------------------------------------------------------------
@@ -988,8 +1010,7 @@ UPDATE %s SET
 	assignee=?,
 	state=?,
 	labels=?
-WHERE id=?
-`
+WHERE id=?`
 
 const sqlUpdateIssueByPkPostgres = `
 UPDATE %s SET
@@ -1000,8 +1021,7 @@ UPDATE %s SET
 	assignee=$6,
 	state=$7,
 	labels=$8
-WHERE id=$1
-`
+WHERE id=$1`
 
 func sliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 

@@ -792,15 +792,13 @@ const sqlUpdateXExampleByPkSimple = |
 UPDATE %s SET
 	name=?,
 	age=?
-WHERE id=?
-|
+WHERE id=?|
 
 const sqlUpdateXExampleByPkPostgres = |
 UPDATE %s SET
 	name=$2,
 	age=$3
-WHERE id=$1
-|
+WHERE id=$1|
 `, "|", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")

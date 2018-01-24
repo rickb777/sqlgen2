@@ -3,10 +3,13 @@
 package demo
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/constraint"
+	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
@@ -19,9 +22,9 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type AssociationTable struct {
-	name        sqlgen2.TableName
+	name        model.TableName
 	db          sqlgen2.Execer
-	constraints sqlgen2.Constraints
+	constraints constraint.Constraints
 	ctx         context.Context
 	dialect     schema.Dialect
 	logger      *log.Logger
@@ -35,11 +38,12 @@ var _ sqlgen2.TableWithCrud = &AssociationTable{}
 // NewAssociationTable returns a new table instance.
 // If a blank table name is supplied, the default name "associations" will be used instead.
 // The request context is initialised with the background.
-func NewAssociationTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) AssociationTable {
+func NewAssociationTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) AssociationTable {
 	if name.Name == "" {
 		name.Name = "associations"
 	}
-	return AssociationTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := AssociationTable{name, d, nil, context.Background(), dialect, nil, nil}
+	return table
 }
 
 // CopyTableAsAssociationTable copies a table instance, copying the name's prefix, the DB, the context,
@@ -49,7 +53,7 @@ func NewAssociationTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schem
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsAssociationTable(origin sqlgen2.Table) AssociationTable {
 	return AssociationTable{
-		name:        sqlgen2.TableName{origin.Name().Prefix, "associations"},
+		name:        model.TableName{origin.Name().Prefix, "associations"},
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -92,7 +96,7 @@ func (tbl AssociationTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl AssociationTable) AddConstraint(cc ...sqlgen2.Constraint) AssociationTable {
+func (tbl AssociationTable) AddConstraint(cc ...constraint.Constraint) AssociationTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -120,7 +124,7 @@ func (tbl AssociationTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl AssociationTable) Name() sqlgen2.TableName {
+func (tbl AssociationTable) Name() model.TableName {
 	return tbl.name
 }
 
@@ -195,19 +199,37 @@ func (tbl AssociationTable) CreateTable(ifNotExists bool) (int64, error) {
 }
 
 func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
-	var stmt string
+	var columns string
+	var settings string
 	switch tbl.dialect {
-	case schema.Sqlite: stmt = sqlCreateAssociationTableSqlite
-    case schema.Postgres: stmt = sqlCreateAssociationTablePostgres
-    case schema.Mysql: stmt = sqlCreateAssociationTableMysql
+	case schema.Sqlite:
+		columns = sqlCreateColumnsAssociationTableSqlite
+		settings = sqlCreateSettingsAssociationTableSqlite
+    case schema.Postgres:
+		columns = sqlCreateColumnsAssociationTablePostgres
+		settings = sqlCreateSettingsAssociationTablePostgres
+    case schema.Mysql:
+		columns = sqlCreateColumnsAssociationTableMysql
+		settings = sqlCreateSettingsAssociationTableMysql
     }
-	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
-	if cs != "" {
-		cs = "\n " + cs + "\n"
+	buf := &bytes.Buffer{}
+	buf.WriteString("CREATE TABLE ")
+	if ifNotExists {
+		buf.WriteString("IF NOT EXISTS ")
 	}
-	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
-	return query
+	buf.WriteString(tbl.name.String())
+	buf.WriteString(" (")
+	buf.WriteString(columns)
+	cs := tbl.constraints.ConstraintSql(tbl.name)
+	if len(cs) > 0 {
+		for _, c := range cs {
+			buf.WriteString(",\n ")
+			buf.WriteString(c)
+		}
+	}
+	buf.WriteString("\n)")
+	buf.WriteString(settings)
+	return buf.String()
 }
 
 func (tbl AssociationTable) ternary(flag bool, a, b string) string {
@@ -223,42 +245,42 @@ func (tbl AssociationTable) DropTable(ifExists bool) (int64, error) {
 }
 
 func (tbl AssociationTable) dropTableSql(ifExists bool) string {
-	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", extra, tbl.name)
+	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
 
-const sqlCreateAssociationTableSqlite = `
-CREATE TABLE %s%s (
+const sqlCreateColumnsAssociationTableSqlite = `
  id       integer primary key autoincrement,
  name     text default null,
  quality  text default null,
  ref1     bigint default null,
  ref2     bigint default null,
- category tinyint unsigned default null
-%s)
-`
+ category tinyint unsigned default null`
 
-const sqlCreateAssociationTablePostgres = `
-CREATE TABLE %s%s (
+const sqlCreateSettingsAssociationTableSqlite = ""
+
+const sqlCreateColumnsAssociationTablePostgres = `
  id       bigserial primary key,
  name     varchar(255) default null,
  quality  varchar(255) default null,
  ref1     bigint default null,
  ref2     bigint default null,
- category tinyint unsigned default null
-%s)
-`
+ category tinyint unsigned default null`
 
-const sqlCreateAssociationTableMysql = `
-CREATE TABLE %s%s (
+const sqlCreateSettingsAssociationTablePostgres = ""
+
+const sqlCreateColumnsAssociationTableMysql = `
  id       bigint primary key auto_increment,
  name     varchar(255) default null,
  quality  varchar(255) default null,
  ref1     bigint default null,
  ref2     bigint default null,
- category tinyint unsigned default null
-%s) ENGINE=InnoDB DEFAULT CHARSET=utf8
+ category tinyint unsigned default null`
+
+const sqlCreateSettingsAssociationTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlConstrainAssociationTable = `
 `
 
 //--------------------------------------------------------------------------------
@@ -902,8 +924,7 @@ UPDATE %s SET
 	ref1=?,
 	ref2=?,
 	category=?
-WHERE id=?
-`
+WHERE id=?`
 
 const sqlUpdateAssociationByPkPostgres = `
 UPDATE %s SET
@@ -912,8 +933,7 @@ UPDATE %s SET
 	ref1=$4,
 	ref2=$5,
 	category=$6
-WHERE id=$1
-`
+WHERE id=$1`
 
 func sliceAssociationWithoutPk(v *Association) ([]interface{}, error) {
 

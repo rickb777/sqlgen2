@@ -23,6 +23,7 @@ type Tag struct {
 	Auto       bool   `yaml:"auto"`
 	Index      string `yaml:"index"`
 	Unique     string `yaml:"unique"`
+	//Check      string `yaml:"check"` TODO
 	ForeignKey string `yaml:"fk"`
 	OnUpdate   string `yaml:"onupdate"`
 	OnDelete   string `yaml:"ondelete"`

@@ -3,10 +3,13 @@
 package demo
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/constraint"
+	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
@@ -19,9 +22,9 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DbCompoundTable struct {
-	name        sqlgen2.TableName
+	name        model.TableName
 	db          sqlgen2.Execer
-	constraints sqlgen2.Constraints
+	constraints constraint.Constraints
 	ctx         context.Context
 	dialect     schema.Dialect
 	logger      *log.Logger
@@ -35,11 +38,12 @@ var _ sqlgen2.TableWithCrud = &DbCompoundTable{}
 // NewDbCompoundTable returns a new table instance.
 // If a blank table name is supplied, the default name "compounds" will be used instead.
 // The request context is initialised with the background.
-func NewDbCompoundTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) DbCompoundTable {
+func NewDbCompoundTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) DbCompoundTable {
 	if name.Name == "" {
 		name.Name = "compounds"
 	}
-	return DbCompoundTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := DbCompoundTable{name, d, nil, context.Background(), dialect, nil, nil}
+	return table
 }
 
 // CopyTableAsDbCompoundTable copies a table instance, copying the name's prefix, the DB, the context,
@@ -49,7 +53,7 @@ func NewDbCompoundTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsDbCompoundTable(origin sqlgen2.Table) DbCompoundTable {
 	return DbCompoundTable{
-		name:        sqlgen2.TableName{origin.Name().Prefix, "compounds"},
+		name:        model.TableName{origin.Name().Prefix, "compounds"},
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -92,7 +96,7 @@ func (tbl DbCompoundTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl DbCompoundTable) AddConstraint(cc ...sqlgen2.Constraint) DbCompoundTable {
+func (tbl DbCompoundTable) AddConstraint(cc ...constraint.Constraint) DbCompoundTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -120,7 +124,7 @@ func (tbl DbCompoundTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl DbCompoundTable) Name() sqlgen2.TableName {
+func (tbl DbCompoundTable) Name() model.TableName {
 	return tbl.name
 }
 
@@ -192,22 +196,37 @@ func (tbl DbCompoundTable) CreateTable(ifNotExists bool) (int64, error) {
 }
 
 func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
-	var stmt string
+	var columns string
+	var settings string
 	switch tbl.dialect {
 	case schema.Sqlite:
-		stmt = sqlCreateDbCompoundTableSqlite
+		columns = sqlCreateColumnsDbCompoundTableSqlite
+		settings = sqlCreateSettingsDbCompoundTableSqlite
 	case schema.Postgres:
-		stmt = sqlCreateDbCompoundTablePostgres
+		columns = sqlCreateColumnsDbCompoundTablePostgres
+		settings = sqlCreateSettingsDbCompoundTablePostgres
 	case schema.Mysql:
-		stmt = sqlCreateDbCompoundTableMysql
+		columns = sqlCreateColumnsDbCompoundTableMysql
+		settings = sqlCreateSettingsDbCompoundTableMysql
 	}
-	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
-	if cs != "" {
-		cs = "\n " + cs + "\n"
+	buf := &bytes.Buffer{}
+	buf.WriteString("CREATE TABLE ")
+	if ifNotExists {
+		buf.WriteString("IF NOT EXISTS ")
 	}
-	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
-	return query
+	buf.WriteString(tbl.name.String())
+	buf.WriteString(" (")
+	buf.WriteString(columns)
+	cs := tbl.constraints.ConstraintSql(tbl.name)
+	if len(cs) > 0 {
+		for _, c := range cs {
+			buf.WriteString(",\n ")
+			buf.WriteString(c)
+		}
+	}
+	buf.WriteString("\n)")
+	buf.WriteString(settings)
+	return buf.String()
 }
 
 func (tbl DbCompoundTable) ternary(flag bool, a, b string) string {
@@ -223,33 +242,33 @@ func (tbl DbCompoundTable) DropTable(ifExists bool) (int64, error) {
 }
 
 func (tbl DbCompoundTable) dropTableSql(ifExists bool) string {
-	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", extra, tbl.name)
+	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
 
-const sqlCreateDbCompoundTableSqlite = `
-CREATE TABLE %s%s (
+const sqlCreateColumnsDbCompoundTableSqlite = `
  alpha    text,
  beta     text,
- category tinyint unsigned
-%s)
-`
+ category tinyint unsigned`
 
-const sqlCreateDbCompoundTablePostgres = `
-CREATE TABLE %s%s (
+const sqlCreateSettingsDbCompoundTableSqlite = ""
+
+const sqlCreateColumnsDbCompoundTablePostgres = `
  alpha    varchar(255),
  beta     varchar(255),
- category tinyint unsigned
-%s)
-`
+ category tinyint unsigned`
 
-const sqlCreateDbCompoundTableMysql = `
-CREATE TABLE %s%s (
+const sqlCreateSettingsDbCompoundTablePostgres = ""
+
+const sqlCreateColumnsDbCompoundTableMysql = `
  alpha    varchar(255),
  beta     varchar(255),
- category tinyint unsigned
-%s) ENGINE=InnoDB DEFAULT CHARSET=utf8
+ category tinyint unsigned`
+
+const sqlCreateSettingsDbCompoundTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlConstrainDbCompoundTable = `
 `
 
 //--------------------------------------------------------------------------------

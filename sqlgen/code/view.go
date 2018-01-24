@@ -8,6 +8,7 @@ import (
 	. "github.com/acsellers/inflections"
 	"github.com/rickb777/sqlgen2/schema"
 	"bitbucket.org/pkg/inflect"
+	"github.com/rickb777/sqlgen2/constraint"
 )
 
 type View struct {
@@ -49,6 +50,20 @@ func (v View) DbName() string {
 
 func (v View) CamelName() string {
 	return v.Prefix + inflect.Camelize(v.Table.Type)
+}
+
+func (v View) Constraints() (list constraint.Constraints) {
+	for _, f := range v.Table.Fields {
+		if f.Tags.ForeignKey != "" {
+			slice := Split(f.Tags.ForeignKey, ".")
+			c := constraint.FkConstraintOn(f.SqlName).
+				RefersTo(slice[0], slice[1]).
+				OnUpdate(constraint.Consequence(f.Tags.OnUpdate)).
+				OnDelete(constraint.Consequence(f.Tags.OnDelete))
+			list = append(list, c)
+		}
+	}
+	return list
 }
 
 var funcMap = template.FuncMap{

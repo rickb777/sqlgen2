@@ -3,11 +3,14 @@
 package demo
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/constraint"
+	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
@@ -21,9 +24,9 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DbUserTable struct {
-	name        sqlgen2.TableName
+	name        model.TableName
 	db          sqlgen2.Execer
-	constraints sqlgen2.Constraints
+	constraints constraint.Constraints
 	ctx         context.Context
 	dialect     schema.Dialect
 	logger      *log.Logger
@@ -37,11 +40,15 @@ var _ sqlgen2.TableWithCrud = &DbUserTable{}
 // NewDbUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewDbUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) DbUserTable {
+func NewDbUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) DbUserTable {
 	if name.Name == "" {
 		name.Name = "users"
 	}
-	return DbUserTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := DbUserTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table.constraints = append(table.constraints,
+		constraint.FkConstraint{"addressid", constraint.Reference{"address", "id"}, "restrict", "restrict"})
+
+	return table
 }
 
 // CopyTableAsDbUserTable copies a table instance, copying the name's prefix, the DB, the context,
@@ -51,7 +58,7 @@ func NewDbUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dia
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsDbUserTable(origin sqlgen2.Table) DbUserTable {
 	return DbUserTable{
-		name:        sqlgen2.TableName{origin.Name().Prefix, "users"},
+		name:        model.TableName{origin.Name().Prefix, "users"},
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -94,7 +101,7 @@ func (tbl DbUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl DbUserTable) AddConstraint(cc ...sqlgen2.Constraint) DbUserTable {
+func (tbl DbUserTable) AddConstraint(cc ...constraint.Constraint) DbUserTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -122,7 +129,7 @@ func (tbl DbUserTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl DbUserTable) Name() sqlgen2.TableName {
+func (tbl DbUserTable) Name() model.TableName {
 	return tbl.name
 }
 
@@ -196,22 +203,37 @@ func (tbl DbUserTable) CreateTable(ifNotExists bool) (int64, error) {
 }
 
 func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
-	var stmt string
+	var columns string
+	var settings string
 	switch tbl.dialect {
 	case schema.Sqlite:
-		stmt = sqlCreateDbUserTableSqlite
+		columns = sqlCreateColumnsDbUserTableSqlite
+		settings = sqlCreateSettingsDbUserTableSqlite
 	case schema.Postgres:
-		stmt = sqlCreateDbUserTablePostgres
+		columns = sqlCreateColumnsDbUserTablePostgres
+		settings = sqlCreateSettingsDbUserTablePostgres
 	case schema.Mysql:
-		stmt = sqlCreateDbUserTableMysql
+		columns = sqlCreateColumnsDbUserTableMysql
+		settings = sqlCreateSettingsDbUserTableMysql
 	}
-	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
-	if cs != "" {
-		cs = "\n " + cs + "\n"
+	buf := &bytes.Buffer{}
+	buf.WriteString("CREATE TABLE ")
+	if ifNotExists {
+		buf.WriteString("IF NOT EXISTS ")
 	}
-	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
-	return query
+	buf.WriteString(tbl.name.String())
+	buf.WriteString(" (")
+	buf.WriteString(columns)
+	cs := tbl.constraints.ConstraintSql(tbl.name)
+	if len(cs) > 0 {
+		for _, c := range cs {
+			buf.WriteString(",\n ")
+			buf.WriteString(c)
+		}
+	}
+	buf.WriteString("\n)")
+	buf.WriteString(settings)
+	return buf.String()
 }
 
 func (tbl DbUserTable) ternary(flag bool, a, b string) string {
@@ -227,13 +249,12 @@ func (tbl DbUserTable) DropTable(ifExists bool) (int64, error) {
 }
 
 func (tbl DbUserTable) dropTableSql(ifExists bool) string {
-	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", extra, tbl.name)
+	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
 
-const sqlCreateDbUserTableSqlite = `
-CREATE TABLE %s%s (
+const sqlCreateColumnsDbUserTableSqlite = `
  uid          integer primary key autoincrement,
  login        text,
  emailaddress text,
@@ -245,12 +266,11 @@ CREATE TABLE %s%s (
  fave         text,
  lastupdated  bigint,
  token        text,
- secret       text
-%s)
-`
+ secret       text`
 
-const sqlCreateDbUserTablePostgres = `
-CREATE TABLE %s%s (
+const sqlCreateSettingsDbUserTableSqlite = ""
+
+const sqlCreateColumnsDbUserTablePostgres = `
  uid          bigserial primary key,
  login        varchar(255),
  emailaddress varchar(255),
@@ -262,12 +282,11 @@ CREATE TABLE %s%s (
  fave         json,
  lastupdated  bigint,
  token        varchar(255),
- secret       varchar(255)
-%s)
-`
+ secret       varchar(255)`
 
-const sqlCreateDbUserTableMysql = `
-CREATE TABLE %s%s (
+const sqlCreateSettingsDbUserTablePostgres = ""
+
+const sqlCreateColumnsDbUserTableMysql = `
  uid          bigint primary key auto_increment,
  login        varchar(255),
  emailaddress varchar(255),
@@ -279,8 +298,12 @@ CREATE TABLE %s%s (
  fave         json,
  lastupdated  bigint,
  token        varchar(255),
- secret       varchar(255)
-%s) ENGINE=InnoDB DEFAULT CHARSET=utf8
+ secret       varchar(255)`
+
+const sqlCreateSettingsDbUserTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlConstrainDbUserTable = `
+ CONSTRAINT DbUserc3 foreign key (addressid) references %saddress (id) on update restrict on delete restrict
 `
 
 //--------------------------------------------------------------------------------
@@ -1139,8 +1162,7 @@ UPDATE %s SET
 	lastupdated=?,
 	token=?,
 	secret=?
-WHERE uid=?
-`
+WHERE uid=?`
 
 const sqlUpdateDbUserByPkPostgres = `
 UPDATE %s SET
@@ -1155,8 +1177,7 @@ UPDATE %s SET
 	lastupdated=$10,
 	token=$11,
 	secret=$12
-WHERE uid=$1
-`
+WHERE uid=$1`
 
 func sliceDbUserWithoutPk(v *User) ([]interface{}, error) {
 

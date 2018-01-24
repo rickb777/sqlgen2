@@ -58,6 +58,10 @@ func TestParseTag(t *testing.T) {
 			TagKey + `:"fk: alpha.ID, onupdate: setnull, ondelete: setdefault"`,
 			&Tag{ForeignKey: "alpha.ID", OnUpdate: "set null", OnDelete: "set default"},
 		},
+		{
+			TagKey + `:"fk: alpha.ID, onupdate: 'set null', ondelete: 'set default'"`,
+			&Tag{ForeignKey: "alpha.ID", OnUpdate: "set null", OnDelete: "set default"},
+		},
 	}
 
 	for _, test := range tagTests {
@@ -84,7 +88,7 @@ func TestParseValidation(t *testing.T) {
 		},
 		{
 			TagKey + `:"onupdate: x"`,
-			`unr	ecognised onupdate value "x"`,
+			`unrecognised onupdate value "x"`,
 		},
 		{
 			TagKey + `:"ondelete: x"`,

@@ -30,7 +30,7 @@ type User struct {
 | onupdate | string        | one of "cascade", "delete", "restrict", "set default", "set null" |
 | ondelete | string        | one of "cascade", "delete", "restrict", "set default", "set null" |
 
-Driver encoding means explicitly deferring to the `sql.Scanner` and `driver.Valuer` methods on your type.
+For string tags, you need to surround the value in single quotes if it contains any spaces. For example, `sql:"check: 'age >= 18'"`. You don't need quotes if there aren't any spaces.
 
 ## Encode
 

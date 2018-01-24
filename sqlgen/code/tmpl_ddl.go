@@ -15,9 +15,9 @@ const sTable = `
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type {{.Prefix}}{{.Type}}{{.Thing}} struct {
-	name        sqlgen2.TableName
+	name        model.TableName
 	db          sqlgen2.Execer
-	constraints sqlgen2.Constraints
+	constraints constraint.Constraints
 	ctx         context.Context
 	dialect     schema.Dialect
 	logger      *log.Logger
@@ -31,11 +31,16 @@ var _ {{.Interface2}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
 // New{{.Prefix}}{{.Type}}{{.Thing}} returns a new table instance.
 // If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.
 // The request context is initialised with the background.
-func New{{.Prefix}}{{.Type}}{{.Thing}}(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) {{.Prefix}}{{.Type}}{{.Thing}} {
+func New{{.Prefix}}{{.Type}}{{.Thing}}(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) {{.Prefix}}{{.Type}}{{.Thing}} {
 	if name.Name == "" {
 		name.Name = "{{.DbName}}"
 	}
-	return {{.Prefix}}{{.Type}}{{.Thing}}{name, d, nil, context.Background(), dialect, nil, nil}
+	table := {{.Prefix}}{{.Type}}{{.Thing}}{name, d, nil, context.Background(), dialect, nil, nil}
+	{{- range .Constraints}}
+	table.constraints = append(table.constraints,
+		{{.GoString}})
+	{{end}}
+	return table
 }
 
 // CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}} copies a table instance, copying the name's prefix, the DB, the context,
@@ -45,7 +50,7 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name sqlgen2.TableName, d sqlgen2.Execer,
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin sqlgen2.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
-		name:        sqlgen2.TableName{origin.Name().Prefix, "{{.DbName}}"},
+		name:        model.TableName{origin.Name().Prefix, "{{.DbName}}"},
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -88,7 +93,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SetLogger(logger *log.Logger) sqlgen2.
 }
 
 // AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) AddConstraint(cc ...sqlgen2.Constraint) {{.Prefix}}{{.Type}}{{.Thing}} {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) AddConstraint(cc ...constraint.Constraint) {{.Prefix}}{{.Type}}{{.Thing}} {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -116,7 +121,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SetWrapper(wrapper interface{}) sqlgen
 }
 
 // Name gets the table name.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Name() sqlgen2.TableName {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Name() model.TableName {
 	return tbl.name
 }
 
@@ -283,19 +288,33 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateTable(ifNotExists bool) (int64, 
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) createTableSql(ifNotExists bool) string {
-	var stmt string
+	var columns string
+	var settings string
 	switch tbl.dialect {
 	{{range .Dialects -}}
-	case schema.{{.}}: stmt = sqlCreate{{$.Prefix}}{{$.Type}}{{$.Thing}}{{.}}
+	case schema.{{.}}:
+		columns = sqlCreateColumns{{$.Prefix}}{{$.Type}}{{$.Thing}}{{.}}
+		settings = sqlCreateSettings{{$.Prefix}}{{$.Type}}{{$.Thing}}{{.}}
     {{end -}}
 	}
-	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
-	if cs != "" {
-		cs = "\n " + cs + "\n"
+	buf := &bytes.Buffer{}
+	buf.WriteString("CREATE TABLE ")
+	if ifNotExists {
+		buf.WriteString("IF NOT EXISTS ")
 	}
-	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
-	return query
+	buf.WriteString(tbl.name.String())
+	buf.WriteString(" (")
+	buf.WriteString(columns)
+	cs := tbl.constraints.ConstraintSql(tbl.name)
+	if len(cs) > 0 {
+		for _, c := range cs {
+			buf.WriteString(",\n ")
+			buf.WriteString(c)
+		}
+	}
+	buf.WriteString("\n)")
+	buf.WriteString(settings)
+	return buf.String()
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) ternary(flag bool, a, b string) string {
@@ -311,8 +330,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DropTable(ifExists bool) (int64, error
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) dropTableSql(ifExists bool) string {
-	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", extra, tbl.name)
+	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
 `

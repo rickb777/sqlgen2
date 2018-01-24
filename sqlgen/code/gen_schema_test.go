@@ -36,19 +36,37 @@ func (tbl XExampleTable) CreateTable(ifNotExists bool) (int64, error) {
 }
 
 func (tbl XExampleTable) createTableSql(ifNotExists bool) string {
-	var stmt string
+	var columns string
+	var settings string
 	switch tbl.dialect {
-	case schema.Sqlite: stmt = sqlCreateXExampleTableSqlite
-    case schema.Postgres: stmt = sqlCreateXExampleTablePostgres
-    case schema.Mysql: stmt = sqlCreateXExampleTableMysql
+	case schema.Sqlite:
+		columns = sqlCreateColumnsXExampleTableSqlite
+		settings = sqlCreateSettingsXExampleTableSqlite
+    case schema.Postgres:
+		columns = sqlCreateColumnsXExampleTablePostgres
+		settings = sqlCreateSettingsXExampleTablePostgres
+    case schema.Mysql:
+		columns = sqlCreateColumnsXExampleTableMysql
+		settings = sqlCreateSettingsXExampleTableMysql
     }
-	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
-	if cs != "" {
-		cs = "\n " + cs + "\n"
+	buf := &bytes.Buffer{}
+	buf.WriteString("CREATE TABLE ")
+	if ifNotExists {
+		buf.WriteString("IF NOT EXISTS ")
 	}
-	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
-	return query
+	buf.WriteString(tbl.name.String())
+	buf.WriteString(" (")
+	buf.WriteString(columns)
+	cs := tbl.constraints.ConstraintSql(tbl.name)
+	if len(cs) > 0 {
+		for _, c := range cs {
+			buf.WriteString(",\n ")
+			buf.WriteString(c)
+		}
+	}
+	buf.WriteString("\n)")
+	buf.WriteString(settings)
+	return buf.String()
 }
 
 func (tbl XExampleTable) ternary(flag bool, a, b string) string {
@@ -64,13 +82,12 @@ func (tbl XExampleTable) DropTable(ifExists bool) (int64, error) {
 }
 
 func (tbl XExampleTable) dropTableSql(ifExists bool) string {
-	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", extra, tbl.name)
+	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
 
-const sqlCreateXExampleTableSqlite = |
-CREATE TABLE %s%s (
+const sqlCreateColumnsXExampleTableSqlite = |
  id       integer primary key autoincrement,
  cat      int,
  username text,
@@ -87,12 +104,11 @@ CREATE TABLE %s%s (
  foo2     text default null,
  bar1     text,
  bar2     text default null,
- updated  text
-%s)
-|
+ updated  text|
 
-const sqlCreateXExampleTablePostgres = |
-CREATE TABLE %s%s (
+const sqlCreateSettingsXExampleTableSqlite = ""
+
+const sqlCreateColumnsXExampleTablePostgres = |
  id       bigserial primary key,
  cat      int,
  username varchar(2048),
@@ -109,12 +125,11 @@ CREATE TABLE %s%s (
  foo2     varchar(255) default null,
  bar1     varchar(255),
  bar2     varchar(255) default null,
- updated  varchar(100)
-%s)
-|
+ updated  varchar(100)|
 
-const sqlCreateXExampleTableMysql = |
-CREATE TABLE %s%s (
+const sqlCreateSettingsXExampleTablePostgres = ""
+
+const sqlCreateColumnsXExampleTableMysql = |
  id       bigint primary key auto_increment,
  cat      int,
  username varchar(2048),
@@ -131,8 +146,11 @@ CREATE TABLE %s%s (
  foo2     varchar(255) default null,
  bar1     varchar(255),
  bar2     varchar(255) default null,
- updated  varchar(100)
-%s) ENGINE=InnoDB DEFAULT CHARSET=utf8
+ updated  varchar(100)|
+
+const sqlCreateSettingsXExampleTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlConstrainXExampleTable = |
 |
 
 //--------------------------------------------------------------------------------

@@ -4,6 +4,8 @@ import (
 	"testing"
 	. "github.com/onsi/gomega"
 	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 	"context"
 	"database/sql"
 	"database/sql/driver"
@@ -11,19 +13,25 @@ import (
 	"math/big"
 	"log"
 	"os"
-	"syscall"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/require"
+	"github.com/rickb777/sqlgen2/model"
+	"github.com/rickb777/sqlgen2/constraint"
 )
-
-const dbDriver = "sqlite3"
-const dsn = "./test.db"
 
 var db *sql.DB
 
 func connect() *sql.DB {
+	dbDriver, ok := os.LookupEnv("GO_DRIVER")
+	if !ok {
+		dbDriver = "sqlite3"
+	}
+	dsn, ok := os.LookupEnv("GO_DSN")
+	if !ok {
+		dsn = ":memory:"
+	}
 	conn, err := sql.Open(dbDriver, dsn)
 	if err != nil {
 		panic(err)
@@ -35,7 +43,6 @@ func connect() *sql.DB {
 func cleanup() {
 	if db != nil {
 		db.Close()
-		syscall.Unlink(dsn)
 	}
 }
 
@@ -55,8 +62,8 @@ func TestCreateTable_postgres(t *testing.T) {
 		dialect  schema.Dialect
 		expected string
 	}{
-		{schema.Postgres, `
-CREATE TABLE IF NOT EXISTS prefix_users (
+		{schema.Postgres,
+`CREATE TABLE IF NOT EXISTS prefix_users (
  uid          bigserial primary key,
  login        varchar(255),
  emailaddress varchar(255),
@@ -68,14 +75,12 @@ CREATE TABLE IF NOT EXISTS prefix_users (
  fave         json,
  lastupdated  bigint,
  token        varchar(255),
- secret       varchar(255)
-
- CONSTRAINT prefix_users_c1 CHECK (role < 3)
- CONSTRAINT prefix_users_c2 foreign key (addressid) references prefix_addresses (id) on delete cascade
-)
-`},
-		{schema.Mysql, `
-CREATE TABLE IF NOT EXISTS prefix_users (
+ secret       varchar(255),
+ CONSTRAINT prefix_users_c1 foreign key (addressid) references prefix_address (id) on update restrict on delete restrict,
+ CONSTRAINT prefix_users_c2 CHECK (role < 3)
+)`},
+		{schema.Mysql,
+`CREATE TABLE IF NOT EXISTS prefix_users (
  uid          bigint primary key auto_increment,
  login        varchar(255),
  emailaddress varchar(255),
@@ -87,20 +92,17 @@ CREATE TABLE IF NOT EXISTS prefix_users (
  fave         json,
  lastupdated  bigint,
  token        varchar(255),
- secret       varchar(255)
-
- CONSTRAINT prefix_users_c1 CHECK (role < 3)
- CONSTRAINT prefix_users_c2 foreign key (addressid) references prefix_addresses (id) on delete cascade
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-`},
+ secret       varchar(255),
+ CONSTRAINT prefix_users_c1 foreign key (addressid) references prefix_address (id) on update restrict on delete restrict,
+ CONSTRAINT prefix_users_c2 CHECK (role < 3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8`},
 	}
 
 	for _, c := range cases {
-		tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, c.dialect).
+		tbl := NewDbUserTable(model.TableName{Name: "users"}, nil, c.dialect).
 			WithPrefix("prefix_").
 			AddConstraint(
-			sqlgen2.CheckConstraint{"role < 3"},
-			sqlgen2.FkConstraintOn("addressid").RefersTo("addresses", "id").OnDelete(sqlgen2.Cascade))
+			constraint.CheckConstraint{"role < 3"})
 		s := tbl.createTableSql(true)
 		Ω(s).Should(Equal(c.expected), "%s\n%s", c.dialect, s)
 	}
@@ -109,7 +111,7 @@ CREATE TABLE IF NOT EXISTS prefix_users (
 func TestCreateIndexSql(t *testing.T) {
 	RegisterTestingT(t)
 
-	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, schema.Postgres).WithPrefix("prefix_")
+	tbl := NewDbUserTable(model.TableName{Name: "users"}, nil, schema.Postgres).WithPrefix("prefix_")
 	s := tbl.createDbUserEmailIndexSql("IF NOT EXISTS ")
 	expected := `CREATE UNIQUE INDEX IF NOT EXISTS prefix_user_email ON prefix_users (emailaddress)`
 	Ω(s).Should(Equal(expected))
@@ -128,7 +130,7 @@ func TestDropIndexSql(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, nil, c.d).WithPrefix("prefix_")
+		tbl := NewDbUserTable(model.TableName{Name: "users"}, nil, c.d).WithPrefix("prefix_")
 		s := tbl.dropDbUserEmailIndexSql(true)
 		Ω(s).Should(Equal(c.expected))
 	}
@@ -139,7 +141,7 @@ func TestUpdateFields_ok(t *testing.T) {
 
 	mockDb := mockExecer{RowsAffected: 1}
 
-	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
+	tbl := NewDbUserTable(model.TableName{Name: "users"}, mockDb, schema.Mysql)
 
 	n, err := tbl.UpdateFields(require.One, where.NoOp(),
 		sqlgen2.Named("EmailAddress", "foo@x.com"),
@@ -155,7 +157,7 @@ func TestUpdateFields_error(t *testing.T) {
 	exp := Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
-	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
+	tbl := NewDbUserTable(model.TableName{Name: "users"}, mockDb, schema.Mysql)
 
 	_, err := tbl.UpdateFields(nil, where.NoOp(),
 		sqlgen2.Named("EmailAddress", "foo@x.com"),
@@ -169,7 +171,7 @@ func TestUpdate_ok(t *testing.T) {
 
 	mockDb := mockExecer{RowsAffected: 1}
 
-	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
+	tbl := NewDbUserTable(model.TableName{Name: "users"}, mockDb, schema.Mysql)
 
 	n, err := tbl.Update(require.One, &User{})
 
@@ -183,7 +185,7 @@ func TestUpdate_error(t *testing.T) {
 	exp := Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
-	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, mockDb, schema.Mysql)
+	tbl := NewDbUserTable(model.TableName{Name: "users"}, mockDb, schema.Mysql)
 
 	_, err := tbl.Update(nil, &User{})
 
@@ -196,7 +198,7 @@ func TestCrudUsingSqlite(t *testing.T) {
 	RegisterTestingT(t)
 	defer cleanup()
 
-	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, connect(), schema.Sqlite)
+	tbl := NewDbUserTable(model.TableName{Name: "users"}, connect(), schema.Sqlite)
 	if testing.Verbose() {
 		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
 	}
@@ -360,7 +362,7 @@ func TestMultiSelectUsingSqlite(t *testing.T) {
 	RegisterTestingT(t)
 	defer cleanup()
 
-	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, connect(), schema.Sqlite)
+	tbl := NewDbUserTable(model.TableName{Name: "users"}, connect(), schema.Sqlite)
 	if testing.Verbose() {
 		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
 	}
@@ -401,7 +403,7 @@ func TestGettersUsingSqlite(t *testing.T) {
 	RegisterTestingT(t)
 	defer cleanup()
 
-	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, connect(), schema.Sqlite)
+	tbl := NewDbUserTable(model.TableName{Name: "users"}, connect(), schema.Sqlite)
 	if testing.Verbose() {
 		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
 	}
@@ -436,7 +438,7 @@ func TestBulkDeleteUsingSqlite(t *testing.T) {
 	RegisterTestingT(t)
 	defer cleanup()
 
-	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, connect(), schema.Sqlite)
+	tbl := NewDbUserTable(model.TableName{Name: "users"}, connect(), schema.Sqlite)
 	if testing.Verbose() {
 		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
 	}

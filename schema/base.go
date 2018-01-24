@@ -21,9 +21,8 @@ func baseTableDDL(t *TableDescription, did Dialect) string {
 	comma := ""
 	for _, field := range t.Fields {
 		io.WriteString(tab, comma)
-		comma = ","
+		comma = ",\n"
 
-		io.WriteString(tab, "\n")
 		io.WriteString(tab, fieldIndentation)
 
 		io.WriteString(tab, field.SqlName)
@@ -52,7 +51,7 @@ func baseInsertDML(t *TableDescription) string {
 		}
 	}
 
-	w.WriteString("\n) VALUES (%s)")
+	w.WriteString("\n) VALUES (%s)\n")
 	return w.String()
 }
 

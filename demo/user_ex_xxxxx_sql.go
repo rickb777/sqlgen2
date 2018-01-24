@@ -7,6 +7,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/constraint"
+	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
@@ -18,9 +20,9 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type XUserTable struct {
-	name        sqlgen2.TableName
+	name        model.TableName
 	db          sqlgen2.Execer
-	constraints sqlgen2.Constraints
+	constraints constraint.Constraints
 	ctx         context.Context
 	dialect     schema.Dialect
 	logger      *log.Logger
@@ -34,11 +36,15 @@ var _ sqlgen2.Table = &XUserTable{}
 // NewXUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewXUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) XUserTable {
+func NewXUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) XUserTable {
 	if name.Name == "" {
 		name.Name = "users"
 	}
-	return XUserTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := XUserTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table.constraints = append(table.constraints,
+		constraint.FkConstraint{"addressid", constraint.Reference{"address", "id"}, "restrict", "restrict"})
+	
+	return table
 }
 
 // CopyTableAsXUserTable copies a table instance, copying the name's prefix, the DB, the context,
@@ -48,7 +54,7 @@ func NewXUserTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dial
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsXUserTable(origin sqlgen2.Table) XUserTable {
 	return XUserTable{
-		name:        sqlgen2.TableName{origin.Name().Prefix, "users"},
+		name:        model.TableName{origin.Name().Prefix, "users"},
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -91,7 +97,7 @@ func (tbl XUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl XUserTable) AddConstraint(cc ...sqlgen2.Constraint) XUserTable {
+func (tbl XUserTable) AddConstraint(cc ...constraint.Constraint) XUserTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -119,7 +125,7 @@ func (tbl XUserTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl XUserTable) Name() sqlgen2.TableName {
+func (tbl XUserTable) Name() model.TableName {
 	return tbl.name
 }
 

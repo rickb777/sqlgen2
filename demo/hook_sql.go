@@ -3,10 +3,13 @@
 package demo
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/constraint"
+	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
@@ -19,9 +22,9 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type HookTable struct {
-	name        sqlgen2.TableName
+	name        model.TableName
 	db          sqlgen2.Execer
-	constraints sqlgen2.Constraints
+	constraints constraint.Constraints
 	ctx         context.Context
 	dialect     schema.Dialect
 	logger      *log.Logger
@@ -35,11 +38,12 @@ var _ sqlgen2.TableWithCrud = &HookTable{}
 // NewHookTable returns a new table instance.
 // If a blank table name is supplied, the default name "hooks" will be used instead.
 // The request context is initialised with the background.
-func NewHookTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Dialect) HookTable {
+func NewHookTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) HookTable {
 	if name.Name == "" {
 		name.Name = "hooks"
 	}
-	return HookTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := HookTable{name, d, nil, context.Background(), dialect, nil, nil}
+	return table
 }
 
 // CopyTableAsHookTable copies a table instance, copying the name's prefix, the DB, the context,
@@ -49,7 +53,7 @@ func NewHookTable(name sqlgen2.TableName, d sqlgen2.Execer, dialect schema.Diale
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsHookTable(origin sqlgen2.Table) HookTable {
 	return HookTable{
-		name:        sqlgen2.TableName{origin.Name().Prefix, "hooks"},
+		name:        model.TableName{origin.Name().Prefix, "hooks"},
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -92,7 +96,7 @@ func (tbl HookTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 }
 
 // AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl HookTable) AddConstraint(cc ...sqlgen2.Constraint) HookTable {
+func (tbl HookTable) AddConstraint(cc ...constraint.Constraint) HookTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -120,7 +124,7 @@ func (tbl HookTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
 }
 
 // Name gets the table name.
-func (tbl HookTable) Name() sqlgen2.TableName {
+func (tbl HookTable) Name() model.TableName {
 	return tbl.name
 }
 
@@ -195,19 +199,37 @@ func (tbl HookTable) CreateTable(ifNotExists bool) (int64, error) {
 }
 
 func (tbl HookTable) createTableSql(ifNotExists bool) string {
-	var stmt string
+	var columns string
+	var settings string
 	switch tbl.dialect {
-	case schema.Sqlite: stmt = sqlCreateHookTableSqlite
-    case schema.Postgres: stmt = sqlCreateHookTablePostgres
-    case schema.Mysql: stmt = sqlCreateHookTableMysql
+	case schema.Sqlite:
+		columns = sqlCreateColumnsHookTableSqlite
+		settings = sqlCreateSettingsHookTableSqlite
+    case schema.Postgres:
+		columns = sqlCreateColumnsHookTablePostgres
+		settings = sqlCreateSettingsHookTablePostgres
+    case schema.Mysql:
+		columns = sqlCreateColumnsHookTableMysql
+		settings = sqlCreateSettingsHookTableMysql
     }
-	extra := tbl.ternary(ifNotExists, "IF NOT EXISTS ", "")
-	cs := strings.Join(tbl.constraints.ConstraintSql(tbl.name), "\n ")
-	if cs != "" {
-		cs = "\n " + cs + "\n"
+	buf := &bytes.Buffer{}
+	buf.WriteString("CREATE TABLE ")
+	if ifNotExists {
+		buf.WriteString("IF NOT EXISTS ")
 	}
-	query := fmt.Sprintf(stmt, extra, tbl.name, cs)
-	return query
+	buf.WriteString(tbl.name.String())
+	buf.WriteString(" (")
+	buf.WriteString(columns)
+	cs := tbl.constraints.ConstraintSql(tbl.name)
+	if len(cs) > 0 {
+		for _, c := range cs {
+			buf.WriteString(",\n ")
+			buf.WriteString(c)
+		}
+	}
+	buf.WriteString("\n)")
+	buf.WriteString(settings)
+	return buf.String()
 }
 
 func (tbl HookTable) ternary(flag bool, a, b string) string {
@@ -223,13 +245,12 @@ func (tbl HookTable) DropTable(ifExists bool) (int64, error) {
 }
 
 func (tbl HookTable) dropTableSql(ifExists bool) string {
-	extra := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", extra, tbl.name)
+	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
 
-const sqlCreateHookTableSqlite = `
-CREATE TABLE %s%s (
+const sqlCreateColumnsHookTableSqlite = `
  id                             integer primary key autoincrement,
  sha                            text,
  after                          text,
@@ -246,12 +267,11 @@ CREATE TABLE %s%s (
  head_commit_author_username    text,
  head_commit_committer_name     text,
  head_commit_committer_email    text,
- head_commit_committer_username text
-%s)
-`
+ head_commit_committer_username text`
 
-const sqlCreateHookTablePostgres = `
-CREATE TABLE %s%s (
+const sqlCreateSettingsHookTableSqlite = ""
+
+const sqlCreateColumnsHookTablePostgres = `
  id                             bigserial primary key,
  sha                            varchar(255),
  after                          varchar(20),
@@ -268,12 +288,11 @@ CREATE TABLE %s%s (
  head_commit_author_username    varchar(255),
  head_commit_committer_name     varchar(255),
  head_commit_committer_email    varchar(255),
- head_commit_committer_username varchar(255)
-%s)
-`
+ head_commit_committer_username varchar(255)`
 
-const sqlCreateHookTableMysql = `
-CREATE TABLE %s%s (
+const sqlCreateSettingsHookTablePostgres = ""
+
+const sqlCreateColumnsHookTableMysql = `
  id                             bigint unsigned primary key auto_increment,
  sha                            varchar(255),
  after                          varchar(20),
@@ -290,8 +309,11 @@ CREATE TABLE %s%s (
  head_commit_author_username    varchar(255),
  head_commit_committer_name     varchar(255),
  head_commit_committer_email    varchar(255),
- head_commit_committer_username varchar(255)
-%s) ENGINE=InnoDB DEFAULT CHARSET=utf8
+ head_commit_committer_username varchar(255)`
+
+const sqlCreateSettingsHookTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlConstrainHookTable = `
 `
 
 //--------------------------------------------------------------------------------
@@ -1079,8 +1101,7 @@ UPDATE %s SET
 	head_commit_committer_name=?,
 	head_commit_committer_email=?,
 	head_commit_committer_username=?
-WHERE id=?
-`
+WHERE id=?`
 
 const sqlUpdateHookByPkPostgres = `
 UPDATE %s SET
@@ -1100,8 +1121,7 @@ UPDATE %s SET
 	head_commit_committer_name=$15,
 	head_commit_committer_email=$16,
 	head_commit_committer_username=$17
-WHERE id=$1
-`
+WHERE id=$1`
 
 func sliceHookWithoutPk(v *Hook) ([]interface{}, error) {
 
