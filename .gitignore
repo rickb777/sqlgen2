@@ -2,3 +2,5 @@
 *.sqlite
 *.txt
 _docs
+.idea/workspace.xml
+
