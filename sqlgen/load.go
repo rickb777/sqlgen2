@@ -9,7 +9,6 @@ import (
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"github.com/rickb777/sqlgen2/sqlgen/output"
-	"github.com/kortschak/utter"
 	"sort"
 	"github.com/rickb777/sqlgen2/model"
 )
@@ -46,6 +45,7 @@ func load(pkgStore parse.PackageStore, name parse.LType, mainPkg string, fileTag
 	})
 
 	checkNoConflictingNames(name, table)
+	checkForKeywords(name, table)
 
 	return table, nil
 }
@@ -358,25 +358,5 @@ func addStructTags(tags parse.Tags, str *types.Struct) {
 			exit.Fail(2, "%s contains unparseable tag %q (%s)", str.String(), ts, err)
 		}
 		tags[str.Field(i).Name()] = *tag
-	}
-}
-
-func checkNoConflictingNames(name parse.LType, table *TableDescription) {
-	names := make(map[string]struct{})
-	var duplicates []string
-
-	for _, field := range table.Fields {
-		name := strings.ToLower(field.SqlName)
-		_, exists := names[name]
-		if exists {
-			duplicates = append(duplicates, name)
-		}
-		names[name] = struct{}{}
-	}
-
-	if len(duplicates) > 0 {
-		parse.DevInfo("checkNoConflictingNames %s %+v\n", name, utter.Sdump(table))
-		exit.Fail(1, "%s: found conflicting SQL column names: %s.\nPlease set the names on these fields explicitly using tags.\n",
-			name, strings.Join(duplicates, ", "))
 	}
 }

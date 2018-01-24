@@ -3,7 +3,6 @@ package schema
 import (
 	"fmt"
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
-	"strings"
 )
 
 type mysql struct{}
@@ -83,36 +82,20 @@ func varchar(size int) string {
 
 // see https://dev.mysql.com/doc/refman/5.7/en/integer-types.html
 
-const mysqlPlaceholders = "?,?,?,?,?,?,?,?,?,?"
-
-func queryPlaceholders(n int) string {
-	if n == 0 {
-		return ""
-	} else if n <= 10 {
-		m := (n * 2) - 1
-		return mysqlPlaceholders[:m]
-	}
-	return strings.Repeat("?,", n-1) + "?"
-}
-
-func paramIsQuery(i int) string {
-	return "?"
-}
-
 func (dialect mysql) TableDDL(table *TableDescription) string {
 	return baseTableDDL(table, dialect)
 }
 
 func (dialect mysql) InsertDML(table *TableDescription) string {
-	return baseInsertDML(table)
+	return baseInsertDML(table, baseQueryPlaceholders(table.NumColumnNames(false))) + "\n"
 }
 
 func (dialect mysql) UpdateDML(table *TableDescription) string {
-	return baseUpdateDML(table, table.Fields, paramIsQuery)
+	return baseUpdateDML(table, table.Fields, baseParamIsQuery)
 }
 
 func (dialect mysql) DeleteDML(table *TableDescription, fields FieldList) string {
-	return baseDeleteDML(table, fields, paramIsQuery)
+	return baseDeleteDML(table, fields, baseParamIsQuery)
 }
 
 func (dialect mysql) TruncateDDL(tableName string, force bool) []string {
@@ -131,7 +114,7 @@ func (dialect mysql) TruncateDDL(tableName string, force bool) []string {
 // Placeholders returns a string containing the requested number of placeholders
 // in the form used by MySQL and SQLite.
 func (dialect mysql) Placeholders(n int) string {
-	return queryPlaceholders(n)
+	return baseQueryPlaceholders(n)
 }
 
 // ReplacePlaceholders converts a string containing '?' placeholders to

@@ -83,15 +83,15 @@ func (dialect sqlite) TableDDL(table *TableDescription) string {
 }
 
 func (dialect sqlite) InsertDML(table *TableDescription) string {
-	return baseInsertDML(table)
+	return baseInsertDML(table, baseQueryPlaceholders(table.NumColumnNames(false))) + "\n"
 }
 
 func (dialect sqlite) UpdateDML(table *TableDescription) string {
-	return baseUpdateDML(table, table.Fields, paramIsQuery)
+	return baseUpdateDML(table, table.Fields, baseParamIsQuery)
 }
 
 func (dialect sqlite) DeleteDML(table *TableDescription, fields FieldList) string {
-	return baseDeleteDML(table, fields, paramIsQuery)
+	return baseDeleteDML(table, fields, baseParamIsQuery)
 }
 
 func (dialect sqlite) TruncateDDL(tableName string, force bool) []string {
@@ -102,7 +102,7 @@ func (dialect sqlite) TruncateDDL(tableName string, force bool) []string {
 // Placeholders returns a string containing the requested number of placeholders
 // in the form used by MySQL and SQLite.
 func (dialect sqlite) Placeholders(n int) string {
-	return queryPlaceholders(n)
+	return baseQueryPlaceholders(n)
 }
 
 // ReplacePlaceholders converts a string containing '?' placeholders to

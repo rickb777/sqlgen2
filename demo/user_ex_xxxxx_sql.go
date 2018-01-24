@@ -42,7 +42,7 @@ func NewXUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialec
 	}
 	table := XUserTable{name, d, nil, context.Background(), dialect, nil, nil}
 	table.constraints = append(table.constraints,
-		constraint.FkConstraint{"addressid", constraint.Reference{"address", "id"}, "restrict", "restrict"})
+		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	
 	return table
 }

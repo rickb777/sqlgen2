@@ -348,12 +348,12 @@ const sInsert = `
 {{if .Table.HasLastInsertId}}// The {{.Types}} have their primary key fields set to the new record identifiers.{{end}}
 // The {{.Type}}.PreInsert() method will be called, if it exists.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...*{{.Type}}) error {
-	var params string
+	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
-		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsPostgres
+		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
 	default:
-		params = s{{$.Prefix}}{{$.Type}}DataColumnParamsSimple
+		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Simple
 	}
 
 	if req == require.All {
@@ -361,7 +361,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 	}
 
 	var count int64
-	query := fmt.Sprintf(sqlInsert{{$.Prefix}}{{$.Type}}, tbl.name, params)
+	query := fmt.Sprintf(stmt, tbl.name)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err

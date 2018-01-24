@@ -85,7 +85,11 @@ func (dialect postgres) TableDDL(table *TableDescription) string {
 }
 
 func (dialect postgres) InsertDML(table *TableDescription) string {
-	return baseInsertDML(table)
+	returning := "\n"
+	if table.Primary != nil {
+		returning = fmt.Sprintf(" returning %s\n", table.Primary.SqlName)
+	}
+	return baseInsertDML(table, dialect.Placeholders(table.NumColumnNames(false))) + returning
 }
 
 func (dialect postgres) UpdateDML(table *TableDescription) string {

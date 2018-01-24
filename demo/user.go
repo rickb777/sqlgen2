@@ -14,9 +14,9 @@ type User struct {
 	Uid          int64    `sql:"pk: true, auto: true"`
 	Login        string   `sql:"unique: user_login"`
 	EmailAddress string   `sql:"unique: user_email"`
-	AddressId    *int64   `sql:"fk: address.id, onupdate: restrict, ondelete: restrict"`
+	AddressId    *int64   `sql:"fk: addresses.id, onupdate: restrict, ondelete: restrict"`
 	Avatar       *string
-	Role         *Role
+	Role         *Role    `sql:"type: text, size: 20"`
 	Active       bool
 	Admin        bool
 	Fave         *big.Int `sql:"encode: json"`

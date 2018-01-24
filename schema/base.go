@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"text/tabwriter"
+	"strings"
 )
 
 // Table returns a SQL statement to create the table.
@@ -37,7 +38,7 @@ func baseTableDDL(t *TableDescription, did Dialect) string {
 	return buf.String()
 }
 
-func baseInsertDML(t *TableDescription) string {
+func baseInsertDML(t *TableDescription, valuePlaceholders string) string {
 	w := &bytes.Buffer{}
 	w.WriteString("INSERT INTO %s (\n")
 
@@ -51,7 +52,9 @@ func baseInsertDML(t *TableDescription) string {
 		}
 	}
 
-	w.WriteString("\n) VALUES (%s)\n")
+	w.WriteString("\n) VALUES (")
+	w.WriteString(valuePlaceholders)
+	w.WriteString(")")
 	return w.String()
 }
 
@@ -82,34 +85,45 @@ func baseDeleteDML(t *TableDescription, fields FieldList, param func(int) string
 	return w.String()
 }
 
-// Param returns the parameters symbol used in prepared sql statements.
-func baseParam(i int) string {
+const placeholders = "?,?,?,?,?,?,?,?,?,?"
+
+func baseQueryPlaceholders(n int) string {
+	if n == 0 {
+		return ""
+	} else if n <= 10 {
+		m := (n * 2) - 1
+		return placeholders[:m]
+	}
+	return strings.Repeat("?,", n-1) + "?"
+}
+
+func baseParamIsQuery(i int) string {
 	return "?"
 }
 
-func baseColumns(fields FieldList, withAuto, inline, assign bool, param func(int) string) string {
-	w := &bytes.Buffer{}
-	comma := ""
-	for i, field := range fields {
-		if withAuto || !field.Tags.Auto {
-			w.WriteString(comma)
-			comma = ", "
-
-			if !inline {
-				w.WriteString("\n")
-				w.WriteString(fieldIndentation)
-			}
-
-			w.WriteString(field.SqlName)
-
-			if assign {
-				w.WriteString("=")
-				w.WriteString(param(i + 1))
-			}
-		}
-	}
-	return w.String()
-}
+//func baseColumns(fields FieldList, withAuto, inline, assign bool, param func(int) string) string {
+//	w := &bytes.Buffer{}
+//	comma := ""
+//	for i, field := range fields {
+//		if withAuto || !field.Tags.Auto {
+//			w.WriteString(comma)
+//			comma = ", "
+//
+//			if !inline {
+//				w.WriteString("\n")
+//				w.WriteString(fieldIndentation)
+//			}
+//
+//			w.WriteString(field.SqlName)
+//
+//			if assign {
+//				w.WriteString("=")
+//				w.WriteString(param(i + 1))
+//			}
+//		}
+//	}
+//	return w.String()
+//}
 
 const fieldIndentation = "\t"
 

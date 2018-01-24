@@ -27,11 +27,13 @@ sqlgen -type demo.User -o user_ex_CRUDS_sql.go -v -prefix A -schema=false -all u
 
 unset GO_DRIVER GO_DSN
 
+echo
 echo SQLite3...
 echo go test .
 go test .
 
 for db in $@; do
+  echo
   case $db in
     mysql)
       echo MySQL....
@@ -43,6 +45,14 @@ for db in $@; do
       echo PostgreSQL....
       echo go test .
       GO_DRIVER=postgres GO_DSN="postgres://testuser:TestPasswd9@/test" go test .
+      ;;
+
+    sqlite) # default - see above
+      ;;
+
+    *)
+      echo "$db: unrecognised; must be sqlite, mysql, or postgres"
+      exit 1
       ;;
   esac
 done

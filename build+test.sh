@@ -59,4 +59,4 @@ done
 ### Demo ###
 
 cd demo
-./build.sh
+./build.sh sqlite # mysql postgres

@@ -45,7 +45,7 @@ func NewAUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialec
 	}
 	table := AUserTable{name, d, nil, context.Background(), dialect, nil, nil}
 	table.constraints = append(table.constraints,
-		constraint.FkConstraint{"addressid", constraint.Reference{"address", "id"}, "restrict", "restrict"})
+		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	
 	return table
 }
@@ -260,7 +260,7 @@ const sqlCreateColumnsAUserTableSqlite = `
  emailaddress text,
  addressid    bigint default null,
  avatar       text default null,
- role         tinyint default null,
+ role         text default null,
  active       boolean,
  admin        boolean,
  fave         text,
@@ -276,7 +276,7 @@ const sqlCreateColumnsAUserTablePostgres = `
  emailaddress varchar(255),
  addressid    bigint default null,
  avatar       varchar(255) default null,
- role         tinyint default null,
+ role         varchar(20) default null,
  active       boolean,
  admin        boolean,
  fave         json,
@@ -292,7 +292,7 @@ const sqlCreateColumnsAUserTableMysql = `
  emailaddress varchar(255),
  addressid    bigint default null,
  avatar       varchar(255) default null,
- role         tinyint default null,
+ role         varchar(20) default null,
  active       tinyint(1),
  admin        tinyint(1),
  fave         json,
@@ -303,7 +303,7 @@ const sqlCreateColumnsAUserTableMysql = `
 const sqlCreateSettingsAUserTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
 
 const sqlConstrainAUserTable = `
- CONSTRAINT AUserc3 foreign key (addressid) references %saddress (id) on update restrict on delete restrict
+ CONSTRAINT AUserc3 foreign key (addressid) references %saddresses (id) on update restrict on delete restrict
 `
 
 //--------------------------------------------------------------------------------
@@ -1022,12 +1022,12 @@ func (tbl AUserTable) getstringPtrlist(req require.Requirement, sqlname string, 
 // The Users have their primary key fields set to the new record identifiers.
 // The User.PreInsert() method will be called, if it exists.
 func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
-	var params string
+	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
-		params = sAUserDataColumnParamsPostgres
+		stmt = sqlInsertAUserPostgres
 	default:
-		params = sAUserDataColumnParamsSimple
+		stmt = sqlInsertAUserSimple
 	}
 
 	if req == require.All {
@@ -1035,7 +1035,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 	}
 
 	var count int64
-	query := fmt.Sprintf(sqlInsertAUser, tbl.name, params)
+	query := fmt.Sprintf(stmt, tbl.name)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -1077,7 +1077,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertAUser = `
+const sqlInsertAUserSimple = `
 INSERT INTO %s (
 	login,
 	emailaddress,
@@ -1090,12 +1090,24 @@ INSERT INTO %s (
 	lastupdated,
 	token,
 	secret
-) VALUES (%s)
+) VALUES (?,?,?,?,?,?,?,?,?,?,?)
 `
 
-const sAUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?,?,?"
-
-const sAUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11"
+const sqlInsertAUserPostgres = `
+INSERT INTO %s (
+	login,
+	emailaddress,
+	addressid,
+	avatar,
+	role,
+	active,
+	admin,
+	fave,
+	lastupdated,
+	token,
+	secret
+) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning uid
+`
 
 //--------------------------------------------------------------------------------
 

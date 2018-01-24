@@ -11,7 +11,7 @@ export PKGDIR=$(go env GOOS)_$(go env GOARCH)
 
 function go_get
 {
-  if [ ! -d $GOPATH/pkg/$PKGDIR/$1 -a ! -f $GOPATH/pkg/$PKGDIR/$1.a ]; then
+  if [ ! -f $GOPATH/pkg/$PKGDIR/$1 ]; then
     echo go get $2
     go get $2
   fi

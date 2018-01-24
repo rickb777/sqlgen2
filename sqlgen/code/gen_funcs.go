@@ -49,15 +49,12 @@ func WriteInsertFunc(w io.Writer, view View) {
 	must(tInsert.Execute(w, view))
 
 	tableName := view.CamelName()
+
 	fmt.Fprintf(w, constStringWithTicks,
-		"sqlInsert"+tableName, schema.Sqlite.InsertDML(view.Table))
+		"sqlInsert"+tableName+"Simple", schema.Sqlite.InsertDML(view.Table))
 
-	fmt.Fprintf(w, constStringQ,
-		"s"+tableName+"DataColumnParamsSimple", schema.Sqlite.Placeholders(view.Table.NumColumnNames(false)))
-
-	fmt.Fprintf(w, constStringQ,
-		"s"+tableName+"DataColumnParamsPostgres", schema.Postgres.Placeholders(view.Table.NumColumnNames(false)))
-
+	fmt.Fprintf(w, constStringWithTicks,
+		"sqlInsert"+tableName+"Postgres", schema.Postgres.InsertDML(view.Table))
 }
 
 func WriteUpdateFunc(w io.Writer, view View) {

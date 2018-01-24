@@ -876,12 +876,12 @@ func (tbl IssueTable) getstringlist(req require.Requirement, sqlname string, wh 
 // The Issues have their primary key fields set to the new record identifiers.
 // The Issue.PreInsert() method will be called, if it exists.
 func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
-	var params string
+	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
-		params = sIssueDataColumnParamsPostgres
+		stmt = sqlInsertIssuePostgres
 	default:
-		params = sIssueDataColumnParamsSimple
+		stmt = sqlInsertIssueSimple
 	}
 
 	if req == require.All {
@@ -889,7 +889,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 	}
 
 	var count int64
-	query := fmt.Sprintf(sqlInsertIssue, tbl.name, params)
+	query := fmt.Sprintf(stmt, tbl.name)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -931,7 +931,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertIssue = `
+const sqlInsertIssueSimple = `
 INSERT INTO %s (
 	number,
 	date,
@@ -940,12 +940,20 @@ INSERT INTO %s (
 	assignee,
 	state,
 	labels
-) VALUES (%s)
+) VALUES (?,?,?,?,?,?,?)
 `
 
-const sIssueDataColumnParamsSimple = "?,?,?,?,?,?,?"
-
-const sIssueDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7"
+const sqlInsertIssuePostgres = `
+INSERT INTO %s (
+	number,
+	date,
+	title,
+	bigbody,
+	assignee,
+	state,
+	labels
+) VALUES ($1,$2,$3,$4,$5,$6,$7) returning id
+`
 
 //--------------------------------------------------------------------------------
 

@@ -22,12 +22,14 @@ import (
 )
 
 var db *sql.DB
+var dialect schema.Dialect
 
-func connect() *sql.DB {
+func connect() {
 	dbDriver, ok := os.LookupEnv("GO_DRIVER")
 	if !ok {
 		dbDriver = "sqlite3"
 	}
+	dialect = schema.PickDialect(dbDriver)
 	dsn, ok := os.LookupEnv("GO_DSN")
 	if !ok {
 		dsn = ":memory:"
@@ -37,12 +39,12 @@ func connect() *sql.DB {
 		panic(err)
 	}
 	db = conn
-	return conn
 }
 
 func cleanup() {
 	if db != nil {
 		db.Close()
+		db = nil
 	}
 }
 
@@ -55,28 +57,28 @@ func user(i int) *User {
 	}
 }
 
-func TestCreateTable_postgres(t *testing.T) {
+func TestCreateTable_sql_syntax(t *testing.T) {
 	RegisterTestingT(t)
 
 	cases := []struct {
 		dialect  schema.Dialect
 		expected string
 	}{
-		{schema.Postgres,
+		{schema.Sqlite,
 `CREATE TABLE IF NOT EXISTS prefix_users (
- uid          bigserial primary key,
- login        varchar(255),
- emailaddress varchar(255),
+ uid          integer primary key autoincrement,
+ login        text,
+ emailaddress text,
  addressid    bigint default null,
- avatar       varchar(255) default null,
- role         tinyint default null,
+ avatar       text default null,
+ role         text default null,
  active       boolean,
  admin        boolean,
- fave         json,
+ fave         text,
  lastupdated  bigint,
- token        varchar(255),
- secret       varchar(255),
- CONSTRAINT prefix_users_c1 foreign key (addressid) references prefix_address (id) on update restrict on delete restrict,
+ token        text,
+ secret       text,
+ CONSTRAINT prefix_users_c1 foreign key (addressid) references prefix_addresses (id) on update restrict on delete restrict,
  CONSTRAINT prefix_users_c2 CHECK (role < 3)
 )`},
 		{schema.Mysql,
@@ -86,16 +88,33 @@ func TestCreateTable_postgres(t *testing.T) {
  emailaddress varchar(255),
  addressid    bigint default null,
  avatar       varchar(255) default null,
- role         tinyint default null,
+ role         varchar(20) default null,
  active       tinyint(1),
  admin        tinyint(1),
  fave         json,
  lastupdated  bigint,
  token        varchar(255),
  secret       varchar(255),
- CONSTRAINT prefix_users_c1 foreign key (addressid) references prefix_address (id) on update restrict on delete restrict,
+ CONSTRAINT prefix_users_c1 foreign key (addressid) references prefix_addresses (id) on update restrict on delete restrict,
  CONSTRAINT prefix_users_c2 CHECK (role < 3)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8`},
+		{schema.Postgres,
+`CREATE TABLE IF NOT EXISTS prefix_users (
+ uid          bigserial primary key,
+ login        varchar(255),
+ emailaddress varchar(255),
+ addressid    bigint default null,
+ avatar       varchar(255) default null,
+ role         varchar(20) default null,
+ active       boolean,
+ admin        boolean,
+ fave         json,
+ lastupdated  bigint,
+ token        varchar(255),
+ secret       varchar(255),
+ CONSTRAINT prefix_users_c1 foreign key (addressid) references prefix_addresses (id) on update restrict on delete restrict,
+ CONSTRAINT prefix_users_c2 CHECK (role < 3)
+)`},
 	}
 
 	for _, c := range cases {
@@ -136,7 +155,7 @@ func TestDropIndexSql(t *testing.T) {
 	}
 }
 
-func TestUpdateFields_ok(t *testing.T) {
+func TestUpdateFields_ok_using_mock(t *testing.T) {
 	RegisterTestingT(t)
 
 	mockDb := mockExecer{RowsAffected: 1}
@@ -151,7 +170,7 @@ func TestUpdateFields_ok(t *testing.T) {
 	Ω(n).Should(Equal(int64(1)))
 }
 
-func TestUpdateFields_error(t *testing.T) {
+func TestUpdateFields_error_using_mock(t *testing.T) {
 	RegisterTestingT(t)
 
 	exp := Errorf("foo")
@@ -166,7 +185,7 @@ func TestUpdateFields_error(t *testing.T) {
 	Ω(err).Should(Equal(exp))
 }
 
-func TestUpdate_ok(t *testing.T) {
+func TestUpdate_ok_using_mock(t *testing.T) {
 	RegisterTestingT(t)
 
 	mockDb := mockExecer{RowsAffected: 1}
@@ -179,7 +198,7 @@ func TestUpdate_ok(t *testing.T) {
 	Ω(n).Should(Equal(int64(1)))
 }
 
-func TestUpdate_error(t *testing.T) {
+func TestUpdate_error_using_mock(t *testing.T) {
 	RegisterTestingT(t)
 
 	exp := Errorf("foo")
@@ -194,47 +213,62 @@ func TestUpdate_error(t *testing.T) {
 
 //-------------------------------------------------------------------------------------------------
 
-func TestCrudUsingSqlite(t *testing.T) {
+func TestCrud_using_database(t *testing.T) {
 	RegisterTestingT(t)
+	connect()
 	defer cleanup()
 
-	tbl := NewDbUserTable(model.TableName{Name: "users"}, connect(), schema.Sqlite)
+	addresses := NewAddressTable(model.TableName{Name: "addresses"}, db, dialect)
 	if testing.Verbose() {
-		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
+		addresses = addresses.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
 	}
 
-	err := tbl.CreateTableWithIndexes(false)
+	users := NewDbUserTable(model.TableName{Name: "users"}, db, dialect)
+	if testing.Verbose() {
+		users = users.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
+	}
+
+	_, err := users.DropTable(true)
 	Ω(err).Should(BeNil())
 
-	count_empty_table_should_be_zero(t, tbl)
+	_, err = addresses.DropTable(true)
+	Ω(err).Should(BeNil())
 
-	user1 := insert_user_should_run_PreInsert(t, tbl)
+	err = addresses.CreateTableWithIndexes(false)
+	Ω(err).Should(BeNil())
 
-	get_user_should_call_PostGet_and_match_expected(t, tbl, user1)
+	err = users.CreateTableWithIndexes(false)
+	Ω(err).Should(BeNil())
 
-	get_unknown_user_should_return_nil(t, tbl, user1)
+	count_empty_table_should_be_zero(t, users)
 
-	must_get_unknown_user_should_return_error(t, tbl, user1)
+	user1 := insert_user_should_run_PreInsert(t, users)
 
-	count_known_user_should_return_1(t, tbl)
+	get_user_should_call_PostGet_and_match_expected(t, users, user1)
 
-	query_unknown_user_should_return_empty_list(t, tbl)
+	get_unknown_user_should_return_nil(t, users, user1)
 
-	select_unknown_user_should_return_empty_list(t, tbl)
+	must_get_unknown_user_should_return_error(t, users, user1)
 
-	select_unknown_user_requiring_one_should_return_error(t, tbl)
+	count_known_user_should_return_1(t, users)
 
-	query_one_nullstring_for_user_should_return_valid(t, tbl)
+	query_unknown_user_should_return_empty_list(t, users)
 
-	query_one_nullstring_for_unknown_should_return_invalid(t, tbl)
+	select_unknown_user_should_return_empty_list(t, users)
 
-	user2 := select_known_user_requiring_one_should_return_user(t, tbl)
+	select_unknown_user_requiring_one_should_return_error(t, users)
 
-	update_user_should_call_PreUpdate(t, tbl, user2)
+	query_one_nullstring_for_user_should_return_valid(t, users)
 
-	delete_one_should_return_1(t, tbl)
+	query_one_nullstring_for_unknown_should_return_invalid(t, users)
 
-	count_empty_table_should_be_zero(t, tbl)
+	user2 := select_known_user_requiring_one_should_return_user(t, users)
+
+	update_user_should_call_PreUpdate(t, users, user2)
+
+	delete_one_should_return_1(t, users)
+
+	count_empty_table_should_be_zero(t, users)
 }
 
 func count_empty_table_should_be_zero(t *testing.T, tbl DbUserTable) {
@@ -358,16 +392,17 @@ func delete_one_should_return_1(t *testing.T, tbl DbUserTable) {
 
 //-------------------------------------------------------------------------------------------------
 
-func TestMultiSelectUsingSqlite(t *testing.T) {
+func TestMultiSelect_using_database(t *testing.T) {
 	RegisterTestingT(t)
+	connect()
 	defer cleanup()
 
-	tbl := NewDbUserTable(model.TableName{Name: "users"}, connect(), schema.Sqlite)
+	tbl := NewDbUserTable(model.TableName{Name: "users"}, db, dialect)
 	if testing.Verbose() {
 		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
 	}
 
-	err := tbl.CreateTableWithIndexes(false)
+	err := tbl.CreateTableWithIndexes(true)
 	Ω(err).Should(BeNil())
 
 	const n = 3
@@ -399,11 +434,12 @@ func TestMultiSelectUsingSqlite(t *testing.T) {
 	}
 }
 
-func TestGettersUsingSqlite(t *testing.T) {
+func TestGetters_using_database(t *testing.T) {
 	RegisterTestingT(t)
+	connect()
 	defer cleanup()
 
-	tbl := NewDbUserTable(model.TableName{Name: "users"}, connect(), schema.Sqlite)
+	tbl := NewDbUserTable(model.TableName{Name: "users"}, db, dialect)
 	if testing.Verbose() {
 		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
 	}
@@ -434,16 +470,17 @@ func TestGettersUsingSqlite(t *testing.T) {
 	}
 }
 
-func TestBulkDeleteUsingSqlite(t *testing.T) {
+func TestBulk_delete_using_database(t *testing.T) {
 	RegisterTestingT(t)
+	connect()
 	defer cleanup()
 
-	tbl := NewDbUserTable(model.TableName{Name: "users"}, connect(), schema.Sqlite)
+	tbl := NewDbUserTable(model.TableName{Name: "users"}, db, dialect)
 	if testing.Verbose() {
 		tbl = tbl.WithLogger(log.New(os.Stderr, "", log.LstdFlags))
 	}
 
-	err := tbl.CreateTableWithIndexes(false)
+	err := tbl.CreateTableWithIndexes(true)
 	Ω(err).Should(BeNil())
 
 	err = tbl.Truncate(true)

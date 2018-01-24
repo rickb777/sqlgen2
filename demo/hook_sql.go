@@ -947,12 +947,12 @@ func (tbl HookTable) getuint64list(req require.Requirement, sqlname string, wh w
 // The Hooks have their primary key fields set to the new record identifiers.
 // The Hook.PreInsert() method will be called, if it exists.
 func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
-	var params string
+	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
-		params = sHookDataColumnParamsPostgres
+		stmt = sqlInsertHookPostgres
 	default:
-		params = sHookDataColumnParamsSimple
+		stmt = sqlInsertHookSimple
 	}
 
 	if req == require.All {
@@ -960,7 +960,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 	}
 
 	var count int64
-	query := fmt.Sprintf(sqlInsertHook, tbl.name, params)
+	query := fmt.Sprintf(stmt, tbl.name)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -1004,7 +1004,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertHook = `
+const sqlInsertHookSimple = `
 INSERT INTO %s (
 	sha,
 	after,
@@ -1022,12 +1022,29 @@ INSERT INTO %s (
 	head_commit_committer_name,
 	head_commit_committer_email,
 	head_commit_committer_username
-) VALUES (%s)
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 `
 
-const sHookDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
-
-const sHookDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16"
+const sqlInsertHookPostgres = `
+INSERT INTO %s (
+	sha,
+	after,
+	before,
+	category,
+	created,
+	deleted,
+	forced,
+	commit_id,
+	message,
+	timestamp,
+	head_commit_author_name,
+	head_commit_author_email,
+	head_commit_author_username,
+	head_commit_committer_name,
+	head_commit_committer_email,
+	head_commit_committer_username
+) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) returning id
+`
 
 //--------------------------------------------------------------------------------
 

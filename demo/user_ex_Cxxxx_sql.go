@@ -43,7 +43,7 @@ func NewCUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialec
 	}
 	table := CUserTable{name, d, nil, context.Background(), dialect, nil, nil}
 	table.constraints = append(table.constraints,
-		constraint.FkConstraint{"addressid", constraint.Reference{"address", "id"}, "restrict", "restrict"})
+		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	
 	return table
 }
@@ -410,12 +410,12 @@ func (tbl CUserTable) ReplaceTableName(query string) string {
 // The Users have their primary key fields set to the new record identifiers.
 // The User.PreInsert() method will be called, if it exists.
 func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
-	var params string
+	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
-		params = sCUserDataColumnParamsPostgres
+		stmt = sqlInsertCUserPostgres
 	default:
-		params = sCUserDataColumnParamsSimple
+		stmt = sqlInsertCUserSimple
 	}
 
 	if req == require.All {
@@ -423,7 +423,7 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 	}
 
 	var count int64
-	query := fmt.Sprintf(sqlInsertCUser, tbl.name, params)
+	query := fmt.Sprintf(stmt, tbl.name)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -465,7 +465,7 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertCUser = `
+const sqlInsertCUserSimple = `
 INSERT INTO %s (
 	login,
 	emailaddress,
@@ -478,12 +478,24 @@ INSERT INTO %s (
 	lastupdated,
 	token,
 	secret
-) VALUES (%s)
+) VALUES (?,?,?,?,?,?,?,?,?,?,?)
 `
 
-const sCUserDataColumnParamsSimple = "?,?,?,?,?,?,?,?,?,?,?"
-
-const sCUserDataColumnParamsPostgres = "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11"
+const sqlInsertCUserPostgres = `
+INSERT INTO %s (
+	login,
+	emailaddress,
+	addressid,
+	avatar,
+	role,
+	active,
+	admin,
+	fave,
+	lastupdated,
+	token,
+	secret
+) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning uid
+`
 
 func sliceCUserWithoutPk(v *User) ([]interface{}, error) {
 

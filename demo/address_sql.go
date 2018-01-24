@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/constraint"
@@ -18,10 +19,10 @@ import (
 	"strings"
 )
 
-// AssociationTable holds a given table name with the database reference, providing access methods below.
+// AddressTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
-type AssociationTable struct {
+type AddressTable struct {
 	name        model.TableName
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
@@ -32,28 +33,28 @@ type AssociationTable struct {
 }
 
 // Type conformance checks
-var _ sqlgen2.TableCreator = &AssociationTable{}
-var _ sqlgen2.TableWithCrud = &AssociationTable{}
+var _ sqlgen2.TableWithIndexes = &AddressTable{}
+var _ sqlgen2.TableWithCrud = &AddressTable{}
 
-// NewAssociationTable returns a new table instance.
-// If a blank table name is supplied, the default name "associations" will be used instead.
+// NewAddressTable returns a new table instance.
+// If a blank table name is supplied, the default name "addresses" will be used instead.
 // The request context is initialised with the background.
-func NewAssociationTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) AssociationTable {
+func NewAddressTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) AddressTable {
 	if name.Name == "" {
-		name.Name = "associations"
+		name.Name = "addresses"
 	}
-	table := AssociationTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := AddressTable{name, d, nil, context.Background(), dialect, nil, nil}
 	return table
 }
 
-// CopyTableAsAssociationTable copies a table instance, copying the name's prefix, the DB, the context,
-// the dialect and the logger. However, it sets the table name to "associations" and doesn't copy the constraints'.
+// CopyTableAsAddressTable copies a table instance, copying the name's prefix, the DB, the context,
+// the dialect and the logger. However, it sets the table name to "addresses" and doesn't copy the constraints'.
 //
-// It serves to provide methods appropriate for 'Association'. This is most useulf when thie is used to represent a
+// It serves to provide methods appropriate for 'Address'. This is most useulf when thie is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsAssociationTable(origin sqlgen2.Table) AssociationTable {
-	return AssociationTable{
-		name:        model.TableName{origin.Name().Prefix, "associations"},
+func CopyTableAsAddressTable(origin sqlgen2.Table) AddressTable {
+	return AddressTable{
+		name:        model.TableName{origin.Name().Prefix, "addresses"},
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -64,96 +65,96 @@ func CopyTableAsAssociationTable(origin sqlgen2.Table) AssociationTable {
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) WithPrefix(pfx string) AssociationTable {
+func (tbl AddressTable) WithPrefix(pfx string) AddressTable {
 	tbl.name.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) WithContext(ctx context.Context) AssociationTable {
+func (tbl AddressTable) WithContext(ctx context.Context) AddressTable {
 	tbl.ctx = ctx
 	return tbl
 }
 
 // WithLogger sets the logger for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) WithLogger(logger *log.Logger) AssociationTable {
+func (tbl AddressTable) WithLogger(logger *log.Logger) AddressTable {
 	tbl.logger = logger
 	return tbl
 }
 
 // Logger gets the trace logger.
-func (tbl AssociationTable) Logger() *log.Logger {
+func (tbl AddressTable) Logger() *log.Logger {
 	return tbl.logger
 }
 
 // SetLogger sets the logger for subsequent queries, returning the interface.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) SetLogger(logger *log.Logger) sqlgen2.Table {
+func (tbl AddressTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	tbl.logger = logger
 	return tbl
 }
 
 // AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl AssociationTable) AddConstraint(cc ...constraint.Constraint) AssociationTable {
+func (tbl AddressTable) AddConstraint(cc ...constraint.Constraint) AddressTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
 
 // Ctx gets the current request context.
-func (tbl AssociationTable) Ctx() context.Context {
+func (tbl AddressTable) Ctx() context.Context {
 	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
-func (tbl AssociationTable) Dialect() schema.Dialect {
+func (tbl AddressTable) Dialect() schema.Dialect {
 	return tbl.dialect
 }
 
 // Wrapper gets the user-defined wrapper.
-func (tbl AssociationTable) Wrapper() interface{} {
+func (tbl AddressTable) Wrapper() interface{} {
 	return tbl.wrapper
 }
 
 // SetWrapper sets the user-defined wrapper.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
+func (tbl AddressTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
 	tbl.wrapper = wrapper
 	return tbl
 }
 
 // Name gets the table name.
-func (tbl AssociationTable) Name() model.TableName {
+func (tbl AddressTable) Name() model.TableName {
 	return tbl.name
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AssociationTable) DB() *sql.DB {
+func (tbl AddressTable) DB() *sql.DB {
 	return tbl.db.(*sql.DB)
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl AssociationTable) Execer() sqlgen2.Execer {
+func (tbl AddressTable) Execer() sqlgen2.Execer {
 	return tbl.db
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AssociationTable) Tx() *sql.Tx {
+func (tbl AddressTable) Tx() *sql.Tx {
 	return tbl.db.(*sql.Tx)
 }
 
 // IsTx tests whether this is within a transaction.
-func (tbl AssociationTable) IsTx() bool {
+func (tbl AddressTable) IsTx() bool {
 	_, ok := tbl.db.(*sql.Tx)
 	return ok
 }
 
 // Begin starts a transaction. The default isolation level is dependent on the driver.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) BeginTx(opts *sql.TxOptions) (AssociationTable, error) {
+func (tbl AddressTable) BeginTx(opts *sql.TxOptions) (AddressTable, error) {
 	d := tbl.db.(*sql.DB)
 	var err error
 	tbl.db, err = d.BeginTx(tbl.ctx, opts)
@@ -163,54 +164,54 @@ func (tbl AssociationTable) BeginTx(opts *sql.TxOptions) (AssociationTable, erro
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) Using(tx *sql.Tx) AssociationTable {
+func (tbl AddressTable) Using(tx *sql.Tx) AddressTable {
 	tbl.db = tx
 	return tbl
 }
 
-func (tbl AssociationTable) logQuery(query string, args ...interface{}) {
+func (tbl AddressTable) logQuery(query string, args ...interface{}) {
 	support.LogQuery(tbl.logger, query, args...)
 }
 
-func (tbl AssociationTable) logError(err error) error {
+func (tbl AddressTable) logError(err error) error {
 	return support.LogError(tbl.logger, err)
 }
 
-func (tbl AssociationTable) logIfError(err error) error {
+func (tbl AddressTable) logIfError(err error) error {
 	return support.LogIfError(tbl.logger, err)
 }
 
 
 //--------------------------------------------------------------------------------
 
-const NumAssociationColumns = 6
+const NumAddressColumns = 3
 
-const NumAssociationDataColumns = 5
+const NumAddressDataColumns = 2
 
-const AssociationPk = "Id"
+const AddressPk = "Id"
 
-const AssociationDataColumnNames = "name, quality, ref1, ref2, category"
+const AddressDataColumnNames = "line, postcode"
 
 //--------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl AssociationTable) CreateTable(ifNotExists bool) (int64, error) {
+func (tbl AddressTable) CreateTable(ifNotExists bool) (int64, error) {
 	return tbl.Exec(nil, tbl.createTableSql(ifNotExists))
 }
 
-func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
+func (tbl AddressTable) createTableSql(ifNotExists bool) string {
 	var columns string
 	var settings string
 	switch tbl.dialect {
 	case schema.Sqlite:
-		columns = sqlCreateColumnsAssociationTableSqlite
-		settings = sqlCreateSettingsAssociationTableSqlite
+		columns = sqlCreateColumnsAddressTableSqlite
+		settings = sqlCreateSettingsAddressTableSqlite
     case schema.Postgres:
-		columns = sqlCreateColumnsAssociationTablePostgres
-		settings = sqlCreateSettingsAssociationTablePostgres
+		columns = sqlCreateColumnsAddressTablePostgres
+		settings = sqlCreateSettingsAddressTablePostgres
     case schema.Mysql:
-		columns = sqlCreateColumnsAssociationTableMysql
-		settings = sqlCreateSettingsAssociationTableMysql
+		columns = sqlCreateColumnsAddressTableMysql
+		settings = sqlCreateSettingsAddressTableMysql
     }
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -232,7 +233,7 @@ func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
 	return buf.String()
 }
 
-func (tbl AssociationTable) ternary(flag bool, a, b string) string {
+func (tbl AddressTable) ternary(flag bool, a, b string) string {
 	if flag {
 		return a
 	}
@@ -240,48 +241,113 @@ func (tbl AssociationTable) ternary(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl AssociationTable) DropTable(ifExists bool) (int64, error) {
+func (tbl AddressTable) DropTable(ifExists bool) (int64, error) {
 	return tbl.Exec(nil, tbl.dropTableSql(ifExists))
 }
 
-func (tbl AssociationTable) dropTableSql(ifExists bool) string {
+func (tbl AddressTable) dropTableSql(ifExists bool) string {
 	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
 	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
 
-const sqlCreateColumnsAssociationTableSqlite = `
+const sqlCreateColumnsAddressTableSqlite = `
  id       integer primary key autoincrement,
- name     text default null,
- quality  text default null,
- ref1     bigint default null,
- ref2     bigint default null,
- category tinyint unsigned default null`
+ line     text,
+ postcode text`
 
-const sqlCreateSettingsAssociationTableSqlite = ""
+const sqlCreateSettingsAddressTableSqlite = ""
 
-const sqlCreateColumnsAssociationTablePostgres = `
+const sqlCreateColumnsAddressTablePostgres = `
  id       bigserial primary key,
- name     varchar(255) default null,
- quality  varchar(255) default null,
- ref1     bigint default null,
- ref2     bigint default null,
- category tinyint unsigned default null`
+ line     json,
+ postcode varchar(20)`
 
-const sqlCreateSettingsAssociationTablePostgres = ""
+const sqlCreateSettingsAddressTablePostgres = ""
 
-const sqlCreateColumnsAssociationTableMysql = `
+const sqlCreateColumnsAddressTableMysql = `
  id       bigint primary key auto_increment,
- name     varchar(255) default null,
- quality  varchar(255) default null,
- ref1     bigint default null,
- ref2     bigint default null,
- category tinyint unsigned default null`
+ line     json,
+ postcode varchar(20)`
 
-const sqlCreateSettingsAssociationTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+const sqlCreateSettingsAddressTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
 
-const sqlConstrainAssociationTable = `
+const sqlConstrainAddressTable = `
 `
+
+//--------------------------------------------------------------------------------
+
+// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
+func (tbl AddressTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ifNotExist)
+	if err != nil {
+		return err
+	}
+
+	return tbl.CreateIndexes(ifNotExist)
+}
+
+// CreateIndexes executes queries that create the indexes needed by the Address table.
+func (tbl AddressTable) CreateIndexes(ifNotExist bool) (err error) {
+
+	err = tbl.CreatePostcodeIdxIndex(ifNotExist)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CreatePostcodeIdxIndex creates the postcodeIdx index.
+func (tbl AddressTable) CreatePostcodeIdxIndex(ifNotExist bool) error {
+	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
+
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+
+	if ifNotExist && tbl.dialect == schema.Mysql {
+		tbl.DropPostcodeIdxIndex(false)
+		ine = ""
+	}
+
+	_, err := tbl.Exec(nil, tbl.createPostcodeIdxIndexSql(ine))
+	return err
+}
+
+func (tbl AddressTable) createPostcodeIdxIndexSql(ifNotExists string) string {
+	indexPrefix := tbl.name.PrefixWithoutDot()
+	return fmt.Sprintf("CREATE INDEX %s%spostcodeIdx ON %s (%s)", ifNotExists, indexPrefix,
+		tbl.name, sqlPostcodeIdxIndexColumns)
+}
+
+// DropPostcodeIdxIndex drops the postcodeIdx index.
+func (tbl AddressTable) DropPostcodeIdxIndex(ifExists bool) error {
+	_, err := tbl.Exec(nil, tbl.dropPostcodeIdxIndexSql(ifExists))
+	return err
+}
+
+func (tbl AddressTable) dropPostcodeIdxIndexSql(ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	indexPrefix := tbl.name.PrefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%spostcodeIdx%s", ie, indexPrefix, onTbl)
+}
+
+// DropIndexes executes queries that drop the indexes on by the Address table.
+func (tbl AddressTable) DropIndexes(ifExist bool) (err error) {
+
+	err = tbl.DropPostcodeIdxIndex(ifExist)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//--------------------------------------------------------------------------------
+
+const sqlPostcodeIdxIndexColumns = "postcode"
 
 //--------------------------------------------------------------------------------
 
@@ -292,7 +358,7 @@ const sqlConstrainAssociationTable = `
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl AssociationTable) Truncate(force bool) (err error) {
+func (tbl AddressTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.dialect.TruncateDDL(tbl.Name().String(), force) {
 		_, err = tbl.Exec(nil, query)
 		if err != nil {
@@ -308,13 +374,13 @@ func (tbl AssociationTable) Truncate(force bool) (err error) {
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
+func (tbl AddressTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
 	return support.Exec(tbl, req, query, args...)
 }
 
 //--------------------------------------------------------------------------------
 
-// Query is the low-level access method for Associations.
+// Query is the low-level access method for Addresses.
 //
 // It places a requirement, which may be nil, on the size of the expected results: this
 // controls whether an error is generated when this expectation is not met.
@@ -322,37 +388,37 @@ func (tbl AssociationTable) Exec(req require.Requirement, query string, args ...
 // Note that this method applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Association, error) {
+func (tbl AddressTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Address, error) {
 	query = tbl.ReplaceTableName(query)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }
 
-// QueryOne is the low-level access method for one Association.
+// QueryOne is the low-level access method for one Address.
 // If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, *Association will be nil.
+// If not found, *Address will be nil.
 //
 // Note that this method applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOne(query string, args ...interface{}) (*Association, error) {
+func (tbl AddressTable) QueryOne(query string, args ...interface{}) (*Address, error) {
 	query = tbl.ReplaceTableName(query)
 	return tbl.doQueryOne(nil, query, args...)
 }
 
-// MustQueryOne is the low-level access method for one Association.
+// MustQueryOne is the low-level access method for one Address.
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 //
 // Note that this method applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) MustQueryOne(query string, args ...interface{}) (*Association, error) {
+func (tbl AddressTable) MustQueryOne(query string, args ...interface{}) (*Address, error) {
 	query = tbl.ReplaceTableName(query)
 	return tbl.doQueryOne(require.One, query, args...)
 }
 
-func (tbl AssociationTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Association, error) {
+func (tbl AddressTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Address, error) {
 	list, err := tbl.doQuery(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
@@ -360,7 +426,7 @@ func (tbl AssociationTable) doQueryOne(req require.Requirement, query string, ar
 	return list[0], nil
 }
 
-func (tbl AssociationTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Association, error) {
+func (tbl AddressTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -368,55 +434,34 @@ func (tbl AssociationTable) doQuery(req require.Requirement, firstOnly bool, que
 	}
 	defer rows.Close()
 
-	vv, n, err := scanAssociations(rows, firstOnly)
+	vv, n, err := scanAddresses(rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
-func scanAssociations(rows *sql.Rows, firstOnly bool) (vv []*Association, n int64, err error) {
+func scanAddresses(rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err error) {
 	for rows.Next() {
 		n++
 
 		var v0 int64
-		var v1 sql.NullString
-		var v2 sql.NullString
-		var v3 sql.NullInt64
-		var v4 sql.NullInt64
-		var v5 sql.NullInt64
+		var v1 []byte
+		var v2 string
 
 		err = rows.Scan(
 			&v0,
 			&v1,
 			&v2,
-			&v3,
-			&v4,
-			&v5,
 		)
 		if err != nil {
 			return vv, n, err
 		}
 
-		v := &Association{}
+		v := &Address{}
 		v.Id = v0
-		if v1.Valid {
-			a := v1.String
-			v.Name = &a
+		err = json.Unmarshal(v1, &v.Line)
+		if err != nil {
+			return nil, n, err
 		}
-		if v2.Valid {
-			a := v2.String
-			v.Quality = &a
-		}
-		if v3.Valid {
-			a := v3.Int64
-			v.Ref1 = &a
-		}
-		if v4.Valid {
-			a := v4.Int64
-			v.Ref2 = &a
-		}
-		if v5.Valid {
-			a := Category(v5.Int64)
-			v.Category = &a
-		}
+		v.Postcode = v2
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
@@ -448,7 +493,7 @@ func scanAssociations(rows *sql.Rows, firstOnly bool) (vv []*Association, n int6
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+func (tbl AddressTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
 	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
@@ -461,7 +506,7 @@ func (tbl AssociationTable) QueryOneNullString(query string, args ...interface{}
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+func (tbl AddressTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
 	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
@@ -473,7 +518,7 @@ func (tbl AssociationTable) MustQueryOneNullString(query string, args ...interfa
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+func (tbl AddressTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
 	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
@@ -486,7 +531,7 @@ func (tbl AssociationTable) QueryOneNullInt64(query string, args ...interface{})
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+func (tbl AddressTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
 	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
@@ -498,7 +543,7 @@ func (tbl AssociationTable) MustQueryOneNullInt64(query string, args ...interfac
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+func (tbl AddressTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
 	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
 	return result, err
 }
@@ -511,48 +556,48 @@ func (tbl AssociationTable) QueryOneNullFloat64(query string, args ...interface{
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+func (tbl AddressTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
 	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl AssociationTable) ReplaceTableName(query string) string {
+func (tbl AddressTable) ReplaceTableName(query string) string {
 	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 
 //--------------------------------------------------------------------------------
 
-// GetAssociation gets the record with a given primary key value.
-// If not found, *Association will be nil.
-func (tbl AssociationTable) GetAssociation(id int64) (*Association, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", AssociationColumnNames, tbl.name)
+// GetAddress gets the record with a given primary key value.
+// If not found, *Address will be nil.
+func (tbl AddressTable) GetAddress(id int64) (*Address, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", AddressColumnNames, tbl.name)
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
 
-// MustGetAssociation gets the record with a given primary key value.
+// MustGetAddress gets the record with a given primary key value.
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-func (tbl AssociationTable) MustGetAssociation(id int64) (*Association, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", AssociationColumnNames, tbl.name)
+func (tbl AddressTable) MustGetAddress(id int64) (*Address, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", AddressColumnNames, tbl.name)
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
 
-// GetAssociations gets records from the table according to a list of primary keys.
+// GetAddresses gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl AssociationTable) GetAssociations(req require.Requirement, id ...int64) (list []*Association, err error) {
+func (tbl AddressTable) GetAddresses(req require.Requirement, id ...int64) (list []*Address, err error) {
 	if len(id) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)", AssociationColumnNames, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)", AddressColumnNames, tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -576,26 +621,26 @@ func (tbl AssociationTable) GetAssociations(req require.Requirement, id ...int64
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", AssociationColumnNames, tbl.name, where, orderBy)
+func (tbl AddressTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", AddressColumnNames, tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
 
-// SelectOne allows a single Association to be obtained from the sqlgen2.
+// SelectOne allows a single Address to be obtained from the sqlgen2.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl AssociationTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Association, error) {
+func (tbl AddressTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Address, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
-// SelectWhere allows Associations to be obtained from the table that match a 'where' clause.
+// SelectWhere allows Addresses to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 //
@@ -603,29 +648,29 @@ func (tbl AssociationTable) SelectOne(req require.Requirement, wh where.Expressi
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", AssociationColumnNames, tbl.name, where, orderBy)
+func (tbl AddressTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Address, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", AddressColumnNames, tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }
 
-// Select allows Associations to be obtained from the table that match a 'where' clause.
+// Select allows Addresses to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
-func (tbl AssociationTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Association, error) {
+func (tbl AddressTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Address, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
-// CountWhere counts Associations in the table that match a 'where' clause.
+// CountWhere counts Addresses in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
+func (tbl AddressTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
@@ -633,86 +678,33 @@ func (tbl AssociationTable) CountWhere(where string, args ...interface{}) (count
 	return count, tbl.logIfError(err)
 }
 
-// Count counts the Associations in the table that match a 'where' clause.
+// Count counts the Addresses in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl AssociationTable) Count(wh where.Expression) (count int64, err error) {
+func (tbl AddressTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	return tbl.CountWhere(whs, args...)
 }
 
-const AssociationColumnNames = "id, name, quality, ref1, ref2, category"
+const AddressColumnNames = "id, line, postcode"
 
 //--------------------------------------------------------------------------------
 
 // SliceId gets the Id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl AddressTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list(req, "id", wh, qc)
 }
 
-// SliceName gets the Name column for all rows that match the 'where' condition.
+// SlicePostcode gets the Postcode column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringPtrlist(req, "name", wh, qc)
-}
-
-// SliceQuality gets the Quality column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringPtrlist(req, "quality", wh, qc)
-}
-
-// SliceRef1 gets the Ref1 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceRef1(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64Ptrlist(req, "ref1", wh, qc)
-}
-
-// SliceRef2 gets the Ref2 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceRef2(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64Ptrlist(req, "ref2", wh, qc)
-}
-
-// SliceCategory gets the Category column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return tbl.getCategoryPtrlist(req, "category", wh, qc)
+func (tbl AddressTable) SlicePostcode(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringlist(req, "postcode", wh, qc)
 }
 
 
-func (tbl AssociationTable) getCategoryPtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v Category
-	list := make([]Category, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl AssociationTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl AddressTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
@@ -737,32 +729,7 @@ func (tbl AssociationTable) getint64list(req require.Requirement, sqlname string
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl AssociationTable) getint64Ptrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v int64
-	list := make([]int64, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl AssociationTable) getstringPtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl AddressTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
@@ -790,16 +757,16 @@ func (tbl AssociationTable) getstringPtrlist(req require.Requirement, sqlname st
 
 //--------------------------------------------------------------------------------
 
-// Insert adds new records for the Associations.
-// The Associations have their primary key fields set to the new record identifiers.
-// The Association.PreInsert() method will be called, if it exists.
-func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) error {
+// Insert adds new records for the Addresses.
+// The Addresses have their primary key fields set to the new record identifiers.
+// The Address.PreInsert() method will be called, if it exists.
+func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
-		stmt = sqlInsertAssociationPostgres
+		stmt = sqlInsertAddressPostgres
 	default:
-		stmt = sqlInsertAssociationSimple
+		stmt = sqlInsertAddressSimple
 	}
 
 	if req == require.All {
@@ -823,7 +790,7 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 			}
 		}
 
-		fields, err := sliceAssociationWithoutPk(v)
+		fields, err := sliceAddressWithoutPk(v)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -849,24 +816,18 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertAssociationSimple = `
+const sqlInsertAddressSimple = `
 INSERT INTO %s (
-	name,
-	quality,
-	ref1,
-	ref2,
-	category
-) VALUES (?,?,?,?,?)
+	line,
+	postcode
+) VALUES (?,?)
 `
 
-const sqlInsertAssociationPostgres = `
+const sqlInsertAddressPostgres = `
 INSERT INTO %s (
-	name,
-	quality,
-	ref1,
-	ref2,
-	category
-) VALUES ($1,$2,$3,$4,$5) returning id
+	line,
+	postcode
+) VALUES ($1,$2) returning id
 `
 
 //--------------------------------------------------------------------------------
@@ -874,21 +835,21 @@ INSERT INTO %s (
 // UpdateFields updates one or more columns, given a 'where' clause.
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl AssociationTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+func (tbl AddressTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
-// The Association.PreUpdate(Execer) method will be called, if it exists.
-func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) (int64, error) {
+// The Address.PreUpdate(Execer) method will be called, if it exists.
+func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, error) {
 	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
-		stmt = sqlUpdateAssociationByPkPostgres
+		stmt = sqlUpdateAddressByPkPostgres
 	default:
-		stmt = sqlUpdateAssociationByPkSimple
+		stmt = sqlUpdateAddressByPkSimple
 	}
 
 	if req == require.All {
@@ -907,7 +868,7 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 			}
 		}
 
-		args, err := sliceAssociationWithoutPk(v)
+		args, err := sliceAddressWithoutPk(v)
 		args = append(args, v.Id)
 		if err != nil {
 			return count, tbl.logError(err)
@@ -923,42 +884,37 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlUpdateAssociationByPkSimple = `
+const sqlUpdateAddressByPkSimple = `
 UPDATE %s SET
-	name=?,
-	quality=?,
-	ref1=?,
-	ref2=?,
-	category=?
+	line=?,
+	postcode=?
 WHERE id=?`
 
-const sqlUpdateAssociationByPkPostgres = `
+const sqlUpdateAddressByPkPostgres = `
 UPDATE %s SET
-	name=$2,
-	quality=$3,
-	ref1=$4,
-	ref2=$5,
-	category=$6
+	line=$2,
+	postcode=$3
 WHERE id=$1`
 
-func sliceAssociationWithoutPk(v *Association) ([]interface{}, error) {
+func sliceAddressWithoutPk(v *Address) ([]interface{}, error) {
 
+	v1, err := json.Marshal(&v.Line)
+	if err != nil {
+		return nil, err
+	}
 
 	return []interface{}{
-		v.Name,
-		v.Quality,
-		v.Ref1,
-		v.Ref2,
-		v.Category,
+		v1,
+		v.Postcode,
 
 	}, nil
 }
 
 //--------------------------------------------------------------------------------
 
-// DeleteAssociations deletes rows from the table, given some primary keys.
+// DeleteAddresses deletes rows from the table, given some primary keys.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...int64) (int64, error) {
+func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE id IN (%s)"
 
@@ -1010,12 +966,12 @@ func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...in
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl AssociationTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
+func (tbl AddressTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := tbl.deleteRows(wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func (tbl AssociationTable) deleteRows(wh where.Expression) (string, []interface{}) {
+func (tbl AddressTable) deleteRows(wh where.Expression) (string, []interface{}) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args

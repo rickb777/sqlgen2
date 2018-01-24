@@ -715,12 +715,12 @@ func (tbl DbCompoundTable) getstringlist(req require.Requirement, sqlname string
 
 // The Compound.PreInsert() method will be called, if it exists.
 func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) error {
-	var params string
+	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
-		params = sDbCompoundDataColumnParamsPostgres
+		stmt = sqlInsertDbCompoundPostgres
 	default:
-		params = sDbCompoundDataColumnParamsSimple
+		stmt = sqlInsertDbCompoundSimple
 	}
 
 	if req == require.All {
@@ -728,7 +728,7 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 	}
 
 	var count int64
-	query := fmt.Sprintf(sqlInsertDbCompound, tbl.name, params)
+	query := fmt.Sprintf(stmt, tbl.name)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -769,17 +769,21 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertDbCompound = `
+const sqlInsertDbCompoundSimple = `
 INSERT INTO %s (
 	alpha,
 	beta,
 	category
-) VALUES (%s)
+) VALUES (?,?,?)
 `
 
-const sDbCompoundDataColumnParamsSimple = "?,?,?"
-
-const sDbCompoundDataColumnParamsPostgres = "$1,$2,$3"
+const sqlInsertDbCompoundPostgres = `
+INSERT INTO %s (
+	alpha,
+	beta,
+	category
+) VALUES ($1,$2,$3)
+`
 
 //--------------------------------------------------------------------------------
 

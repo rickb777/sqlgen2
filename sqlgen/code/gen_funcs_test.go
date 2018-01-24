@@ -528,12 +528,12 @@ func TestWriteInsertFunc_noPK(t *testing.T) {
 
 // The Example.PreInsert() method will be called, if it exists.
 func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
-	var params string
+	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
-		params = sXExampleDataColumnParamsPostgres
+		stmt = sqlInsertXExamplePostgres
 	default:
-		params = sXExampleDataColumnParamsSimple
+		stmt = sqlInsertXExampleSimple
 	}
 
 	if req == require.All {
@@ -541,7 +541,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	}
 
 	var count int64
-	query := fmt.Sprintf(sqlInsertXExample, tbl.name, params)
+	query := fmt.Sprintf(stmt, tbl.name)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -583,16 +583,19 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertXExample = |
+const sqlInsertXExampleSimple = |
 INSERT INTO %s (
 	name,
 	age
-) VALUES (%s)
+) VALUES (?,?)
 |
 
-const sXExampleDataColumnParamsSimple = "?,?"
-
-const sXExampleDataColumnParamsPostgres = "$1,$2"
+const sqlInsertXExamplePostgres = |
+INSERT INTO %s (
+	name,
+	age
+) VALUES ($1,$2)
+|
 `, "|", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
@@ -619,12 +622,12 @@ func TestWriteInsertFunc_withPK(t *testing.T) {
 // The Examples have their primary key fields set to the new record identifiers.
 // The Example.PreInsert() method will be called, if it exists.
 func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
-	var params string
+	var stmt string
 	switch tbl.dialect {
 	case schema.Postgres:
-		params = sXExampleDataColumnParamsPostgres
+		stmt = sqlInsertXExamplePostgres
 	default:
-		params = sXExampleDataColumnParamsSimple
+		stmt = sqlInsertXExampleSimple
 	}
 
 	if req == require.All {
@@ -632,7 +635,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	}
 
 	var count int64
-	query := fmt.Sprintf(sqlInsertXExample, tbl.name, params)
+	query := fmt.Sprintf(stmt, tbl.name)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -674,16 +677,19 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertXExample = |
+const sqlInsertXExampleSimple = |
 INSERT INTO %s (
 	name,
 	age
-) VALUES (%s)
+) VALUES (?,?)
 |
 
-const sXExampleDataColumnParamsSimple = "?,?"
-
-const sXExampleDataColumnParamsPostgres = "$1,$2"
+const sqlInsertXExamplePostgres = |
+INSERT INTO %s (
+	name,
+	age
+) VALUES ($1,$2) returning id
+|
 `, "|", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
