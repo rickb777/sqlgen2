@@ -40,38 +40,48 @@ type queryConstraint struct {
 
 var _ QueryConstraint = &queryConstraint{}
 
+// OrderBy lists the column(s) by which the database will be asked to sort its results.
+// The columns passed in here will be quoted according to the needs of the current dialect.
 func OrderBy(column ...string) *queryConstraint {
 	return &queryConstraint{orderBy: column}
 }
 
+// Limit sets the upper limit on the number of records to be returned.
 func Limit(n int) *queryConstraint {
 	return &queryConstraint{limit: n}
 }
 
+// Offset sets the offset into the result set; previous items will be discarded.
 func Offset(n int) *queryConstraint {
 	return &queryConstraint{offset: n}
 }
 
+// OrderBy lists the column(s) by which the database will be asked to sort its results.
+// The columns passed in here will be quoted according to the needs of the current dialect.
 func (qc *queryConstraint) OrderBy(column ...string) *queryConstraint {
 	qc.orderBy = column
 	return qc
 }
 
+// Asc sets the sort order to be ascending.
 func (qc *queryConstraint) Asc() *queryConstraint {
 	qc.desc = false
 	return qc
 }
 
+// Desc sets the sort order to be descending.
 func (qc *queryConstraint) Desc() *queryConstraint {
 	qc.desc = true
 	return qc
 }
 
+// Limit sets the upper limit on the number of records to be returned.
 func (qc *queryConstraint) Limit(n int) *queryConstraint {
 	qc.limit = n
 	return qc
 }
 
+// Offset sets the offset into the result set; previous items will be discarded.
 func (qc *queryConstraint) Offset(n int) *queryConstraint {
 	qc.offset = n
 	return qc
@@ -85,7 +95,7 @@ func (qc *queryConstraint) Build(dialect Dialect) string {
 		comma := ""
 		for _, col := range qc.orderBy {
 			b.WriteString(comma)
-			b.WriteString(col)
+			b.WriteString(dialect.Quote(col))
 			comma = ","
 		}
 		if qc.desc {

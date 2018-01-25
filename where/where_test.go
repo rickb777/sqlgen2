@@ -257,12 +257,12 @@ func TestQueryConstraint(t *testing.T) {
 	}{
 		{nil, "", "", ""},
 		{Literal("order by foo"), "order by foo", "order by foo", "order by foo"},
-		{OrderBy("foo").Asc(), "ORDER BY foo", "ORDER BY foo", "ORDER BY foo"},
-		{OrderBy("foo").Desc(), "ORDER BY foo DESC", "ORDER BY foo DESC", "ORDER BY foo DESC"},
+		{OrderBy("foo").Asc(), "ORDER BY `foo`", "ORDER BY `foo`", `ORDER BY "foo"`},
+		{OrderBy("foo").Desc(), "ORDER BY `foo` DESC", "ORDER BY `foo` DESC", `ORDER BY "foo" DESC`},
 		{Limit(0), "", "", ""},
 		{Limit(10), "LIMIT 10", "LIMIT 10", "LIMIT 10"},
 		{Offset(20), "OFFSET 20", "OFFSET 20", "OFFSET 20"},
-		{OrderBy("foo").Desc().Limit(10).Offset(20), "ORDER BY foo DESC LIMIT 10 OFFSET 20", "ORDER BY foo DESC LIMIT 10 OFFSET 20", "ORDER BY foo DESC LIMIT 10 OFFSET 20"},
+		{OrderBy("foo").Desc().Limit(10).Offset(20), "ORDER BY `foo` DESC LIMIT 10 OFFSET 20", "ORDER BY `foo` DESC LIMIT 10 OFFSET 20", `ORDER BY "foo" DESC LIMIT 10 OFFSET 20`},
 	}
 
 	for i, c := range cases {
