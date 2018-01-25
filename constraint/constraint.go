@@ -5,23 +5,19 @@ import (
 	"github.com/rickb777/sqlgen2/model"
 )
 
+type Dialect interface {
+	Quote(column string) string
+}
+
 // Constraint represents data that augments the data-definition SQL statements such as CREATE TABLE.
 type Constraint interface {
 	// ConstraintSql constructs the CONSTRAINT clause to be included in the CREATE TABLE.
-	ConstraintSql(name model.TableName, index int) string
+	ConstraintSql(dialect Dialect, name model.TableName, index int) string
 	GoString() string
 }
 
 // Constraints holds constraints.
 type Constraints []Constraint
-
-// ConstraintSql constructs a list of statements to be included in the CREATE TABLE.
-func (cc Constraints) ConstraintSql(name model.TableName) (statements []string) {
-	for i, c := range cc {
-		statements = append(statements, c.ConstraintSql(name, i+1))
-	}
-	return statements
-}
 
 //-------------------------------------------------------------------------------------------------
 
@@ -32,7 +28,7 @@ type CheckConstraint struct {
 }
 
 // ConstraintSql constructs the CONSTRAINT clause to be included in the CREATE TABLE.
-func (c CheckConstraint) ConstraintSql(name model.TableName, index int) string {
+func (c CheckConstraint) ConstraintSql(dialect Dialect, name model.TableName, index int) string {
 	return fmt.Sprintf("CONSTRAINT %s_c%d CHECK (%s)", name, index, c.Expression)
 }
 
@@ -106,14 +102,14 @@ func (c FkConstraint) OnDelete(consequence Consequence) FkConstraint {
 }
 
 // ConstraintSql constructs the CONSTRAINT clause to be included in the CREATE TABLE.
-func (c FkConstraint) ConstraintSql(name model.TableName, index int) string {
-	return fmt.Sprintf("CONSTRAINT %s_c%d %s", name, index, c.Sql(name.Prefix))
+func (c FkConstraint) ConstraintSql(dialect Dialect, name model.TableName, index int) string {
+	return fmt.Sprintf("CONSTRAINT %s_c%d %s", name, index, c.Sql(dialect , name.Prefix))
 }
 
 // Column constructs the foreign key clause needed to configure the database.
-func (c FkConstraint) Sql(prefix string) string {
+func (c FkConstraint) Sql(dialect Dialect, prefix string) string {
 	return fmt.Sprintf("foreign key (%s) references %s%s (%s)%s%s",
-		c.ForeignKeyColumn, prefix, c.Parent.TableName, c.Parent.Column,
+		c.ForeignKeyColumn, prefix, dialect.Quote(c.Parent.TableName), dialect.Quote(c.Parent.Column),
 		c.Update.Apply(" ", "update"),
 		c.Delete.Apply(" ", "delete"))
 }

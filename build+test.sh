@@ -10,10 +10,10 @@ rm -f *.out */*.txt demo/*_sql.go
 
 ### Dependencies ###
 
-go_get bitbucket.org/pkg/inflect bitbucket.org/pkg/inflect
-go_get github.com/acsellers/inflections github.com/acsellers/inflections
-go_get github.com/kortschak/utter github.com/kortschak/utter
-go_get gopkg.in/yaml.v2 gopkg.in/yaml.v2
+go_get bitbucket.org/pkg/inflect.a        bitbucket.org/pkg/inflect
+go_get github.com/acsellers/inflections.a github.com/acsellers/inflections
+go_get github.com/kortschak/utter.a       github.com/kortschak/utter
+go_get gopkg.in/yaml.v2.a                 gopkg.in/yaml.v2
 
 if ! type -p goveralls; then
   echo go get github.com/mattn/goveralls

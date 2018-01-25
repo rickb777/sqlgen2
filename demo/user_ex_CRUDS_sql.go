@@ -286,12 +286,9 @@ func (tbl AUserTable) createTableSql(ifNotExists bool) string {
 	buf.WriteString(tbl.name.String())
 	buf.WriteString(" (")
 	buf.WriteString(columns)
-	cs := tbl.constraints.ConstraintSql(tbl.name)
-	if len(cs) > 0 {
-		for _, c := range cs {
-			buf.WriteString(",\n ")
-			buf.WriteString(c)
-		}
+	for i, c := range tbl.constraints {
+		buf.WriteString(",\n ")
+		buf.WriteString(c.ConstraintSql(tbl.dialect, tbl.name, i+1))
 	}
 	buf.WriteString("\n)")
 	buf.WriteString(settings)
