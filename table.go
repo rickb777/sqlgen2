@@ -71,8 +71,8 @@ type Table interface {
 	// The result is a modified copy of the table; the original is unchanged.
 	//Using(tx *sql.Tx) SomeTypeTable
 
-	// AddConstraint returns a modified Table with added data consistency constraints.
-	//AddConstraint(cc ...sqlgen2.Constraint) SomeTypeTable {
+	// WithConstraint returns a modified Table with added data consistency constraints.
+	//WithConstraint(cc ...sqlgen2.Constraint) SomeTypeTable {
 }
 
 type TableCreator interface {

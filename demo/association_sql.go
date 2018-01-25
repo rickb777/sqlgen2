@@ -46,14 +46,14 @@ func NewAssociationTable(name model.TableName, d sqlgen2.Execer, dialect schema.
 	return table
 }
 
-// CopyTableAsAssociationTable copies a table instance, copying the name's prefix, the DB, the context,
-// the dialect and the logger. However, it sets the table name to "associations" and doesn't copy the constraints'.
+// CopyTableAsAssociationTable copies a table instance, retaining the name etc but
+// providing methods appropriate for 'Association'. It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for 'Association'. This is most useulf when thie is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsAssociationTable(origin sqlgen2.Table) AssociationTable {
 	return AssociationTable{
-		name:        model.TableName{origin.Name().Prefix, "associations"},
+		name:        origin.Name(),
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -95,8 +95,8 @@ func (tbl AssociationTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	return tbl
 }
 
-// AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl AssociationTable) AddConstraint(cc ...constraint.Constraint) AssociationTable {
+// WithConstraint returns a modified Table with added data consistency constraints.
+func (tbl AssociationTable) WithConstraint(cc ...constraint.Constraint) AssociationTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }

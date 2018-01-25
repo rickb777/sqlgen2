@@ -46,14 +46,14 @@ func NewHookTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect
 	return table
 }
 
-// CopyTableAsHookTable copies a table instance, copying the name's prefix, the DB, the context,
-// the dialect and the logger. However, it sets the table name to "hooks" and doesn't copy the constraints'.
+// CopyTableAsHookTable copies a table instance, retaining the name etc but
+// providing methods appropriate for 'Hook'. It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for 'Hook'. This is most useulf when thie is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsHookTable(origin sqlgen2.Table) HookTable {
 	return HookTable{
-		name:        model.TableName{origin.Name().Prefix, "hooks"},
+		name:        origin.Name(),
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -95,8 +95,8 @@ func (tbl HookTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	return tbl
 }
 
-// AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl HookTable) AddConstraint(cc ...constraint.Constraint) HookTable {
+// WithConstraint returns a modified Table with added data consistency constraints.
+func (tbl HookTable) WithConstraint(cc ...constraint.Constraint) HookTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }

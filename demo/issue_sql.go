@@ -47,14 +47,14 @@ func NewIssueTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialec
 	return table
 }
 
-// CopyTableAsIssueTable copies a table instance, copying the name's prefix, the DB, the context,
-// the dialect and the logger. However, it sets the table name to "issues" and doesn't copy the constraints'.
+// CopyTableAsIssueTable copies a table instance, retaining the name etc but
+// providing methods appropriate for 'Issue'. It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for 'Issue'. This is most useulf when thie is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsIssueTable(origin sqlgen2.Table) IssueTable {
 	return IssueTable{
-		name:        model.TableName{origin.Name().Prefix, "issues"},
+		name:        origin.Name(),
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -96,8 +96,8 @@ func (tbl IssueTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	return tbl
 }
 
-// AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl IssueTable) AddConstraint(cc ...constraint.Constraint) IssueTable {
+// WithConstraint returns a modified Table with added data consistency constraints.
+func (tbl IssueTable) WithConstraint(cc ...constraint.Constraint) IssueTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }

@@ -120,7 +120,7 @@ func xTestCreateTable_sql_syntax(t *testing.T) {
 	for _, c := range cases {
 		tbl := NewDbUserTable(model.TableName{Name: "users"}, nil, c.dialect).
 			WithPrefix("prefix_").
-			AddConstraint(
+			WithConstraint(
 			constraint.CheckConstraint{"role < 3"})
 		s := tbl.createTableSql(true)
 		Ω(s).Should(Equal(c.expected), "%s\n%s", c.dialect, s)

@@ -43,14 +43,14 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name model.TableName, d sqlgen2.Execer, d
 	return table
 }
 
-// CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}} copies a table instance, copying the name's prefix, the DB, the context,
-// the dialect and the logger. However, it sets the table name to "{{.DbName}}" and doesn't copy the constraints'.
+// CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}} copies a table instance, retaining the name etc but
+// providing methods appropriate for '{{.Type}}'. It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for '{{.Type}}'. This is most useulf when thie is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin sqlgen2.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
-		name:        model.TableName{origin.Name().Prefix, "{{.DbName}}"},
+		name:        origin.Name(),
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -92,8 +92,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SetLogger(logger *log.Logger) sqlgen2.
 	return tbl
 }
 
-// AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) AddConstraint(cc ...constraint.Constraint) {{.Prefix}}{{.Type}}{{.Thing}} {
+// WithConstraint returns a modified Table with added data consistency constraints.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithConstraint(cc ...constraint.Constraint) {{.Prefix}}{{.Type}}{{.Thing}} {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }

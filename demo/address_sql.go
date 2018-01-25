@@ -47,14 +47,14 @@ func NewAddressTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dial
 	return table
 }
 
-// CopyTableAsAddressTable copies a table instance, copying the name's prefix, the DB, the context,
-// the dialect and the logger. However, it sets the table name to "addresses" and doesn't copy the constraints'.
+// CopyTableAsAddressTable copies a table instance, retaining the name etc but
+// providing methods appropriate for 'Address'. It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for 'Address'. This is most useulf when thie is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsAddressTable(origin sqlgen2.Table) AddressTable {
 	return AddressTable{
-		name:        model.TableName{origin.Name().Prefix, "addresses"},
+		name:        origin.Name(),
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -96,8 +96,8 @@ func (tbl AddressTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	return tbl
 }
 
-// AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl AddressTable) AddConstraint(cc ...constraint.Constraint) AddressTable {
+// WithConstraint returns a modified Table with added data consistency constraints.
+func (tbl AddressTable) WithConstraint(cc ...constraint.Constraint) AddressTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }

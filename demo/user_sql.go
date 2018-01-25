@@ -51,14 +51,14 @@ func NewDbUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Diale
 	return table
 }
 
-// CopyTableAsDbUserTable copies a table instance, copying the name's prefix, the DB, the context,
-// the dialect and the logger. However, it sets the table name to "users" and doesn't copy the constraints'.
+// CopyTableAsDbUserTable copies a table instance, retaining the name etc but
+// providing methods appropriate for 'User'. It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for 'User'. This is most useulf when thie is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsDbUserTable(origin sqlgen2.Table) DbUserTable {
 	return DbUserTable{
-		name:        model.TableName{origin.Name().Prefix, "users"},
+		name:        origin.Name(),
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -100,8 +100,8 @@ func (tbl DbUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	return tbl
 }
 
-// AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl DbUserTable) AddConstraint(cc ...constraint.Constraint) DbUserTable {
+// WithConstraint returns a modified Table with added data consistency constraints.
+func (tbl DbUserTable) WithConstraint(cc ...constraint.Constraint) DbUserTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }

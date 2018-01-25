@@ -49,14 +49,14 @@ func NewUUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialec
 	return table
 }
 
-// CopyTableAsUUserTable copies a table instance, copying the name's prefix, the DB, the context,
-// the dialect and the logger. However, it sets the table name to "users" and doesn't copy the constraints'.
+// CopyTableAsUUserTable copies a table instance, retaining the name etc but
+// providing methods appropriate for 'User'. It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for 'User'. This is most useulf when thie is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsUUserTable(origin sqlgen2.Table) UUserTable {
 	return UUserTable{
-		name:        model.TableName{origin.Name().Prefix, "users"},
+		name:        origin.Name(),
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
@@ -98,8 +98,8 @@ func (tbl UUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
 	return tbl
 }
 
-// AddConstraint returns a modified Table with added data consistency constraints.
-func (tbl UUserTable) AddConstraint(cc ...constraint.Constraint) UUserTable {
+// WithConstraint returns a modified Table with added data consistency constraints.
+func (tbl UUserTable) WithConstraint(cc ...constraint.Constraint) UUserTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
