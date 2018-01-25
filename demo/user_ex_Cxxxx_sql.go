@@ -420,11 +420,11 @@ func (tbl CUserTable) ReplaceTableName(query string) string {
 
 var allCUserQuotedInserts = []string{
 	// Sqlite
-	"(`login`, `emailaddress`, `addressid`, `avatar`, `role`, `active`, `admin`, `fave`, `lastupdated`, `token`, `secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+	"(`login`,`emailaddress`,`addressid`,`avatar`,`role`,`active`,`admin`,`fave`,`lastupdated`,`token`,`secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
 	// Mysql
-	"(`login`, `emailaddress`, `addressid`, `avatar`, `role`, `active`, `admin`, `fave`, `lastupdated`, `token`, `secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+	"(`login`,`emailaddress`,`addressid`,`avatar`,`role`,`active`,`admin`,`fave`,`lastupdated`,`token`,`secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
 	// Postgres
-	`("login", "emailaddress", "addressid", "avatar", "role", "active", "admin", "fave", "lastupdated", "token", "secret") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning "uid"`,
+	`("login","emailaddress","addressid","avatar","role","active","admin","fave","lastupdated","token","secret") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning "uid"`,
 }
 
 //--------------------------------------------------------------------------------

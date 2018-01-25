@@ -104,7 +104,7 @@ func (dialect postgres) InsertDML(table *TableDescription) string {
 	w := &bytes.Buffer{}
 	w.WriteString("`(")
 
-	table.Fields.NonAuto().SqlNames().Quoted(w, doubleQuoter)
+	table.Fields.NonAuto().SqlNames().MkString3W(w, `"`, `","`, `"`)
 
 	w.WriteString(") VALUES (")
 	w.WriteString(dialect.Placeholders(table.NumColumnNames(false)))
@@ -138,9 +138,9 @@ func (dialect postgres) UpdateDML(table *TableDescription) string {
 	return w.String()
 }
 
-func (dialect postgres) DeleteDML(table *TableDescription, fields FieldList) string {
-	return baseDeleteDML(table, fields, doubleQuoter, postgresParam)
-}
+//func (dialect postgres) DeleteDML(table *TableDescription, fields FieldList) string {
+//	return baseDeleteDML(table, fields, doubleQuoter, postgresParam)
+//}
 
 func (dialect postgres) TruncateDDL(tableName string, force bool) []string {
 	if force {
@@ -154,7 +154,7 @@ func postgresParam(i int) string {
 	return fmt.Sprintf("$%d", i+1)
 }
 
-func doubleQuoter(identifier Identifier) string {
+func doubleQuoter(identifier string) string {
 	return fmt.Sprintf("%q", identifier)
 }
 
@@ -162,7 +162,11 @@ func (dialect postgres) SplitAndQuote(csv string) string {
 	return baseSplitAndQuote(csv, `"`, `","`, `"`)
 }
 
-func (dialect postgres) Quoter() func (identifier Identifier) string {
+func (dialect postgres) Quote(id string) string {
+	return doubleQuoter(id)
+}
+
+func (dialect postgres) Quoter() func (identifier string) string {
 	return doubleQuoter
 }
 

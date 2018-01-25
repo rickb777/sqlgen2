@@ -5,36 +5,35 @@ import (
 	"bytes"
 )
 
-type Identifier string
+type Identifiers []string
 
-func (id Identifier) Quoted(quoter func(Identifier) string) string {
-	return quoter(id)
-}
-
-type Identifiers []Identifier
-
-func (ids Identifiers) Quoted(w io.Writer, quoter func(Identifier) string) {
+func (ids Identifiers) Quoted(w io.Writer, quoter func(string) string) {
 	comma := ""
 	for _, id := range ids {
 		io.WriteString(w, comma)
 		io.WriteString(w, quoter(id))
-		comma = ", "
+		comma = ","
 	}
-}
-
-func (ids Identifiers) QuotedS(quoter func(Identifier) string) string {
-	w := bytes.NewBuffer(make([]byte, 0, len(ids)*10))
-	ids.Quoted(w, quoter)
-	return w.String()
 }
 
 func (ids Identifiers) MkString(sep string) string {
-	w := bytes.NewBuffer(make([]byte, 0, len(ids)*10))
-	comma := ""
-	for _, id := range ids {
-		io.WriteString(w, comma)
-		io.WriteString(w, string(id))
-		comma = sep
-	}
+	return ids.MkString3("", sep, "")
+}
+
+func (ids Identifiers) MkString3(before, separator, after string) string {
+	w := bytes.NewBuffer(make([]byte, 0, len(ids)*12))
+	ids.MkString3W(w, before, separator, after)
 	return w.String()
+}
+
+func (ids Identifiers) MkString3W(w io.Writer, before, separator, after string) {
+	if len(ids) > 0 {
+		comma := before
+		for _, id := range ids {
+			io.WriteString(w, comma)
+			io.WriteString(w, string(id))
+			comma = separator
+		}
+		io.WriteString(w, after)
+	}
 }

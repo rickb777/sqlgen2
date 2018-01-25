@@ -613,8 +613,8 @@ var allIssueQuotedColumnNames = []string{
 // GetIssue gets the record with a given primary key value.
 // If not found, *Issue will be nil.
 func (tbl IssueTable) GetIssue(id int64) (*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
-		allIssueQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allIssueQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"))
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -623,8 +623,8 @@ func (tbl IssueTable) GetIssue(id int64) (*Issue, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl IssueTable) MustGetIssue(id int64) (*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
-		allIssueQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allIssueQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"))
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -641,8 +641,8 @@ func (tbl IssueTable) GetIssues(req require.Requirement, id ...int64) (list []*I
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)",
-			allIssueQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allIssueQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -785,7 +785,7 @@ func (tbl IssueTable) SliceState(req require.Requirement, wh where.Expression, q
 func (tbl IssueTable) getDatelist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Date, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -810,7 +810,7 @@ func (tbl IssueTable) getDatelist(req require.Requirement, sqlname string, wh wh
 func (tbl IssueTable) getintlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -835,7 +835,7 @@ func (tbl IssueTable) getintlist(req require.Requirement, sqlname string, wh whe
 func (tbl IssueTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -860,7 +860,7 @@ func (tbl IssueTable) getint64list(req require.Requirement, sqlname string, wh w
 func (tbl IssueTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -887,11 +887,11 @@ func (tbl IssueTable) getstringlist(req require.Requirement, sqlname string, wh 
 
 var allIssueQuotedInserts = []string{
 	// Sqlite
-	"(`number`, `date`, `title`, `bigbody`, `assignee`, `state`, `labels`) VALUES (?,?,?,?,?,?,?)",
+	"(`number`,`date`,`title`,`bigbody`,`assignee`,`state`,`labels`) VALUES (?,?,?,?,?,?,?)",
 	// Mysql
-	"(`number`, `date`, `title`, `bigbody`, `assignee`, `state`, `labels`) VALUES (?,?,?,?,?,?,?)",
+	"(`number`,`date`,`title`,`bigbody`,`assignee`,`state`,`labels`) VALUES (?,?,?,?,?,?,?)",
 	// Postgres
-	`("number", "date", "title", "bigbody", "assignee", "state", "labels") VALUES ($1,$2,$3,$4,$5,$6,$7) returning "id"`,
+	`("number","date","title","bigbody","assignee","state","labels") VALUES ($1,$2,$3,$4,$5,$6,$7) returning "id"`,
 }
 
 //--------------------------------------------------------------------------------
@@ -1029,7 +1029,7 @@ func sliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 // The list of ids can be arbitrarily long.
 func (tbl IssueTable) DeleteIssues(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s WHERE id IN (%s)"
+	const qt = "DELETE FROM %s WHERE %s IN (%s)"
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -1041,11 +1041,12 @@ func (tbl IssueTable) DeleteIssues(req require.Requirement, id ...int64) (int64,
 	if len(id) < batch {
 		max = len(id)
 	}
+	col := tbl.dialect.Quote("id")
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
 		pl := tbl.dialect.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -1064,7 +1065,7 @@ func (tbl IssueTable) DeleteIssues(req require.Requirement, id ...int64) (int64,
 
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]

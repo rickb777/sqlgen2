@@ -178,8 +178,8 @@ var all{{.CamelName}}QuotedColumnNames = []string{
 // Get{{.Type}} gets the record with a given primary key value.
 // If not found, *{{.Type}} will be nil.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}}=?",
-		all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("{{.Table.Primary.SqlName}}"))
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -188,8 +188,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustGet{{.Type}}(id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}}=?",
-		all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("{{.Table.Primary.SqlName}}"))
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -206,8 +206,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}(req require.Requirement,
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}} IN (%s)",
-			all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("{{.Table.Primary.SqlName}}"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -325,7 +325,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) get{{.Tag}}list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -505,7 +505,7 @@ const sDelete = `
 // The list of ids can be arbitrarily long.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requirement, id ...{{.Table.Primary.Type.Name}}) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s WHERE {{.Table.Primary.SqlName}} IN (%s)"
+	const qt = "DELETE FROM %s WHERE %s IN (%s)"
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -517,11 +517,12 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 	if len(id) < batch {
 		max = len(id)
 	}
+	col := tbl.dialect.Quote("{{.Table.Primary.SqlName}}")
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
 		pl := tbl.dialect.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -540,7 +541,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]

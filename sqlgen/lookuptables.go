@@ -37,6 +37,8 @@ var mapStringToSqlType = map[string]parse.Kind{
 	"varchar":  parse.String,
 	"varchar2": parse.String,
 	"number":   parse.Int,
+	"tinyint":  parse.Int8,
+	"smallint": parse.Int16,
 	"integer":  parse.Int,
 	"bigint":   parse.Int64,
 	"blob":     parse.Struct,

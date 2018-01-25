@@ -11,13 +11,14 @@ type Dialect interface {
 	FieldDDL(w io.Writer, field *Field, comma string) string
 	InsertDML(*TableDescription) string
 	UpdateDML(*TableDescription) string
-	DeleteDML(*TableDescription, FieldList) string
+	//DeleteDML(*TableDescription, FieldList) string
 	TruncateDDL(tableName string, force bool) []string
 	CreateTableSettings() string
 	FieldAsColumn(*Field) string
 
 	SplitAndQuote(csv string) string
-	Quoter() func (Identifier) string
+	Quote(string) string
+	Quoter() func (string) string
 	ReplacePlaceholders(sql string) string
 	Placeholders(n int) string
 	String() string
@@ -36,16 +37,6 @@ const (
 
 // AllDialects lists all currently-supported dialects.
 var AllDialects = []Dialect{Sqlite, Mysql, Postgres}
-
-// DialectNames gets all the currently-supported dialect names. These names are
-// typically mixed-case.
-func DialectNames() []string {
-	dialects := make([]string, len(AllDialects))
-	for i, d := range AllDialects {
-		dialects[i] = d.String()
-	}
-	return dialects
-}
 
 // PickDialect finds a dialect that matches by name, ignoring letter case.
 // It returns nil if not found.

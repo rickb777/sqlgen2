@@ -589,8 +589,8 @@ var allHookQuotedColumnNames = []string{
 // GetHook gets the record with a given primary key value.
 // If not found, *Hook will be nil.
 func (tbl HookTable) GetHook(id uint64) (*Hook, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
-		allHookQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allHookQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"))
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -599,8 +599,8 @@ func (tbl HookTable) GetHook(id uint64) (*Hook, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl HookTable) MustGetHook(id uint64) (*Hook, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
-		allHookQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allHookQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"))
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -617,8 +617,8 @@ func (tbl HookTable) GetHooks(req require.Requirement, id ...uint64) (list HookL
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)",
-			allHookQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allHookQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -831,7 +831,7 @@ func (tbl HookTable) SliceHeadCommitCommitterUsername(req require.Requirement, w
 func (tbl HookTable) getCategorylist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -856,7 +856,7 @@ func (tbl HookTable) getCategorylist(req require.Requirement, sqlname string, wh
 func (tbl HookTable) getEmaillist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -881,7 +881,7 @@ func (tbl HookTable) getEmaillist(req require.Requirement, sqlname string, wh wh
 func (tbl HookTable) getboollist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -906,7 +906,7 @@ func (tbl HookTable) getboollist(req require.Requirement, sqlname string, wh whe
 func (tbl HookTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -931,7 +931,7 @@ func (tbl HookTable) getstringlist(req require.Requirement, sqlname string, wh w
 func (tbl HookTable) getuint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -958,11 +958,11 @@ func (tbl HookTable) getuint64list(req require.Requirement, sqlname string, wh w
 
 var allHookQuotedInserts = []string{
 	// Sqlite
-	"(`sha`, `after`, `before`, `category`, `created`, `deleted`, `forced`, `commit_id`, `message`, `timestamp`, `head_commit_author_name`, `head_commit_author_email`, `head_commit_author_username`, `head_commit_committer_name`, `head_commit_committer_email`, `head_commit_committer_username`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+	"(`sha`,`after`,`before`,`category`,`created`,`deleted`,`forced`,`commit_id`,`message`,`timestamp`,`head_commit_author_name`,`head_commit_author_email`,`head_commit_author_username`,`head_commit_committer_name`,`head_commit_committer_email`,`head_commit_committer_username`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
 	// Mysql
-	"(`sha`, `after`, `before`, `category`, `created`, `deleted`, `forced`, `commit_id`, `message`, `timestamp`, `head_commit_author_name`, `head_commit_author_email`, `head_commit_author_username`, `head_commit_committer_name`, `head_commit_committer_email`, `head_commit_committer_username`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+	"(`sha`,`after`,`before`,`category`,`created`,`deleted`,`forced`,`commit_id`,`message`,`timestamp`,`head_commit_author_name`,`head_commit_author_email`,`head_commit_author_username`,`head_commit_committer_name`,`head_commit_committer_email`,`head_commit_committer_username`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
 	// Postgres
-	`("sha", "after", "before", "category", "created", "deleted", "forced", "commit_id", "message", "timestamp", "head_commit_author_name", "head_commit_author_email", "head_commit_author_username", "head_commit_committer_name", "head_commit_committer_email", "head_commit_committer_username") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) returning "id"`,
+	`("sha","after","before","category","created","deleted","forced","commit_id","message","timestamp","head_commit_author_name","head_commit_author_email","head_commit_author_username","head_commit_committer_name","head_commit_committer_email","head_commit_committer_username") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) returning "id"`,
 }
 
 //--------------------------------------------------------------------------------
@@ -1107,7 +1107,7 @@ func sliceHookWithoutPk(v *Hook) ([]interface{}, error) {
 // The list of ids can be arbitrarily long.
 func (tbl HookTable) DeleteHooks(req require.Requirement, id ...uint64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s WHERE id IN (%s)"
+	const qt = "DELETE FROM %s WHERE %s IN (%s)"
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -1119,11 +1119,12 @@ func (tbl HookTable) DeleteHooks(req require.Requirement, id ...uint64) (int64, 
 	if len(id) < batch {
 		max = len(id)
 	}
+	col := tbl.dialect.Quote("id")
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
 		pl := tbl.dialect.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -1142,7 +1143,7 @@ func (tbl HookTable) DeleteHooks(req require.Requirement, id ...uint64) (int64, 
 
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]

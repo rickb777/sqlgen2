@@ -10,48 +10,47 @@ const or = " OR "
 
 // Null returns an 'ISNULL' condition on a column.
 func Null(column string) Condition {
-	return Condition{column + " IS NULL", []interface{}{}}
+	return Condition{column, " IS NULL", []interface{}{}}
 }
 
 // Eq returns an equality condition on a column.
 func Eq(column string, value interface{}) Condition {
-	return Condition{column + "=?", []interface{}{value}}
+	return Condition{column, "=?", []interface{}{value}}
 }
 
 // NotEq returns a not equal condition on a column.
 func NotEq(column string, value interface{}) Condition {
-	return Condition{column + "<>?", []interface{}{value}}
+	return Condition{column, "<>?", []interface{}{value}}
 }
 
 // Gt returns a greater than condition on a column.
 func Gt(column string, value interface{}) Condition {
-	return Condition{column + ">?", []interface{}{value}}
+	return Condition{column, ">?", []interface{}{value}}
 }
 
 // GtEq returns a greater than or equal condition on a column.
 func GtEq(column string, value interface{}) Condition {
-	return Condition{column + ">=?", []interface{}{value}}
+	return Condition{column, ">=?", []interface{}{value}}
 }
 
 // Lt returns a less than condition on a column.
 func Lt(column string, value interface{}) Condition {
-	return Condition{column + "<?", []interface{}{value}}
+	return Condition{column, "<?", []interface{}{value}}
 }
 
 // LtEq returns a less than or equal than condition on a column.
 func LtEq(column string, value interface{}) Condition {
-	return Condition{column + "<=?", []interface{}{value}}
+	return Condition{column, "<=?", []interface{}{value}}
 }
 
 // Between returns a between condition on a column.
 func Between(column string, a, b interface{}) Condition {
-	return Condition{column + " BETWEEN ? AND ?", []interface{}{a, b}}
+	return Condition{column, " BETWEEN ? AND ?", []interface{}{a, b}}
 }
 
 // In returns an in condition on a column.
 func In(column string, values ...interface{}) Condition {
 	buf := &bytes.Buffer{}
-	buf.WriteString(column)
 	buf.WriteString(" IN (")
 	i := 0
 	for _, arg := range values {
@@ -75,7 +74,7 @@ func In(column string, values ...interface{}) Condition {
 		}
 	}
 	buf.WriteByte(')')
-	return Condition{buf.String(), values}
+	return Condition{column, buf.String(), values}
 }
 
 //-------------------------------------------------------------------------------------------------

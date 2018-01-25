@@ -63,7 +63,7 @@ func mergeTags(structTags, fileTags parse.Tags) parse.Tags {
 }
 
 func checkNoConflictingNames(name parse.LType, table *TableDescription) {
-	names := make(map[Identifier]struct{})
+	names := make(map[string]struct{})
 	var duplicates Identifiers
 
 	for _, name := range table.Fields.SqlNames() {
@@ -281,9 +281,9 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags par
 	}
 
 	if tag.Name != "" {
-		field.SqlName = Identifier(prefix + strings.ToLower(tag.Name))
+		field.SqlName = string(prefix + strings.ToLower(tag.Name))
 	} else {
-		field.SqlName = Identifier(prefix + strings.ToLower(field.Name))
+		field.SqlName = string(prefix + strings.ToLower(field.Name))
 	}
 
 	ctx.table.Fields = append(ctx.table.Fields, field)

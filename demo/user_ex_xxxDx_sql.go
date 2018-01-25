@@ -433,7 +433,7 @@ func (tbl DUserTable) ReplaceTableName(query string) string {
 // The list of ids can be arbitrarily long.
 func (tbl DUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s WHERE uid IN (%s)"
+	const qt = "DELETE FROM %s WHERE %s IN (%s)"
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -445,11 +445,12 @@ func (tbl DUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 	if len(id) < batch {
 		max = len(id)
 	}
+	col := tbl.dialect.Quote("uid")
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
 		pl := tbl.dialect.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -468,7 +469,7 @@ func (tbl DUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]

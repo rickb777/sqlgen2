@@ -96,16 +96,16 @@ func (dialect mysql) FieldDDL(w io.Writer, field *Field, comma string) string {
 }
 
 func (dialect mysql) InsertDML(table *TableDescription) string {
-	return baseInsertDML(table, baseQueryPlaceholders(table.NumColumnNames(false)), backTickQuoted)
+	return baseInsertDML(table, baseQueryPlaceholders(table.NumColumnNames(false)))
 }
 
 func (dialect mysql) UpdateDML(table *TableDescription) string {
 	return baseUpdateDML(table, backTickQuoted, baseParamIsQuery)
 }
 
-func (dialect mysql) DeleteDML(table *TableDescription, fields FieldList) string {
-	return baseDeleteDML(table, fields, backTickQuoted, baseParamIsQuery)
-}
+//func (dialect mysql) DeleteDML(table *TableDescription, fields FieldList) string {
+//	return baseDeleteDML(table, fields, backTickQuoted, baseParamIsQuery)
+//}
 
 func (dialect mysql) TruncateDDL(tableName string, force bool) []string {
 	truncate := fmt.Sprintf("TRUNCATE %s", tableName)
@@ -124,7 +124,11 @@ func (dialect mysql) SplitAndQuote(csv string) string {
 	return baseSplitAndQuote(csv, "`", "`,`", "`")
 }
 
-func (dialect mysql) Quoter() func (Identifier) string {
+func (dialect mysql) Quote(id string) string {
+	return backTickQuoted(id)
+}
+
+func (dialect mysql) Quoter() func (string) string {
 	return backTickQuoted
 }
 

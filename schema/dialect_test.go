@@ -15,9 +15,9 @@ func TestInsertDML(t *testing.T) {
 		di       Dialect
 		expected string
 	}{
-		{Sqlite, "\"(`cat`, `username`) VALUES (?,?)\""},
-		{Mysql, "\"(`cat`, `username`) VALUES (?,?)\""},
-		{Postgres, "`(\"cat\", \"username\") VALUES ($1,$2) returning \"id\"`"},
+		{Sqlite, "\"(`cat`,`username`) VALUES (?,?)\""},
+		{Mysql, "\"(`cat`,`username`) VALUES (?,?)\""},
+		{Postgres, "`(\"cat\",\"username\") VALUES ($1,$2) returning \"id\"`"},
 	}
 	for _, c := range cases {
 		s := c.di.InsertDML(table)

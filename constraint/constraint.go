@@ -3,7 +3,6 @@ package constraint
 import (
 	"fmt"
 	"github.com/rickb777/sqlgen2/model"
-	"github.com/rickb777/sqlgen2/schema"
 )
 
 // Constraint represents data that augments the data-definition SQL statements such as CREATE TABLE.
@@ -70,7 +69,7 @@ func (c Consequence) Apply(pfx, action string) string {
 // Reference holds a table + column reference used by constraints.
 type Reference struct {
 	TableName string // without schema or other prefix
-	Column    schema.Identifier // only one column is supported
+	Column    string // only one column is supported
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -78,18 +77,18 @@ type Reference struct {
 // FkConstraint holds a pair of references and their update/delete consequences.
 // ForeignKeyColumn is the 'owner' of the constraint.
 type FkConstraint struct {
-	ForeignKeyColumn schema.Identifier // only one column is supported
+	ForeignKeyColumn string // only one column is supported
 	Parent           Reference
 	Update, Delete   Consequence
 }
 
 // FkConstraintOn constructs a foreign key constraint in a fluent style.
-func FkConstraintOn(column schema.Identifier) FkConstraint {
+func FkConstraintOn(column string) FkConstraint {
 	return FkConstraint{ForeignKeyColumn: column}
 }
 
 // RefersTo sets the parent reference.
-func (c FkConstraint) RefersTo(tableName string, column schema.Identifier) FkConstraint {
+func (c FkConstraint) RefersTo(tableName string, column string) FkConstraint {
 	c.Parent = Reference{tableName, column}
 	return c
 }
@@ -111,7 +110,7 @@ func (c FkConstraint) ConstraintSql(name model.TableName, index int) string {
 	return fmt.Sprintf("CONSTRAINT %s_c%d %s", name, index, c.Sql(name.Prefix))
 }
 
-// Sql constructs the foreign key clause needed to configure the database.
+// Column constructs the foreign key clause needed to configure the database.
 func (c FkConstraint) Sql(prefix string) string {
 	return fmt.Sprintf("foreign key (%s) references %s%s (%s)%s%s",
 		c.ForeignKeyColumn, prefix, c.Parent.TableName, c.Parent.Column,
@@ -182,4 +181,3 @@ func (c FkConstraint) Disabled() FkConstraint {
 //	}
 //	return set, rows.Err()
 //}
-

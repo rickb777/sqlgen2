@@ -188,9 +188,9 @@ const NumAddressColumns = 3
 
 const NumAddressDataColumns = 2
 
-const AddressColumnNames = "id,line,postcode"
+const AddressColumnNames = "id,lines,postcode"
 
-const AddressDataColumnNames = "line,postcode"
+const AddressDataColumnNames = "lines,postcode"
 
 const AddressPk = "id"
 
@@ -198,21 +198,21 @@ const AddressPk = "id"
 
 const sqlCreateColumnsAddressTableSqlite =
 " `id`       integer primary key autoincrement,\n"+
-" `line`     text,\n"+
+" `lines`    text,\n"+
 " `postcode` text"
 
 const sqlCreateSettingsAddressTableSqlite = ""
 
 const sqlCreateColumnsAddressTableMysql =
 " `id`       bigint primary key auto_increment,\n"+
-" `line`     json,\n"+
+" `lines`    json,\n"+
 " `postcode` varchar(20)"
 
 const sqlCreateSettingsAddressTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
 
 const sqlCreateColumnsAddressTablePostgres = `
  "id"       bigserial primary key,
- "line"     json,
+ "lines"    json,
  "postcode" varchar(20)`
 
 const sqlCreateSettingsAddressTablePostgres = ""
@@ -461,7 +461,7 @@ func scanAddresses(rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err 
 
 		v := &Address{}
 		v.Id = v0
-		err = json.Unmarshal(v1, &v.Line)
+		err = json.Unmarshal(v1, &v.Lines)
 		if err != nil {
 			return nil, n, err
 		}
@@ -583,8 +583,8 @@ var allAddressQuotedColumnNames = []string{
 // GetAddress gets the record with a given primary key value.
 // If not found, *Address will be nil.
 func (tbl AddressTable) GetAddress(id int64) (*Address, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
-		allAddressQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allAddressQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"))
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -593,8 +593,8 @@ func (tbl AddressTable) GetAddress(id int64) (*Address, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl AddressTable) MustGetAddress(id int64) (*Address, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
-		allAddressQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allAddressQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"))
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -611,8 +611,8 @@ func (tbl AddressTable) GetAddresses(req require.Requirement, id ...int64) (list
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)",
-			allAddressQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allAddressQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -720,7 +720,7 @@ func (tbl AddressTable) SlicePostcode(req require.Requirement, wh where.Expressi
 func (tbl AddressTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -745,7 +745,7 @@ func (tbl AddressTable) getint64list(req require.Requirement, sqlname string, wh
 func (tbl AddressTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -772,11 +772,11 @@ func (tbl AddressTable) getstringlist(req require.Requirement, sqlname string, w
 
 var allAddressQuotedInserts = []string{
 	// Sqlite
-	"(`line`, `postcode`) VALUES (?,?)",
+	"(`lines`,`postcode`) VALUES (?,?)",
 	// Mysql
-	"(`line`, `postcode`) VALUES (?,?)",
+	"(`lines`,`postcode`) VALUES (?,?)",
 	// Postgres
-	`("line", "postcode") VALUES ($1,$2) returning "id"`,
+	`("lines","postcode") VALUES ($1,$2) returning "id"`,
 }
 
 //--------------------------------------------------------------------------------
@@ -844,11 +844,11 @@ func (tbl AddressTable) UpdateFields(req require.Requirement, wh where.Expressio
 
 var allAddressQuotedUpdates = []string{
 	// Sqlite
-	"`line`=?,`postcode`=? WHERE `id`=?",
+	"`lines`=?,`postcode`=? WHERE `id`=?",
 	// Mysql
-	"`line`=?,`postcode`=? WHERE `id`=?",
+	"`lines`=?,`postcode`=? WHERE `id`=?",
 	// Postgres
-	`"line"=$2,"postcode"=$3 WHERE "id"=$1`,
+	`"lines"=$2,"postcode"=$3 WHERE "id"=$1`,
 }
 
 //--------------------------------------------------------------------------------
@@ -891,7 +891,7 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 
 func sliceAddressWithoutPk(v *Address) ([]interface{}, error) {
 
-	v1, err := json.Marshal(&v.Line)
+	v1, err := json.Marshal(&v.Lines)
 	if err != nil {
 		return nil, err
 	}
@@ -909,7 +909,7 @@ func sliceAddressWithoutPk(v *Address) ([]interface{}, error) {
 // The list of ids can be arbitrarily long.
 func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s WHERE id IN (%s)"
+	const qt = "DELETE FROM %s WHERE %s IN (%s)"
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -921,11 +921,12 @@ func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (i
 	if len(id) < batch {
 		max = len(id)
 	}
+	col := tbl.dialect.Quote("id")
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
 		pl := tbl.dialect.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -944,7 +945,7 @@ func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (i
 
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]

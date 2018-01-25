@@ -252,8 +252,8 @@ var allXExampleQuotedColumnNames = []string{
 // GetExample gets the record with a given primary key value.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
-		allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"))
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -262,8 +262,8 @@ func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl XExampleTable) MustGetExample(id int64) (*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
-		allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"))
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -280,8 +280,8 @@ func (tbl XExampleTable) GetExamples(req require.Requirement, id ...int64) (list
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)",
-			allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -342,7 +342,7 @@ func (tbl XExampleTable) SliceAge(req require.Requirement, wh where.Expression, 
 func (tbl XExampleTable) getintlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -367,7 +367,7 @@ func (tbl XExampleTable) getintlist(req require.Requirement, sqlname string, wh 
 func (tbl XExampleTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -392,7 +392,7 @@ func (tbl XExampleTable) getint64list(req require.Requirement, sqlname string, w
 func (tbl XExampleTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -535,11 +535,11 @@ func TestWriteInsertFunc_noPK(t *testing.T) {
 
 var allXExampleQuotedInserts = []string{
 	// Sqlite
-	"(¬name¬, ¬age¬) VALUES (?,?)",
+	"(¬name¬,¬age¬) VALUES (?,?)",
 	// Mysql
-	"(¬name¬, ¬age¬) VALUES (?,?)",
+	"(¬name¬,¬age¬) VALUES (?,?)",
 	// Postgres
-	¬("name", "age") VALUES ($1,$2)¬,
+	¬("name","age") VALUES ($1,$2)¬,
 }
 
 //--------------------------------------------------------------------------------
@@ -619,11 +619,11 @@ func TestWriteInsertFunc_withPK(t *testing.T) {
 
 var allXExampleQuotedInserts = []string{
 	// Sqlite
-	"(¬name¬, ¬age¬) VALUES (?,?)",
+	"(¬name¬,¬age¬) VALUES (?,?)",
 	// Mysql
-	"(¬name¬, ¬age¬) VALUES (?,?)",
+	"(¬name¬,¬age¬) VALUES (?,?)",
 	// Postgres
-	¬("name", "age") VALUES ($1,$2) returning "id"¬,
+	¬("name","age") VALUES ($1,$2) returning "id"¬,
 }
 
 //--------------------------------------------------------------------------------
@@ -808,7 +808,7 @@ func TestWriteDeleteFunc(t *testing.T) {
 // The list of ids can be arbitrarily long.
 func (tbl XExampleTable) DeleteExamples(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s WHERE id IN (%s)"
+	const qt = "DELETE FROM %s WHERE %s IN (%s)"
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -820,11 +820,12 @@ func (tbl XExampleTable) DeleteExamples(req require.Requirement, id ...int64) (i
 	if len(id) < batch {
 		max = len(id)
 	}
+	col := tbl.dialect.Quote("id")
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
 		pl := tbl.dialect.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -843,7 +844,7 @@ func (tbl XExampleTable) DeleteExamples(req require.Requirement, id ...int64) (i
 
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]

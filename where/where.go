@@ -11,6 +11,7 @@ const where = "WHERE "
 // for the database in use.
 type Dialect interface {
 	ReplacePlaceholders(sql string) string
+	Quote(column string) string
 }
 
 // Expression is an element in a WHERE clause. Expressions may be nested in various ways.
@@ -32,8 +33,8 @@ func BuildExpression(wh Expression, dialect Dialect) (string, []interface{}) {
 
 // Condition is a simple condition such as an equality test.
 type Condition struct {
-	Sql  string
-	Args []interface{}
+	Column, Predicate string
+	Args              []interface{}
 }
 
 // Clause is a compound expression.
@@ -62,7 +63,7 @@ func (not not) Build(dialect Dialect) (string, []interface{}) {
 //-------------------------------------------------------------------------------------------------
 
 func (cl Condition) build(args []interface{}, dialect Dialect) (string, []interface{}) {
-	sql := cl.Sql
+	sql := dialect.Quote(cl.Column) + cl.Predicate
 	for _, arg := range cl.Args {
 		value := reflect.ValueOf(arg)
 		switch value.Kind() {

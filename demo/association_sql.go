@@ -538,8 +538,8 @@ var allAssociationQuotedColumnNames = []string{
 // GetAssociation gets the record with a given primary key value.
 // If not found, *Association will be nil.
 func (tbl AssociationTable) GetAssociation(id int64) (*Association, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
-		allAssociationQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allAssociationQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"))
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -548,8 +548,8 @@ func (tbl AssociationTable) GetAssociation(id int64) (*Association, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl AssociationTable) MustGetAssociation(id int64) (*Association, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
-		allAssociationQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allAssociationQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"))
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -566,8 +566,8 @@ func (tbl AssociationTable) GetAssociations(req require.Requirement, id ...int64
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)",
-			allAssociationQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allAssociationQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -703,7 +703,7 @@ func (tbl AssociationTable) SliceCategory(req require.Requirement, wh where.Expr
 func (tbl AssociationTable) getCategoryPtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -728,7 +728,7 @@ func (tbl AssociationTable) getCategoryPtrlist(req require.Requirement, sqlname 
 func (tbl AssociationTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -753,7 +753,7 @@ func (tbl AssociationTable) getint64list(req require.Requirement, sqlname string
 func (tbl AssociationTable) getint64Ptrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -778,7 +778,7 @@ func (tbl AssociationTable) getint64Ptrlist(req require.Requirement, sqlname str
 func (tbl AssociationTable) getstringPtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -805,11 +805,11 @@ func (tbl AssociationTable) getstringPtrlist(req require.Requirement, sqlname st
 
 var allAssociationQuotedInserts = []string{
 	// Sqlite
-	"(`name`, `quality`, `ref1`, `ref2`, `category`) VALUES (?,?,?,?,?)",
+	"(`name`,`quality`,`ref1`,`ref2`,`category`) VALUES (?,?,?,?,?)",
 	// Mysql
-	"(`name`, `quality`, `ref1`, `ref2`, `category`) VALUES (?,?,?,?,?)",
+	"(`name`,`quality`,`ref1`,`ref2`,`category`) VALUES (?,?,?,?,?)",
 	// Postgres
-	`("name", "quality", "ref1", "ref2", "category") VALUES ($1,$2,$3,$4,$5) returning "id"`,
+	`("name","quality","ref1","ref2","category") VALUES ($1,$2,$3,$4,$5) returning "id"`,
 }
 
 //--------------------------------------------------------------------------------
@@ -941,7 +941,7 @@ func sliceAssociationWithoutPk(v *Association) ([]interface{}, error) {
 // The list of ids can be arbitrarily long.
 func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s WHERE id IN (%s)"
+	const qt = "DELETE FROM %s WHERE %s IN (%s)"
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -953,11 +953,12 @@ func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...in
 	if len(id) < batch {
 		max = len(id)
 	}
+	col := tbl.dialect.Quote("id")
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
 		pl := tbl.dialect.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -976,7 +977,7 @@ func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...in
 
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]

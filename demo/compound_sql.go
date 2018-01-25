@@ -660,7 +660,7 @@ func (tbl DbCompoundTable) SliceCategory(req require.Requirement, wh where.Expre
 func (tbl DbCompoundTable) getCategorylist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -685,7 +685,7 @@ func (tbl DbCompoundTable) getCategorylist(req require.Requirement, sqlname stri
 func (tbl DbCompoundTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -711,11 +711,11 @@ func (tbl DbCompoundTable) getstringlist(req require.Requirement, sqlname string
 
 var allDbCompoundQuotedInserts = []string{
 	// Sqlite
-	"(`alpha`, `beta`, `category`) VALUES (?,?,?)",
+	"(`alpha`,`beta`,`category`) VALUES (?,?,?)",
 	// Mysql
-	"(`alpha`, `beta`, `category`) VALUES (?,?,?)",
+	"(`alpha`,`beta`,`category`) VALUES (?,?,?)",
 	// Postgres
-	`("alpha", "beta", "category") VALUES ($1,$2,$3)`,
+	`("alpha","beta","category") VALUES ($1,$2,$3)`,
 }
 
 //--------------------------------------------------------------------------------

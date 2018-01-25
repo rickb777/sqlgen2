@@ -693,8 +693,8 @@ var allDbUserQuotedColumnNames = []string{
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl DbUserTable) GetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?",
-		allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("uid"))
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -703,8 +703,8 @@ func (tbl DbUserTable) GetUser(id int64) (*User, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl DbUserTable) MustGetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?",
-		allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("uid"))
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -721,8 +721,8 @@ func (tbl DbUserTable) GetUsers(req require.Requirement, id ...int64) (list []*U
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE uid IN (%s)",
-			allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("uid"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -878,7 +878,7 @@ func (tbl DbUserTable) SliceLastupdated(req require.Requirement, wh where.Expres
 func (tbl DbUserTable) getRolePtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -903,7 +903,7 @@ func (tbl DbUserTable) getRolePtrlist(req require.Requirement, sqlname string, w
 func (tbl DbUserTable) getboollist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -928,7 +928,7 @@ func (tbl DbUserTable) getboollist(req require.Requirement, sqlname string, wh w
 func (tbl DbUserTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -953,7 +953,7 @@ func (tbl DbUserTable) getint64list(req require.Requirement, sqlname string, wh 
 func (tbl DbUserTable) getint64Ptrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -978,7 +978,7 @@ func (tbl DbUserTable) getint64Ptrlist(req require.Requirement, sqlname string, 
 func (tbl DbUserTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -1003,7 +1003,7 @@ func (tbl DbUserTable) getstringlist(req require.Requirement, sqlname string, wh
 func (tbl DbUserTable) getstringPtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", sqlname, tbl.name, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -1029,11 +1029,11 @@ func (tbl DbUserTable) getstringPtrlist(req require.Requirement, sqlname string,
 
 var allDbUserQuotedInserts = []string{
 	// Sqlite
-	"(`login`, `emailaddress`, `addressid`, `avatar`, `role`, `active`, `admin`, `fave`, `lastupdated`, `token`, `secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+	"(`login`,`emailaddress`,`addressid`,`avatar`,`role`,`active`,`admin`,`fave`,`lastupdated`,`token`,`secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
 	// Mysql
-	"(`login`, `emailaddress`, `addressid`, `avatar`, `role`, `active`, `admin`, `fave`, `lastupdated`, `token`, `secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+	"(`login`,`emailaddress`,`addressid`,`avatar`,`role`,`active`,`admin`,`fave`,`lastupdated`,`token`,`secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
 	// Postgres
-	`("login", "emailaddress", "addressid", "avatar", "role", "active", "admin", "fave", "lastupdated", "token", "secret") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning "uid"`,
+	`("login","emailaddress","addressid","avatar","role","active","admin","fave","lastupdated","token","secret") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning "uid"`,
 }
 
 //--------------------------------------------------------------------------------
@@ -1174,7 +1174,7 @@ func sliceDbUserWithoutPk(v *User) ([]interface{}, error) {
 // The list of ids can be arbitrarily long.
 func (tbl DbUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s WHERE uid IN (%s)"
+	const qt = "DELETE FROM %s WHERE %s IN (%s)"
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -1186,11 +1186,12 @@ func (tbl DbUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64,
 	if len(id) < batch {
 		max = len(id)
 	}
+	col := tbl.dialect.Quote("uid")
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
 		pl := tbl.dialect.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -1209,7 +1210,7 @@ func (tbl DbUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64,
 
 	if len(id) > 0 {
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, pl)
+		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]

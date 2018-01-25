@@ -430,8 +430,8 @@ var allRUserQuotedColumnNames = []string{
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl RUserTable) GetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?",
-		allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("uid"))
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -440,8 +440,8 @@ func (tbl RUserTable) GetUser(id int64) (*User, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl RUserTable) MustGetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?",
-		allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("uid"))
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -458,8 +458,8 @@ func (tbl RUserTable) GetUsers(req require.Requirement, id ...int64) (list []*Us
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE uid IN (%s)",
-			allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("uid"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {

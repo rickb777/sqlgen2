@@ -57,7 +57,7 @@ func (v View) Constraints() (list constraint.Constraints) {
 		if f.Tags.ForeignKey != "" {
 			slice := Split(f.Tags.ForeignKey, ".")
 			c := constraint.FkConstraintOn(f.SqlName).
-				RefersTo(slice[0], schema.Identifier(slice[1])).
+				RefersTo(slice[0], slice[1]).
 				OnUpdate(constraint.Consequence(f.Tags.OnUpdate)).
 				OnDelete(constraint.Consequence(f.Tags.OnDelete))
 			list = append(list, c)

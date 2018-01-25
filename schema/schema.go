@@ -42,7 +42,7 @@ type Node struct {
 
 type Field struct {
 	Node
-	SqlName Identifier
+	SqlName string
 	Encode  SqlEncode
 	Tags    parse.Tag
 }
