@@ -186,6 +186,18 @@ func (tbl RUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
+const NumRUserColumns = 12
+
+const NumRUserDataColumns = 11
+
+const RUserColumnNames = "uid,login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const RUserDataColumnNames = "login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const RUserPk = "uid"
+
+//--------------------------------------------------------------------------------
+
 // Query is the low-level access method for Users.
 //
 // It places a requirement, which may be nil, on the size of the expected results: this
@@ -407,10 +419,19 @@ func (tbl RUserTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
+var allRUserQuotedColumnNames = []string{
+	schema.Sqlite.SplitAndQuote(RUserColumnNames),
+	schema.Mysql.SplitAndQuote(RUserColumnNames),
+	schema.Postgres.SplitAndQuote(RUserColumnNames),
+}
+
+//--------------------------------------------------------------------------------
+
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl RUserTable) GetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?", RUserColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?",
+		allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -419,7 +440,8 @@ func (tbl RUserTable) GetUser(id int64) (*User, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl RUserTable) MustGetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?", RUserColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?",
+		allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -436,7 +458,8 @@ func (tbl RUserTable) GetUsers(req require.Requirement, id ...int64) (list []*Us
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE uid IN (%s)", RUserColumnNames, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE uid IN (%s)",
+			allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -523,5 +546,3 @@ func (tbl RUserTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	return tbl.CountWhere(whs, args...)
 }
-
-const RUserColumnNames = "uid, login, emailaddress, addressid, avatar, role, active, admin, fave, lastupdated, token, secret"

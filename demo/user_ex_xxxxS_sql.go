@@ -186,6 +186,18 @@ func (tbl SUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
+const NumSUserColumns = 12
+
+const NumSUserDataColumns = 11
+
+const SUserColumnNames = "uid,login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const SUserDataColumnNames = "login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const SUserPk = "uid"
+
+//--------------------------------------------------------------------------------
+
 // Query is the low-level access method for Users.
 //
 // It places a requirement, which may be nil, on the size of the expected results: this

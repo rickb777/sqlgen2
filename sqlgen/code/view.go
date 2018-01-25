@@ -23,7 +23,7 @@ type View struct {
 	Body1      []string
 	Body2      []string
 	Body3      []string
-	Dialects   []string
+	Dialects   []schema.Dialect
 	Table      *schema.TableDescription
 	Setter     *schema.Field
 }
@@ -40,7 +40,7 @@ func NewView(name, prefix, list string) View {
 		Interface1: "sqlgen2.Table",
 		Interface2: "sqlgen2.Table",
 		List:       list,
-		Dialects:   schema.DialectNames(),
+		Dialects:   schema.AllDialects,
 	}
 }
 
@@ -57,7 +57,7 @@ func (v View) Constraints() (list constraint.Constraints) {
 		if f.Tags.ForeignKey != "" {
 			slice := Split(f.Tags.ForeignKey, ".")
 			c := constraint.FkConstraintOn(f.SqlName).
-				RefersTo(slice[0], slice[1]).
+				RefersTo(slice[0], schema.Identifier(slice[1])).
 				OnUpdate(constraint.Consequence(f.Tags.OnUpdate)).
 				OnDelete(constraint.Consequence(f.Tags.OnDelete))
 			list = append(list, c)

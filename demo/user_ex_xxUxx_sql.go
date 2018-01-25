@@ -186,6 +186,18 @@ func (tbl UUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
+const NumUUserColumns = 12
+
+const NumUUserDataColumns = 11
+
+const UUserColumnNames = "uid,login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const UUserDataColumnNames = "login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const UUserPk = "uid"
+
+//--------------------------------------------------------------------------------
+
 // Exec executes a query without returning any rows.
 // It returns the number of rows affected (if the database driver supports this).
 //
@@ -415,8 +427,6 @@ func (tbl UUserTable) ReplaceTableName(query string) string {
 	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 
-//--------------------------------------------------------------------------------
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
@@ -426,23 +436,27 @@ func (tbl UUserTable) UpdateFields(req require.Requirement, wh where.Expression,
 
 //--------------------------------------------------------------------------------
 
+var allUUserQuotedUpdates = []string{
+	// Sqlite
+	"`login`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`token`=?,`secret`=? WHERE `uid`=?",
+	// Mysql
+	"`login`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`token`=?,`secret`=? WHERE `uid`=?",
+	// Postgres
+	`"login"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"token"=$11,"secret"=$12 WHERE "uid"=$1`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The User.PreUpdate(Execer) method will be called, if it exists.
 func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error) {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlUpdateUUserByPkPostgres
-	default:
-		stmt = sqlUpdateUUserByPkSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allUUserQuotedUpdates[tbl.dialect.Index()]
+	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -468,36 +482,6 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-
-const sqlUpdateUUserByPkSimple = `
-UPDATE %s SET
-	login=?,
-	emailaddress=?,
-	addressid=?,
-	avatar=?,
-	role=?,
-	active=?,
-	admin=?,
-	fave=?,
-	lastupdated=?,
-	token=?,
-	secret=?
-WHERE uid=?`
-
-const sqlUpdateUUserByPkPostgres = `
-UPDATE %s SET
-	login=$2,
-	emailaddress=$3,
-	addressid=$4,
-	avatar=$5,
-	role=$6,
-	active=$7,
-	admin=$8,
-	fave=$9,
-	lastupdated=$10,
-	token=$11,
-	secret=$12
-WHERE uid=$1`
 
 func sliceUUserWithoutPk(v *User) ([]interface{}, error) {
 

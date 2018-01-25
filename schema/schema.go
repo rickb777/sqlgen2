@@ -4,7 +4,6 @@ import (
 	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"strings"
-	"bytes"
 	"sort"
 )
 
@@ -12,10 +11,10 @@ type SqlEncode int
 
 // List of vendor-specific keywords
 const (
-	ENCNONE SqlEncode = iota
+	ENCNONE   SqlEncode = iota
 	ENCJSON
 	ENCTEXT
-	ENCDRIVER // SQL driver uses Scan() & Value() to encode & decode
+	ENCDRIVER  // SQL driver uses Scan() & Value() to encode & decode
 )
 
 type SqlToken int
@@ -43,7 +42,7 @@ type Node struct {
 
 type Field struct {
 	Node
-	SqlName string
+	SqlName Identifier
 	Encode  SqlEncode
 	Tags    parse.Tag
 }
@@ -73,14 +72,11 @@ func (t *TableDescription) NumColumnNames(withAuto bool) int {
 	return num
 }
 
-func (t *TableDescription) ColumnNames(withAuto bool) []string {
-	names := make([]string, 0, len(t.Fields))
-	for _, f := range t.Fields {
-		if withAuto || !f.Tags.Auto {
-			names = append(names, f.SqlName)
-		}
+func (table *TableDescription) ColumnNames(withAuto bool) Identifiers {
+	if withAuto {
+		return table.Fields.SqlNames()
 	}
-	return names
+	return table.Fields.NonAuto().SqlNames()
 }
 
 func (t *TableDescription) SimpleFields() FieldList {
@@ -110,16 +106,7 @@ func (i *Index) UniqueStr() string {
 }
 
 func (i *Index) Columns() string {
-	w := &bytes.Buffer{}
-
-	comma := ""
-	for _, field := range i.Fields {
-		w.WriteString(comma)
-		w.WriteString(field.SqlName)
-		comma = ", "
-	}
-
-	return w.String()
+	return i.Fields.SqlNames().MkString(",")
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -162,4 +149,22 @@ func (list FieldList) DistinctTypes() []model.Type {
 	slice := types.ToSlice()
 	sort.Slice(slice, func(i, j int) bool { return slice[i].Tag() < slice[j].Tag() })
 	return slice
+}
+
+func (list FieldList) SqlNames() Identifiers {
+	ids := make(Identifiers, len(list))
+	for i, field := range list {
+		ids[i] = field.SqlName
+	}
+	return ids
+}
+
+func (list FieldList) NonAuto() FieldList {
+	filtered := make(FieldList, 0, len(list))
+	for _, field := range list {
+		if !field.Tags.Auto {
+			filtered = append(filtered, field)
+		}
+	}
+	return filtered
 }

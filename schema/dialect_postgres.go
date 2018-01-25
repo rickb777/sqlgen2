@@ -5,11 +5,16 @@ import (
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"bytes"
 	"strconv"
+	"io"
 )
 
 type postgres struct{}
 
 var Postgres Dialect = postgres{}
+
+func (d postgres) Index() int {
+	return PostgresIndex
+}
 
 func (d postgres) String() string {
 	return "Postgres"
@@ -81,23 +86,60 @@ func (dialect postgres) FieldAsColumn(field *Field) string {
 }
 
 func (dialect postgres) TableDDL(table *TableDescription) string {
-	return baseTableDDL(table, dialect)
+	return baseTableDDL(table, dialect, " `\n", "`")
+}
+
+func (dialect postgres) FieldDDL(w io.Writer, field *Field, comma string) string {
+	io.WriteString(w, comma)
+	comma = ",\n"
+
+	io.WriteString(w, "\t\"")
+	io.WriteString(w, string(field.SqlName))
+	io.WriteString(w, "\"\t")
+	io.WriteString(w, dialect.FieldAsColumn(field))
+	return comma
 }
 
 func (dialect postgres) InsertDML(table *TableDescription) string {
-	returning := "\n"
+	w := &bytes.Buffer{}
+	w.WriteString("`(")
+
+	table.Fields.NonAuto().SqlNames().Quoted(w, doubleQuoter)
+
+	w.WriteString(") VALUES (")
+	w.WriteString(dialect.Placeholders(table.NumColumnNames(false)))
+	w.WriteString(")")
 	if table.Primary != nil {
-		returning = fmt.Sprintf(" returning %s\n", table.Primary.SqlName)
+		w.WriteString(" returning ")
+		w.WriteString(doubleQuoter(table.Primary.SqlName))
 	}
-	return baseInsertDML(table, dialect.Placeholders(table.NumColumnNames(false))) + returning
+	w.WriteByte('`')
+	return w.String()
 }
 
 func (dialect postgres) UpdateDML(table *TableDescription) string {
-	return baseUpdateDML(table, table.Fields, postgresParam)
+	w := &bytes.Buffer{}
+	w.WriteString("`")
+
+	comma := ""
+	for j, field := range table.Fields {
+		if !field.Tags.Auto {
+			w.WriteString(comma)
+			w.WriteString(doubleQuoter(field.SqlName))
+			w.WriteString("=")
+			w.WriteString(postgresParam(j))
+			comma = ","
+		}
+	}
+
+	w.WriteByte(' ')
+	w.WriteString(baseWhereClause(FieldList{table.Primary}, 0, doubleQuoter, postgresParam))
+	w.WriteByte('`')
+	return w.String()
 }
 
 func (dialect postgres) DeleteDML(table *TableDescription, fields FieldList) string {
-	return baseDeleteDML(table, fields, postgresParam)
+	return baseDeleteDML(table, fields, doubleQuoter, postgresParam)
 }
 
 func (dialect postgres) TruncateDDL(tableName string, force bool) []string {
@@ -112,10 +154,20 @@ func postgresParam(i int) string {
 	return fmt.Sprintf("$%d", i+1)
 }
 
+func doubleQuoter(identifier Identifier) string {
+	return fmt.Sprintf("%q", identifier)
+}
+
+func (dialect postgres) SplitAndQuote(csv string) string {
+	return baseSplitAndQuote(csv, `"`, `","`, `"`)
+}
+
+func (dialect postgres) Quoter() func (identifier Identifier) string {
+	return doubleQuoter
+}
+
 const postgresPlaceholders = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 
-// Placeholders returns a string containing the requested number of placeholders
-// in the form used by PostgreSQL.
 func (dialect postgres) Placeholders(n int) string {
 	if n == 0 {
 		return ""

@@ -186,7 +186,35 @@ const NumDbCompoundColumns = 3
 
 const NumDbCompoundDataColumns = 3
 
-const DbCompoundDataColumnNames = "alpha, beta, category"
+const DbCompoundColumnNames = "alpha,beta,category"
+
+//--------------------------------------------------------------------------------
+
+const sqlCreateColumnsDbCompoundTableSqlite = " `alpha`    text,\n" +
+	" `beta`     text,\n" +
+	" `category` tinyint unsigned"
+
+const sqlCreateSettingsDbCompoundTableSqlite = ""
+
+const sqlCreateColumnsDbCompoundTableMysql = " `alpha`    varchar(255),\n" +
+	" `beta`     varchar(255),\n" +
+	" `category` tinyint unsigned"
+
+const sqlCreateSettingsDbCompoundTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlCreateColumnsDbCompoundTablePostgres = `
+ "alpha"    varchar(255),
+ "beta"     varchar(255),
+ "category" tinyint unsigned`
+
+const sqlCreateSettingsDbCompoundTablePostgres = ""
+
+const sqlConstrainDbCompoundTable = `
+`
+
+//--------------------------------------------------------------------------------
+
+const sqlDbAlphaBetaIndexColumns = "alpha,beta"
 
 //--------------------------------------------------------------------------------
 
@@ -202,12 +230,12 @@ func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlCreateColumnsDbCompoundTableSqlite
 		settings = sqlCreateSettingsDbCompoundTableSqlite
-	case schema.Postgres:
-		columns = sqlCreateColumnsDbCompoundTablePostgres
-		settings = sqlCreateSettingsDbCompoundTablePostgres
 	case schema.Mysql:
 		columns = sqlCreateColumnsDbCompoundTableMysql
 		settings = sqlCreateSettingsDbCompoundTableMysql
+	case schema.Postgres:
+		columns = sqlCreateColumnsDbCompoundTablePostgres
+		settings = sqlCreateSettingsDbCompoundTablePostgres
 	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -246,30 +274,6 @@ func (tbl DbCompoundTable) dropTableSql(ifExists bool) string {
 	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
-
-const sqlCreateColumnsDbCompoundTableSqlite = `
- alpha    text,
- beta     text,
- category tinyint unsigned`
-
-const sqlCreateSettingsDbCompoundTableSqlite = ""
-
-const sqlCreateColumnsDbCompoundTablePostgres = `
- alpha    varchar(255),
- beta     varchar(255),
- category tinyint unsigned`
-
-const sqlCreateSettingsDbCompoundTablePostgres = ""
-
-const sqlCreateColumnsDbCompoundTableMysql = `
- alpha    varchar(255),
- beta     varchar(255),
- category tinyint unsigned`
-
-const sqlCreateSettingsDbCompoundTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlConstrainDbCompoundTable = `
-`
 
 //--------------------------------------------------------------------------------
 
@@ -340,10 +344,6 @@ func (tbl DbCompoundTable) DropIndexes(ifExist bool) (err error) {
 
 	return nil
 }
-
-//--------------------------------------------------------------------------------
-
-const sqlDbAlphaBetaIndexColumns = "alpha, beta"
 
 //--------------------------------------------------------------------------------
 
@@ -634,8 +634,6 @@ func (tbl DbCompoundTable) Count(wh where.Expression) (count int64, err error) {
 	return tbl.CountWhere(whs, args...)
 }
 
-const DbCompoundColumnNames = "alpha, beta, category"
-
 //--------------------------------------------------------------------------------
 
 // SliceAlpha gets the Alpha column for all rows that match the 'where' condition.
@@ -711,24 +709,28 @@ func (tbl DbCompoundTable) getstringlist(req require.Requirement, sqlname string
 
 //--------------------------------------------------------------------------------
 
+var allDbCompoundQuotedInserts = []string{
+	// Sqlite
+	"(`alpha`, `beta`, `category`) VALUES (?,?,?)",
+	// Mysql
+	"(`alpha`, `beta`, `category`) VALUES (?,?,?)",
+	// Postgres
+	`("alpha", "beta", "category") VALUES ($1,$2,$3)`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Insert adds new records for the Compounds.
 
 // The Compound.PreInsert() method will be called, if it exists.
 func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) error {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlInsertDbCompoundPostgres
-	default:
-		stmt = sqlInsertDbCompoundSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allDbCompoundQuotedInserts[tbl.dialect.Index()]
+	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -768,24 +770,6 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-
-const sqlInsertDbCompoundSimple = `
-INSERT INTO %s (
-	alpha,
-	beta,
-	category
-) VALUES (?,?,?)
-`
-
-const sqlInsertDbCompoundPostgres = `
-INSERT INTO %s (
-	alpha,
-	beta,
-	category
-) VALUES ($1,$2,$3)
-`
-
-//--------------------------------------------------------------------------------
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 //

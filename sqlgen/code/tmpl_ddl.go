@@ -292,7 +292,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) createTableSql(ifNotExists bool) strin
 	var settings string
 	switch tbl.dialect {
 	{{range .Dialects -}}
-	case schema.{{.}}:
+	case schema.{{.String}}:
 		columns = sqlCreateColumns{{$.Prefix}}{{$.Type}}{{$.Thing}}{{.}}
 		settings = sqlCreateSettings{{$.Prefix}}{{$.Type}}{{$.Thing}}{{.}}
     {{end -}}

@@ -3,6 +3,7 @@ package constraint
 import (
 	"fmt"
 	"github.com/rickb777/sqlgen2/model"
+	"github.com/rickb777/sqlgen2/schema"
 )
 
 // Constraint represents data that augments the data-definition SQL statements such as CREATE TABLE.
@@ -69,7 +70,7 @@ func (c Consequence) Apply(pfx, action string) string {
 // Reference holds a table + column reference used by constraints.
 type Reference struct {
 	TableName string // without schema or other prefix
-	Column    string // only one column is supported
+	Column    schema.Identifier // only one column is supported
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -77,18 +78,18 @@ type Reference struct {
 // FkConstraint holds a pair of references and their update/delete consequences.
 // ForeignKeyColumn is the 'owner' of the constraint.
 type FkConstraint struct {
-	ForeignKeyColumn string // only one column is supported
+	ForeignKeyColumn schema.Identifier // only one column is supported
 	Parent           Reference
 	Update, Delete   Consequence
 }
 
 // FkConstraintOn constructs a foreign key constraint in a fluent style.
-func FkConstraintOn(column string) FkConstraint {
+func FkConstraintOn(column schema.Identifier) FkConstraint {
 	return FkConstraint{ForeignKeyColumn: column}
 }
 
 // RefersTo sets the parent reference.
-func (c FkConstraint) RefersTo(tableName, column string) FkConstraint {
+func (c FkConstraint) RefersTo(tableName string, column schema.Identifier) FkConstraint {
 	c.Parent = Reference{tableName, column}
 	return c
 }

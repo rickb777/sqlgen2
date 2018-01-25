@@ -113,14 +113,17 @@ func main() {
 
 	buf := &bytes.Buffer{}
 
-	WritePackage(buf, mainPkg)
+	WritePackageHeader(buf, mainPkg)
 
 	WriteImports(buf, table, setters, packagesToImport(flags, view.Table.HasPrimaryKey()))
 
 	WriteType(buf, view)
 
+	WritePrimaryDeclarations(buf, view)
+
 	if flags.schema {
-		WriteSchema(buf, view)
+		WriteSchemaDeclarations(buf, view)
+		WriteSchemaFunctions(buf, view)
 	}
 
 	if flags.exec || flags.update || flags.delete {

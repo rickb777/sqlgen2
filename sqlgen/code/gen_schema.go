@@ -5,8 +5,8 @@ import (
 	"io"
 	. "strings"
 
-	"github.com/rickb777/sqlgen2/schema"
 	"bitbucket.org/pkg/inflect"
+	"github.com/rickb777/sqlgen2/schema"
 )
 
 const sectionBreak = "\n//--------------------------------------------------------------------------------"
@@ -17,19 +17,17 @@ type ConstView struct {
 }
 
 //const constString = "\nconst %s = %s\n"
+const constString = "\nconst %s ="
 const constStringD = "\nconst %s = %d\n"
 const constStringQ = "\nconst %s = %q\n"
+const constStringT = "\nconst %s = `%s`\n"
 const constStringWithTicks = "\nconst %s = `\n%s`\n"
 
-// WritePackage writes the Go package header to
-// writer w with the given package name.
-func WritePackage(w io.Writer, name string) {
+func WritePackageHeader(w io.Writer, name string) {
 	fmt.Fprintf(w, sPackage, name)
 }
 
-// writeSchema writes SQL statements to CREATE, INSERT,
-// UPDATE and DELETE values from Table t.
-func WriteSchema(w io.Writer, view View) {
+func WritePrimaryDeclarations(w io.Writer, view View) {
 	tableName := view.CamelName()
 
 	fmt.Fprintln(w, sectionBreak)
@@ -37,19 +35,22 @@ func WriteSchema(w io.Writer, view View) {
 	fmt.Fprintf(w, constStringD, "Num"+tableName+"Columns", view.Table.NumColumnNames(true))
 	fmt.Fprintf(w, constStringD, "Num"+tableName+"DataColumns", view.Table.NumColumnNames(false))
 
+	fmt.Fprintf(w, constStringQ, tableName+"ColumnNames", view.Table.ColumnNames(true).MkString(","))
 	if view.Table.HasPrimaryKey() {
-		fmt.Fprintf(w, constStringQ, tableName+"Pk", view.Table.Primary.Name)
+		fmt.Fprintf(w, constStringQ, tableName+"DataColumnNames", view.Table.ColumnNames(false).MkString(","))
+		fmt.Fprintf(w, constStringQ, tableName+"Pk", view.Table.Primary.SqlName)
 	}
+}
 
-	fmt.Fprintf(w, constStringQ, tableName+"DataColumnNames", Join(view.Table.ColumnNames(false), ", "))
+func WriteSchemaDeclarations(w io.Writer, view View) {
+	tableName := view.CamelName()
 
 	fmt.Fprintln(w, sectionBreak)
 
-	must(tCreateTableFunc.Execute(w, view))
-
 	for _, d := range schema.AllDialects {
 		ds := d.String()
-		fmt.Fprintf(w, constStringWithTicks, "sqlCreateColumns"+tableName+view.Thing+ds, d.TableDDL(view.Table))
+		fmt.Fprintf(w, constString, "sqlCreateColumns"+tableName+view.Thing+ds)
+		fmt.Fprintln(w, d.TableDDL(view.Table))
 		fmt.Fprintf(w, constStringQ, "sqlCreateSettings"+tableName+view.Thing+ds, d.CreateTableSettings())
 	}
 
@@ -71,17 +72,23 @@ func WriteSchema(w io.Writer, view View) {
 	if len(view.Table.Index) > 0 {
 		fmt.Fprintln(w, sectionBreak)
 
-		must(tCreateIndexesFunc.Execute(w, view))
-
-		fmt.Fprintln(w, sectionBreak)
-
 		for _, ix := range view.Table.Index {
-			fmt.Fprintf(w, constStringQ,
-				"sql"+view.Prefix+inflect.Camelize(ix.Name)+"IndexColumns", ix.Columns())
+			cols := ix.Columns()
+			fmt.Fprintf(w, constStringQ, "sql"+view.Prefix+inflect.Camelize(ix.Name)+"IndexColumns", cols)
 		}
+	}
+}
+
+func WriteSchemaFunctions(w io.Writer, view View) {
+	fmt.Fprintln(w, sectionBreak)
+
+	must(tCreateTableFunc.Execute(w, view))
+
+	if len(view.Table.Index) > 0 {
+		fmt.Fprintln(w, sectionBreak)
+		must(tCreateIndexesFunc.Execute(w, view))
 	}
 
 	fmt.Fprintln(w, sectionBreak)
-
 	must(tTruncate.Execute(w, view))
 }

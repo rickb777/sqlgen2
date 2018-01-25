@@ -5,10 +5,11 @@ import (
 	"io"
 	"text/tabwriter"
 	"strings"
+	"fmt"
 )
 
 // Table returns a SQL statement to create the table.
-func baseTableDDL(t *TableDescription, did Dialect) string {
+func baseTableDDL(table *TableDescription, dialect Dialect, initial, final string) string {
 
 	// use a large default buffer size of so that
 	// the tabbing doesn't get prematurely flushed
@@ -19,18 +20,11 @@ func baseTableDDL(t *TableDescription, did Dialect) string {
 	// use a tab writer to evenly space the column
 	// names and column types.
 	var tab = tabwriter.NewWriter(buf, 0, 8, 1, ' ', 0)
-	comma := ""
-	for _, field := range t.Fields {
-		io.WriteString(tab, comma)
-		comma = ",\n"
-
-		io.WriteString(tab, fieldIndentation)
-
-		io.WriteString(tab, field.SqlName)
-
-		io.WriteString(tab, "\t")
-		io.WriteString(tab, did.FieldAsColumn(field))
+	comma := initial
+	for _, field := range table.Fields {
+		comma = dialect.FieldDDL(tab, field, comma)
 	}
+	io.WriteString(tab, final)
 
 	// flush the tab writer to write to the buffer
 	tab.Flush()
@@ -38,51 +32,68 @@ func baseTableDDL(t *TableDescription, did Dialect) string {
 	return buf.String()
 }
 
-func baseInsertDML(t *TableDescription, valuePlaceholders string) string {
+func backTickFieldDDL(w io.Writer, field *Field, comma string, dialect Dialect) string {
+	io.WriteString(w, comma)
+	comma = ",\\n\"+\n"
+
+	io.WriteString(w, "\"\t`")
+	io.WriteString(w, string(field.SqlName))
+	io.WriteString(w, "`\t")
+	io.WriteString(w, dialect.FieldAsColumn(field))
+	return comma
+}
+
+func baseInsertDML(table *TableDescription, valuePlaceholders string, quoter func(Identifier) string) string {
 	w := &bytes.Buffer{}
-	w.WriteString("INSERT INTO %s (\n")
+	w.WriteString(`"(`)
 
-	comma := ""
-	for _, field := range t.Fields {
-		if !field.Tags.Auto {
-			w.WriteString(comma)
-			w.WriteString(fieldIndentation)
-			w.WriteString(field.SqlName)
-			comma = ",\n"
-		}
-	}
+	table.Fields.NonAuto().SqlNames().Quoted(w, quoter)
 
-	w.WriteString("\n) VALUES (")
+	w.WriteString(") VALUES (")
 	w.WriteString(valuePlaceholders)
-	w.WriteString(")")
+	w.WriteString(`)"`)
 	return w.String()
 }
 
-func baseUpdateDML(t *TableDescription, fields FieldList, param func(int) string) string {
+func baseUpdateDML(table *TableDescription, quoter func(Identifier) string, param func(int) string) string {
 	w := &bytes.Buffer{}
-	w.WriteString("UPDATE %s SET\n")
+	w.WriteString(`"`)
 
 	comma := ""
-	for i, field := range t.Fields {
-		if !field.Tags.Auto {
-			w.WriteString(comma)
-			w.WriteString(fieldIndentation)
-			w.WriteString(field.SqlName)
-			w.WriteString("=")
-			w.WriteString(param(i))
-			comma = ",\n"
-		}
+	for _, id := range table.Fields.NonAuto().SqlNames() {
+		io.WriteString(w, comma)
+		io.WriteString(w, quoter(id))
+		comma = "=?,"
 	}
 
-	w.WriteString(baseWhereClause(FieldList{t.Primary}, 0, param))
+	w.WriteString("=? ")
+	w.WriteString(baseWhereClause(FieldList{table.Primary}, 0, quoter, param))
+	w.WriteString(`"`)
 	return w.String()
 }
 
-func baseDeleteDML(t *TableDescription, fields FieldList, param func(int) string) string {
+func baseDeleteDML(table *TableDescription, fields FieldList, quoter func(Identifier) string, param func(int) string) string {
 	w := &bytes.Buffer{}
-	w.WriteString("DELETE FROM %s")
-	w.WriteString(baseWhereClause(fields, 0, param))
+	w.WriteString("DELETE FROM %s\n")
+	w.WriteString(baseWhereClause(fields, 0, quoter, param))
 	return w.String()
+}
+
+func baseSplitAndQuote(csv, before, between, after string) string {
+	ids := strings.Split(csv, ",")
+	w := bytes.NewBuffer(make([]byte, 0, len(ids)*10))
+	sep := before
+	for _, id := range ids {
+		io.WriteString(w, sep)
+		io.WriteString(w, string(id))
+		sep = between
+	}
+	io.WriteString(w, after)
+	return w.String()
+}
+
+func backTickQuoted(identifier Identifier) string {
+	return fmt.Sprintf("`%s`", identifier)
 }
 
 const placeholders = "?,?,?,?,?,?,?,?,?,?"
@@ -129,24 +140,24 @@ const fieldIndentation = "\t"
 
 // helper function to generate the Where clause
 // section of a SQL statement
-func baseWhereClause(fields FieldList, pos int, param func(int) string) string {
+func baseWhereClause(fields FieldList, pos int, quoter func(Identifier) string, param func(int) string) string {
 	var buf bytes.Buffer
+	j := pos
 
-	var i int
-	for _, field := range fields {
+	for i, field := range fields {
 		switch {
 		case i == 0:
-			buf.WriteString("\nWHERE")
+			buf.WriteString("WHERE")
 		default:
 			buf.WriteString("\nAND")
 		}
 
 		buf.WriteString(" ")
-		buf.WriteString(field.SqlName)
+		buf.WriteString(quoter(field.SqlName))
 		buf.WriteString("=")
-		buf.WriteString(param(i + pos))
+		buf.WriteString(param(j))
 
-		i++
+		j++
 	}
 	return buf.String()
 }

@@ -188,9 +188,56 @@ const NumIssueColumns = 8
 
 const NumIssueDataColumns = 7
 
-const IssuePk = "Id"
+const IssueColumnNames = "id,number,date,title,bigbody,assignee,state,labels"
 
-const IssueDataColumnNames = "number, date, title, bigbody, assignee, state, labels"
+const IssueDataColumnNames = "number,date,title,bigbody,assignee,state,labels"
+
+const IssuePk = "id"
+
+//--------------------------------------------------------------------------------
+
+const sqlCreateColumnsIssueTableSqlite =
+" `id`       integer primary key autoincrement,\n"+
+" `number`   bigint,\n"+
+" `date`     blob,\n"+
+" `title`    text,\n"+
+" `bigbody`  text,\n"+
+" `assignee` text,\n"+
+" `state`    text,\n"+
+" `labels`   text"
+
+const sqlCreateSettingsIssueTableSqlite = ""
+
+const sqlCreateColumnsIssueTableMysql =
+" `id`       bigint primary key auto_increment,\n"+
+" `number`   bigint,\n"+
+" `date`     mediumblob,\n"+
+" `title`    varchar(512),\n"+
+" `bigbody`  varchar(2048),\n"+
+" `assignee` varchar(255),\n"+
+" `state`    varchar(50),\n"+
+" `labels`   json"
+
+const sqlCreateSettingsIssueTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlCreateColumnsIssueTablePostgres = `
+ "id"       bigserial primary key,
+ "number"   bigint,
+ "date"     byteaa,
+ "title"    varchar(512),
+ "bigbody"  varchar(2048),
+ "assignee" varchar(255),
+ "state"    varchar(50),
+ "labels"   json`
+
+const sqlCreateSettingsIssueTablePostgres = ""
+
+const sqlConstrainIssueTable = `
+`
+
+//--------------------------------------------------------------------------------
+
+const sqlIssueAssigneeIndexColumns = "assignee"
 
 //--------------------------------------------------------------------------------
 
@@ -206,12 +253,12 @@ func (tbl IssueTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlCreateColumnsIssueTableSqlite
 		settings = sqlCreateSettingsIssueTableSqlite
-    case schema.Postgres:
-		columns = sqlCreateColumnsIssueTablePostgres
-		settings = sqlCreateSettingsIssueTablePostgres
     case schema.Mysql:
 		columns = sqlCreateColumnsIssueTableMysql
 		settings = sqlCreateSettingsIssueTableMysql
+    case schema.Postgres:
+		columns = sqlCreateColumnsIssueTablePostgres
+		settings = sqlCreateSettingsIssueTablePostgres
     }
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -250,45 +297,6 @@ func (tbl IssueTable) dropTableSql(ifExists bool) string {
 	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
-
-const sqlCreateColumnsIssueTableSqlite = `
- id       integer primary key autoincrement,
- number   bigint,
- date     blob,
- title    text,
- bigbody  text,
- assignee text,
- state    text,
- labels   text`
-
-const sqlCreateSettingsIssueTableSqlite = ""
-
-const sqlCreateColumnsIssueTablePostgres = `
- id       bigserial primary key,
- number   bigint,
- date     byteaa,
- title    varchar(512),
- bigbody  varchar(2048),
- assignee varchar(255),
- state    varchar(50),
- labels   json`
-
-const sqlCreateSettingsIssueTablePostgres = ""
-
-const sqlCreateColumnsIssueTableMysql = `
- id       bigint primary key auto_increment,
- number   bigint,
- date     mediumblob,
- title    varchar(512),
- bigbody  varchar(2048),
- assignee varchar(255),
- state    varchar(50),
- labels   json`
-
-const sqlCreateSettingsIssueTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlConstrainIssueTable = `
-`
 
 //--------------------------------------------------------------------------------
 
@@ -359,10 +367,6 @@ func (tbl IssueTable) DropIndexes(ifExist bool) (err error) {
 
 	return nil
 }
-
-//--------------------------------------------------------------------------------
-
-const sqlIssueAssigneeIndexColumns = "assignee"
 
 //--------------------------------------------------------------------------------
 
@@ -598,10 +602,19 @@ func (tbl IssueTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
+var allIssueQuotedColumnNames = []string{
+	schema.Sqlite.SplitAndQuote(IssueColumnNames),
+	schema.Mysql.SplitAndQuote(IssueColumnNames),
+	schema.Postgres.SplitAndQuote(IssueColumnNames),
+}
+
+//--------------------------------------------------------------------------------
+
 // GetIssue gets the record with a given primary key value.
 // If not found, *Issue will be nil.
 func (tbl IssueTable) GetIssue(id int64) (*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", IssueColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
+		allIssueQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -610,7 +623,8 @@ func (tbl IssueTable) GetIssue(id int64) (*Issue, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl IssueTable) MustGetIssue(id int64) (*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", IssueColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
+		allIssueQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -627,7 +641,8 @@ func (tbl IssueTable) GetIssues(req require.Requirement, id ...int64) (list []*I
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)", IssueColumnNames, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)",
+			allIssueQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -714,8 +729,6 @@ func (tbl IssueTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	return tbl.CountWhere(whs, args...)
 }
-
-const IssueColumnNames = "id, number, date, title, bigbody, assignee, state, labels"
 
 //--------------------------------------------------------------------------------
 
@@ -872,24 +885,28 @@ func (tbl IssueTable) getstringlist(req require.Requirement, sqlname string, wh 
 
 //--------------------------------------------------------------------------------
 
+var allIssueQuotedInserts = []string{
+	// Sqlite
+	"(`number`, `date`, `title`, `bigbody`, `assignee`, `state`, `labels`) VALUES (?,?,?,?,?,?,?)",
+	// Mysql
+	"(`number`, `date`, `title`, `bigbody`, `assignee`, `state`, `labels`) VALUES (?,?,?,?,?,?,?)",
+	// Postgres
+	`("number", "date", "title", "bigbody", "assignee", "state", "labels") VALUES ($1,$2,$3,$4,$5,$6,$7) returning "id"`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Insert adds new records for the Issues.
 // The Issues have their primary key fields set to the new record identifiers.
 // The Issue.PreInsert() method will be called, if it exists.
 func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlInsertIssuePostgres
-	default:
-		stmt = sqlInsertIssueSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allIssueQuotedInserts[tbl.dialect.Index()]
+	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -931,32 +948,6 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertIssueSimple = `
-INSERT INTO %s (
-	number,
-	date,
-	title,
-	bigbody,
-	assignee,
-	state,
-	labels
-) VALUES (?,?,?,?,?,?,?)
-`
-
-const sqlInsertIssuePostgres = `
-INSERT INTO %s (
-	number,
-	date,
-	title,
-	bigbody,
-	assignee,
-	state,
-	labels
-) VALUES ($1,$2,$3,$4,$5,$6,$7) returning id
-`
-
-//--------------------------------------------------------------------------------
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
@@ -966,23 +957,27 @@ func (tbl IssueTable) UpdateFields(req require.Requirement, wh where.Expression,
 
 //--------------------------------------------------------------------------------
 
+var allIssueQuotedUpdates = []string{
+	// Sqlite
+	"`number`=?,`date`=?,`title`=?,`bigbody`=?,`assignee`=?,`state`=?,`labels`=? WHERE `id`=?",
+	// Mysql
+	"`number`=?,`date`=?,`title`=?,`bigbody`=?,`assignee`=?,`state`=?,`labels`=? WHERE `id`=?",
+	// Postgres
+	`"number"=$2,"date"=$3,"title"=$4,"bigbody"=$5,"assignee"=$6,"state"=$7,"labels"=$8 WHERE "id"=$1`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Issue.PreUpdate(Execer) method will be called, if it exists.
 func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, error) {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlUpdateIssueByPkPostgres
-	default:
-		stmt = sqlUpdateIssueByPkSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allIssueQuotedUpdates[tbl.dialect.Index()]
+	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -1008,28 +1003,6 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-
-const sqlUpdateIssueByPkSimple = `
-UPDATE %s SET
-	number=?,
-	date=?,
-	title=?,
-	bigbody=?,
-	assignee=?,
-	state=?,
-	labels=?
-WHERE id=?`
-
-const sqlUpdateIssueByPkPostgres = `
-UPDATE %s SET
-	number=$2,
-	date=$3,
-	title=$4,
-	bigbody=$5,
-	assignee=$6,
-	state=$7,
-	labels=$8
-WHERE id=$1`
 
 func sliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
 

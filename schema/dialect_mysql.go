@@ -3,11 +3,16 @@ package schema
 import (
 	"fmt"
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	"io"
 )
 
 type mysql struct{}
 
 var Mysql Dialect = mysql{}
+
+func (d mysql) Index() int {
+	return MysqlIndex
+}
 
 func (d mysql) String() string {
 	return "Mysql"
@@ -83,19 +88,23 @@ func varchar(size int) string {
 // see https://dev.mysql.com/doc/refman/5.7/en/integer-types.html
 
 func (dialect mysql) TableDDL(table *TableDescription) string {
-	return baseTableDDL(table, dialect)
+	return baseTableDDL(table, dialect, "\n", `"`)
+}
+
+func (dialect mysql) FieldDDL(w io.Writer, field *Field, comma string) string {
+	return backTickFieldDDL(w, field, comma, dialect)
 }
 
 func (dialect mysql) InsertDML(table *TableDescription) string {
-	return baseInsertDML(table, baseQueryPlaceholders(table.NumColumnNames(false))) + "\n"
+	return baseInsertDML(table, baseQueryPlaceholders(table.NumColumnNames(false)), backTickQuoted)
 }
 
 func (dialect mysql) UpdateDML(table *TableDescription) string {
-	return baseUpdateDML(table, table.Fields, baseParamIsQuery)
+	return baseUpdateDML(table, backTickQuoted, baseParamIsQuery)
 }
 
 func (dialect mysql) DeleteDML(table *TableDescription, fields FieldList) string {
-	return baseDeleteDML(table, fields, baseParamIsQuery)
+	return baseDeleteDML(table, fields, backTickQuoted, baseParamIsQuery)
 }
 
 func (dialect mysql) TruncateDDL(tableName string, force bool) []string {
@@ -111,8 +120,14 @@ func (dialect mysql) TruncateDDL(tableName string, force bool) []string {
 	}
 }
 
-// Placeholders returns a string containing the requested number of placeholders
-// in the form used by MySQL and SQLite.
+func (dialect mysql) SplitAndQuote(csv string) string {
+	return baseSplitAndQuote(csv, "`", "`,`", "`")
+}
+
+func (dialect mysql) Quoter() func (Identifier) string {
+	return backTickQuoted
+}
+
 func (dialect mysql) Placeholders(n int) string {
 	return baseQueryPlaceholders(n)
 }

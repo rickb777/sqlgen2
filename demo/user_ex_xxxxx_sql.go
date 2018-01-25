@@ -184,6 +184,18 @@ func (tbl XUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
+const NumXUserColumns = 12
+
+const NumXUserDataColumns = 11
+
+const XUserColumnNames = "uid,login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const XUserDataColumnNames = "login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const XUserPk = "uid"
+
+//--------------------------------------------------------------------------------
+
 // Query is the low-level access method for Users.
 //
 // It places a requirement, which may be nil, on the size of the expected results: this

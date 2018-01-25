@@ -191,9 +191,69 @@ const NumDbUserColumns = 12
 
 const NumDbUserDataColumns = 11
 
-const DbUserPk = "Uid"
+const DbUserColumnNames = "uid,login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
 
-const DbUserDataColumnNames = "login, emailaddress, addressid, avatar, role, active, admin, fave, lastupdated, token, secret"
+const DbUserDataColumnNames = "login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const DbUserPk = "uid"
+
+//--------------------------------------------------------------------------------
+
+const sqlCreateColumnsDbUserTableSqlite = " `uid`          integer primary key autoincrement,\n" +
+	" `login`        text,\n" +
+	" `emailaddress` text,\n" +
+	" `addressid`    bigint default null,\n" +
+	" `avatar`       text default null,\n" +
+	" `role`         text default null,\n" +
+	" `active`       boolean,\n" +
+	" `admin`        boolean,\n" +
+	" `fave`         text,\n" +
+	" `lastupdated`  bigint,\n" +
+	" `token`        text,\n" +
+	" `secret`       text"
+
+const sqlCreateSettingsDbUserTableSqlite = ""
+
+const sqlCreateColumnsDbUserTableMysql = " `uid`          bigint primary key auto_increment,\n" +
+	" `login`        varchar(255),\n" +
+	" `emailaddress` varchar(255),\n" +
+	" `addressid`    bigint default null,\n" +
+	" `avatar`       varchar(255) default null,\n" +
+	" `role`         varchar(20) default null,\n" +
+	" `active`       tinyint(1),\n" +
+	" `admin`        tinyint(1),\n" +
+	" `fave`         json,\n" +
+	" `lastupdated`  bigint,\n" +
+	" `token`        varchar(255),\n" +
+	" `secret`       varchar(255)"
+
+const sqlCreateSettingsDbUserTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlCreateColumnsDbUserTablePostgres = `
+ "uid"          bigserial primary key,
+ "login"        varchar(255),
+ "emailaddress" varchar(255),
+ "addressid"    bigint default null,
+ "avatar"       varchar(255) default null,
+ "role"         varchar(20) default null,
+ "active"       boolean,
+ "admin"        boolean,
+ "fave"         json,
+ "lastupdated"  bigint,
+ "token"        varchar(255),
+ "secret"       varchar(255)`
+
+const sqlCreateSettingsDbUserTablePostgres = ""
+
+const sqlConstrainDbUserTable = `
+ CONSTRAINT DbUserc3 foreign key (addressid) references %saddresses (id) on update restrict on delete restrict
+`
+
+//--------------------------------------------------------------------------------
+
+const sqlDbUserEmailIndexColumns = "emailaddress"
+
+const sqlDbUserLoginIndexColumns = "login"
 
 //--------------------------------------------------------------------------------
 
@@ -209,12 +269,12 @@ func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlCreateColumnsDbUserTableSqlite
 		settings = sqlCreateSettingsDbUserTableSqlite
-	case schema.Postgres:
-		columns = sqlCreateColumnsDbUserTablePostgres
-		settings = sqlCreateSettingsDbUserTablePostgres
 	case schema.Mysql:
 		columns = sqlCreateColumnsDbUserTableMysql
 		settings = sqlCreateSettingsDbUserTableMysql
+	case schema.Postgres:
+		columns = sqlCreateColumnsDbUserTablePostgres
+		settings = sqlCreateSettingsDbUserTablePostgres
 	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -253,58 +313,6 @@ func (tbl DbUserTable) dropTableSql(ifExists bool) string {
 	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
-
-const sqlCreateColumnsDbUserTableSqlite = `
- uid          integer primary key autoincrement,
- login        text,
- emailaddress text,
- addressid    bigint default null,
- avatar       text default null,
- role         text default null,
- active       boolean,
- admin        boolean,
- fave         text,
- lastupdated  bigint,
- token        text,
- secret       text`
-
-const sqlCreateSettingsDbUserTableSqlite = ""
-
-const sqlCreateColumnsDbUserTablePostgres = `
- uid          bigserial primary key,
- login        varchar(255),
- emailaddress varchar(255),
- addressid    bigint default null,
- avatar       varchar(255) default null,
- role         varchar(20) default null,
- active       boolean,
- admin        boolean,
- fave         json,
- lastupdated  bigint,
- token        varchar(255),
- secret       varchar(255)`
-
-const sqlCreateSettingsDbUserTablePostgres = ""
-
-const sqlCreateColumnsDbUserTableMysql = `
- uid          bigint primary key auto_increment,
- login        varchar(255),
- emailaddress varchar(255),
- addressid    bigint default null,
- avatar       varchar(255) default null,
- role         varchar(20) default null,
- active       tinyint(1),
- admin        tinyint(1),
- fave         json,
- lastupdated  bigint,
- token        varchar(255),
- secret       varchar(255)`
-
-const sqlCreateSettingsDbUserTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlConstrainDbUserTable = `
- CONSTRAINT DbUserc3 foreign key (addressid) references %saddresses (id) on update restrict on delete restrict
-`
 
 //--------------------------------------------------------------------------------
 
@@ -421,12 +429,6 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 
 	return nil
 }
-
-//--------------------------------------------------------------------------------
-
-const sqlDbUserEmailIndexColumns = "emailaddress"
-
-const sqlDbUserLoginIndexColumns = "login"
 
 //--------------------------------------------------------------------------------
 
@@ -680,10 +682,19 @@ func (tbl DbUserTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
+var allDbUserQuotedColumnNames = []string{
+	schema.Sqlite.SplitAndQuote(DbUserColumnNames),
+	schema.Mysql.SplitAndQuote(DbUserColumnNames),
+	schema.Postgres.SplitAndQuote(DbUserColumnNames),
+}
+
+//--------------------------------------------------------------------------------
+
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl DbUserTable) GetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?", DbUserColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?",
+		allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -692,7 +703,8 @@ func (tbl DbUserTable) GetUser(id int64) (*User, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl DbUserTable) MustGetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?", DbUserColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?",
+		allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -709,7 +721,8 @@ func (tbl DbUserTable) GetUsers(req require.Requirement, id ...int64) (list []*U
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE uid IN (%s)", DbUserColumnNames, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE uid IN (%s)",
+			allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -796,8 +809,6 @@ func (tbl DbUserTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	return tbl.CountWhere(whs, args...)
 }
-
-const DbUserColumnNames = "uid, login, emailaddress, addressid, avatar, role, active, admin, fave, lastupdated, token, secret"
 
 //--------------------------------------------------------------------------------
 
@@ -1016,24 +1027,28 @@ func (tbl DbUserTable) getstringPtrlist(req require.Requirement, sqlname string,
 
 //--------------------------------------------------------------------------------
 
+var allDbUserQuotedInserts = []string{
+	// Sqlite
+	"(`login`, `emailaddress`, `addressid`, `avatar`, `role`, `active`, `admin`, `fave`, `lastupdated`, `token`, `secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+	// Mysql
+	"(`login`, `emailaddress`, `addressid`, `avatar`, `role`, `active`, `admin`, `fave`, `lastupdated`, `token`, `secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+	// Postgres
+	`("login", "emailaddress", "addressid", "avatar", "role", "active", "admin", "fave", "lastupdated", "token", "secret") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning "uid"`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Insert adds new records for the Users.
 // The Users have their primary key fields set to the new record identifiers.
 // The User.PreInsert() method will be called, if it exists.
 func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlInsertDbUserPostgres
-	default:
-		stmt = sqlInsertDbUserSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allDbUserQuotedInserts[tbl.dialect.Index()]
+	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -1075,40 +1090,6 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertDbUserSimple = `
-INSERT INTO %s (
-	login,
-	emailaddress,
-	addressid,
-	avatar,
-	role,
-	active,
-	admin,
-	fave,
-	lastupdated,
-	token,
-	secret
-) VALUES (?,?,?,?,?,?,?,?,?,?,?)
-`
-
-const sqlInsertDbUserPostgres = `
-INSERT INTO %s (
-	login,
-	emailaddress,
-	addressid,
-	avatar,
-	role,
-	active,
-	admin,
-	fave,
-	lastupdated,
-	token,
-	secret
-) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning uid
-`
-
-//--------------------------------------------------------------------------------
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
@@ -1118,23 +1099,27 @@ func (tbl DbUserTable) UpdateFields(req require.Requirement, wh where.Expression
 
 //--------------------------------------------------------------------------------
 
+var allDbUserQuotedUpdates = []string{
+	// Sqlite
+	"`login`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`token`=?,`secret`=? WHERE `uid`=?",
+	// Mysql
+	"`login`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`token`=?,`secret`=? WHERE `uid`=?",
+	// Postgres
+	`"login"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"token"=$11,"secret"=$12 WHERE "uid"=$1`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The User.PreUpdate(Execer) method will be called, if it exists.
 func (tbl DbUserTable) Update(req require.Requirement, vv ...*User) (int64, error) {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlUpdateDbUserByPkPostgres
-	default:
-		stmt = sqlUpdateDbUserByPkSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allDbUserQuotedUpdates[tbl.dialect.Index()]
+	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -1160,36 +1145,6 @@ func (tbl DbUserTable) Update(req require.Requirement, vv ...*User) (int64, erro
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-
-const sqlUpdateDbUserByPkSimple = `
-UPDATE %s SET
-	login=?,
-	emailaddress=?,
-	addressid=?,
-	avatar=?,
-	role=?,
-	active=?,
-	admin=?,
-	fave=?,
-	lastupdated=?,
-	token=?,
-	secret=?
-WHERE uid=?`
-
-const sqlUpdateDbUserByPkPostgres = `
-UPDATE %s SET
-	login=$2,
-	emailaddress=$3,
-	addressid=$4,
-	avatar=$5,
-	role=$6,
-	active=$7,
-	admin=$8,
-	fave=$9,
-	lastupdated=$10,
-	token=$11,
-	secret=$12
-WHERE uid=$1`
 
 func sliceDbUserWithoutPk(v *User) ([]interface{}, error) {
 

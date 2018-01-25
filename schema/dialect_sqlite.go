@@ -3,6 +3,7 @@ package schema
 import (
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"fmt"
+	"io"
 )
 
 //import (
@@ -12,6 +13,10 @@ import (
 type sqlite struct{}
 
 var Sqlite Dialect = sqlite{}
+
+func (d sqlite) Index() int {
+	return SqliteIndex
+}
 
 func (d sqlite) String() string {
 	return "Sqlite"
@@ -79,19 +84,23 @@ func (dialect sqlite) FieldAsColumn(field *Field) string {
 }
 
 func (dialect sqlite) TableDDL(table *TableDescription) string {
-	return baseTableDDL(table, dialect)
+	return baseTableDDL(table, dialect, "\n", `"`)
+}
+
+func (dialect sqlite) FieldDDL(w io.Writer, field *Field, comma string) string {
+	return backTickFieldDDL(w, field, comma, dialect)
 }
 
 func (dialect sqlite) InsertDML(table *TableDescription) string {
-	return baseInsertDML(table, baseQueryPlaceholders(table.NumColumnNames(false))) + "\n"
+	return baseInsertDML(table, baseQueryPlaceholders(table.NumColumnNames(false)), backTickQuoted)
 }
 
 func (dialect sqlite) UpdateDML(table *TableDescription) string {
-	return baseUpdateDML(table, table.Fields, baseParamIsQuery)
+	return baseUpdateDML(table, backTickQuoted, baseParamIsQuery)
 }
 
 func (dialect sqlite) DeleteDML(table *TableDescription, fields FieldList) string {
-	return baseDeleteDML(table, fields, baseParamIsQuery)
+	return baseDeleteDML(table, fields, backTickQuoted, baseParamIsQuery)
 }
 
 func (dialect sqlite) TruncateDDL(tableName string, force bool) []string {
@@ -99,8 +108,14 @@ func (dialect sqlite) TruncateDDL(tableName string, force bool) []string {
 	return []string{truncate}
 }
 
-// Placeholders returns a string containing the requested number of placeholders
-// in the form used by MySQL and SQLite.
+func (dialect sqlite) SplitAndQuote(csv string) string {
+	return baseSplitAndQuote(csv, "`", "`,`", "`")
+}
+
+func (dialect sqlite) Quoter() func(Identifier) string {
+	return backTickQuoted
+}
+
 func (dialect sqlite) Placeholders(n int) string {
 	return baseQueryPlaceholders(n)
 }

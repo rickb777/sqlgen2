@@ -1,9 +1,14 @@
 package schema
 
-import "strings"
+import (
+	"strings"
+	"io"
+)
 
 type Dialect interface {
+	Index() int
 	TableDDL(*TableDescription) string
+	FieldDDL(w io.Writer, field *Field, comma string) string
 	InsertDML(*TableDescription) string
 	UpdateDML(*TableDescription) string
 	DeleteDML(*TableDescription, FieldList) string
@@ -11,6 +16,8 @@ type Dialect interface {
 	CreateTableSettings() string
 	FieldAsColumn(*Field) string
 
+	SplitAndQuote(csv string) string
+	Quoter() func (Identifier) string
 	ReplacePlaceholders(sql string) string
 	Placeholders(n int) string
 	String() string
@@ -19,8 +26,16 @@ type Dialect interface {
 
 //-------------------------------------------------------------------------------------------------
 
+const (
+	SqliteIndex = iota
+	MysqlIndex
+	PostgresIndex
+)
+
+//-------------------------------------------------------------------------------------------------
+
 // AllDialects lists all currently-supported dialects.
-var AllDialects = []Dialect{Sqlite, Postgres, Mysql}
+var AllDialects = []Dialect{Sqlite, Mysql, Postgres}
 
 // DialectNames gets all the currently-supported dialect names. These names are
 // typically mixed-case.

@@ -2,10 +2,8 @@ package code
 
 import (
 	"io"
-	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/sqlgen/output"
 	"fmt"
-	"strings"
 )
 
 func WriteType(w io.Writer, view View) {
@@ -28,49 +26,33 @@ func WriteGetRow(w io.Writer, view View) {
 	must(tGetRow.Execute(w, view))
 }
 
-func WriteSliceColumn(w io.Writer, view View) {
-	must(tSliceItem.Execute(w, view))
-}
-
 func WriteSelectRowsFuncs(w io.Writer, view View) {
 	fmt.Fprintln(w, sectionBreak)
 
 	must(tSelectRows.Execute(w, view))
 	must(tCountRows.Execute(w, view))
+}
 
-	tableName := view.CamelName()
-	fmt.Fprintf(w, constStringQ,
-		tableName+"ColumnNames", strings.Join(view.Table.ColumnNames(true), ", "))
+func WriteSliceColumn(w io.Writer, view View) {
+	must(tSliceItem.Execute(w, view))
 }
 
 func WriteInsertFunc(w io.Writer, view View) {
-	fmt.Fprintln(w, sectionBreak)
-
 	must(tInsert.Execute(w, view))
-
-	tableName := view.CamelName()
-
-	fmt.Fprintf(w, constStringWithTicks,
-		"sqlInsert"+tableName+"Simple", schema.Sqlite.InsertDML(view.Table))
-
-	fmt.Fprintf(w, constStringWithTicks,
-		"sqlInsert"+tableName+"Postgres", schema.Postgres.InsertDML(view.Table))
 }
 
 func WriteUpdateFunc(w io.Writer, view View) {
-	fmt.Fprintln(w, sectionBreak)
-
 	must(tUpdateFields.Execute(w, view))
 
 	if view.Table.HasPrimaryKey() {
 		must(tUpdate.Execute(w, view))
 
-		tableName := view.CamelName()
-		fmt.Fprintf(w, constStringWithTicks,
-			"sqlUpdate"+tableName+"ByPkSimple", schema.Sqlite.UpdateDML(view.Table))
-
-		fmt.Fprintf(w, constStringWithTicks,
-			"sqlUpdate"+tableName+"ByPkPostgres", schema.Postgres.UpdateDML(view.Table))
+		//tableName := view.CamelName()
+		//fmt.Fprintf(w, constStringWithTicks,
+		//	"sqlUpdate"+tableName+"ByPkSimple", schema.Sqlite.UpdateDML(view.Table))
+		//
+		//fmt.Fprintf(w, constStringWithTicks,
+		//	"sqlUpdate"+tableName+"ByPkPostgres", schema.Postgres.UpdateDML(view.Table))
 	}
 }
 

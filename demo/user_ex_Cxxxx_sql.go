@@ -185,6 +185,18 @@ func (tbl CUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
+const NumCUserColumns = 12
+
+const NumCUserDataColumns = 11
+
+const CUserColumnNames = "uid,login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const CUserDataColumnNames = "login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const CUserPk = "uid"
+
+//--------------------------------------------------------------------------------
+
 // Query is the low-level access method for Users.
 //
 // It places a requirement, which may be nil, on the size of the expected results: this
@@ -406,24 +418,28 @@ func (tbl CUserTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
+var allCUserQuotedInserts = []string{
+	// Sqlite
+	"(`login`, `emailaddress`, `addressid`, `avatar`, `role`, `active`, `admin`, `fave`, `lastupdated`, `token`, `secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+	// Mysql
+	"(`login`, `emailaddress`, `addressid`, `avatar`, `role`, `active`, `admin`, `fave`, `lastupdated`, `token`, `secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+	// Postgres
+	`("login", "emailaddress", "addressid", "avatar", "role", "active", "admin", "fave", "lastupdated", "token", "secret") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning "uid"`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Insert adds new records for the Users.
 // The Users have their primary key fields set to the new record identifiers.
 // The User.PreInsert() method will be called, if it exists.
 func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlInsertCUserPostgres
-	default:
-		stmt = sqlInsertCUserSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allCUserQuotedInserts[tbl.dialect.Index()]
+	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -464,38 +480,6 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-
-const sqlInsertCUserSimple = `
-INSERT INTO %s (
-	login,
-	emailaddress,
-	addressid,
-	avatar,
-	role,
-	active,
-	admin,
-	fave,
-	lastupdated,
-	token,
-	secret
-) VALUES (?,?,?,?,?,?,?,?,?,?,?)
-`
-
-const sqlInsertCUserPostgres = `
-INSERT INTO %s (
-	login,
-	emailaddress,
-	addressid,
-	avatar,
-	role,
-	active,
-	admin,
-	fave,
-	lastupdated,
-	token,
-	secret
-) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning uid
-`
 
 func sliceCUserWithoutPk(v *User) ([]interface{}, error) {
 

@@ -187,9 +187,79 @@ const NumHookColumns = 17
 
 const NumHookDataColumns = 16
 
-const HookPk = "Id"
+const HookColumnNames = "id,sha,after,before,category,created,deleted,forced,commit_id,message,timestamp,head_commit_author_name,head_commit_author_email,head_commit_author_username,head_commit_committer_name,head_commit_committer_email,head_commit_committer_username"
 
-const HookDataColumnNames = "sha, after, before, category, created, deleted, forced, commit_id, message, timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
+const HookDataColumnNames = "sha,after,before,category,created,deleted,forced,commit_id,message,timestamp,head_commit_author_name,head_commit_author_email,head_commit_author_username,head_commit_committer_name,head_commit_committer_email,head_commit_committer_username"
+
+const HookPk = "id"
+
+//--------------------------------------------------------------------------------
+
+const sqlCreateColumnsHookTableSqlite =
+" `id`                             integer primary key autoincrement,\n"+
+" `sha`                            text,\n"+
+" `after`                          text,\n"+
+" `before`                         text,\n"+
+" `category`                       tinyint unsigned,\n"+
+" `created`                        boolean,\n"+
+" `deleted`                        boolean,\n"+
+" `forced`                         boolean,\n"+
+" `commit_id`                      text,\n"+
+" `message`                        text,\n"+
+" `timestamp`                      text,\n"+
+" `head_commit_author_name`        text,\n"+
+" `head_commit_author_email`       text,\n"+
+" `head_commit_author_username`    text,\n"+
+" `head_commit_committer_name`     text,\n"+
+" `head_commit_committer_email`    text,\n"+
+" `head_commit_committer_username` text"
+
+const sqlCreateSettingsHookTableSqlite = ""
+
+const sqlCreateColumnsHookTableMysql =
+" `id`                             bigint unsigned primary key auto_increment,\n"+
+" `sha`                            varchar(255),\n"+
+" `after`                          varchar(20),\n"+
+" `before`                         varchar(20),\n"+
+" `category`                       tinyint unsigned,\n"+
+" `created`                        tinyint(1),\n"+
+" `deleted`                        tinyint(1),\n"+
+" `forced`                         tinyint(1),\n"+
+" `commit_id`                      varchar(255),\n"+
+" `message`                        varchar(255),\n"+
+" `timestamp`                      varchar(255),\n"+
+" `head_commit_author_name`        varchar(255),\n"+
+" `head_commit_author_email`       varchar(255),\n"+
+" `head_commit_author_username`    varchar(255),\n"+
+" `head_commit_committer_name`     varchar(255),\n"+
+" `head_commit_committer_email`    varchar(255),\n"+
+" `head_commit_committer_username` varchar(255)"
+
+const sqlCreateSettingsHookTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlCreateColumnsHookTablePostgres = `
+ "id"                             bigserial primary key,
+ "sha"                            varchar(255),
+ "after"                          varchar(20),
+ "before"                         varchar(20),
+ "category"                       tinyint unsigned,
+ "created"                        boolean,
+ "deleted"                        boolean,
+ "forced"                         boolean,
+ "commit_id"                      varchar(255),
+ "message"                        varchar(255),
+ "timestamp"                      varchar(255),
+ "head_commit_author_name"        varchar(255),
+ "head_commit_author_email"       varchar(255),
+ "head_commit_author_username"    varchar(255),
+ "head_commit_committer_name"     varchar(255),
+ "head_commit_committer_email"    varchar(255),
+ "head_commit_committer_username" varchar(255)`
+
+const sqlCreateSettingsHookTablePostgres = ""
+
+const sqlConstrainHookTable = `
+`
 
 //--------------------------------------------------------------------------------
 
@@ -205,12 +275,12 @@ func (tbl HookTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlCreateColumnsHookTableSqlite
 		settings = sqlCreateSettingsHookTableSqlite
-    case schema.Postgres:
-		columns = sqlCreateColumnsHookTablePostgres
-		settings = sqlCreateSettingsHookTablePostgres
     case schema.Mysql:
 		columns = sqlCreateColumnsHookTableMysql
 		settings = sqlCreateSettingsHookTableMysql
+    case schema.Postgres:
+		columns = sqlCreateColumnsHookTablePostgres
+		settings = sqlCreateSettingsHookTablePostgres
     }
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -249,72 +319,6 @@ func (tbl HookTable) dropTableSql(ifExists bool) string {
 	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
-
-const sqlCreateColumnsHookTableSqlite = `
- id                             integer primary key autoincrement,
- sha                            text,
- after                          text,
- before                         text,
- category                       tinyint unsigned,
- created                        boolean,
- deleted                        boolean,
- forced                         boolean,
- commit_id                      text,
- message                        text,
- timestamp                      text,
- head_commit_author_name        text,
- head_commit_author_email       text,
- head_commit_author_username    text,
- head_commit_committer_name     text,
- head_commit_committer_email    text,
- head_commit_committer_username text`
-
-const sqlCreateSettingsHookTableSqlite = ""
-
-const sqlCreateColumnsHookTablePostgres = `
- id                             bigserial primary key,
- sha                            varchar(255),
- after                          varchar(20),
- before                         varchar(20),
- category                       tinyint unsigned,
- created                        boolean,
- deleted                        boolean,
- forced                         boolean,
- commit_id                      varchar(255),
- message                        varchar(255),
- timestamp                      varchar(255),
- head_commit_author_name        varchar(255),
- head_commit_author_email       varchar(255),
- head_commit_author_username    varchar(255),
- head_commit_committer_name     varchar(255),
- head_commit_committer_email    varchar(255),
- head_commit_committer_username varchar(255)`
-
-const sqlCreateSettingsHookTablePostgres = ""
-
-const sqlCreateColumnsHookTableMysql = `
- id                             bigint unsigned primary key auto_increment,
- sha                            varchar(255),
- after                          varchar(20),
- before                         varchar(20),
- category                       tinyint unsigned,
- created                        tinyint(1),
- deleted                        tinyint(1),
- forced                         tinyint(1),
- commit_id                      varchar(255),
- message                        varchar(255),
- timestamp                      varchar(255),
- head_commit_author_name        varchar(255),
- head_commit_author_email       varchar(255),
- head_commit_author_username    varchar(255),
- head_commit_committer_name     varchar(255),
- head_commit_committer_email    varchar(255),
- head_commit_committer_username varchar(255)`
-
-const sqlCreateSettingsHookTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlConstrainHookTable = `
-`
 
 //--------------------------------------------------------------------------------
 
@@ -574,10 +578,19 @@ func (tbl HookTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
+var allHookQuotedColumnNames = []string{
+	schema.Sqlite.SplitAndQuote(HookColumnNames),
+	schema.Mysql.SplitAndQuote(HookColumnNames),
+	schema.Postgres.SplitAndQuote(HookColumnNames),
+}
+
+//--------------------------------------------------------------------------------
+
 // GetHook gets the record with a given primary key value.
 // If not found, *Hook will be nil.
 func (tbl HookTable) GetHook(id uint64) (*Hook, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", HookColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
+		allHookQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -586,7 +599,8 @@ func (tbl HookTable) GetHook(id uint64) (*Hook, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl HookTable) MustGetHook(id uint64) (*Hook, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", HookColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
+		allHookQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -603,7 +617,8 @@ func (tbl HookTable) GetHooks(req require.Requirement, id ...uint64) (list HookL
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)", HookColumnNames, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)",
+			allHookQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -690,8 +705,6 @@ func (tbl HookTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	return tbl.CountWhere(whs, args...)
 }
-
-const HookColumnNames = "id, sha, after, before, category, created, deleted, forced, commit_id, message, timestamp, head_commit_author_name, head_commit_author_email, head_commit_author_username, head_commit_committer_name, head_commit_committer_email, head_commit_committer_username"
 
 //--------------------------------------------------------------------------------
 
@@ -943,24 +956,28 @@ func (tbl HookTable) getuint64list(req require.Requirement, sqlname string, wh w
 
 //--------------------------------------------------------------------------------
 
+var allHookQuotedInserts = []string{
+	// Sqlite
+	"(`sha`, `after`, `before`, `category`, `created`, `deleted`, `forced`, `commit_id`, `message`, `timestamp`, `head_commit_author_name`, `head_commit_author_email`, `head_commit_author_username`, `head_commit_committer_name`, `head_commit_committer_email`, `head_commit_committer_username`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+	// Mysql
+	"(`sha`, `after`, `before`, `category`, `created`, `deleted`, `forced`, `commit_id`, `message`, `timestamp`, `head_commit_author_name`, `head_commit_author_email`, `head_commit_author_username`, `head_commit_committer_name`, `head_commit_committer_email`, `head_commit_committer_username`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+	// Postgres
+	`("sha", "after", "before", "category", "created", "deleted", "forced", "commit_id", "message", "timestamp", "head_commit_author_name", "head_commit_author_email", "head_commit_author_username", "head_commit_committer_name", "head_commit_committer_email", "head_commit_committer_username") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) returning "id"`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Insert adds new records for the Hooks.
 // The Hooks have their primary key fields set to the new record identifiers.
 // The Hook.PreInsert() method will be called, if it exists.
 func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlInsertHookPostgres
-	default:
-		stmt = sqlInsertHookSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allHookQuotedInserts[tbl.dialect.Index()]
+	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -1004,50 +1021,6 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertHookSimple = `
-INSERT INTO %s (
-	sha,
-	after,
-	before,
-	category,
-	created,
-	deleted,
-	forced,
-	commit_id,
-	message,
-	timestamp,
-	head_commit_author_name,
-	head_commit_author_email,
-	head_commit_author_username,
-	head_commit_committer_name,
-	head_commit_committer_email,
-	head_commit_committer_username
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-`
-
-const sqlInsertHookPostgres = `
-INSERT INTO %s (
-	sha,
-	after,
-	before,
-	category,
-	created,
-	deleted,
-	forced,
-	commit_id,
-	message,
-	timestamp,
-	head_commit_author_name,
-	head_commit_author_email,
-	head_commit_author_username,
-	head_commit_committer_name,
-	head_commit_committer_email,
-	head_commit_committer_username
-) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) returning id
-`
-
-//--------------------------------------------------------------------------------
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
@@ -1057,23 +1030,27 @@ func (tbl HookTable) UpdateFields(req require.Requirement, wh where.Expression, 
 
 //--------------------------------------------------------------------------------
 
+var allHookQuotedUpdates = []string{
+	// Sqlite
+	"`sha`=?,`after`=?,`before`=?,`category`=?,`created`=?,`deleted`=?,`forced`=?,`commit_id`=?,`message`=?,`timestamp`=?,`head_commit_author_name`=?,`head_commit_author_email`=?,`head_commit_author_username`=?,`head_commit_committer_name`=?,`head_commit_committer_email`=?,`head_commit_committer_username`=? WHERE `id`=?",
+	// Mysql
+	"`sha`=?,`after`=?,`before`=?,`category`=?,`created`=?,`deleted`=?,`forced`=?,`commit_id`=?,`message`=?,`timestamp`=?,`head_commit_author_name`=?,`head_commit_author_email`=?,`head_commit_author_username`=?,`head_commit_committer_name`=?,`head_commit_committer_email`=?,`head_commit_committer_username`=? WHERE `id`=?",
+	// Postgres
+	`"sha"=$2,"after"=$3,"before"=$4,"category"=$5,"created"=$6,"deleted"=$7,"forced"=$8,"commit_id"=$9,"message"=$10,"timestamp"=$11,"head_commit_author_name"=$12,"head_commit_author_email"=$13,"head_commit_author_username"=$14,"head_commit_committer_name"=$15,"head_commit_committer_email"=$16,"head_commit_committer_username"=$17 WHERE "id"=$1`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Hook.PreUpdate(Execer) method will be called, if it exists.
 func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error) {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlUpdateHookByPkPostgres
-	default:
-		stmt = sqlUpdateHookByPkSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allHookQuotedUpdates[tbl.dialect.Index()]
+	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -1099,46 +1076,6 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-
-const sqlUpdateHookByPkSimple = `
-UPDATE %s SET
-	sha=?,
-	after=?,
-	before=?,
-	category=?,
-	created=?,
-	deleted=?,
-	forced=?,
-	commit_id=?,
-	message=?,
-	timestamp=?,
-	head_commit_author_name=?,
-	head_commit_author_email=?,
-	head_commit_author_username=?,
-	head_commit_committer_name=?,
-	head_commit_committer_email=?,
-	head_commit_committer_username=?
-WHERE id=?`
-
-const sqlUpdateHookByPkPostgres = `
-UPDATE %s SET
-	sha=$2,
-	after=$3,
-	before=$4,
-	category=$5,
-	created=$6,
-	deleted=$7,
-	forced=$8,
-	commit_id=$9,
-	message=$10,
-	timestamp=$11,
-	head_commit_author_name=$12,
-	head_commit_author_email=$13,
-	head_commit_author_username=$14,
-	head_commit_committer_name=$15,
-	head_commit_committer_email=$16,
-	head_commit_committer_username=$17
-WHERE id=$1`
 
 func sliceHookWithoutPk(v *Hook) ([]interface{}, error) {
 

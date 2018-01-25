@@ -188,9 +188,41 @@ const NumAddressColumns = 3
 
 const NumAddressDataColumns = 2
 
-const AddressPk = "Id"
+const AddressColumnNames = "id,line,postcode"
 
-const AddressDataColumnNames = "line, postcode"
+const AddressDataColumnNames = "line,postcode"
+
+const AddressPk = "id"
+
+//--------------------------------------------------------------------------------
+
+const sqlCreateColumnsAddressTableSqlite =
+" `id`       integer primary key autoincrement,\n"+
+" `line`     text,\n"+
+" `postcode` text"
+
+const sqlCreateSettingsAddressTableSqlite = ""
+
+const sqlCreateColumnsAddressTableMysql =
+" `id`       bigint primary key auto_increment,\n"+
+" `line`     json,\n"+
+" `postcode` varchar(20)"
+
+const sqlCreateSettingsAddressTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlCreateColumnsAddressTablePostgres = `
+ "id"       bigserial primary key,
+ "line"     json,
+ "postcode" varchar(20)`
+
+const sqlCreateSettingsAddressTablePostgres = ""
+
+const sqlConstrainAddressTable = `
+`
+
+//--------------------------------------------------------------------------------
+
+const sqlPostcodeIdxIndexColumns = "postcode"
 
 //--------------------------------------------------------------------------------
 
@@ -206,12 +238,12 @@ func (tbl AddressTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlCreateColumnsAddressTableSqlite
 		settings = sqlCreateSettingsAddressTableSqlite
-    case schema.Postgres:
-		columns = sqlCreateColumnsAddressTablePostgres
-		settings = sqlCreateSettingsAddressTablePostgres
     case schema.Mysql:
 		columns = sqlCreateColumnsAddressTableMysql
 		settings = sqlCreateSettingsAddressTableMysql
+    case schema.Postgres:
+		columns = sqlCreateColumnsAddressTablePostgres
+		settings = sqlCreateSettingsAddressTablePostgres
     }
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -250,30 +282,6 @@ func (tbl AddressTable) dropTableSql(ifExists bool) string {
 	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
-
-const sqlCreateColumnsAddressTableSqlite = `
- id       integer primary key autoincrement,
- line     text,
- postcode text`
-
-const sqlCreateSettingsAddressTableSqlite = ""
-
-const sqlCreateColumnsAddressTablePostgres = `
- id       bigserial primary key,
- line     json,
- postcode varchar(20)`
-
-const sqlCreateSettingsAddressTablePostgres = ""
-
-const sqlCreateColumnsAddressTableMysql = `
- id       bigint primary key auto_increment,
- line     json,
- postcode varchar(20)`
-
-const sqlCreateSettingsAddressTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlConstrainAddressTable = `
-`
 
 //--------------------------------------------------------------------------------
 
@@ -344,10 +352,6 @@ func (tbl AddressTable) DropIndexes(ifExist bool) (err error) {
 
 	return nil
 }
-
-//--------------------------------------------------------------------------------
-
-const sqlPostcodeIdxIndexColumns = "postcode"
 
 //--------------------------------------------------------------------------------
 
@@ -568,10 +572,19 @@ func (tbl AddressTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
+var allAddressQuotedColumnNames = []string{
+	schema.Sqlite.SplitAndQuote(AddressColumnNames),
+	schema.Mysql.SplitAndQuote(AddressColumnNames),
+	schema.Postgres.SplitAndQuote(AddressColumnNames),
+}
+
+//--------------------------------------------------------------------------------
+
 // GetAddress gets the record with a given primary key value.
 // If not found, *Address will be nil.
 func (tbl AddressTable) GetAddress(id int64) (*Address, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", AddressColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
+		allAddressQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -580,7 +593,8 @@ func (tbl AddressTable) GetAddress(id int64) (*Address, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl AddressTable) MustGetAddress(id int64) (*Address, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", AddressColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
+		allAddressQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -597,7 +611,8 @@ func (tbl AddressTable) GetAddresses(req require.Requirement, id ...int64) (list
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)", AddressColumnNames, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)",
+			allAddressQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -685,8 +700,6 @@ func (tbl AddressTable) Count(wh where.Expression) (count int64, err error) {
 	return tbl.CountWhere(whs, args...)
 }
 
-const AddressColumnNames = "id, line, postcode"
-
 //--------------------------------------------------------------------------------
 
 // SliceId gets the Id column for all rows that match the 'where' condition.
@@ -757,24 +770,28 @@ func (tbl AddressTable) getstringlist(req require.Requirement, sqlname string, w
 
 //--------------------------------------------------------------------------------
 
+var allAddressQuotedInserts = []string{
+	// Sqlite
+	"(`line`, `postcode`) VALUES (?,?)",
+	// Mysql
+	"(`line`, `postcode`) VALUES (?,?)",
+	// Postgres
+	`("line", "postcode") VALUES ($1,$2) returning "id"`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Insert adds new records for the Addresses.
 // The Addresses have their primary key fields set to the new record identifiers.
 // The Address.PreInsert() method will be called, if it exists.
 func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlInsertAddressPostgres
-	default:
-		stmt = sqlInsertAddressSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allAddressQuotedInserts[tbl.dialect.Index()]
+	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -816,22 +833,6 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertAddressSimple = `
-INSERT INTO %s (
-	line,
-	postcode
-) VALUES (?,?)
-`
-
-const sqlInsertAddressPostgres = `
-INSERT INTO %s (
-	line,
-	postcode
-) VALUES ($1,$2) returning id
-`
-
-//--------------------------------------------------------------------------------
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
@@ -841,23 +842,27 @@ func (tbl AddressTable) UpdateFields(req require.Requirement, wh where.Expressio
 
 //--------------------------------------------------------------------------------
 
+var allAddressQuotedUpdates = []string{
+	// Sqlite
+	"`line`=?,`postcode`=? WHERE `id`=?",
+	// Mysql
+	"`line`=?,`postcode`=? WHERE `id`=?",
+	// Postgres
+	`"line"=$2,"postcode"=$3 WHERE "id"=$1`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Address.PreUpdate(Execer) method will be called, if it exists.
 func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, error) {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlUpdateAddressByPkPostgres
-	default:
-		stmt = sqlUpdateAddressByPkSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allAddressQuotedUpdates[tbl.dialect.Index()]
+	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -883,18 +888,6 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-
-const sqlUpdateAddressByPkSimple = `
-UPDATE %s SET
-	line=?,
-	postcode=?
-WHERE id=?`
-
-const sqlUpdateAddressByPkPostgres = `
-UPDATE %s SET
-	line=$2,
-	postcode=$3
-WHERE id=$1`
 
 func sliceAddressWithoutPk(v *Address) ([]interface{}, error) {
 

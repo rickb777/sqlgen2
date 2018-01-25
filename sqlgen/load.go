@@ -11,6 +11,7 @@ import (
 	"github.com/rickb777/sqlgen2/sqlgen/output"
 	"sort"
 	"github.com/rickb777/sqlgen2/model"
+	"github.com/kortschak/utter"
 )
 
 type context struct {
@@ -45,7 +46,6 @@ func load(pkgStore parse.PackageStore, name parse.LType, mainPkg string, fileTag
 	})
 
 	checkNoConflictingNames(name, table)
-	checkForKeywords(name, table)
 
 	return table, nil
 }
@@ -60,6 +60,25 @@ func mergeTags(structTags, fileTags parse.Tags) parse.Tags {
 	}
 	parse.DevInfo("merged tags\n-----------\n%s\n", merged.String())
 	return merged
+}
+
+func checkNoConflictingNames(name parse.LType, table *TableDescription) {
+	names := make(map[Identifier]struct{})
+	var duplicates Identifiers
+
+	for _, name := range table.Fields.SqlNames() {
+		_, exists := names[name]
+		if exists {
+			duplicates = append(duplicates, name)
+		}
+		names[name] = struct{}{}
+	}
+
+	if len(duplicates) > 0 {
+		parse.DevInfo("checkNoConflictingNames %s %+v\n", name, utter.Sdump(table))
+		exit.Fail(1, "%s: found conflicting SQL column names: %s.\nPlease set the names on these fields explicitly using tags.\n",
+			name, duplicates.MkString(", "))
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -262,9 +281,9 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags par
 	}
 
 	if tag.Name != "" {
-		field.SqlName = prefix + strings.ToLower(tag.Name)
+		field.SqlName = Identifier(prefix + strings.ToLower(tag.Name))
 	} else {
-		field.SqlName = prefix + strings.ToLower(field.Name)
+		field.SqlName = Identifier(prefix + strings.ToLower(field.Name))
 	}
 
 	ctx.table.Fields = append(ctx.table.Fields, field)

@@ -187,9 +187,46 @@ const NumAssociationColumns = 6
 
 const NumAssociationDataColumns = 5
 
-const AssociationPk = "Id"
+const AssociationColumnNames = "id,name,quality,ref1,ref2,category"
 
-const AssociationDataColumnNames = "name, quality, ref1, ref2, category"
+const AssociationDataColumnNames = "name,quality,ref1,ref2,category"
+
+const AssociationPk = "id"
+
+//--------------------------------------------------------------------------------
+
+const sqlCreateColumnsAssociationTableSqlite =
+" `id`       integer primary key autoincrement,\n"+
+" `name`     text default null,\n"+
+" `quality`  text default null,\n"+
+" `ref1`     bigint default null,\n"+
+" `ref2`     bigint default null,\n"+
+" `category` tinyint unsigned default null"
+
+const sqlCreateSettingsAssociationTableSqlite = ""
+
+const sqlCreateColumnsAssociationTableMysql =
+" `id`       bigint primary key auto_increment,\n"+
+" `name`     varchar(255) default null,\n"+
+" `quality`  varchar(255) default null,\n"+
+" `ref1`     bigint default null,\n"+
+" `ref2`     bigint default null,\n"+
+" `category` tinyint unsigned default null"
+
+const sqlCreateSettingsAssociationTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlCreateColumnsAssociationTablePostgres = `
+ "id"       bigserial primary key,
+ "name"     varchar(255) default null,
+ "quality"  varchar(255) default null,
+ "ref1"     bigint default null,
+ "ref2"     bigint default null,
+ "category" tinyint unsigned default null`
+
+const sqlCreateSettingsAssociationTablePostgres = ""
+
+const sqlConstrainAssociationTable = `
+`
 
 //--------------------------------------------------------------------------------
 
@@ -205,12 +242,12 @@ func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlCreateColumnsAssociationTableSqlite
 		settings = sqlCreateSettingsAssociationTableSqlite
-    case schema.Postgres:
-		columns = sqlCreateColumnsAssociationTablePostgres
-		settings = sqlCreateSettingsAssociationTablePostgres
     case schema.Mysql:
 		columns = sqlCreateColumnsAssociationTableMysql
 		settings = sqlCreateSettingsAssociationTableMysql
+    case schema.Postgres:
+		columns = sqlCreateColumnsAssociationTablePostgres
+		settings = sqlCreateSettingsAssociationTablePostgres
     }
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -249,39 +286,6 @@ func (tbl AssociationTable) dropTableSql(ifExists bool) string {
 	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
-
-const sqlCreateColumnsAssociationTableSqlite = `
- id       integer primary key autoincrement,
- name     text default null,
- quality  text default null,
- ref1     bigint default null,
- ref2     bigint default null,
- category tinyint unsigned default null`
-
-const sqlCreateSettingsAssociationTableSqlite = ""
-
-const sqlCreateColumnsAssociationTablePostgres = `
- id       bigserial primary key,
- name     varchar(255) default null,
- quality  varchar(255) default null,
- ref1     bigint default null,
- ref2     bigint default null,
- category tinyint unsigned default null`
-
-const sqlCreateSettingsAssociationTablePostgres = ""
-
-const sqlCreateColumnsAssociationTableMysql = `
- id       bigint primary key auto_increment,
- name     varchar(255) default null,
- quality  varchar(255) default null,
- ref1     bigint default null,
- ref2     bigint default null,
- category tinyint unsigned default null`
-
-const sqlCreateSettingsAssociationTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlConstrainAssociationTable = `
-`
 
 //--------------------------------------------------------------------------------
 
@@ -523,10 +527,19 @@ func (tbl AssociationTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
+var allAssociationQuotedColumnNames = []string{
+	schema.Sqlite.SplitAndQuote(AssociationColumnNames),
+	schema.Mysql.SplitAndQuote(AssociationColumnNames),
+	schema.Postgres.SplitAndQuote(AssociationColumnNames),
+}
+
+//--------------------------------------------------------------------------------
+
 // GetAssociation gets the record with a given primary key value.
 // If not found, *Association will be nil.
 func (tbl AssociationTable) GetAssociation(id int64) (*Association, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", AssociationColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
+		allAssociationQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -535,7 +548,8 @@ func (tbl AssociationTable) GetAssociation(id int64) (*Association, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl AssociationTable) MustGetAssociation(id int64) (*Association, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", AssociationColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
+		allAssociationQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -552,7 +566,8 @@ func (tbl AssociationTable) GetAssociations(req require.Requirement, id ...int64
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)", AssociationColumnNames, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)",
+			allAssociationQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -639,8 +654,6 @@ func (tbl AssociationTable) Count(wh where.Expression) (count int64, err error) 
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	return tbl.CountWhere(whs, args...)
 }
-
-const AssociationColumnNames = "id, name, quality, ref1, ref2, category"
 
 //--------------------------------------------------------------------------------
 
@@ -790,24 +803,28 @@ func (tbl AssociationTable) getstringPtrlist(req require.Requirement, sqlname st
 
 //--------------------------------------------------------------------------------
 
+var allAssociationQuotedInserts = []string{
+	// Sqlite
+	"(`name`, `quality`, `ref1`, `ref2`, `category`) VALUES (?,?,?,?,?)",
+	// Mysql
+	"(`name`, `quality`, `ref1`, `ref2`, `category`) VALUES (?,?,?,?,?)",
+	// Postgres
+	`("name", "quality", "ref1", "ref2", "category") VALUES ($1,$2,$3,$4,$5) returning "id"`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Insert adds new records for the Associations.
 // The Associations have their primary key fields set to the new record identifiers.
 // The Association.PreInsert() method will be called, if it exists.
 func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) error {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlInsertAssociationPostgres
-	default:
-		stmt = sqlInsertAssociationSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allAssociationQuotedInserts[tbl.dialect.Index()]
+	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -849,28 +866,6 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertAssociationSimple = `
-INSERT INTO %s (
-	name,
-	quality,
-	ref1,
-	ref2,
-	category
-) VALUES (?,?,?,?,?)
-`
-
-const sqlInsertAssociationPostgres = `
-INSERT INTO %s (
-	name,
-	quality,
-	ref1,
-	ref2,
-	category
-) VALUES ($1,$2,$3,$4,$5) returning id
-`
-
-//--------------------------------------------------------------------------------
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
@@ -880,23 +875,27 @@ func (tbl AssociationTable) UpdateFields(req require.Requirement, wh where.Expre
 
 //--------------------------------------------------------------------------------
 
+var allAssociationQuotedUpdates = []string{
+	// Sqlite
+	"`name`=?,`quality`=?,`ref1`=?,`ref2`=?,`category`=? WHERE `id`=?",
+	// Mysql
+	"`name`=?,`quality`=?,`ref1`=?,`ref2`=?,`category`=? WHERE `id`=?",
+	// Postgres
+	`"name"=$2,"quality"=$3,"ref1"=$4,"ref2"=$5,"category"=$6 WHERE "id"=$1`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Association.PreUpdate(Execer) method will be called, if it exists.
 func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) (int64, error) {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlUpdateAssociationByPkPostgres
-	default:
-		stmt = sqlUpdateAssociationByPkSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allAssociationQuotedUpdates[tbl.dialect.Index()]
+	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -922,24 +921,6 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-
-const sqlUpdateAssociationByPkSimple = `
-UPDATE %s SET
-	name=?,
-	quality=?,
-	ref1=?,
-	ref2=?,
-	category=?
-WHERE id=?`
-
-const sqlUpdateAssociationByPkPostgres = `
-UPDATE %s SET
-	name=$2,
-	quality=$3,
-	ref1=$4,
-	ref2=$5,
-	category=$6
-WHERE id=$1`
 
 func sliceAssociationWithoutPk(v *Association) ([]interface{}, error) {
 

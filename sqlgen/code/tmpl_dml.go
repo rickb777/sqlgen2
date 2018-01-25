@@ -167,10 +167,19 @@ var tQueryThings = template.Must(template.New("QueryThings").Funcs(funcMap).Pars
 const sGetRow = `{{if .Table.Primary}}
 //--------------------------------------------------------------------------------
 
+var all{{.CamelName}}QuotedColumnNames = []string{
+{{- range .Dialects}}
+	schema.{{.String}}.SplitAndQuote({{$.CamelName}}ColumnNames),
+{{- end}}
+}
+
+//--------------------------------------------------------------------------------
+
 // Get{{.Type}} gets the record with a given primary key value.
 // If not found, *{{.Type}} will be nil.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}}=?", {{.CamelName}}ColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}}=?",
+		all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -179,7 +188,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustGet{{.Type}}(id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}}=?", {{.CamelName}}ColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}}=?",
+		all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -196,7 +206,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}(req require.Requirement,
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}} IN (%s)", {{.CamelName}}ColumnNames, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE {{.Table.Primary.SqlName}} IN (%s)",
+			all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -344,24 +355,28 @@ var tSliceItem = template.Must(template.New("SliceItem").Funcs(funcMap).Parse(sS
 
 // function template to insert a single row, updating the primary key in the struct.
 const sInsert = `
+//--------------------------------------------------------------------------------
+
+var all{{.CamelName}}QuotedInserts = []string{
+{{- range .Dialects}}
+	// {{.}}
+	{{.InsertDML $.Table}},
+{{- end}}
+}
+
+//--------------------------------------------------------------------------------
+
 // Insert adds new records for the {{.Types}}.
 {{if .Table.HasLastInsertId}}// The {{.Types}} have their primary key fields set to the new record identifiers.{{end}}
 // The {{.Type}}.PreInsert() method will be called, if it exists.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...*{{.Type}}) error {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Postgres
-	default:
-		stmt = sqlInsert{{$.Prefix}}{{$.Type}}Simple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := all{{.CamelName}}QuotedInserts[tbl.dialect.Index()]
+	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -433,23 +448,25 @@ var tUpdateFields = template.Must(template.New("UpdateFields").Funcs(funcMap).Pa
 const sUpdate = `{{if .Table.Primary}}
 //--------------------------------------------------------------------------------
 
+var all{{.CamelName}}QuotedUpdates = []string{
+{{- range .Dialects}}
+	// {{.}}
+	{{.UpdateDML $.Table}},
+{{- end}}
+}
+
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The {{.Type}}.PreUpdate(Execer) method will be called, if it exists.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...*{{.Type}}) (int64, error) {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkPostgres
-	default:
-		stmt = sqlUpdate{{$.Prefix}}{{$.Type}}ByPkSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := all{{.CamelName}}QuotedUpdates[tbl.dialect.Index()]
+	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v

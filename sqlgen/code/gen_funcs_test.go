@@ -54,7 +54,7 @@ func TestWriteQueryRows(t *testing.T) {
 	WriteQueryRows(buf, view)
 
 	code := buf.String()
-	expected := `
+	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
 // Query is the low-level access method for Examples.
@@ -114,7 +114,7 @@ func (tbl XExampleTable) doQuery(req require.Requirement, firstOnly bool, query 
 	vv, n, err := scanXExamples(rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
-`
+`, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
@@ -135,7 +135,7 @@ func TestWriteQueryThings(t *testing.T) {
 	WriteQueryThings(buf, view)
 
 	code := buf.String()
-	expected := `
+	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
@@ -217,7 +217,7 @@ func (tbl XExampleTable) MustQueryOneNullFloat64(query string, args ...interface
 func (tbl XExampleTable) ReplaceTableName(query string) string {
 	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
-`
+`, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
@@ -238,13 +238,22 @@ func TestWriteGetRow(t *testing.T) {
 	WriteGetRow(buf, view)
 
 	code := buf.String()
-	expected := `
+	expected := strings.Replace(`
+//--------------------------------------------------------------------------------
+
+var allXExampleQuotedColumnNames = []string{
+	schema.Sqlite.SplitAndQuote(XExampleColumnNames),
+	schema.Mysql.SplitAndQuote(XExampleColumnNames),
+	schema.Postgres.SplitAndQuote(XExampleColumnNames),
+}
+
 //--------------------------------------------------------------------------------
 
 // GetExample gets the record with a given primary key value.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", XExampleColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
+		allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -253,7 +262,8 @@ func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl XExampleTable) MustGetExample(id int64) (*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?", XExampleColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=?",
+		allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -270,7 +280,8 @@ func (tbl XExampleTable) GetExamples(req require.Requirement, id ...int64) (list
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)", XExampleColumnNames, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)",
+			allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -282,7 +293,7 @@ func (tbl XExampleTable) GetExamples(req require.Requirement, id ...int64) (list
 
 	return list, err
 }
-`
+`, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
@@ -303,7 +314,7 @@ func TestWriteSelectItem(t *testing.T) {
 	WriteSliceColumn(buf, view)
 
 	code := buf.String()
-	expected := `
+	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
 // SliceId gets the Id column for all rows that match the 'where' condition.
@@ -403,7 +414,7 @@ func (tbl XExampleTable) getstringlist(req require.Requirement, sqlname string, 
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-`
+`, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
@@ -423,7 +434,7 @@ func TestWriteSelectRow(t *testing.T) {
 	WriteSelectRowsFuncs(buf, view)
 
 	code := buf.String()
-	expected := `
+	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
 // SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
@@ -498,9 +509,7 @@ func (tbl XExampleTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	return tbl.CountWhere(whs, args...)
 }
-
-const XExampleColumnNames = "id, name, age"
-`
+`, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
@@ -524,24 +533,28 @@ func TestWriteInsertFunc_noPK(t *testing.T) {
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
+var allXExampleQuotedInserts = []string{
+	// Sqlite
+	"(¬name¬, ¬age¬) VALUES (?,?)",
+	// Mysql
+	"(¬name¬, ¬age¬) VALUES (?,?)",
+	// Postgres
+	¬("name", "age") VALUES ($1,$2)¬,
+}
+
+//--------------------------------------------------------------------------------
+
 // Insert adds new records for the Examples.
 
 // The Example.PreInsert() method will be called, if it exists.
 func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlInsertXExamplePostgres
-	default:
-		stmt = sqlInsertXExampleSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allXExampleQuotedInserts[tbl.dialect.Index()]
+	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -582,21 +595,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-
-const sqlInsertXExampleSimple = |
-INSERT INTO %s (
-	name,
-	age
-) VALUES (?,?)
-|
-
-const sqlInsertXExamplePostgres = |
-INSERT INTO %s (
-	name,
-	age
-) VALUES ($1,$2)
-|
-`, "|", "`", -1)
+`, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
@@ -618,24 +617,28 @@ func TestWriteInsertFunc_withPK(t *testing.T) {
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
+var allXExampleQuotedInserts = []string{
+	// Sqlite
+	"(¬name¬, ¬age¬) VALUES (?,?)",
+	// Mysql
+	"(¬name¬, ¬age¬) VALUES (?,?)",
+	// Postgres
+	¬("name", "age") VALUES ($1,$2) returning "id"¬,
+}
+
+//--------------------------------------------------------------------------------
+
 // Insert adds new records for the Examples.
 // The Examples have their primary key fields set to the new record identifiers.
 // The Example.PreInsert() method will be called, if it exists.
 func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlInsertXExamplePostgres
-	default:
-		stmt = sqlInsertXExampleSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allXExampleQuotedInserts[tbl.dialect.Index()]
+	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -676,21 +679,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-
-const sqlInsertXExampleSimple = |
-INSERT INTO %s (
-	name,
-	age
-) VALUES (?,?)
-|
-
-const sqlInsertXExamplePostgres = |
-INSERT INTO %s (
-	name,
-	age
-) VALUES ($1,$2) returning id
-|
-`, "|", "`", -1)
+`, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
@@ -712,15 +701,13 @@ func TestWriteUpdateFunc_noPK(t *testing.T) {
 
 	code := buf.String()
 	expected := strings.Replace(`
-//--------------------------------------------------------------------------------
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
-`, "|", "`", -1)
+`, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
@@ -740,8 +727,6 @@ func TestWriteUpdateFunc_withPK(t *testing.T) {
 
 	code := buf.String()
 	expected := strings.Replace(`
-//--------------------------------------------------------------------------------
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
@@ -751,23 +736,27 @@ func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expressi
 
 //--------------------------------------------------------------------------------
 
+var allXExampleQuotedUpdates = []string{
+	// Sqlite
+	"¬name¬=?,¬age¬=? WHERE ¬id¬=?",
+	// Mysql
+	"¬name¬=?,¬age¬=? WHERE ¬id¬=?",
+	// Postgres
+	¬"name"=$2,"age"=$3 WHERE "id"=$1¬,
+}
+
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Example.PreUpdate(Execer) method will be called, if it exists.
 func (tbl XExampleTable) Update(req require.Requirement, vv ...*Example) (int64, error) {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlUpdateXExampleByPkPostgres
-	default:
-		stmt = sqlUpdateXExampleByPkSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allXExampleQuotedUpdates[tbl.dialect.Index()]
+	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -793,19 +782,7 @@ func (tbl XExampleTable) Update(req require.Requirement, vv ...*Example) (int64,
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-
-const sqlUpdateXExampleByPkSimple = |
-UPDATE %s SET
-	name=?,
-	age=?
-WHERE id=?|
-
-const sqlUpdateXExampleByPkPostgres = |
-UPDATE %s SET
-	name=$2,
-	age=$3
-WHERE id=$1|
-`, "|", "`", -1)
+`, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
@@ -893,7 +870,7 @@ func (tbl XExampleTable) deleteRows(wh where.Expression) (string, []interface{})
 }
 
 //--------------------------------------------------------------------------------
-`, "|", "`", -1)
+`, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
@@ -922,7 +899,7 @@ func TestWriteExecFunc(t *testing.T) {
 func (tbl XExampleTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
 	return support.Exec(tbl, req, query, args...)
 }
-`, "|", "`", -1)
+`, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")

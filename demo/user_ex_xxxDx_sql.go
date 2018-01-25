@@ -186,6 +186,18 @@ func (tbl DUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
+const NumDUserColumns = 12
+
+const NumDUserDataColumns = 11
+
+const DUserColumnNames = "uid,login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const DUserDataColumnNames = "login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const DUserPk = "uid"
+
+//--------------------------------------------------------------------------------
+
 // Exec executes a query without returning any rows.
 // It returns the number of rows affected (if the database driver supports this).
 //

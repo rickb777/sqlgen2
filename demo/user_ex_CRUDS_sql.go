@@ -191,9 +191,71 @@ const NumAUserColumns = 12
 
 const NumAUserDataColumns = 11
 
-const AUserPk = "Uid"
+const AUserColumnNames = "uid,login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
 
-const AUserDataColumnNames = "login, emailaddress, addressid, avatar, role, active, admin, fave, lastupdated, token, secret"
+const AUserDataColumnNames = "login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+
+const AUserPk = "uid"
+
+//--------------------------------------------------------------------------------
+
+const sqlCreateColumnsAUserTableSqlite =
+" `uid`          integer primary key autoincrement,\n"+
+" `login`        text,\n"+
+" `emailaddress` text,\n"+
+" `addressid`    bigint default null,\n"+
+" `avatar`       text default null,\n"+
+" `role`         text default null,\n"+
+" `active`       boolean,\n"+
+" `admin`        boolean,\n"+
+" `fave`         text,\n"+
+" `lastupdated`  bigint,\n"+
+" `token`        text,\n"+
+" `secret`       text"
+
+const sqlCreateSettingsAUserTableSqlite = ""
+
+const sqlCreateColumnsAUserTableMysql =
+" `uid`          bigint primary key auto_increment,\n"+
+" `login`        varchar(255),\n"+
+" `emailaddress` varchar(255),\n"+
+" `addressid`    bigint default null,\n"+
+" `avatar`       varchar(255) default null,\n"+
+" `role`         varchar(20) default null,\n"+
+" `active`       tinyint(1),\n"+
+" `admin`        tinyint(1),\n"+
+" `fave`         json,\n"+
+" `lastupdated`  bigint,\n"+
+" `token`        varchar(255),\n"+
+" `secret`       varchar(255)"
+
+const sqlCreateSettingsAUserTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+const sqlCreateColumnsAUserTablePostgres = `
+ "uid"          bigserial primary key,
+ "login"        varchar(255),
+ "emailaddress" varchar(255),
+ "addressid"    bigint default null,
+ "avatar"       varchar(255) default null,
+ "role"         varchar(20) default null,
+ "active"       boolean,
+ "admin"        boolean,
+ "fave"         json,
+ "lastupdated"  bigint,
+ "token"        varchar(255),
+ "secret"       varchar(255)`
+
+const sqlCreateSettingsAUserTablePostgres = ""
+
+const sqlConstrainAUserTable = `
+ CONSTRAINT AUserc3 foreign key (addressid) references %saddresses (id) on update restrict on delete restrict
+`
+
+//--------------------------------------------------------------------------------
+
+const sqlAUserEmailIndexColumns = "emailaddress"
+
+const sqlAUserLoginIndexColumns = "login"
 
 //--------------------------------------------------------------------------------
 
@@ -209,12 +271,12 @@ func (tbl AUserTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlCreateColumnsAUserTableSqlite
 		settings = sqlCreateSettingsAUserTableSqlite
-    case schema.Postgres:
-		columns = sqlCreateColumnsAUserTablePostgres
-		settings = sqlCreateSettingsAUserTablePostgres
     case schema.Mysql:
 		columns = sqlCreateColumnsAUserTableMysql
 		settings = sqlCreateSettingsAUserTableMysql
+    case schema.Postgres:
+		columns = sqlCreateColumnsAUserTablePostgres
+		settings = sqlCreateSettingsAUserTablePostgres
     }
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -253,58 +315,6 @@ func (tbl AUserTable) dropTableSql(ifExists bool) string {
 	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
 	return query
 }
-
-const sqlCreateColumnsAUserTableSqlite = `
- uid          integer primary key autoincrement,
- login        text,
- emailaddress text,
- addressid    bigint default null,
- avatar       text default null,
- role         text default null,
- active       boolean,
- admin        boolean,
- fave         text,
- lastupdated  bigint,
- token        text,
- secret       text`
-
-const sqlCreateSettingsAUserTableSqlite = ""
-
-const sqlCreateColumnsAUserTablePostgres = `
- uid          bigserial primary key,
- login        varchar(255),
- emailaddress varchar(255),
- addressid    bigint default null,
- avatar       varchar(255) default null,
- role         varchar(20) default null,
- active       boolean,
- admin        boolean,
- fave         json,
- lastupdated  bigint,
- token        varchar(255),
- secret       varchar(255)`
-
-const sqlCreateSettingsAUserTablePostgres = ""
-
-const sqlCreateColumnsAUserTableMysql = `
- uid          bigint primary key auto_increment,
- login        varchar(255),
- emailaddress varchar(255),
- addressid    bigint default null,
- avatar       varchar(255) default null,
- role         varchar(20) default null,
- active       tinyint(1),
- admin        tinyint(1),
- fave         json,
- lastupdated  bigint,
- token        varchar(255),
- secret       varchar(255)`
-
-const sqlCreateSettingsAUserTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlConstrainAUserTable = `
- CONSTRAINT AUserc3 foreign key (addressid) references %saddresses (id) on update restrict on delete restrict
-`
 
 //--------------------------------------------------------------------------------
 
@@ -421,12 +431,6 @@ func (tbl AUserTable) DropIndexes(ifExist bool) (err error) {
 
 	return nil
 }
-
-//--------------------------------------------------------------------------------
-
-const sqlAUserEmailIndexColumns = "emailaddress"
-
-const sqlAUserLoginIndexColumns = "login"
 
 //--------------------------------------------------------------------------------
 
@@ -680,10 +684,19 @@ func (tbl AUserTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
+var allAUserQuotedColumnNames = []string{
+	schema.Sqlite.SplitAndQuote(AUserColumnNames),
+	schema.Mysql.SplitAndQuote(AUserColumnNames),
+	schema.Postgres.SplitAndQuote(AUserColumnNames),
+}
+
+//--------------------------------------------------------------------------------
+
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl AUserTable) GetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?", AUserColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?",
+		allAUserQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -692,7 +705,8 @@ func (tbl AUserTable) GetUser(id int64) (*User, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl AUserTable) MustGetUser(id int64) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?", AUserColumnNames, tbl.name)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE uid=?",
+		allAUserQuotedColumnNames[tbl.dialect.Index()], tbl.name)
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -709,7 +723,8 @@ func (tbl AUserTable) GetUsers(req require.Requirement, id ...int64) (list []*Us
 			req = require.Exactly(len(id))
 		}
 		pl := tbl.dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE uid IN (%s)", AUserColumnNames, tbl.name, pl)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE uid IN (%s)",
+			allAUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -796,8 +811,6 @@ func (tbl AUserTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.BuildExpression(wh, tbl.dialect)
 	return tbl.CountWhere(whs, args...)
 }
-
-const AUserColumnNames = "uid, login, emailaddress, addressid, avatar, role, active, admin, fave, lastupdated, token, secret"
 
 //--------------------------------------------------------------------------------
 
@@ -1018,24 +1031,28 @@ func (tbl AUserTable) getstringPtrlist(req require.Requirement, sqlname string, 
 
 //--------------------------------------------------------------------------------
 
+var allAUserQuotedInserts = []string{
+	// Sqlite
+	"(`login`, `emailaddress`, `addressid`, `avatar`, `role`, `active`, `admin`, `fave`, `lastupdated`, `token`, `secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+	// Mysql
+	"(`login`, `emailaddress`, `addressid`, `avatar`, `role`, `active`, `admin`, `fave`, `lastupdated`, `token`, `secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+	// Postgres
+	`("login", "emailaddress", "addressid", "avatar", "role", "active", "admin", "fave", "lastupdated", "token", "secret") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning "uid"`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Insert adds new records for the Users.
 // The Users have their primary key fields set to the new record identifiers.
 // The User.PreInsert() method will be called, if it exists.
 func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlInsertAUserPostgres
-	default:
-		stmt = sqlInsertAUserSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allAUserQuotedInserts[tbl.dialect.Index()]
+	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
 		return err
@@ -1077,40 +1094,6 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-const sqlInsertAUserSimple = `
-INSERT INTO %s (
-	login,
-	emailaddress,
-	addressid,
-	avatar,
-	role,
-	active,
-	admin,
-	fave,
-	lastupdated,
-	token,
-	secret
-) VALUES (?,?,?,?,?,?,?,?,?,?,?)
-`
-
-const sqlInsertAUserPostgres = `
-INSERT INTO %s (
-	login,
-	emailaddress,
-	addressid,
-	avatar,
-	role,
-	active,
-	admin,
-	fave,
-	lastupdated,
-	token,
-	secret
-) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning uid
-`
-
-//--------------------------------------------------------------------------------
-
 // UpdateFields updates one or more columns, given a 'where' clause.
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
@@ -1120,23 +1103,27 @@ func (tbl AUserTable) UpdateFields(req require.Requirement, wh where.Expression,
 
 //--------------------------------------------------------------------------------
 
+var allAUserQuotedUpdates = []string{
+	// Sqlite
+	"`login`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`token`=?,`secret`=? WHERE `uid`=?",
+	// Mysql
+	"`login`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`token`=?,`secret`=? WHERE `uid`=?",
+	// Postgres
+	`"login"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"token"=$11,"secret"=$12 WHERE "uid"=$1`,
+}
+
+//--------------------------------------------------------------------------------
+
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The User.PreUpdate(Execer) method will be called, if it exists.
 func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error) {
-	var stmt string
-	switch tbl.dialect {
-	case schema.Postgres:
-		stmt = sqlUpdateAUserByPkPostgres
-	default:
-		stmt = sqlUpdateAUserByPkSimple
-	}
-
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	query := fmt.Sprintf(stmt, tbl.name)
+	columns := allAUserQuotedUpdates[tbl.dialect.Index()]
+	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -1162,36 +1149,6 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-
-const sqlUpdateAUserByPkSimple = `
-UPDATE %s SET
-	login=?,
-	emailaddress=?,
-	addressid=?,
-	avatar=?,
-	role=?,
-	active=?,
-	admin=?,
-	fave=?,
-	lastupdated=?,
-	token=?,
-	secret=?
-WHERE uid=?`
-
-const sqlUpdateAUserByPkPostgres = `
-UPDATE %s SET
-	login=$2,
-	emailaddress=$3,
-	addressid=$4,
-	avatar=$5,
-	role=$6,
-	active=$7,
-	admin=$8,
-	fave=$9,
-	lastupdated=$10,
-	token=$11,
-	secret=$12
-WHERE uid=$1`
 
 func sliceAUserWithoutPk(v *User) ([]interface{}, error) {
 
