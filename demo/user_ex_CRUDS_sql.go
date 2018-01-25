@@ -746,7 +746,8 @@ func (tbl AUserTable) GetUsers(req require.Requirement, id ...int64) (list []*Us
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AUserTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", AUserColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
+		allAUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -773,7 +774,8 @@ func (tbl AUserTable) SelectOne(req require.Requirement, wh where.Expression, qc
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AUserTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", AUserColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
+		allAUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }

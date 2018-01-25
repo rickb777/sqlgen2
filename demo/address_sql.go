@@ -634,7 +634,8 @@ func (tbl AddressTable) GetAddresses(req require.Requirement, id ...int64) (list
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", AddressColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
+		allAddressQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -661,7 +662,8 @@ func (tbl AddressTable) SelectOne(req require.Requirement, wh where.Expression, 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Address, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", AddressColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
+		allAddressQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }

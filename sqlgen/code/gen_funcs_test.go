@@ -447,7 +447,8 @@ func TestWriteSelectRow(t *testing.T) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", XExampleColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
+		allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -474,7 +475,8 @@ func (tbl XExampleTable) SelectOne(req require.Requirement, wh where.Expression,
 //
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Example, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", XExampleColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
+		allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }

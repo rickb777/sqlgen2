@@ -664,7 +664,8 @@ func (tbl IssueTable) GetIssues(req require.Requirement, id ...int64) (list []*I
 //
 // The args are for any placeholder parameters in the query.
 func (tbl IssueTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", IssueColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
+		allIssueQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -691,7 +692,8 @@ func (tbl IssueTable) SelectOne(req require.Requirement, wh where.Expression, qc
 //
 // The args are for any placeholder parameters in the query.
 func (tbl IssueTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Issue, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", IssueColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
+		allIssueQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }

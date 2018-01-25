@@ -589,7 +589,8 @@ func (tbl AssociationTable) GetAssociations(req require.Requirement, id ...int64
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", AssociationColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
+		allAssociationQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -616,7 +617,8 @@ func (tbl AssociationTable) SelectOne(req require.Requirement, wh where.Expressi
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", AssociationColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
+		allAssociationQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }

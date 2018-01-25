@@ -164,7 +164,7 @@ var tQueryThings = template.Must(template.New("QueryThings").Funcs(funcMap).Pars
 
 //-------------------------------------------------------------------------------------------------
 
-const sGetRow = `{{if .Table.Primary}}
+const sGetRow = `
 //--------------------------------------------------------------------------------
 
 var all{{.CamelName}}QuotedColumnNames = []string{
@@ -173,6 +173,7 @@ var all{{.CamelName}}QuotedColumnNames = []string{
 {{- end}}
 }
 
+{{if .Table.Primary -}}
 //--------------------------------------------------------------------------------
 
 // Get{{.Type}} gets the record with a given primary key value.
@@ -237,7 +238,8 @@ const sSelectRows = `
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", {{.CamelName}}ColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
+		all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -264,7 +266,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(req require.Requirement, wh 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ({{.List}}, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", {{.CamelName}}ColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
+		all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }

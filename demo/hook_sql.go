@@ -640,7 +640,8 @@ func (tbl HookTable) GetHooks(req require.Requirement, id ...uint64) (list HookL
 //
 // The args are for any placeholder parameters in the query.
 func (tbl HookTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Hook, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", HookColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
+		allHookQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -667,7 +668,8 @@ func (tbl HookTable) SelectOne(req require.Requirement, wh where.Expression, qc 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl HookTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) (HookList, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", HookColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
+		allHookQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }

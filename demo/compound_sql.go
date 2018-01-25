@@ -558,6 +558,14 @@ func (tbl DbCompoundTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
+var allDbCompoundQuotedColumnNames = []string{
+	schema.Sqlite.SplitAndQuote(DbCompoundColumnNames),
+	schema.Mysql.SplitAndQuote(DbCompoundColumnNames),
+	schema.Postgres.SplitAndQuote(DbCompoundColumnNames),
+}
+
+//--------------------------------------------------------------------------------
+
 // SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
@@ -568,7 +576,8 @@ func (tbl DbCompoundTable) ReplaceTableName(query string) string {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Compound, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1", DbCompoundColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
+		allDbCompoundQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -595,7 +604,8 @@ func (tbl DbCompoundTable) SelectOne(req require.Requirement, wh where.Expressio
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Compound, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", DbCompoundColumnNames, tbl.name, where, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
+		allDbCompoundQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }
