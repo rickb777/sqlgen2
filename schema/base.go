@@ -5,7 +5,6 @@ import (
 	"io"
 	"text/tabwriter"
 	"strings"
-	"fmt"
 )
 
 // Table returns a SQL statement to create the table.
@@ -64,28 +63,27 @@ func baseUpdateDML(table *TableDescription, quoter func(string) string, param fu
 	return w.String()
 }
 
-//func baseDeleteDML(table *TableDescription, fields FieldList, quoter func(string) string, param func(int) string) string {
-//	w := &bytes.Buffer{}
-//	w.WriteString("DELETE FROM %s\n")
-//	w.WriteString(baseWhereClause(fields, 0, quoter, param))
-//	return w.String()
-//}
-
 func baseSplitAndQuote(csv, before, between, after string) string {
 	ids := strings.Split(csv, ",")
-	w := bytes.NewBuffer(make([]byte, 0, len(ids)*10))
-	sep := before
-	for _, id := range ids {
+	return baseQuoted(ids, before, between, after)
+}
+
+func backTickQuoted(identifier string) string {
+	elements := strings.Split(identifier, ".")
+	return baseQuoted(elements, "`", "`.`", "`")
+}
+
+func baseQuoted(elements []string, before, between, after string) string {
+	w := bytes.NewBuffer(make([]byte, 0, 256))
+	io.WriteString(w, before)
+	sep := ""
+	for _, e := range elements {
 		io.WriteString(w, sep)
-		io.WriteString(w, string(id))
+		io.WriteString(w, e)
 		sep = between
 	}
 	io.WriteString(w, after)
 	return w.String()
-}
-
-func backTickQuoted(identifier string) string {
-	return fmt.Sprintf("`%s`", identifier)
 }
 
 const placeholders = "?,?,?,?,?,?,?,?,?,?"
@@ -103,32 +101,6 @@ func baseQueryPlaceholders(n int) string {
 func baseParamIsQuery(i int) string {
 	return "?"
 }
-
-//func baseColumns(fields FieldList, withAuto, inline, assign bool, param func(int) string) string {
-//	w := &bytes.Buffer{}
-//	comma := ""
-//	for i, field := range fields {
-//		if withAuto || !field.Tags.Auto {
-//			w.WriteString(comma)
-//			comma = ", "
-//
-//			if !inline {
-//				w.WriteString("\n")
-//				w.WriteString(fieldIndentation)
-//			}
-//
-//			w.WriteString(field.SqlName)
-//
-//			if assign {
-//				w.WriteString("=")
-//				w.WriteString(param(i + 1))
-//			}
-//		}
-//	}
-//	return w.String()
-//}
-
-const fieldIndentation = "\t"
 
 // helper function to generate the Where clause
 // section of a SQL statement

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"strconv"
 	"io"
+	"strings"
 )
 
 type postgres struct{}
@@ -136,10 +137,6 @@ func (dialect postgres) UpdateDML(table *TableDescription) string {
 	return w.String()
 }
 
-//func (dialect postgres) DeleteDML(table *TableDescription, fields FieldList) string {
-//	return baseDeleteDML(table, fields, doubleQuoter, postgresParam)
-//}
-
 func (dialect postgres) TruncateDDL(tableName string, force bool) []string {
 	if force {
 		return []string{fmt.Sprintf("TRUNCATE %s CASCADE", tableName)}
@@ -153,7 +150,8 @@ func postgresParam(i int) string {
 }
 
 func doubleQuoter(identifier string) string {
-	return fmt.Sprintf("%q", identifier)
+	elements := strings.Split(identifier, ".")
+	return baseQuoted(elements, `"`, `"."`, `"`)
 }
 
 func (dialect postgres) SplitAndQuote(csv string) string {

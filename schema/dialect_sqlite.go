@@ -99,10 +99,6 @@ func (dialect sqlite) UpdateDML(table *TableDescription) string {
 	return baseUpdateDML(table, backTickQuoted, baseParamIsQuery)
 }
 
-//func (dialect sqlite) DeleteDML(table *TableDescription, fields FieldList) string {
-//	return baseDeleteDML(table, fields, backTickQuoted, baseParamIsQuery)
-//}
-
 func (dialect sqlite) TruncateDDL(tableName string, force bool) []string {
 	truncate := fmt.Sprintf("DELETE FROM %s", tableName)
 	return []string{truncate}
@@ -114,10 +110,6 @@ func (dialect sqlite) SplitAndQuote(csv string) string {
 
 func (dialect sqlite) Quote(id string) string {
 	return backTickQuoted(id)
-}
-
-func (dialect sqlite) Quoter() func(string) string {
-	return backTickQuoted
 }
 
 func (dialect sqlite) Placeholders(n int) string {

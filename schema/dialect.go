@@ -18,7 +18,6 @@ type Dialect interface {
 
 	SplitAndQuote(csv string) string
 	Quote(string) string
-	Quoter() func (string) string
 	ReplacePlaceholders(sql string) string
 	Placeholders(n int) string
 	String() string

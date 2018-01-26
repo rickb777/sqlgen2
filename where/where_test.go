@@ -29,6 +29,13 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 		},
 
 		{
+			Condition{"p.name"," not nil", nil},
+			"WHERE `p`.`name` not nil",
+			`WHERE "p"."name" not nil`,
+			nil,
+		},
+
+		{
 			Null("name"),
 			"WHERE `name` IS NULL",
 			`WHERE "name" IS NULL`,
