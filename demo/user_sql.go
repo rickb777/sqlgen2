@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
@@ -24,13 +23,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DbUserTable struct {
-	name        model.TableName
+	name        sqlgen2.TableName
+	database    *sqlgen2.Database
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
-	dialect     schema.Dialect
-	logger      *log.Logger
-	wrapper     interface{}
 }
 
 // Type conformance checks
@@ -40,11 +37,11 @@ var _ sqlgen2.TableWithCrud = &DbUserTable{}
 // NewDbUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewDbUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) DbUserTable {
+func NewDbUserTable(name sqlgen2.TableName, d *sqlgen2.Database) DbUserTable {
 	if name.Name == "" {
 		name.Name = "users"
 	}
-	table := DbUserTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := DbUserTable{name, d, d.DB(), nil, context.Background()}
 	table.constraints = append(table.constraints,
 		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 
@@ -59,11 +56,10 @@ func NewDbUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Diale
 func CopyTableAsDbUserTable(origin sqlgen2.Table) DbUserTable {
 	return DbUserTable{
 		name:        origin.Name(),
+		database:    origin.Database(),
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
-		dialect:     origin.Dialect(),
-		logger:      origin.Logger(),
 	}
 }
 
@@ -81,23 +77,14 @@ func (tbl DbUserTable) WithContext(ctx context.Context) DbUserTable {
 	return tbl
 }
 
-// WithLogger sets the logger for subsequent queries.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl DbUserTable) WithLogger(logger *log.Logger) DbUserTable {
-	tbl.logger = logger
-	return tbl
+// Database gets the shared database information.
+func (tbl DbUserTable) Database() *sqlgen2.Database {
+	return tbl.database
 }
 
 // Logger gets the trace logger.
 func (tbl DbUserTable) Logger() *log.Logger {
-	return tbl.logger
-}
-
-// SetLogger sets the logger for subsequent queries, returning the interface.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl DbUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.logger = logger
-	return tbl
+	return tbl.database.Logger()
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
@@ -113,23 +100,11 @@ func (tbl DbUserTable) Ctx() context.Context {
 
 // Dialect gets the database dialect.
 func (tbl DbUserTable) Dialect() schema.Dialect {
-	return tbl.dialect
-}
-
-// Wrapper gets the user-defined wrapper.
-func (tbl DbUserTable) Wrapper() interface{} {
-	return tbl.wrapper
-}
-
-// SetWrapper sets the user-defined wrapper.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl DbUserTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
-	tbl.wrapper = wrapper
-	return tbl
+	return tbl.database.Dialect()
 }
 
 // Name gets the table name.
-func (tbl DbUserTable) Name() model.TableName {
+func (tbl DbUserTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
 
@@ -174,15 +149,15 @@ func (tbl DbUserTable) Using(tx *sql.Tx) DbUserTable {
 }
 
 func (tbl DbUserTable) logQuery(query string, args ...interface{}) {
-	support.LogQuery(tbl.logger, query, args...)
+	support.LogQuery(tbl.Logger(), query, args...)
 }
 
 func (tbl DbUserTable) logError(err error) error {
-	return support.LogError(tbl.logger, err)
+	return support.LogError(tbl.Logger(), err)
 }
 
 func (tbl DbUserTable) logIfError(err error) error {
-	return support.LogIfError(tbl.logger, err)
+	return support.LogIfError(tbl.Logger(), err)
 }
 
 //--------------------------------------------------------------------------------
@@ -261,7 +236,7 @@ func (tbl DbUserTable) CreateTable(ifNotExists bool) (int64, error) {
 func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
 	var columns string
 	var settings string
-	switch tbl.dialect {
+	switch tbl.Dialect() {
 	case schema.Sqlite:
 		columns = sqlDbUserTableCreateColumnsSqlite
 		settings = ""
@@ -282,7 +257,7 @@ func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")
-		buf.WriteString(c.ConstraintSql(tbl.dialect, tbl.name, i+1))
+		buf.WriteString(c.ConstraintSql(tbl.Dialect(), tbl.name, i+1))
 	}
 	buf.WriteString("\n)")
 	buf.WriteString(settings)
@@ -337,12 +312,12 @@ func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreateUserEmailIndex creates the user_email index.
 func (tbl DbUserTable) CreateUserEmailIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
+	ine := tbl.ternary(ifNotExist && tbl.Dialect() != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.dialect == schema.Mysql {
+	if ifNotExist && tbl.Dialect() == schema.Mysql {
 		tbl.Execer().ExecContext(tbl.Ctx(), tbl.dropDbUserEmailIndexSql(false))
 		ine = ""
 	}
@@ -365,20 +340,20 @@ func (tbl DbUserTable) DropUserEmailIndex(ifExists bool) error {
 
 func (tbl DbUserTable) dropDbUserEmailIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	ie := tbl.ternary(ifExists && tbl.Dialect() != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect() == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
 	indexPrefix := tbl.name.PrefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ie, indexPrefix, onTbl)
 }
 
 // CreateUserLoginIndex creates the user_login index.
 func (tbl DbUserTable) CreateUserLoginIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
+	ine := tbl.ternary(ifNotExist && tbl.Dialect() != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.dialect == schema.Mysql {
+	if ifNotExist && tbl.Dialect() == schema.Mysql {
 		tbl.Execer().ExecContext(tbl.Ctx(), tbl.dropDbUserLoginIndexSql(false))
 		ine = ""
 	}
@@ -401,8 +376,8 @@ func (tbl DbUserTable) DropUserLoginIndex(ifExists bool) error {
 
 func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	ie := tbl.ternary(ifExists && tbl.Dialect() != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect() == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
 	indexPrefix := tbl.name.PrefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ie, indexPrefix, onTbl)
 }
@@ -433,7 +408,7 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
 func (tbl DbUserTable) Truncate(force bool) (err error) {
-	for _, query := range tbl.dialect.TruncateDDL(tbl.Name().String(), force) {
+	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
 		_, err = tbl.Exec(nil, query)
 		if err != nil {
 			return err
@@ -686,8 +661,9 @@ var allDbUserQuotedColumnNames = []string{
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl DbUserTable) GetUser(id int64) (*User, error) {
+	dialect := tbl.Dialect()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("uid"))
+		allDbUserQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("uid"))
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -696,8 +672,9 @@ func (tbl DbUserTable) GetUser(id int64) (*User, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl DbUserTable) MustGetUser(id int64) (*User, error) {
+	dialect := tbl.Dialect()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("uid"))
+		allDbUserQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("uid"))
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -713,9 +690,10 @@ func (tbl DbUserTable) GetUsers(req require.Requirement, id ...int64) (list []*U
 		if req == require.All {
 			req = require.Exactly(len(id))
 		}
-		pl := tbl.dialect.Placeholders(len(id))
+		dialect := tbl.Dialect()
+		pl := dialect.Placeholders(len(id))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("uid"), pl)
+			allDbUserQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("uid"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -741,7 +719,7 @@ func (tbl DbUserTable) GetUsers(req require.Requirement, id ...int64) (list []*U
 // The args are for any placeholder parameters in the query.
 func (tbl DbUserTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
+		allDbUserQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -754,8 +732,9 @@ func (tbl DbUserTable) SelectOneWhere(req require.Requirement, where, orderBy st
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl DbUserTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -769,7 +748,7 @@ func (tbl DbUserTable) SelectOne(req require.Requirement, wh where.Expression, q
 // The args are for any placeholder parameters in the query.
 func (tbl DbUserTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allDbUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
+		allDbUserQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }
@@ -781,8 +760,9 @@ func (tbl DbUserTable) SelectWhere(req require.Requirement, where, orderBy strin
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl DbUserTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -801,7 +781,7 @@ func (tbl DbUserTable) CountWhere(where string, args ...interface{}) (count int6
 // Count counts the Users in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl DbUserTable) Count(wh where.Expression) (count int64, err error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.Dialect())
 	return tbl.CountWhere(whs, args...)
 }
 
@@ -871,9 +851,10 @@ func (tbl DbUserTable) SliceLastupdated(req require.Requirement, wh where.Expres
 }
 
 func (tbl DbUserTable) getRolePtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -896,9 +877,10 @@ func (tbl DbUserTable) getRolePtrlist(req require.Requirement, sqlname string, w
 }
 
 func (tbl DbUserTable) getboollist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -921,9 +903,10 @@ func (tbl DbUserTable) getboollist(req require.Requirement, sqlname string, wh w
 }
 
 func (tbl DbUserTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -946,9 +929,10 @@ func (tbl DbUserTable) getint64list(req require.Requirement, sqlname string, wh 
 }
 
 func (tbl DbUserTable) getint64Ptrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -971,9 +955,10 @@ func (tbl DbUserTable) getint64Ptrlist(req require.Requirement, sqlname string, 
 }
 
 func (tbl DbUserTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -996,9 +981,10 @@ func (tbl DbUserTable) getstringlist(req require.Requirement, sqlname string, wh
 }
 
 func (tbl DbUserTable) getstringPtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -1042,7 +1028,7 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 	}
 
 	var count int64
-	columns := allDbUserQuotedInserts[tbl.dialect.Index()]
+	columns := allDbUserQuotedInserts[tbl.Dialect().Index()]
 	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
@@ -1113,7 +1099,7 @@ func (tbl DbUserTable) Update(req require.Requirement, vv ...*User) (int64, erro
 	}
 
 	var count int64
-	columns := allDbUserQuotedUpdates[tbl.dialect.Index()]
+	columns := allDbUserQuotedUpdates[tbl.Dialect().Index()]
 	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
@@ -1181,11 +1167,12 @@ func (tbl DbUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64,
 	if len(id) < batch {
 		max = len(id)
 	}
-	col := tbl.dialect.Quote("uid")
+	dialect := tbl.Dialect()
+	col := dialect.Quote("uid")
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
-		pl := tbl.dialect.Placeholders(batch)
+		pl := dialect.Placeholders(batch)
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
@@ -1204,7 +1191,7 @@ func (tbl DbUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64,
 	}
 
 	if len(id) > 0 {
-		pl := tbl.dialect.Placeholders(len(id))
+		pl := dialect.Placeholders(len(id))
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
@@ -1226,7 +1213,7 @@ func (tbl DbUserTable) Delete(req require.Requirement, wh where.Expression) (int
 }
 
 func (tbl DbUserTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.Dialect())
 	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }

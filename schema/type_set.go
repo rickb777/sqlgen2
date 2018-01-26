@@ -4,7 +4,7 @@
 // Generated from simple/set.tpl with Type=Type
 // options: Numeric:<no value> Stringer:<no value> Mutable:always
 
-package model
+package schema
 
 // TypeSet is the primary type that represents a set
 type TypeSet map[Type]struct{}

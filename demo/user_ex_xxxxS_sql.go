@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
@@ -22,13 +21,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type SUserTable struct {
-	name        model.TableName
+	name        sqlgen2.TableName
+	database    *sqlgen2.Database
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
-	ctx         context.Context
-	dialect     schema.Dialect
-	logger      *log.Logger
-	wrapper     interface{}
+	ctx			context.Context
 }
 
 // Type conformance checks
@@ -38,11 +35,11 @@ var _ sqlgen2.Table = &SUserTable{}
 // NewSUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewSUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) SUserTable {
+func NewSUserTable(name sqlgen2.TableName, d *sqlgen2.Database) SUserTable {
 	if name.Name == "" {
 		name.Name = "users"
 	}
-	table := SUserTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := SUserTable{name, d, d.DB(), nil, context.Background()}
 	table.constraints = append(table.constraints,
 		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	
@@ -57,11 +54,10 @@ func NewSUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialec
 func CopyTableAsSUserTable(origin sqlgen2.Table) SUserTable {
 	return SUserTable{
 		name:        origin.Name(),
+		database:    origin.Database(),
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
-		dialect:     origin.Dialect(),
-		logger:      origin.Logger(),
 	}
 }
 
@@ -79,23 +75,14 @@ func (tbl SUserTable) WithContext(ctx context.Context) SUserTable {
 	return tbl
 }
 
-// WithLogger sets the logger for subsequent queries.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl SUserTable) WithLogger(logger *log.Logger) SUserTable {
-	tbl.logger = logger
-	return tbl
+// Database gets the shared database information.
+func (tbl SUserTable) Database() *sqlgen2.Database {
+	return tbl.database
 }
 
 // Logger gets the trace logger.
 func (tbl SUserTable) Logger() *log.Logger {
-	return tbl.logger
-}
-
-// SetLogger sets the logger for subsequent queries, returning the interface.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl SUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.logger = logger
-	return tbl
+	return tbl.database.Logger()
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
@@ -111,23 +98,11 @@ func (tbl SUserTable) Ctx() context.Context {
 
 // Dialect gets the database dialect.
 func (tbl SUserTable) Dialect() schema.Dialect {
-	return tbl.dialect
-}
-
-// Wrapper gets the user-defined wrapper.
-func (tbl SUserTable) Wrapper() interface{} {
-	return tbl.wrapper
-}
-
-// SetWrapper sets the user-defined wrapper.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl SUserTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
-	tbl.wrapper = wrapper
-	return tbl
+	return tbl.database.Dialect()
 }
 
 // Name gets the table name.
-func (tbl SUserTable) Name() model.TableName {
+func (tbl SUserTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
 
@@ -172,15 +147,15 @@ func (tbl SUserTable) Using(tx *sql.Tx) SUserTable {
 }
 
 func (tbl SUserTable) logQuery(query string, args ...interface{}) {
-	support.LogQuery(tbl.logger, query, args...)
+	support.LogQuery(tbl.Logger(), query, args...)
 }
 
 func (tbl SUserTable) logError(err error) error {
-	return support.LogError(tbl.logger, err)
+	return support.LogError(tbl.Logger(), err)
 }
 
 func (tbl SUserTable) logIfError(err error) error {
-	return support.LogIfError(tbl.logger, err)
+	return support.LogIfError(tbl.Logger(), err)
 }
 
 
@@ -484,9 +459,10 @@ func (tbl SUserTable) SliceLastupdated(req require.Requirement, wh where.Express
 
 
 func (tbl SUserTable) getRolePtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -509,9 +485,10 @@ func (tbl SUserTable) getRolePtrlist(req require.Requirement, sqlname string, wh
 }
 
 func (tbl SUserTable) getboollist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -534,9 +511,10 @@ func (tbl SUserTable) getboollist(req require.Requirement, sqlname string, wh wh
 }
 
 func (tbl SUserTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -559,9 +537,10 @@ func (tbl SUserTable) getint64list(req require.Requirement, sqlname string, wh w
 }
 
 func (tbl SUserTable) getint64Ptrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -584,9 +563,10 @@ func (tbl SUserTable) getint64Ptrlist(req require.Requirement, sqlname string, w
 }
 
 func (tbl SUserTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -609,9 +589,10 @@ func (tbl SUserTable) getstringlist(req require.Requirement, sqlname string, wh 
 }
 
 func (tbl SUserTable) getstringPtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {

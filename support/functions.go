@@ -2,12 +2,12 @@ package support
 
 import (
 	"database/sql"
+	"fmt"
+	"log"
 	"strings"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/require"
-	"log"
 	"github.com/rickb777/sqlgen2/where"
-	"fmt"
 )
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
@@ -15,6 +15,7 @@ func ReplaceTableName(tbl sqlgen2.Table, query string) string {
 	return strings.Replace(query, "{TABLE}", tbl.Name().String(), -1)
 }
 
+// QueryOneNullThing queries for one cell of one record. Normally, the holder will be sql.NullString or similar.
 func QueryOneNullThing(tbl sqlgen2.Table, req require.Requirement, holder interface{}, query string, args ...interface{}) error {
 	var n int64 = 0
 	query = ReplaceTableName(tbl, query)
@@ -45,9 +46,10 @@ func QueryOneNullThing(tbl sqlgen2.Table, req require.Requirement, holder interf
 
 //-------------------------------------------------------------------------------------------------
 
+// Exec executes a modification query (insert, update, delete, etc) and returns the number of items affected.
 func Exec(tbl sqlgen2.Table, req require.Requirement, query string, args ...interface{}) (int64, error) {
 	LogQuery(tbl.Logger(), query, args...)
-	res, err := tbl.Execer().ExecContext(tbl.Ctx(), query, args...)
+	res, err := tbl.Database().DB().ExecContext(tbl.Ctx(), query, args...)
 	if err != nil {
 		return 0, LogError(tbl.Logger(), err)
 	}
@@ -55,6 +57,7 @@ func Exec(tbl sqlgen2.Table, req require.Requirement, query string, args ...inte
 	return n, LogIfError(tbl.Logger(), require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 
+// UpdateFields writes certain fields of all the records matching a 'where' expression.
 func UpdateFields(tbl sqlgen2.Table, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect(), 1), ", ")

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"testing"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
-	. "github.com/rickb777/sqlgen2/model"
 	. "github.com/rickb777/sqlgen2/schema"
 	. "github.com/rickb777/sqlgen2/sqlgen/parse"
 	"strings"
@@ -252,8 +251,9 @@ var allXExampleQuotedColumnNames = []string{
 // GetExample gets the record with a given primary key value.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
+	dialect := tbl.Dialect()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"))
+		allXExampleQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"))
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -262,8 +262,9 @@ func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl XExampleTable) MustGetExample(id int64) (*Example, error) {
+	dialect := tbl.Dialect()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"))
+		allXExampleQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"))
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -279,9 +280,10 @@ func (tbl XExampleTable) GetExamples(req require.Requirement, id ...int64) (list
 		if req == require.All {
 			req = require.Exactly(len(id))
 		}
-		pl := tbl.dialect.Placeholders(len(id))
+		dialect := tbl.Dialect()
+		pl := dialect.Placeholders(len(id))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("id"), pl)
+			allXExampleQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -340,9 +342,10 @@ func (tbl XExampleTable) SliceAge(req require.Requirement, wh where.Expression, 
 
 
 func (tbl XExampleTable) getintlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -365,9 +368,10 @@ func (tbl XExampleTable) getintlist(req require.Requirement, sqlname string, wh 
 }
 
 func (tbl XExampleTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -390,9 +394,10 @@ func (tbl XExampleTable) getint64list(req require.Requirement, sqlname string, w
 }
 
 func (tbl XExampleTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -448,7 +453,7 @@ func TestWriteSelectRow(t *testing.T) {
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
+		allXExampleQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -461,8 +466,9 @@ func (tbl XExampleTable) SelectOneWhere(req require.Requirement, where, orderBy 
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl XExampleTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Example, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -476,7 +482,7 @@ func (tbl XExampleTable) SelectOne(req require.Requirement, wh where.Expression,
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Example, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allXExampleQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
+		allXExampleQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }
@@ -488,8 +494,9 @@ func (tbl XExampleTable) SelectWhere(req require.Requirement, where, orderBy str
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl XExampleTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Example, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -508,7 +515,7 @@ func (tbl XExampleTable) CountWhere(where string, args ...interface{}) (count in
 // Count counts the Examples in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl XExampleTable) Count(wh where.Expression) (count int64, err error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.Dialect())
 	return tbl.CountWhere(whs, args...)
 }
 `, "¬", "`", -1)
@@ -555,7 +562,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	}
 
 	var count int64
-	columns := allXExampleQuotedInserts[tbl.dialect.Index()]
+	columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
 	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
@@ -639,7 +646,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	}
 
 	var count int64
-	columns := allXExampleQuotedInserts[tbl.dialect.Index()]
+	columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
 	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
@@ -757,7 +764,7 @@ func (tbl XExampleTable) Update(req require.Requirement, vv ...*Example) (int64,
 	}
 
 	var count int64
-	columns := allXExampleQuotedUpdates[tbl.dialect.Index()]
+	columns := allXExampleQuotedUpdates[tbl.Dialect().Index()]
 	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
@@ -822,11 +829,12 @@ func (tbl XExampleTable) DeleteExamples(req require.Requirement, id ...int64) (i
 	if len(id) < batch {
 		max = len(id)
 	}
-	col := tbl.dialect.Quote("id")
+	dialect := tbl.Dialect()
+	col := dialect.Quote("id")
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
-		pl := tbl.dialect.Placeholders(batch)
+		pl := dialect.Placeholders(batch)
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
@@ -845,7 +853,7 @@ func (tbl XExampleTable) DeleteExamples(req require.Requirement, id ...int64) (i
 	}
 
 	if len(id) > 0 {
-		pl := tbl.dialect.Placeholders(len(id))
+		pl := dialect.Placeholders(len(id))
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
@@ -867,7 +875,7 @@ func (tbl XExampleTable) Delete(req require.Requirement, wh where.Expression) (i
 }
 
 func (tbl XExampleTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.Dialect())
 	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }

@@ -2,7 +2,7 @@ package constraint
 
 import (
 	"fmt"
-	"github.com/rickb777/sqlgen2/model"
+	"github.com/rickb777/sqlgen2"
 )
 
 type Dialect interface {
@@ -12,7 +12,7 @@ type Dialect interface {
 // Constraint represents data that augments the data-definition SQL statements such as CREATE TABLE.
 type Constraint interface {
 	// ConstraintSql constructs the CONSTRAINT clause to be included in the CREATE TABLE.
-	ConstraintSql(dialect Dialect, name model.TableName, index int) string
+	ConstraintSql(dialect Dialect, name sqlgen2.TableName, index int) string
 	GoString() string
 }
 
@@ -28,7 +28,7 @@ type CheckConstraint struct {
 }
 
 // ConstraintSql constructs the CONSTRAINT clause to be included in the CREATE TABLE.
-func (c CheckConstraint) ConstraintSql(dialect Dialect, name model.TableName, index int) string {
+func (c CheckConstraint) ConstraintSql(dialect Dialect, name sqlgen2.TableName, index int) string {
 	return fmt.Sprintf("CONSTRAINT %s_c%d CHECK (%s)", name, index, c.Expression)
 }
 
@@ -102,7 +102,7 @@ func (c FkConstraint) OnDelete(consequence Consequence) FkConstraint {
 }
 
 // ConstraintSql constructs the CONSTRAINT clause to be included in the CREATE TABLE.
-func (c FkConstraint) ConstraintSql(dialect Dialect, name model.TableName, index int) string {
+func (c FkConstraint) ConstraintSql(dialect Dialect, name sqlgen2.TableName, index int) string {
 	return fmt.Sprintf("CONSTRAINT %s_c%d %s", name, index, c.Sql(dialect , name.Prefix))
 }
 

@@ -1,4 +1,4 @@
-package model
+package sqlgen2
 
 // TableName holds a two-part name. The prefix part is optional.
 type TableName struct {

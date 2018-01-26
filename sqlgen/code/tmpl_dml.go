@@ -179,8 +179,9 @@ var all{{.CamelName}}QuotedColumnNames = []string{
 // Get{{.Type}} gets the record with a given primary key value.
 // If not found, *{{.Type}} will be nil.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
+	dialect := tbl.Dialect()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("{{.Table.Primary.SqlName}}"))
+		all{{.CamelName}}QuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("{{.Table.Primary.SqlName}}"))
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -189,8 +190,9 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustGet{{.Type}}(id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
+	dialect := tbl.Dialect()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("{{.Table.Primary.SqlName}}"))
+		all{{.CamelName}}QuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("{{.Table.Primary.SqlName}}"))
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -206,9 +208,10 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}(req require.Requirement,
 		if req == require.All {
 			req = require.Exactly(len(id))
 		}
-		pl := tbl.dialect.Placeholders(len(id))
+		dialect := tbl.Dialect()
+		pl := dialect.Placeholders(len(id))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("{{.Table.Primary.SqlName}}"), pl)
+			all{{.CamelName}}QuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("{{.Table.Primary.SqlName}}"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -239,7 +242,7 @@ const sSelectRows = `
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
+		all{{.CamelName}}QuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -252,8 +255,9 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*{{.Type}}, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -267,7 +271,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(req require.Requirement, wh 
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ({{.List}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		all{{.CamelName}}QuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
+		all{{.CamelName}}QuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }
@@ -279,8 +283,9 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(req require.Requirement, w
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ({{.List}}, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 `
@@ -305,7 +310,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(where string, args ...inter
 // Count counts the {{.Types}} in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Count(wh where.Expression) (count int64, err error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.Dialect())
 	return tbl.CountWhere(whs, args...)
 }
 `
@@ -326,9 +331,10 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require
 {{end}}
 {{range .Table.SimpleFields.DistinctTypes}}
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) get{{.Tag}}list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -378,7 +384,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 	}
 
 	var count int64
-	columns := all{{.CamelName}}QuotedInserts[tbl.dialect.Index()]
+	columns := all{{.CamelName}}QuotedInserts[tbl.Dialect().Index()]
 	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
@@ -468,7 +474,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 	}
 
 	var count int64
-	columns := all{{.CamelName}}QuotedUpdates[tbl.dialect.Index()]
+	columns := all{{.CamelName}}QuotedUpdates[tbl.Dialect().Index()]
 	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
@@ -520,11 +526,12 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 	if len(id) < batch {
 		max = len(id)
 	}
-	col := tbl.dialect.Quote("{{.Table.Primary.SqlName}}")
+	dialect := tbl.Dialect()
+	col := dialect.Quote("{{.Table.Primary.SqlName}}")
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
-		pl := tbl.dialect.Placeholders(batch)
+		pl := dialect.Placeholders(batch)
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
@@ -543,7 +550,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 	}
 
 	if len(id) > 0 {
-		pl := tbl.dialect.Placeholders(len(id))
+		pl := dialect.Placeholders(len(id))
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
@@ -566,7 +573,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete(req require.Requirement, wh whe
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.Dialect())
 	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }

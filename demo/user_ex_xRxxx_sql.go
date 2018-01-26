@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
@@ -22,13 +21,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type RUserTable struct {
-	name        model.TableName
+	name        sqlgen2.TableName
+	database    *sqlgen2.Database
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
-	ctx         context.Context
-	dialect     schema.Dialect
-	logger      *log.Logger
-	wrapper     interface{}
+	ctx			context.Context
 }
 
 // Type conformance checks
@@ -38,11 +35,11 @@ var _ sqlgen2.Table = &RUserTable{}
 // NewRUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewRUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) RUserTable {
+func NewRUserTable(name sqlgen2.TableName, d *sqlgen2.Database) RUserTable {
 	if name.Name == "" {
 		name.Name = "users"
 	}
-	table := RUserTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := RUserTable{name, d, d.DB(), nil, context.Background()}
 	table.constraints = append(table.constraints,
 		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	
@@ -57,11 +54,10 @@ func NewRUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialec
 func CopyTableAsRUserTable(origin sqlgen2.Table) RUserTable {
 	return RUserTable{
 		name:        origin.Name(),
+		database:    origin.Database(),
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
-		dialect:     origin.Dialect(),
-		logger:      origin.Logger(),
 	}
 }
 
@@ -79,23 +75,14 @@ func (tbl RUserTable) WithContext(ctx context.Context) RUserTable {
 	return tbl
 }
 
-// WithLogger sets the logger for subsequent queries.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl RUserTable) WithLogger(logger *log.Logger) RUserTable {
-	tbl.logger = logger
-	return tbl
+// Database gets the shared database information.
+func (tbl RUserTable) Database() *sqlgen2.Database {
+	return tbl.database
 }
 
 // Logger gets the trace logger.
 func (tbl RUserTable) Logger() *log.Logger {
-	return tbl.logger
-}
-
-// SetLogger sets the logger for subsequent queries, returning the interface.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl RUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.logger = logger
-	return tbl
+	return tbl.database.Logger()
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
@@ -111,23 +98,11 @@ func (tbl RUserTable) Ctx() context.Context {
 
 // Dialect gets the database dialect.
 func (tbl RUserTable) Dialect() schema.Dialect {
-	return tbl.dialect
-}
-
-// Wrapper gets the user-defined wrapper.
-func (tbl RUserTable) Wrapper() interface{} {
-	return tbl.wrapper
-}
-
-// SetWrapper sets the user-defined wrapper.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl RUserTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
-	tbl.wrapper = wrapper
-	return tbl
+	return tbl.database.Dialect()
 }
 
 // Name gets the table name.
-func (tbl RUserTable) Name() model.TableName {
+func (tbl RUserTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
 
@@ -172,15 +147,15 @@ func (tbl RUserTable) Using(tx *sql.Tx) RUserTable {
 }
 
 func (tbl RUserTable) logQuery(query string, args ...interface{}) {
-	support.LogQuery(tbl.logger, query, args...)
+	support.LogQuery(tbl.Logger(), query, args...)
 }
 
 func (tbl RUserTable) logError(err error) error {
-	return support.LogError(tbl.logger, err)
+	return support.LogError(tbl.Logger(), err)
 }
 
 func (tbl RUserTable) logIfError(err error) error {
-	return support.LogIfError(tbl.logger, err)
+	return support.LogIfError(tbl.Logger(), err)
 }
 
 
@@ -430,8 +405,9 @@ var allRUserQuotedColumnNames = []string{
 // GetUser gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl RUserTable) GetUser(id int64) (*User, error) {
+	dialect := tbl.Dialect()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("uid"))
+		allRUserQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("uid"))
 	v, err := tbl.doQueryOne(nil, query, id)
 	return v, err
 }
@@ -440,8 +416,9 @@ func (tbl RUserTable) GetUser(id int64) (*User, error) {
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 func (tbl RUserTable) MustGetUser(id int64) (*User, error) {
+	dialect := tbl.Dialect()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("uid"))
+		allRUserQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("uid"))
 	v, err := tbl.doQueryOne(require.One, query, id)
 	return v, err
 }
@@ -457,9 +434,10 @@ func (tbl RUserTable) GetUsers(req require.Requirement, id ...int64) (list []*Us
 		if req == require.All {
 			req = require.Exactly(len(id))
 		}
-		pl := tbl.dialect.Placeholders(len(id))
+		dialect := tbl.Dialect()
+		pl := dialect.Placeholders(len(id))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, tbl.dialect.Quote("uid"), pl)
+			allRUserQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("uid"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
@@ -485,7 +463,7 @@ func (tbl RUserTable) GetUsers(req require.Requirement, id ...int64) (list []*Us
 // The args are for any placeholder parameters in the query.
 func (tbl RUserTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
+		allRUserQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -498,8 +476,9 @@ func (tbl RUserTable) SelectOneWhere(req require.Requirement, where, orderBy str
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl RUserTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -513,7 +492,7 @@ func (tbl RUserTable) SelectOne(req require.Requirement, wh where.Expression, qc
 // The args are for any placeholder parameters in the query.
 func (tbl RUserTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allRUserQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
+		allRUserQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }
@@ -525,8 +504,9 @@ func (tbl RUserTable) SelectWhere(req require.Requirement, where, orderBy string
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl RUserTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -545,6 +525,6 @@ func (tbl RUserTable) CountWhere(where string, args ...interface{}) (count int64
 // Count counts the Users in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl RUserTable) Count(wh where.Expression) (count int64, err error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.Dialect())
 	return tbl.CountWhere(whs, args...)
 }

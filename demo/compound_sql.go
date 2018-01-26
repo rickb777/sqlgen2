@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
@@ -22,13 +21,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DbCompoundTable struct {
-	name        model.TableName
+	name        sqlgen2.TableName
+	database    *sqlgen2.Database
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
-	dialect     schema.Dialect
-	logger      *log.Logger
-	wrapper     interface{}
 }
 
 // Type conformance checks
@@ -38,11 +35,11 @@ var _ sqlgen2.TableWithCrud = &DbCompoundTable{}
 // NewDbCompoundTable returns a new table instance.
 // If a blank table name is supplied, the default name "compounds" will be used instead.
 // The request context is initialised with the background.
-func NewDbCompoundTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) DbCompoundTable {
+func NewDbCompoundTable(name sqlgen2.TableName, d *sqlgen2.Database) DbCompoundTable {
 	if name.Name == "" {
 		name.Name = "compounds"
 	}
-	table := DbCompoundTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := DbCompoundTable{name, d, d.DB(), nil, context.Background()}
 	return table
 }
 
@@ -54,11 +51,10 @@ func NewDbCompoundTable(name model.TableName, d sqlgen2.Execer, dialect schema.D
 func CopyTableAsDbCompoundTable(origin sqlgen2.Table) DbCompoundTable {
 	return DbCompoundTable{
 		name:        origin.Name(),
+		database:    origin.Database(),
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
-		dialect:     origin.Dialect(),
-		logger:      origin.Logger(),
 	}
 }
 
@@ -76,23 +72,14 @@ func (tbl DbCompoundTable) WithContext(ctx context.Context) DbCompoundTable {
 	return tbl
 }
 
-// WithLogger sets the logger for subsequent queries.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl DbCompoundTable) WithLogger(logger *log.Logger) DbCompoundTable {
-	tbl.logger = logger
-	return tbl
+// Database gets the shared database information.
+func (tbl DbCompoundTable) Database() *sqlgen2.Database {
+	return tbl.database
 }
 
 // Logger gets the trace logger.
 func (tbl DbCompoundTable) Logger() *log.Logger {
-	return tbl.logger
-}
-
-// SetLogger sets the logger for subsequent queries, returning the interface.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl DbCompoundTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.logger = logger
-	return tbl
+	return tbl.database.Logger()
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
@@ -108,23 +95,11 @@ func (tbl DbCompoundTable) Ctx() context.Context {
 
 // Dialect gets the database dialect.
 func (tbl DbCompoundTable) Dialect() schema.Dialect {
-	return tbl.dialect
-}
-
-// Wrapper gets the user-defined wrapper.
-func (tbl DbCompoundTable) Wrapper() interface{} {
-	return tbl.wrapper
-}
-
-// SetWrapper sets the user-defined wrapper.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl DbCompoundTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
-	tbl.wrapper = wrapper
-	return tbl
+	return tbl.database.Dialect()
 }
 
 // Name gets the table name.
-func (tbl DbCompoundTable) Name() model.TableName {
+func (tbl DbCompoundTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
 
@@ -169,15 +144,15 @@ func (tbl DbCompoundTable) Using(tx *sql.Tx) DbCompoundTable {
 }
 
 func (tbl DbCompoundTable) logQuery(query string, args ...interface{}) {
-	support.LogQuery(tbl.logger, query, args...)
+	support.LogQuery(tbl.Logger(), query, args...)
 }
 
 func (tbl DbCompoundTable) logError(err error) error {
-	return support.LogError(tbl.logger, err)
+	return support.LogError(tbl.Logger(), err)
 }
 
 func (tbl DbCompoundTable) logIfError(err error) error {
-	return support.LogIfError(tbl.logger, err)
+	return support.LogIfError(tbl.Logger(), err)
 }
 
 //--------------------------------------------------------------------------------
@@ -222,7 +197,7 @@ func (tbl DbCompoundTable) CreateTable(ifNotExists bool) (int64, error) {
 func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
 	var columns string
 	var settings string
-	switch tbl.dialect {
+	switch tbl.Dialect() {
 	case schema.Sqlite:
 		columns = sqlDbCompoundTableCreateColumnsSqlite
 		settings = ""
@@ -243,7 +218,7 @@ func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")
-		buf.WriteString(c.ConstraintSql(tbl.dialect, tbl.name, i+1))
+		buf.WriteString(c.ConstraintSql(tbl.Dialect(), tbl.name, i+1))
 	}
 	buf.WriteString("\n)")
 	buf.WriteString(settings)
@@ -293,12 +268,12 @@ func (tbl DbCompoundTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreateAlphaBetaIndex creates the alpha_beta index.
 func (tbl DbCompoundTable) CreateAlphaBetaIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.dialect != schema.Mysql, "IF NOT EXISTS ", "")
+	ine := tbl.ternary(ifNotExist && tbl.Dialect() != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.dialect == schema.Mysql {
+	if ifNotExist && tbl.Dialect() == schema.Mysql {
 		tbl.Execer().ExecContext(tbl.Ctx(), tbl.dropDbAlphaBetaIndexSql(false))
 		ine = ""
 	}
@@ -321,8 +296,8 @@ func (tbl DbCompoundTable) DropAlphaBetaIndex(ifExists bool) error {
 
 func (tbl DbCompoundTable) dropDbAlphaBetaIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.dialect != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.dialect == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	ie := tbl.ternary(ifExists && tbl.Dialect() != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect() == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
 	indexPrefix := tbl.name.PrefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%salpha_beta%s", ie, indexPrefix, onTbl)
 }
@@ -348,7 +323,7 @@ func (tbl DbCompoundTable) DropIndexes(ifExist bool) (err error) {
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
 func (tbl DbCompoundTable) Truncate(force bool) (err error) {
-	for _, query := range tbl.dialect.TruncateDDL(tbl.Name().String(), force) {
+	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
 		_, err = tbl.Exec(nil, query)
 		if err != nil {
 			return err
@@ -573,7 +548,7 @@ var allDbCompoundQuotedColumnNames = []string{
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Compound, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allDbCompoundQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
+		allDbCompoundQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -586,8 +561,9 @@ func (tbl DbCompoundTable) SelectOneWhere(req require.Requirement, where, orderB
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl DbCompoundTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Compound, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -601,7 +577,7 @@ func (tbl DbCompoundTable) SelectOne(req require.Requirement, wh where.Expressio
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Compound, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allDbCompoundQuotedColumnNames[tbl.dialect.Index()], tbl.name, where, orderBy)
+		allDbCompoundQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }
@@ -613,8 +589,9 @@ func (tbl DbCompoundTable) SelectWhere(req require.Requirement, where, orderBy s
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl DbCompoundTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Compound, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -633,7 +610,7 @@ func (tbl DbCompoundTable) CountWhere(where string, args ...interface{}) (count 
 // Count counts the Compounds in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl DbCompoundTable) Count(wh where.Expression) (count int64, err error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.Dialect())
 	return tbl.CountWhere(whs, args...)
 }
 
@@ -661,9 +638,10 @@ func (tbl DbCompoundTable) SliceCategory(req require.Requirement, wh where.Expre
 }
 
 func (tbl DbCompoundTable) getCategorylist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -686,9 +664,10 @@ func (tbl DbCompoundTable) getCategorylist(req require.Requirement, sqlname stri
 }
 
 func (tbl DbCompoundTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
-	orderBy := where.BuildQueryConstraint(qc, tbl.dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", tbl.dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
 	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
@@ -732,7 +711,7 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 	}
 
 	var count int64
-	columns := allDbCompoundQuotedInserts[tbl.dialect.Index()]
+	columns := allDbCompoundQuotedInserts[tbl.Dialect().Index()]
 	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
 	st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	if err != nil {
@@ -800,7 +779,7 @@ func (tbl DbCompoundTable) Delete(req require.Requirement, wh where.Expression) 
 }
 
 func (tbl DbCompoundTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.BuildExpression(wh, tbl.dialect)
+	whs, args := where.BuildExpression(wh, tbl.Dialect())
 	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }

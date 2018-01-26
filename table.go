@@ -2,21 +2,20 @@ package sqlgen2
 
 import (
 	"database/sql"
-	"context"
-	"log"
-	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
+	"log"
+	"context"
 )
 
 // Table provides the generic features of each generated table handler.
 type Table interface {
 	// Name gets the table name. without prefix
-	Name() model.TableName
+	Name() TableName
 
-	// Execer gets the wrapped database or transaction handle.
-	Execer() Execer
+	// Database gets the shared database information.
+	Database() *Database
 
 	// DB gets the wrapped database handle, provided this is not within a transaction.
 	// Panics if it is in the wrong state - use IsTx() if necessary.
@@ -37,15 +36,6 @@ type Table interface {
 
 	// Logger gets the trace logger.
 	Logger() *log.Logger
-
-	// SetLogger sets the trace logger.
-	SetLogger(logger *log.Logger) Table
-
-	// Wrapper gets whatever structure is present, as needed.
-	Wrapper() interface{}
-
-	// SetWrapper sets a user-defined wrapper or container.
-	SetWrapper(wrapper interface{}) Table
 
 	//---------------------------------------------------------------------------------------------
 	// The following type-specific methods are also provided (but are not part of this interface).

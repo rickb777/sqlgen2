@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
@@ -22,13 +21,11 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type UUserTable struct {
-	name        model.TableName
+	name        sqlgen2.TableName
+	database    *sqlgen2.Database
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
-	ctx         context.Context
-	dialect     schema.Dialect
-	logger      *log.Logger
-	wrapper     interface{}
+	ctx			context.Context
 }
 
 // Type conformance checks
@@ -38,11 +35,11 @@ var _ sqlgen2.Table = &UUserTable{}
 // NewUUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewUUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialect) UUserTable {
+func NewUUserTable(name sqlgen2.TableName, d *sqlgen2.Database) UUserTable {
 	if name.Name == "" {
 		name.Name = "users"
 	}
-	table := UUserTable{name, d, nil, context.Background(), dialect, nil, nil}
+	table := UUserTable{name, d, d.DB(), nil, context.Background()}
 	table.constraints = append(table.constraints,
 		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	
@@ -57,11 +54,10 @@ func NewUUserTable(name model.TableName, d sqlgen2.Execer, dialect schema.Dialec
 func CopyTableAsUUserTable(origin sqlgen2.Table) UUserTable {
 	return UUserTable{
 		name:        origin.Name(),
+		database:    origin.Database(),
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         origin.Ctx(),
-		dialect:     origin.Dialect(),
-		logger:      origin.Logger(),
 	}
 }
 
@@ -79,23 +75,14 @@ func (tbl UUserTable) WithContext(ctx context.Context) UUserTable {
 	return tbl
 }
 
-// WithLogger sets the logger for subsequent queries.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl UUserTable) WithLogger(logger *log.Logger) UUserTable {
-	tbl.logger = logger
-	return tbl
+// Database gets the shared database information.
+func (tbl UUserTable) Database() *sqlgen2.Database {
+	return tbl.database
 }
 
 // Logger gets the trace logger.
 func (tbl UUserTable) Logger() *log.Logger {
-	return tbl.logger
-}
-
-// SetLogger sets the logger for subsequent queries, returning the interface.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl UUserTable) SetLogger(logger *log.Logger) sqlgen2.Table {
-	tbl.logger = logger
-	return tbl
+	return tbl.database.Logger()
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
@@ -111,23 +98,11 @@ func (tbl UUserTable) Ctx() context.Context {
 
 // Dialect gets the database dialect.
 func (tbl UUserTable) Dialect() schema.Dialect {
-	return tbl.dialect
-}
-
-// Wrapper gets the user-defined wrapper.
-func (tbl UUserTable) Wrapper() interface{} {
-	return tbl.wrapper
-}
-
-// SetWrapper sets the user-defined wrapper.
-// The result is a modified copy of the table; the original is unchanged.
-func (tbl UUserTable) SetWrapper(wrapper interface{}) sqlgen2.Table {
-	tbl.wrapper = wrapper
-	return tbl
+	return tbl.database.Dialect()
 }
 
 // Name gets the table name.
-func (tbl UUserTable) Name() model.TableName {
+func (tbl UUserTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
 
@@ -172,15 +147,15 @@ func (tbl UUserTable) Using(tx *sql.Tx) UUserTable {
 }
 
 func (tbl UUserTable) logQuery(query string, args ...interface{}) {
-	support.LogQuery(tbl.logger, query, args...)
+	support.LogQuery(tbl.Logger(), query, args...)
 }
 
 func (tbl UUserTable) logError(err error) error {
-	return support.LogError(tbl.logger, err)
+	return support.LogError(tbl.Logger(), err)
 }
 
 func (tbl UUserTable) logIfError(err error) error {
-	return support.LogIfError(tbl.logger, err)
+	return support.LogIfError(tbl.Logger(), err)
 }
 
 
@@ -455,7 +430,7 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 	}
 
 	var count int64
-	columns := allUUserQuotedUpdates[tbl.dialect.Index()]
+	columns := allUUserQuotedUpdates[tbl.Dialect().Index()]
 	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {

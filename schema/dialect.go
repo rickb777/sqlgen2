@@ -7,11 +7,13 @@ import (
 
 type Dialect interface {
 	Index() int
+	String() string
+	Alias() string
+
 	TableDDL(*TableDescription) string
 	FieldDDL(w io.Writer, field *Field, comma string) string
 	InsertDML(*TableDescription) string
 	UpdateDML(*TableDescription) string
-	//DeleteDML(*TableDescription, FieldList) string
 	TruncateDDL(tableName string, force bool) []string
 	CreateTableSettings() string
 	FieldAsColumn(*Field) string
@@ -20,8 +22,6 @@ type Dialect interface {
 	Quote(string) string
 	ReplacePlaceholders(sql string) string
 	Placeholders(n int) string
-	String() string
-	Alias() string
 }
 
 //-------------------------------------------------------------------------------------------------
