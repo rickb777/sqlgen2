@@ -320,7 +320,7 @@ func (tbl IssueTable) CreateIssueAssigneeIndex(ifNotExist bool) error {
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.dialect == schema.Mysql {
-		tbl.DropIssueAssigneeIndex(false)
+		tbl.Execer().ExecContext(tbl.Ctx(), tbl.dropIssueAssigneeIndexSql(false))
 		ine = ""
 	}
 

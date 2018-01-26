@@ -365,7 +365,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ifNotExi
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.dialect == schema.Mysql {
-		tbl.Drop{{camel .Name}}Index(false)
+		tbl.Execer().ExecContext(tbl.Ctx(), tbl.drop{{$.Prefix}}{{camel .Name}}IndexSql(false))
 		ine = ""
 	}
 

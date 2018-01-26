@@ -343,7 +343,7 @@ func (tbl DbUserTable) CreateUserEmailIndex(ifNotExist bool) error {
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.dialect == schema.Mysql {
-		tbl.DropUserEmailIndex(false)
+		tbl.Execer().ExecContext(tbl.Ctx(), tbl.dropDbUserEmailIndexSql(false))
 		ine = ""
 	}
 
@@ -379,7 +379,7 @@ func (tbl DbUserTable) CreateUserLoginIndex(ifNotExist bool) error {
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.dialect == schema.Mysql {
-		tbl.DropUserLoginIndex(false)
+		tbl.Execer().ExecContext(tbl.Ctx(), tbl.dropDbUserLoginIndexSql(false))
 		ine = ""
 	}
 
