@@ -5,6 +5,7 @@ import (
 	"github.com/rickb777/sqlgen2/util"
 	"log"
 	"context"
+	"database/sql"
 )
 
 type Database struct {
@@ -56,6 +57,43 @@ func (database *Database) SetWrapper(wrapper interface{}) *Database {
 	database.wrapper = wrapper
 	return database
 }
+
+//-------------------------------------------------------------------------------------------------
+
+func (database *Database) Exec(query string, args ...interface{}) (sql.Result, error) {
+	return database.db.ExecContext(database.ctx, query, args...)
+}
+
+func (database *Database) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	return database.db.ExecContext(ctx, query, args...)
+}
+
+func (database *Database) Prepare(query string) (*sql.Stmt, error) {
+	return database.db.PrepareContext(database.ctx, query)
+}
+
+func (database *Database) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	return database.db.PrepareContext(ctx, query)
+}
+
+func (database *Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	return database.db.QueryContext(database.ctx, query, args...)
+}
+
+func (database *Database) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	return database.db.QueryContext(ctx, query, args...)
+}
+
+func (database *Database) QueryRow(query string, args ...interface{}) *sql.Row {
+	return database.db.QueryRowContext(database.ctx, query, args...)
+}
+
+func (database *Database) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	return database.db.QueryRowContext(ctx, query, args...)
+}
+
+//-------------------------------------------------------------------------------------------------
+
 
 // DoesTableExist gets all the table names in the database/schema.
 func (database *Database) TableExists(name TableName) (yes bool, err error) {
