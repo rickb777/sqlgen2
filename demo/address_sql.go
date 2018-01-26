@@ -196,12 +196,12 @@ const AddressPk = "id"
 
 //--------------------------------------------------------------------------------
 
-const sqlAddressTableCreateColumnsSqlite =
+const sqlAddressTableCreateColumnsSqlite = "\n"+
 " `id`       integer primary key autoincrement,\n"+
 " `lines`    text,\n"+
 " `postcode` text"
 
-const sqlAddressTableCreateColumnsMysql =
+const sqlAddressTableCreateColumnsMysql = "\n"+
 " `id`       bigint primary key auto_increment,\n"+
 " `lines`    json,\n"+
 " `postcode` varchar(20)"
@@ -245,7 +245,7 @@ func (tbl AddressTable) createTableSql(ifNotExists bool) string {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (\n")
+	buf.WriteString(" (")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")

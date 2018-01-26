@@ -19,6 +19,7 @@ import (
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/model"
 	"github.com/rickb777/sqlgen2/constraint"
+	"strings"
 )
 
 var db *sql.DB
@@ -57,7 +58,7 @@ func user(i int) *User {
 	}
 }
 
-func xTestCreateTable_sql_syntax(t *testing.T) {
+func TestCreateTable_sql_syntax(t *testing.T) {
 	RegisterTestingT(t)
 
 	cases := []struct {
@@ -66,53 +67,53 @@ func xTestCreateTable_sql_syntax(t *testing.T) {
 	}{
 		{schema.Sqlite,
 `CREATE TABLE IF NOT EXISTS prefix_users (
- uid          integer primary key autoincrement,
- login        text,
- emailaddress text,
- addressid    bigint default null,
- avatar       text default null,
- role         text default null,
- active       boolean,
- admin        boolean,
- fave         text,
- lastupdated  bigint,
- token        text,
- secret       text,
- CONSTRAINT prefix_users_c1 foreign key (addressid) references prefix_addresses (id) on update restrict on delete restrict,
+ ¬uid¬          integer primary key autoincrement,
+ ¬login¬        text,
+ ¬emailaddress¬ text,
+ ¬addressid¬    bigint default null,
+ ¬avatar¬       text default null,
+ ¬role¬         text default null,
+ ¬active¬       boolean,
+ ¬admin¬        boolean,
+ ¬fave¬         text,
+ ¬lastupdated¬  bigint,
+ ¬token¬        text,
+ ¬secret¬       text,
+ CONSTRAINT prefix_users_c1 foreign key (¬addressid¬) references prefix_addresses (¬id¬) on update restrict on delete restrict,
  CONSTRAINT prefix_users_c2 CHECK (role < 3)
 )`},
 		{schema.Mysql,
 `CREATE TABLE IF NOT EXISTS prefix_users (
- uid          bigint primary key auto_increment,
- login        varchar(255),
- emailaddress varchar(255),
- addressid    bigint default null,
- avatar       varchar(255) default null,
- role         varchar(20) default null,
- active       tinyint(1),
- admin        tinyint(1),
- fave         json,
- lastupdated  bigint,
- token        varchar(255),
- secret       varchar(255),
- CONSTRAINT prefix_users_c1 foreign key (addressid) references prefix_addresses (id) on update restrict on delete restrict,
+ ¬uid¬          bigint primary key auto_increment,
+ ¬login¬        varchar(255),
+ ¬emailaddress¬ varchar(255),
+ ¬addressid¬    bigint default null,
+ ¬avatar¬       varchar(255) default null,
+ ¬role¬         varchar(20) default null,
+ ¬active¬       tinyint(1),
+ ¬admin¬        tinyint(1),
+ ¬fave¬         json,
+ ¬lastupdated¬  bigint,
+ ¬token¬        varchar(255),
+ ¬secret¬       varchar(255),
+ CONSTRAINT prefix_users_c1 foreign key (¬addressid¬) references prefix_addresses (¬id¬) on update restrict on delete restrict,
  CONSTRAINT prefix_users_c2 CHECK (role < 3)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8`},
 		{schema.Postgres,
 `CREATE TABLE IF NOT EXISTS prefix_users (
- uid          bigserial primary key,
- login        varchar(255),
- emailaddress varchar(255),
- addressid    bigint default null,
- avatar       varchar(255) default null,
- role         varchar(20) default null,
- active       boolean,
- admin        boolean,
- fave         json,
- lastupdated  bigint,
- token        varchar(255),
- secret       varchar(255),
- CONSTRAINT prefix_users_c1 foreign key (addressid) references prefix_addresses (id) on update restrict on delete restrict,
+ "uid"          bigserial primary key,
+ "login"        varchar(255),
+ "emailaddress" varchar(255),
+ "addressid"    bigint default null,
+ "avatar"       varchar(255) default null,
+ "role"         varchar(20) default null,
+ "active"       boolean,
+ "admin"        boolean,
+ "fave"         json,
+ "lastupdated"  bigint,
+ "token"        varchar(255),
+ "secret"       varchar(255),
+ CONSTRAINT prefix_users_c1 foreign key ("addressid") references prefix_addresses ("id") on update restrict on delete restrict,
  CONSTRAINT prefix_users_c2 CHECK (role < 3)
 )`},
 	}
@@ -123,7 +124,24 @@ func xTestCreateTable_sql_syntax(t *testing.T) {
 			WithConstraint(
 			constraint.CheckConstraint{"role < 3"})
 		s := tbl.createTableSql(true)
-		Ω(s).Should(Equal(c.expected), "%s\n%s", c.dialect, s)
+		expected := strings.Replace(c.expected, "¬", "`", -1)
+		if s != expected {
+			outputDiff(s, c.dialect.String()+".txt")
+		}
+		Ω(s).Should(Equal(expected), "%s\n%s", c.dialect, s)
+	}
+}
+
+func outputDiff(a, name string) {
+	f, err := os.Create(name)
+	if err != nil {
+		panic(err)
+	}
+	f.WriteString(a)
+	f.WriteString("\n")
+	err = f.Close()
+	if err != nil {
+		panic(err)
 	}
 }
 

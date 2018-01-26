@@ -195,7 +195,7 @@ const HookPk = "id"
 
 //--------------------------------------------------------------------------------
 
-const sqlHookTableCreateColumnsSqlite =
+const sqlHookTableCreateColumnsSqlite = "\n"+
 " `id`                             integer primary key autoincrement,\n"+
 " `sha`                            text,\n"+
 " `after`                          text,\n"+
@@ -214,7 +214,7 @@ const sqlHookTableCreateColumnsSqlite =
 " `head_commit_committer_email`    text,\n"+
 " `head_commit_committer_username` text"
 
-const sqlHookTableCreateColumnsMysql =
+const sqlHookTableCreateColumnsMysql = "\n"+
 " `id`                             bigint unsigned primary key auto_increment,\n"+
 " `sha`                            varchar(255),\n"+
 " `after`                          varchar(20),\n"+
@@ -282,7 +282,7 @@ func (tbl HookTable) createTableSql(ifNotExists bool) string {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (\n")
+	buf.WriteString(" (")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")

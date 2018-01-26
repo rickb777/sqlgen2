@@ -190,11 +190,13 @@ const DbCompoundColumnNames = "alpha,beta,category"
 
 //--------------------------------------------------------------------------------
 
-const sqlDbCompoundTableCreateColumnsSqlite = " `alpha`    text,\n" +
+const sqlDbCompoundTableCreateColumnsSqlite = "\n" +
+	" `alpha`    text,\n" +
 	" `beta`     text,\n" +
 	" `category` tinyint unsigned"
 
-const sqlDbCompoundTableCreateColumnsMysql = " `alpha`    varchar(255),\n" +
+const sqlDbCompoundTableCreateColumnsMysql = "\n" +
+	" `alpha`    varchar(255),\n" +
 	" `beta`     varchar(255),\n" +
 	" `category` tinyint unsigned"
 
@@ -237,7 +239,7 @@ func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (\n")
+	buf.WriteString(" (")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")

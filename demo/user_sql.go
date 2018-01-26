@@ -199,7 +199,8 @@ const DbUserPk = "uid"
 
 //--------------------------------------------------------------------------------
 
-const sqlDbUserTableCreateColumnsSqlite = " `uid`          integer primary key autoincrement,\n" +
+const sqlDbUserTableCreateColumnsSqlite = "\n" +
+	" `uid`          integer primary key autoincrement,\n" +
 	" `login`        text,\n" +
 	" `emailaddress` text,\n" +
 	" `addressid`    bigint default null,\n" +
@@ -212,7 +213,8 @@ const sqlDbUserTableCreateColumnsSqlite = " `uid`          integer primary key a
 	" `token`        text,\n" +
 	" `secret`       text"
 
-const sqlDbUserTableCreateColumnsMysql = " `uid`          bigint primary key auto_increment,\n" +
+const sqlDbUserTableCreateColumnsMysql = "\n" +
+	" `uid`          bigint primary key auto_increment,\n" +
 	" `login`        varchar(255),\n" +
 	" `emailaddress` varchar(255),\n" +
 	" `addressid`    bigint default null,\n" +
@@ -276,7 +278,7 @@ func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (\n")
+	buf.WriteString(" (")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")

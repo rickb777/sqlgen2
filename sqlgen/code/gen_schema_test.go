@@ -50,7 +50,7 @@ func TestWriteSchemaDeclarations(t *testing.T) {
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
-const sqlXExampleTableCreateColumnsSqlite =
+const sqlXExampleTableCreateColumnsSqlite = "\n"+
 " ¬id¬       integer primary key autoincrement,\n"+
 " ¬cat¬      int,\n"+
 " ¬username¬ text,\n"+
@@ -69,7 +69,7 @@ const sqlXExampleTableCreateColumnsSqlite =
 " ¬bar2¬     text default null,\n"+
 " ¬updated¬  text"
 
-const sqlXExampleTableCreateColumnsMysql =
+const sqlXExampleTableCreateColumnsMysql = "\n"+
 " ¬id¬       bigint primary key auto_increment,\n"+
 " ¬cat¬      int,\n"+
 " ¬username¬ varchar(2048),\n"+

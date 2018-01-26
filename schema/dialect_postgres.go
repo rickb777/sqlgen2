@@ -91,13 +91,11 @@ func (dialect postgres) TableDDL(table *TableDescription) string {
 
 func (dialect postgres) FieldDDL(w io.Writer, field *Field, comma string) string {
 	io.WriteString(w, comma)
-	comma = ",\n"
-
 	io.WriteString(w, "\t\"")
 	io.WriteString(w, string(field.SqlName))
 	io.WriteString(w, "\"\t")
 	io.WriteString(w, dialect.FieldAsColumn(field))
-	return comma
+	return ",\n" // for next iteration
 }
 
 func (dialect postgres) InsertDML(table *TableDescription) string {

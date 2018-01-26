@@ -195,7 +195,7 @@ const AssociationPk = "id"
 
 //--------------------------------------------------------------------------------
 
-const sqlAssociationTableCreateColumnsSqlite =
+const sqlAssociationTableCreateColumnsSqlite = "\n"+
 " `id`       integer primary key autoincrement,\n"+
 " `name`     text default null,\n"+
 " `quality`  text default null,\n"+
@@ -203,7 +203,7 @@ const sqlAssociationTableCreateColumnsSqlite =
 " `ref2`     bigint default null,\n"+
 " `category` tinyint unsigned default null"
 
-const sqlAssociationTableCreateColumnsMysql =
+const sqlAssociationTableCreateColumnsMysql = "\n"+
 " `id`       bigint primary key auto_increment,\n"+
 " `name`     varchar(255) default null,\n"+
 " `quality`  varchar(255) default null,\n"+
@@ -249,7 +249,7 @@ func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (\n")
+	buf.WriteString(" (")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")

@@ -88,7 +88,7 @@ func varchar(size int) string {
 // see https://dev.mysql.com/doc/refman/5.7/en/integer-types.html
 
 func (dialect mysql) TableDDL(table *TableDescription) string {
-	return baseTableDDL(table, dialect, "\n", `"`)
+	return baseTableDDL(table, dialect, " \"\\n\"+\n", `"`)
 }
 
 func (dialect mysql) FieldDDL(w io.Writer, field *Field, comma string) string {

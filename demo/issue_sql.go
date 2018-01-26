@@ -196,7 +196,7 @@ const IssuePk = "id"
 
 //--------------------------------------------------------------------------------
 
-const sqlIssueTableCreateColumnsSqlite =
+const sqlIssueTableCreateColumnsSqlite = "\n"+
 " `id`       integer primary key autoincrement,\n"+
 " `number`   bigint,\n"+
 " `date`     blob,\n"+
@@ -206,7 +206,7 @@ const sqlIssueTableCreateColumnsSqlite =
 " `state`    text,\n"+
 " `labels`   text"
 
-const sqlIssueTableCreateColumnsMysql =
+const sqlIssueTableCreateColumnsMysql = "\n"+
 " `id`       bigint primary key auto_increment,\n"+
 " `number`   bigint,\n"+
 " `date`     mediumblob,\n"+
@@ -260,7 +260,7 @@ func (tbl IssueTable) createTableSql(ifNotExists bool) string {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (\n")
+	buf.WriteString(" (")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")

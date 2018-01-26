@@ -84,7 +84,7 @@ func (dialect sqlite) FieldAsColumn(field *Field) string {
 }
 
 func (dialect sqlite) TableDDL(table *TableDescription) string {
-	return baseTableDDL(table, dialect, "\n", `"`)
+	return baseTableDDL(table, dialect, " \"\\n\"+\n", `"`)
 }
 
 func (dialect sqlite) FieldDDL(w io.Writer, field *Field, comma string) string {
