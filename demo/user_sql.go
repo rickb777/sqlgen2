@@ -199,7 +199,7 @@ const DbUserPk = "uid"
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateColumnsDbUserTableSqlite = " `uid`          integer primary key autoincrement,\n" +
+const sqlDbUserTableCreateColumnsSqlite = " `uid`          integer primary key autoincrement,\n" +
 	" `login`        text,\n" +
 	" `emailaddress` text,\n" +
 	" `addressid`    bigint default null,\n" +
@@ -212,9 +212,7 @@ const sqlCreateColumnsDbUserTableSqlite = " `uid`          integer primary key a
 	" `token`        text,\n" +
 	" `secret`       text"
 
-const sqlCreateSettingsDbUserTableSqlite = ""
-
-const sqlCreateColumnsDbUserTableMysql = " `uid`          bigint primary key auto_increment,\n" +
+const sqlDbUserTableCreateColumnsMysql = " `uid`          bigint primary key auto_increment,\n" +
 	" `login`        varchar(255),\n" +
 	" `emailaddress` varchar(255),\n" +
 	" `addressid`    bigint default null,\n" +
@@ -227,9 +225,7 @@ const sqlCreateColumnsDbUserTableMysql = " `uid`          bigint primary key aut
 	" `token`        varchar(255),\n" +
 	" `secret`       varchar(255)"
 
-const sqlCreateSettingsDbUserTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlCreateColumnsDbUserTablePostgres = `
+const sqlDbUserTableCreateColumnsPostgres = `
  "uid"          bigserial primary key,
  "login"        varchar(255),
  "emailaddress" varchar(255),
@@ -242,8 +238,6 @@ const sqlCreateColumnsDbUserTablePostgres = `
  "lastupdated"  bigint,
  "token"        varchar(255),
  "secret"       varchar(255)`
-
-const sqlCreateSettingsDbUserTablePostgres = ""
 
 const sqlConstrainDbUserTable = `
  CONSTRAINT DbUserc3 foreign key (addressid) references %saddresses (id) on update restrict on delete restrict
@@ -267,14 +261,14 @@ func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
 	var settings string
 	switch tbl.dialect {
 	case schema.Sqlite:
-		columns = sqlCreateColumnsDbUserTableSqlite
-		settings = sqlCreateSettingsDbUserTableSqlite
+		columns = sqlDbUserTableCreateColumnsSqlite
+		settings = ""
 	case schema.Mysql:
-		columns = sqlCreateColumnsDbUserTableMysql
-		settings = sqlCreateSettingsDbUserTableMysql
+		columns = sqlDbUserTableCreateColumnsMysql
+		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
 	case schema.Postgres:
-		columns = sqlCreateColumnsDbUserTablePostgres
-		settings = sqlCreateSettingsDbUserTablePostgres
+		columns = sqlDbUserTableCreateColumnsPostgres
+		settings = ""
 	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -282,7 +276,7 @@ func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (")
+	buf.WriteString(" (\n")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")

@@ -199,7 +199,7 @@ const AUserPk = "uid"
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateColumnsAUserTableSqlite =
+const sqlAUserTableCreateColumnsSqlite =
 " `uid`          integer primary key autoincrement,\n"+
 " `login`        text,\n"+
 " `emailaddress` text,\n"+
@@ -213,9 +213,7 @@ const sqlCreateColumnsAUserTableSqlite =
 " `token`        text,\n"+
 " `secret`       text"
 
-const sqlCreateSettingsAUserTableSqlite = ""
-
-const sqlCreateColumnsAUserTableMysql =
+const sqlAUserTableCreateColumnsMysql =
 " `uid`          bigint primary key auto_increment,\n"+
 " `login`        varchar(255),\n"+
 " `emailaddress` varchar(255),\n"+
@@ -229,9 +227,7 @@ const sqlCreateColumnsAUserTableMysql =
 " `token`        varchar(255),\n"+
 " `secret`       varchar(255)"
 
-const sqlCreateSettingsAUserTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlCreateColumnsAUserTablePostgres = `
+const sqlAUserTableCreateColumnsPostgres = `
  "uid"          bigserial primary key,
  "login"        varchar(255),
  "emailaddress" varchar(255),
@@ -244,8 +240,6 @@ const sqlCreateColumnsAUserTablePostgres = `
  "lastupdated"  bigint,
  "token"        varchar(255),
  "secret"       varchar(255)`
-
-const sqlCreateSettingsAUserTablePostgres = ""
 
 const sqlConstrainAUserTable = `
  CONSTRAINT AUserc3 foreign key (addressid) references %saddresses (id) on update restrict on delete restrict
@@ -269,14 +263,14 @@ func (tbl AUserTable) createTableSql(ifNotExists bool) string {
 	var settings string
 	switch tbl.dialect {
 	case schema.Sqlite:
-		columns = sqlCreateColumnsAUserTableSqlite
-		settings = sqlCreateSettingsAUserTableSqlite
+		columns = sqlAUserTableCreateColumnsSqlite
+		settings = ""
     case schema.Mysql:
-		columns = sqlCreateColumnsAUserTableMysql
-		settings = sqlCreateSettingsAUserTableMysql
+		columns = sqlAUserTableCreateColumnsMysql
+		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
     case schema.Postgres:
-		columns = sqlCreateColumnsAUserTablePostgres
-		settings = sqlCreateSettingsAUserTablePostgres
+		columns = sqlAUserTableCreateColumnsPostgres
+		settings = ""
     }
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -284,7 +278,7 @@ func (tbl AUserTable) createTableSql(ifNotExists bool) string {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (")
+	buf.WriteString(" (\n")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")

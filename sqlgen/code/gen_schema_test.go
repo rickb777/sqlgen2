@@ -50,7 +50,7 @@ func TestWriteSchemaDeclarations(t *testing.T) {
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
-const sqlCreateColumnsXExampleTableSqlite =
+const sqlXExampleTableCreateColumnsSqlite =
 " ¬id¬       integer primary key autoincrement,\n"+
 " ¬cat¬      int,\n"+
 " ¬username¬ text,\n"+
@@ -69,9 +69,7 @@ const sqlCreateColumnsXExampleTableSqlite =
 " ¬bar2¬     text default null,\n"+
 " ¬updated¬  text"
 
-const sqlCreateSettingsXExampleTableSqlite = ""
-
-const sqlCreateColumnsXExampleTableMysql =
+const sqlXExampleTableCreateColumnsMysql =
 " ¬id¬       bigint primary key auto_increment,\n"+
 " ¬cat¬      int,\n"+
 " ¬username¬ varchar(2048),\n"+
@@ -90,9 +88,7 @@ const sqlCreateColumnsXExampleTableMysql =
 " ¬bar2¬     varchar(255) default null,\n"+
 " ¬updated¬  varchar(100)"
 
-const sqlCreateSettingsXExampleTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlCreateColumnsXExampleTablePostgres = ¬
+const sqlXExampleTableCreateColumnsPostgres = ¬
  "id"       bigserial primary key,
  "cat"      int,
  "username" varchar(2048),
@@ -110,8 +106,6 @@ const sqlCreateColumnsXExampleTablePostgres = ¬
  "bar1"     varchar(255),
  "bar2"     varchar(255) default null,
  "updated"  varchar(100)¬
-
-const sqlCreateSettingsXExampleTablePostgres = ""
 
 const sqlConstrainXExampleTable = ¬
 ¬

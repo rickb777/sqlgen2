@@ -49,9 +49,8 @@ func WriteSchemaDeclarations(w io.Writer, view View) {
 
 	for _, d := range schema.AllDialects {
 		ds := d.String()
-		fmt.Fprintf(w, constString, "sqlCreateColumns"+tableName+view.Thing+ds)
+		fmt.Fprintf(w, constString, "sql"+tableName+view.Thing+"CreateColumns"+ds)
 		fmt.Fprintln(w, d.TableDDL(view.Table))
-		fmt.Fprintf(w, constStringQ, "sqlCreateSettings"+tableName+view.Thing+ds, d.CreateTableSettings())
 	}
 
 	fmt.Fprintf(w, "\nconst sqlConstrain%s%s = `", tableName, view.Thing)

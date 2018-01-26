@@ -196,7 +196,7 @@ const IssuePk = "id"
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateColumnsIssueTableSqlite =
+const sqlIssueTableCreateColumnsSqlite =
 " `id`       integer primary key autoincrement,\n"+
 " `number`   bigint,\n"+
 " `date`     blob,\n"+
@@ -206,9 +206,7 @@ const sqlCreateColumnsIssueTableSqlite =
 " `state`    text,\n"+
 " `labels`   text"
 
-const sqlCreateSettingsIssueTableSqlite = ""
-
-const sqlCreateColumnsIssueTableMysql =
+const sqlIssueTableCreateColumnsMysql =
 " `id`       bigint primary key auto_increment,\n"+
 " `number`   bigint,\n"+
 " `date`     mediumblob,\n"+
@@ -218,9 +216,7 @@ const sqlCreateColumnsIssueTableMysql =
 " `state`    varchar(50),\n"+
 " `labels`   json"
 
-const sqlCreateSettingsIssueTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlCreateColumnsIssueTablePostgres = `
+const sqlIssueTableCreateColumnsPostgres = `
  "id"       bigserial primary key,
  "number"   bigint,
  "date"     byteaa,
@@ -229,8 +225,6 @@ const sqlCreateColumnsIssueTablePostgres = `
  "assignee" varchar(255),
  "state"    varchar(50),
  "labels"   json`
-
-const sqlCreateSettingsIssueTablePostgres = ""
 
 const sqlConstrainIssueTable = `
 `
@@ -251,14 +245,14 @@ func (tbl IssueTable) createTableSql(ifNotExists bool) string {
 	var settings string
 	switch tbl.dialect {
 	case schema.Sqlite:
-		columns = sqlCreateColumnsIssueTableSqlite
-		settings = sqlCreateSettingsIssueTableSqlite
+		columns = sqlIssueTableCreateColumnsSqlite
+		settings = ""
     case schema.Mysql:
-		columns = sqlCreateColumnsIssueTableMysql
-		settings = sqlCreateSettingsIssueTableMysql
+		columns = sqlIssueTableCreateColumnsMysql
+		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
     case schema.Postgres:
-		columns = sqlCreateColumnsIssueTablePostgres
-		settings = sqlCreateSettingsIssueTablePostgres
+		columns = sqlIssueTableCreateColumnsPostgres
+		settings = ""
     }
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -266,7 +260,7 @@ func (tbl IssueTable) createTableSql(ifNotExists bool) string {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (")
+	buf.WriteString(" (\n")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")

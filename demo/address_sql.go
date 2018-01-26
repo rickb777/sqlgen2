@@ -196,26 +196,20 @@ const AddressPk = "id"
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateColumnsAddressTableSqlite =
+const sqlAddressTableCreateColumnsSqlite =
 " `id`       integer primary key autoincrement,\n"+
 " `lines`    text,\n"+
 " `postcode` text"
 
-const sqlCreateSettingsAddressTableSqlite = ""
-
-const sqlCreateColumnsAddressTableMysql =
+const sqlAddressTableCreateColumnsMysql =
 " `id`       bigint primary key auto_increment,\n"+
 " `lines`    json,\n"+
 " `postcode` varchar(20)"
 
-const sqlCreateSettingsAddressTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlCreateColumnsAddressTablePostgres = `
+const sqlAddressTableCreateColumnsPostgres = `
  "id"       bigserial primary key,
  "lines"    json,
  "postcode" varchar(20)`
-
-const sqlCreateSettingsAddressTablePostgres = ""
 
 const sqlConstrainAddressTable = `
 `
@@ -236,14 +230,14 @@ func (tbl AddressTable) createTableSql(ifNotExists bool) string {
 	var settings string
 	switch tbl.dialect {
 	case schema.Sqlite:
-		columns = sqlCreateColumnsAddressTableSqlite
-		settings = sqlCreateSettingsAddressTableSqlite
+		columns = sqlAddressTableCreateColumnsSqlite
+		settings = ""
     case schema.Mysql:
-		columns = sqlCreateColumnsAddressTableMysql
-		settings = sqlCreateSettingsAddressTableMysql
+		columns = sqlAddressTableCreateColumnsMysql
+		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
     case schema.Postgres:
-		columns = sqlCreateColumnsAddressTablePostgres
-		settings = sqlCreateSettingsAddressTablePostgres
+		columns = sqlAddressTableCreateColumnsPostgres
+		settings = ""
     }
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -251,7 +245,7 @@ func (tbl AddressTable) createTableSql(ifNotExists bool) string {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (")
+	buf.WriteString(" (\n")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")

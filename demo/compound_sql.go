@@ -190,24 +190,18 @@ const DbCompoundColumnNames = "alpha,beta,category"
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateColumnsDbCompoundTableSqlite = " `alpha`    text,\n" +
+const sqlDbCompoundTableCreateColumnsSqlite = " `alpha`    text,\n" +
 	" `beta`     text,\n" +
 	" `category` tinyint unsigned"
 
-const sqlCreateSettingsDbCompoundTableSqlite = ""
-
-const sqlCreateColumnsDbCompoundTableMysql = " `alpha`    varchar(255),\n" +
+const sqlDbCompoundTableCreateColumnsMysql = " `alpha`    varchar(255),\n" +
 	" `beta`     varchar(255),\n" +
 	" `category` tinyint unsigned"
 
-const sqlCreateSettingsDbCompoundTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlCreateColumnsDbCompoundTablePostgres = `
+const sqlDbCompoundTableCreateColumnsPostgres = `
  "alpha"    varchar(255),
  "beta"     varchar(255),
  "category" tinyint unsigned`
-
-const sqlCreateSettingsDbCompoundTablePostgres = ""
 
 const sqlConstrainDbCompoundTable = `
 `
@@ -228,14 +222,14 @@ func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
 	var settings string
 	switch tbl.dialect {
 	case schema.Sqlite:
-		columns = sqlCreateColumnsDbCompoundTableSqlite
-		settings = sqlCreateSettingsDbCompoundTableSqlite
+		columns = sqlDbCompoundTableCreateColumnsSqlite
+		settings = ""
 	case schema.Mysql:
-		columns = sqlCreateColumnsDbCompoundTableMysql
-		settings = sqlCreateSettingsDbCompoundTableMysql
+		columns = sqlDbCompoundTableCreateColumnsMysql
+		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
 	case schema.Postgres:
-		columns = sqlCreateColumnsDbCompoundTablePostgres
-		settings = sqlCreateSettingsDbCompoundTablePostgres
+		columns = sqlDbCompoundTableCreateColumnsPostgres
+		settings = ""
 	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -243,7 +237,7 @@ func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (")
+	buf.WriteString(" (\n")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")

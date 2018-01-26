@@ -195,7 +195,7 @@ const AssociationPk = "id"
 
 //--------------------------------------------------------------------------------
 
-const sqlCreateColumnsAssociationTableSqlite =
+const sqlAssociationTableCreateColumnsSqlite =
 " `id`       integer primary key autoincrement,\n"+
 " `name`     text default null,\n"+
 " `quality`  text default null,\n"+
@@ -203,9 +203,7 @@ const sqlCreateColumnsAssociationTableSqlite =
 " `ref2`     bigint default null,\n"+
 " `category` tinyint unsigned default null"
 
-const sqlCreateSettingsAssociationTableSqlite = ""
-
-const sqlCreateColumnsAssociationTableMysql =
+const sqlAssociationTableCreateColumnsMysql =
 " `id`       bigint primary key auto_increment,\n"+
 " `name`     varchar(255) default null,\n"+
 " `quality`  varchar(255) default null,\n"+
@@ -213,17 +211,13 @@ const sqlCreateColumnsAssociationTableMysql =
 " `ref2`     bigint default null,\n"+
 " `category` tinyint unsigned default null"
 
-const sqlCreateSettingsAssociationTableMysql = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-
-const sqlCreateColumnsAssociationTablePostgres = `
+const sqlAssociationTableCreateColumnsPostgres = `
  "id"       bigserial primary key,
  "name"     varchar(255) default null,
  "quality"  varchar(255) default null,
  "ref1"     bigint default null,
  "ref2"     bigint default null,
  "category" tinyint unsigned default null`
-
-const sqlCreateSettingsAssociationTablePostgres = ""
 
 const sqlConstrainAssociationTable = `
 `
@@ -240,14 +234,14 @@ func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
 	var settings string
 	switch tbl.dialect {
 	case schema.Sqlite:
-		columns = sqlCreateColumnsAssociationTableSqlite
-		settings = sqlCreateSettingsAssociationTableSqlite
+		columns = sqlAssociationTableCreateColumnsSqlite
+		settings = ""
     case schema.Mysql:
-		columns = sqlCreateColumnsAssociationTableMysql
-		settings = sqlCreateSettingsAssociationTableMysql
+		columns = sqlAssociationTableCreateColumnsMysql
+		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
     case schema.Postgres:
-		columns = sqlCreateColumnsAssociationTablePostgres
-		settings = sqlCreateSettingsAssociationTablePostgres
+		columns = sqlAssociationTableCreateColumnsPostgres
+		settings = ""
     }
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
@@ -255,7 +249,7 @@ func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (")
+	buf.WriteString(" (\n")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")

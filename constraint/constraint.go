@@ -109,7 +109,7 @@ func (c FkConstraint) ConstraintSql(dialect Dialect, name model.TableName, index
 // Column constructs the foreign key clause needed to configure the database.
 func (c FkConstraint) Sql(dialect Dialect, prefix string) string {
 	return fmt.Sprintf("foreign key (%s) references %s%s (%s)%s%s",
-		c.ForeignKeyColumn, prefix, dialect.Quote(c.Parent.TableName), dialect.Quote(c.Parent.Column),
+		dialect.Quote(c.ForeignKeyColumn), prefix, c.Parent.TableName, dialect.Quote(c.Parent.Column),
 		c.Update.Apply(" ", "update"),
 		c.Delete.Apply(" ", "delete"))
 }

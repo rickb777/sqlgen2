@@ -293,8 +293,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) createTableSql(ifNotExists bool) strin
 	switch tbl.dialect {
 	{{range .Dialects -}}
 	case schema.{{.String}}:
-		columns = sqlCreateColumns{{$.Prefix}}{{$.Type}}{{$.Thing}}{{.}}
-		settings = sqlCreateSettings{{$.Prefix}}{{$.Type}}{{$.Thing}}{{.}}
+		columns = sql{{$.Prefix}}{{$.Type}}{{$.Thing}}CreateColumns{{.}}
+		settings = "{{.CreateTableSettings}}"
     {{end -}}
 	}
 	buf := &bytes.Buffer{}
@@ -303,7 +303,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) createTableSql(ifNotExists bool) strin
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (")
+	buf.WriteString(" (\n")
 	buf.WriteString(columns)
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")
