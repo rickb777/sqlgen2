@@ -115,9 +115,9 @@ func (database *Database) TableExists(name TableName) (yes bool, err error) {
 }
 
 // ListTables gets all the table names in the database/schema.
-func (database *Database) ListTables(dialect schema.Dialect) (util.StringList, error) {
+func (database *Database) ListTables() (util.StringList, error) {
 	ss := make(util.StringList, 0)
-	rows, err := database.db.QueryContext(database.ctx, showTables(dialect))
+	rows, err := database.db.QueryContext(database.ctx, showTables(database.dialect))
 	if err != nil {
 		return nil, err
 	}

@@ -1,30 +1,30 @@
-// A simple type derived from map[Type]struct{}
+// A simple type derived from map[string]struct{}
 // Not thread-safe.
 //
-// Generated from simple/set.tpl with Type=Type
+// Generated from simple/set.tpl with Type=string
 // options: Numeric:false Stringer:<no value> Mutable:always
 
-package schema
+package util
 
-// TypeSet is the primary type that represents a set
-type TypeSet map[Type]struct{}
+// StringSet is the primary type that represents a set
+type StringSet map[string]struct{}
 
-// NewTypeSet creates and returns a reference to an empty set.
-func NewTypeSet(values ...Type) TypeSet {
-	set := make(TypeSet)
+// NewStringSet creates and returns a reference to an empty set.
+func NewStringSet(values ...string) StringSet {
+	set := make(StringSet)
 	for _, i := range values {
 		set[i] = struct{}{}
 	}
 	return set
 }
 
-// ConvertTypeSet constructs a new set containing the supplied values, if any.
+// ConvertStringSet constructs a new set containing the supplied values, if any.
 // The returned boolean will be false if any of the values could not be converted correctly.
-func ConvertTypeSet(values ...interface{}) (TypeSet, bool) {
-	set := make(TypeSet)
+func ConvertStringSet(values ...interface{}) (StringSet, bool) {
+	set := make(StringSet)
 
 	for _, i := range values {
-		v, ok := i.(Type)
+		v, ok := i.(string)
 		if ok {
 		    set[v] = struct{}{}
 		}
@@ -33,10 +33,10 @@ func ConvertTypeSet(values ...interface{}) (TypeSet, bool) {
 	return set, len(set) == len(values)
 }
 
-// BuildTypeSetFromChan constructs a new TypeSet from a channel that supplies a sequence
+// BuildStringSetFromChan constructs a new StringSet from a channel that supplies a sequence
 // of values until it is closed. The function doesn't return until then.
-func BuildTypeSetFromChan(source <-chan Type) TypeSet {
-	set := make(TypeSet)
+func BuildStringSetFromChan(source <-chan string) StringSet {
+	set := make(StringSet)
 	for v := range source {
 		set[v] = struct{}{}
 	}
@@ -44,8 +44,8 @@ func BuildTypeSetFromChan(source <-chan Type) TypeSet {
 }
 
 // ToSlice returns the elements of the current set as a slice.
-func (set TypeSet) ToSlice() []Type {
-	var s []Type
+func (set StringSet) ToSlice() []string {
+	var s []string
 	for v := range set {
 		s = append(s, v)
 	}
@@ -53,7 +53,7 @@ func (set TypeSet) ToSlice() []Type {
 }
 
 // ToInterfaceSlice returns the elements of the current set as a slice of arbitrary type.
-func (set TypeSet) ToInterfaceSlice() []interface{} {
+func (set StringSet) ToInterfaceSlice() []interface{} {
 	var s []interface{}
 	for v := range set {
 		s = append(s, v)
@@ -62,8 +62,8 @@ func (set TypeSet) ToInterfaceSlice() []interface{} {
 }
 
 // Clone returns a shallow copy of the map. It does not clone the underlying elements.
-func (set TypeSet) Clone() TypeSet {
-	clonedSet := NewTypeSet()
+func (set StringSet) Clone() StringSet {
+	clonedSet := NewStringSet()
 	for v := range set {
 		clonedSet.doAdd(v)
 	}
@@ -73,57 +73,57 @@ func (set TypeSet) Clone() TypeSet {
 //-------------------------------------------------------------------------------------------------
 
 // IsEmpty returns true if the set is empty.
-func (set TypeSet) IsEmpty() bool {
+func (set StringSet) IsEmpty() bool {
 	return set.Size() == 0
 }
 
 // NonEmpty returns true if the set is not empty.
-func (set TypeSet) NonEmpty() bool {
+func (set StringSet) NonEmpty() bool {
 	return set.Size() > 0
 }
 
 // IsSequence returns true for lists.
-func (set TypeSet) IsSequence() bool {
+func (set StringSet) IsSequence() bool {
 	return false
 }
 
 // IsSet returns false for lists.
-func (set TypeSet) IsSet() bool {
+func (set StringSet) IsSet() bool {
 	return true
 }
 
 // Size returns how many items are currently in the set. This is a synonym for Cardinality.
-func (set TypeSet) Size() int {
+func (set StringSet) Size() int {
 	return len(set)
 }
 
 // Cardinality returns how many items are currently in the set. This is a synonym for Size.
-func (set TypeSet) Cardinality() int {
+func (set StringSet) Cardinality() int {
 	return set.Size()
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // Add adds items to the current set, returning the modified set.
-func (set TypeSet) Add(i ...Type) TypeSet {
+func (set StringSet) Add(i ...string) StringSet {
 	for _, v := range i {
 		set.doAdd(v)
 	}
 	return set
 }
 
-func (set TypeSet) doAdd(i Type) {
+func (set StringSet) doAdd(i string) {
 	set[i] = struct{}{}
 }
 
 // Contains determines if a given item is already in the set.
-func (set TypeSet) Contains(i Type) bool {
+func (set StringSet) Contains(i string) bool {
 	_, found := set[i]
 	return found
 }
 
 // ContainsAll determines if the given items are all in the set
-func (set TypeSet) ContainsAll(i ...Type) bool {
+func (set StringSet) ContainsAll(i ...string) bool {
 	for _, v := range i {
 		if !set.Contains(v) {
 			return false
@@ -135,7 +135,7 @@ func (set TypeSet) ContainsAll(i ...Type) bool {
 //-------------------------------------------------------------------------------------------------
 
 // IsSubset determines if every item in the other set is in this set.
-func (set TypeSet) IsSubset(other TypeSet) bool {
+func (set StringSet) IsSubset(other StringSet) bool {
 	for v := range set {
 		if !other.Contains(v) {
 			return false
@@ -145,12 +145,12 @@ func (set TypeSet) IsSubset(other TypeSet) bool {
 }
 
 // IsSuperset determines if every item of this set is in the other set.
-func (set TypeSet) IsSuperset(other TypeSet) bool {
+func (set StringSet) IsSuperset(other StringSet) bool {
 	return other.IsSubset(set)
 }
 
 // Union returns a new set with all items in both sets.
-func (set TypeSet) Append(more ...Type) TypeSet {
+func (set StringSet) Append(more ...string) StringSet {
 	unionedSet := set.Clone()
 	for _, v := range more {
 		unionedSet.doAdd(v)
@@ -159,7 +159,7 @@ func (set TypeSet) Append(more ...Type) TypeSet {
 }
 
 // Union returns a new set with all items in both sets.
-func (set TypeSet) Union(other TypeSet) TypeSet {
+func (set StringSet) Union(other StringSet) StringSet {
 	unionedSet := set.Clone()
 	for v := range other {
 		unionedSet.doAdd(v)
@@ -168,8 +168,8 @@ func (set TypeSet) Union(other TypeSet) TypeSet {
 }
 
 // Intersect returns a new set with items that exist only in both sets.
-func (set TypeSet) Intersect(other TypeSet) TypeSet {
-	intersection := NewTypeSet()
+func (set StringSet) Intersect(other StringSet) StringSet {
+	intersection := NewStringSet()
 	// loop over smaller set
 	if set.Size() < other.Size() {
 		for v := range set {
@@ -188,8 +188,8 @@ func (set TypeSet) Intersect(other TypeSet) TypeSet {
 }
 
 // Difference returns a new set with items in the current set but not in the other set
-func (set TypeSet) Difference(other TypeSet) TypeSet {
-	differencedSet := NewTypeSet()
+func (set StringSet) Difference(other StringSet) StringSet {
+	differencedSet := NewStringSet()
 	for v := range set {
 		if !other.Contains(v) {
 			differencedSet.doAdd(v)
@@ -199,19 +199,19 @@ func (set TypeSet) Difference(other TypeSet) TypeSet {
 }
 
 // SymmetricDifference returns a new set with items in the current set or the other set but not in both.
-func (set TypeSet) SymmetricDifference(other TypeSet) TypeSet {
+func (set StringSet) SymmetricDifference(other StringSet) StringSet {
 	aDiff := set.Difference(other)
 	bDiff := other.Difference(set)
 	return aDiff.Union(bDiff)
 }
 
 // Clear clears the entire set to be the empty set.
-func (set *TypeSet) Clear() {
-	*set = NewTypeSet()
+func (set *StringSet) Clear() {
+	*set = NewStringSet()
 }
 
 // Remove allows the removal of a single item from the set.
-func (set TypeSet) Remove(i Type) {
+func (set StringSet) Remove(i string) {
 	delete(set, i)
 }
 
@@ -219,8 +219,8 @@ func (set TypeSet) Remove(i Type) {
 
 // Send returns a channel that will send all the elements in order.
 // A goroutine is created to send the elements; this only terminates when all the elements have been consumed
-func (set TypeSet) Send() <-chan Type {
-	ch := make(chan Type)
+func (set StringSet) Send() <-chan string {
+	ch := make(chan string)
 	go func() {
 		for v := range set {
 			ch <- v
@@ -239,7 +239,7 @@ func (set TypeSet) Send() <-chan Type {
 //
 // Note that this method can also be used simply as a way to visit every element using a function
 // with some side-effects; such a function must always return true.
-func (set TypeSet) Forall(fn func(Type) bool) bool {
+func (set StringSet) Forall(fn func(string) bool) bool {
 	for v := range set {
 		if !fn(v) {
 			return false
@@ -251,7 +251,7 @@ func (set TypeSet) Forall(fn func(Type) bool) bool {
 // Exists applies a predicate function to every element in the set. If the function returns true,
 // the iteration terminates early. The returned value is true if an early return occurred.
 // or false if all elements were visited without finding a match.
-func (set TypeSet) Exists(fn func(Type) bool) bool {
+func (set StringSet) Exists(fn func(string) bool) bool {
 	for v := range set {
 		if fn(v) {
 			return true
@@ -260,8 +260,8 @@ func (set TypeSet) Exists(fn func(Type) bool) bool {
 	return false
 }
 
-// Foreach iterates over TypeSet and executes the passed func against each element.
-func (set TypeSet) Foreach(fn func(Type)) {
+// Foreach iterates over stringSet and executes the passed func against each element.
+func (set StringSet) Foreach(fn func(string)) {
 	for v := range set {
 		fn(v)
 	}
@@ -269,10 +269,10 @@ func (set TypeSet) Foreach(fn func(Type)) {
 
 //-------------------------------------------------------------------------------------------------
 
-// Filter returns a new TypeSet whose elements return true for func.
+// Filter returns a new StringSet whose elements return true for func.
 // The original set is not modified
-func (set TypeSet) Filter(fn func(Type) bool) TypeSet {
-	result := NewTypeSet()
+func (set StringSet) Filter(fn func(string) bool) StringSet {
+	result := NewStringSet()
 	for v := range set {
 		if fn(v) {
 			result[v] = struct{}{}
@@ -281,14 +281,14 @@ func (set TypeSet) Filter(fn func(Type) bool) TypeSet {
 	return result
 }
 
-// Partition returns two new TypeSets whose elements return true or false for the predicate, p.
+// Partition returns two new stringSets whose elements return true or false for the predicate, p.
 // The first result consists of all elements that satisfy the predicate and the second result consists of
 // all elements that don't. The relative order of the elements in the results is the same as in the
 // original list.
 // The original set is not modified
-func (set TypeSet) Partition(p func(Type) bool) (TypeSet, TypeSet) {
-	matching := NewTypeSet()
-	others := NewTypeSet()
+func (set StringSet) Partition(p func(string) bool) (StringSet, StringSet) {
+	matching := NewStringSet()
+	others := NewStringSet()
 	for v := range set {
 		if p(v) {
 			matching[v] = struct{}{}
@@ -299,13 +299,13 @@ func (set TypeSet) Partition(p func(Type) bool) (TypeSet, TypeSet) {
 	return matching, others
 }
 
-// Map returns a new TypeSet by transforming every element with a function fn.
+// Map returns a new StringSet by transforming every element with a function fn.
 // The original set is not modified.
 //
 // This is a domain-to-range mapping function. For bespoke transformations to other types, copy and modify
 // this method appropriately.
-func (set TypeSet) Map(fn func(Type) Type) TypeSet {
-	result := NewTypeSet()
+func (set StringSet) Map(fn func(string) string) StringSet {
+	result := NewStringSet()
 
 	for v := range set {
         result[fn(v)] = struct{}{}
@@ -314,14 +314,14 @@ func (set TypeSet) Map(fn func(Type) Type) TypeSet {
 	return result
 }
 
-// FlatMap returns a new TypeSet by transforming every element with a function fn that
+// FlatMap returns a new StringSet by transforming every element with a function fn that
 // returns zero or more items in a slice. The resulting list may have a different size to the original list.
 // The original list is not modified.
 //
 // This is a domain-to-range mapping function. For bespoke transformations to other types, copy and modify
 // this method appropriately.
-func (set TypeSet) FlatMap(fn func(Type) []Type) TypeSet {
-	result := NewTypeSet()
+func (set StringSet) FlatMap(fn func(string) []string) StringSet {
+	result := NewStringSet()
 
 	for v, _ := range set {
 	    for _, x := range fn(v) {
@@ -332,8 +332,8 @@ func (set TypeSet) FlatMap(fn func(Type) []Type) TypeSet {
 	return result
 }
 
-// CountBy gives the number elements of TypeSet that return true for the passed predicate.
-func (set TypeSet) CountBy(predicate func(Type) bool) (result int) {
+// CountBy gives the number elements of StringSet that return true for the passed predicate.
+func (set StringSet) CountBy(predicate func(string) bool) (result int) {
 	for v := range set {
 		if predicate(v) {
 			result++
@@ -342,14 +342,34 @@ func (set TypeSet) CountBy(predicate func(Type) bool) (result int) {
 	return
 }
 
-// MinBy returns an element of TypeSet containing the minimum value, when compared to other elements
+
+//-------------------------------------------------------------------------------------------------
+// These methods are included when string is ordered.
+
+// Min returns the first element containing the minimum value, when compared to other elements.
+// Panics if the collection is empty.
+func (list StringSet) Min() string {
+	return list.MinBy(func(a string, b string) bool {
+		return a < b
+	})
+}
+
+// Max returns the first element containing the maximum value, when compared to other elements.
+// Panics if the collection is empty.
+func (list StringSet) Max() (result string) {
+	return list.MaxBy(func(a string, b string) bool {
+		return a < b
+	})
+}
+
+// MinBy returns an element of StringSet containing the minimum value, when compared to other elements
 // using a passed func defining ‘less’. In the case of multiple items being equally minimal, the first such
 // element is returned. Panics if there are no elements.
-func (set TypeSet) MinBy(less func(Type, Type) bool) Type {
+func (set StringSet) MinBy(less func(string, string) bool) string {
 	if set.IsEmpty() {
 		panic("Cannot determine the minimum of an empty list.")
 	}
-	var m Type
+	var m string
 	first := true
 	for v := range set {
 		if first {
@@ -362,14 +382,14 @@ func (set TypeSet) MinBy(less func(Type, Type) bool) Type {
 	return m
 }
 
-// MaxBy returns an element of TypeSet containing the maximum value, when compared to other elements
+// MaxBy returns an element of StringSet containing the maximum value, when compared to other elements
 // using a passed func defining ‘less’. In the case of multiple items being equally maximal, the first such
 // element is returned. Panics if there are no elements.
-func (set TypeSet) MaxBy(less func(Type, Type) bool) Type {
+func (set StringSet) MaxBy(less func(string, string) bool) string {
 	if set.IsEmpty() {
 		panic("Cannot determine the minimum of an empty list.")
 	}
-	var m Type
+	var m string
 	first := true
 	for v := range set {
 		if first {
@@ -387,7 +407,7 @@ func (set TypeSet) MaxBy(less func(Type, Type) bool) Type {
 // Equals determines if two sets are equal to each other.
 // If they both are the same size and have the same items they are considered equal.
 // Order of items is not relevent for sets to be equal.
-func (set TypeSet) Equals(other TypeSet) bool {
+func (set StringSet) Equals(other StringSet) bool {
 	if set.Size() != other.Size() {
 		return false
 	}

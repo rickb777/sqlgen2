@@ -3,17 +3,18 @@ package main
 import (
 	"bytes"
 	"flag"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 	"github.com/kortschak/utter"
 	"github.com/rickb777/sqlgen2/schema"
 	. "github.com/rickb777/sqlgen2/sqlgen/code"
 	. "github.com/rickb777/sqlgen2/sqlgen/output"
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
-	"io"
-	"os"
-	"strings"
-	"path/filepath"
-	"time"
+	"github.com/rickb777/sqlgen2/util"
 )
 
 func main() {
@@ -173,8 +174,8 @@ func main() {
 	Info("%s took %v\n", o.Path(), time.Now().Sub(start))
 }
 
-func packagesToImport(flags funcFlags, hasPrimaryKey bool) StringSet {
-	imports := NewStringSet(
+func packagesToImport(flags funcFlags, hasPrimaryKey bool) util.StringSet {
+	imports := util.NewStringSet(
 		"context",
 		"database/sql",
 		"log",

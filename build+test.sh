@@ -22,10 +22,10 @@ fi
 
 ### Collection Types ###
 # these generated files hardly ever need to change (see github.com/rickb777/runtemplate to do so)
-[ -f schema/type_set.go ]        || runtemplate -tpl simple/set.tpl  -output schema/type_set.go        Type=Type
-[ -f sqlgen/code/string_set.go ] || runtemplate -tpl simple/set.tpl  -output sqlgen/code/string_set.go Type=string
-[ -f util/int64_set.go ]         || runtemplate -tpl simple/set.tpl  -output util/int64_set.go         Type=int64
-[ -f util/string_list.go ]       || runtemplate -tpl simple/list.tpl -output util/string_list.go       Type=string
+[ -f schema/type_set.go ]   || runtemplate -tpl simple/set.tpl  -output schema/type_set.go  Type=Type   Comparable:true Ordered:false Numeric:false
+[ -f util/int64_set.go ]    || runtemplate -tpl simple/set.tpl  -output util/int64_set.go   Type=int64  Comparable:true Ordered:true  Numeric:true
+[ -f util/string_list.go ]  || runtemplate -tpl simple/list.tpl -output util/string_list.go Type=string Comparable:true Ordered:true  Numeric:false
+[ -f util/string_set.go ]   || runtemplate -tpl simple/set.tpl  -output util/string_set.go  Type=string Comparable:true Ordered:true  Numeric:false
 
 ### Build Phase 1 ###
 

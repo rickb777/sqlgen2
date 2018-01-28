@@ -1,30 +1,30 @@
-// A simple type derived from map[Type]struct{}
+// A simple type derived from map[int64]struct{}
 // Not thread-safe.
 //
-// Generated from simple/set.tpl with Type=Type
-// options: Numeric:false Stringer:<no value> Mutable:always
+// Generated from simple/set.tpl with Type=int64
+// options: Numeric:true Stringer:<no value> Mutable:always
 
-package schema
+package util
 
-// TypeSet is the primary type that represents a set
-type TypeSet map[Type]struct{}
+// Int64Set is the primary type that represents a set
+type Int64Set map[int64]struct{}
 
-// NewTypeSet creates and returns a reference to an empty set.
-func NewTypeSet(values ...Type) TypeSet {
-	set := make(TypeSet)
+// NewInt64Set creates and returns a reference to an empty set.
+func NewInt64Set(values ...int64) Int64Set {
+	set := make(Int64Set)
 	for _, i := range values {
 		set[i] = struct{}{}
 	}
 	return set
 }
 
-// ConvertTypeSet constructs a new set containing the supplied values, if any.
+// ConvertInt64Set constructs a new set containing the supplied values, if any.
 // The returned boolean will be false if any of the values could not be converted correctly.
-func ConvertTypeSet(values ...interface{}) (TypeSet, bool) {
-	set := make(TypeSet)
+func ConvertInt64Set(values ...interface{}) (Int64Set, bool) {
+	set := make(Int64Set)
 
 	for _, i := range values {
-		v, ok := i.(Type)
+		v, ok := i.(int64)
 		if ok {
 		    set[v] = struct{}{}
 		}
@@ -33,10 +33,10 @@ func ConvertTypeSet(values ...interface{}) (TypeSet, bool) {
 	return set, len(set) == len(values)
 }
 
-// BuildTypeSetFromChan constructs a new TypeSet from a channel that supplies a sequence
+// BuildInt64SetFromChan constructs a new Int64Set from a channel that supplies a sequence
 // of values until it is closed. The function doesn't return until then.
-func BuildTypeSetFromChan(source <-chan Type) TypeSet {
-	set := make(TypeSet)
+func BuildInt64SetFromChan(source <-chan int64) Int64Set {
+	set := make(Int64Set)
 	for v := range source {
 		set[v] = struct{}{}
 	}
@@ -44,8 +44,8 @@ func BuildTypeSetFromChan(source <-chan Type) TypeSet {
 }
 
 // ToSlice returns the elements of the current set as a slice.
-func (set TypeSet) ToSlice() []Type {
-	var s []Type
+func (set Int64Set) ToSlice() []int64 {
+	var s []int64
 	for v := range set {
 		s = append(s, v)
 	}
@@ -53,7 +53,7 @@ func (set TypeSet) ToSlice() []Type {
 }
 
 // ToInterfaceSlice returns the elements of the current set as a slice of arbitrary type.
-func (set TypeSet) ToInterfaceSlice() []interface{} {
+func (set Int64Set) ToInterfaceSlice() []interface{} {
 	var s []interface{}
 	for v := range set {
 		s = append(s, v)
@@ -62,8 +62,8 @@ func (set TypeSet) ToInterfaceSlice() []interface{} {
 }
 
 // Clone returns a shallow copy of the map. It does not clone the underlying elements.
-func (set TypeSet) Clone() TypeSet {
-	clonedSet := NewTypeSet()
+func (set Int64Set) Clone() Int64Set {
+	clonedSet := NewInt64Set()
 	for v := range set {
 		clonedSet.doAdd(v)
 	}
@@ -73,57 +73,57 @@ func (set TypeSet) Clone() TypeSet {
 //-------------------------------------------------------------------------------------------------
 
 // IsEmpty returns true if the set is empty.
-func (set TypeSet) IsEmpty() bool {
+func (set Int64Set) IsEmpty() bool {
 	return set.Size() == 0
 }
 
 // NonEmpty returns true if the set is not empty.
-func (set TypeSet) NonEmpty() bool {
+func (set Int64Set) NonEmpty() bool {
 	return set.Size() > 0
 }
 
 // IsSequence returns true for lists.
-func (set TypeSet) IsSequence() bool {
+func (set Int64Set) IsSequence() bool {
 	return false
 }
 
 // IsSet returns false for lists.
-func (set TypeSet) IsSet() bool {
+func (set Int64Set) IsSet() bool {
 	return true
 }
 
 // Size returns how many items are currently in the set. This is a synonym for Cardinality.
-func (set TypeSet) Size() int {
+func (set Int64Set) Size() int {
 	return len(set)
 }
 
 // Cardinality returns how many items are currently in the set. This is a synonym for Size.
-func (set TypeSet) Cardinality() int {
+func (set Int64Set) Cardinality() int {
 	return set.Size()
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // Add adds items to the current set, returning the modified set.
-func (set TypeSet) Add(i ...Type) TypeSet {
+func (set Int64Set) Add(i ...int64) Int64Set {
 	for _, v := range i {
 		set.doAdd(v)
 	}
 	return set
 }
 
-func (set TypeSet) doAdd(i Type) {
+func (set Int64Set) doAdd(i int64) {
 	set[i] = struct{}{}
 }
 
 // Contains determines if a given item is already in the set.
-func (set TypeSet) Contains(i Type) bool {
+func (set Int64Set) Contains(i int64) bool {
 	_, found := set[i]
 	return found
 }
 
 // ContainsAll determines if the given items are all in the set
-func (set TypeSet) ContainsAll(i ...Type) bool {
+func (set Int64Set) ContainsAll(i ...int64) bool {
 	for _, v := range i {
 		if !set.Contains(v) {
 			return false
@@ -135,7 +135,7 @@ func (set TypeSet) ContainsAll(i ...Type) bool {
 //-------------------------------------------------------------------------------------------------
 
 // IsSubset determines if every item in the other set is in this set.
-func (set TypeSet) IsSubset(other TypeSet) bool {
+func (set Int64Set) IsSubset(other Int64Set) bool {
 	for v := range set {
 		if !other.Contains(v) {
 			return false
@@ -145,12 +145,12 @@ func (set TypeSet) IsSubset(other TypeSet) bool {
 }
 
 // IsSuperset determines if every item of this set is in the other set.
-func (set TypeSet) IsSuperset(other TypeSet) bool {
+func (set Int64Set) IsSuperset(other Int64Set) bool {
 	return other.IsSubset(set)
 }
 
 // Union returns a new set with all items in both sets.
-func (set TypeSet) Append(more ...Type) TypeSet {
+func (set Int64Set) Append(more ...int64) Int64Set {
 	unionedSet := set.Clone()
 	for _, v := range more {
 		unionedSet.doAdd(v)
@@ -159,7 +159,7 @@ func (set TypeSet) Append(more ...Type) TypeSet {
 }
 
 // Union returns a new set with all items in both sets.
-func (set TypeSet) Union(other TypeSet) TypeSet {
+func (set Int64Set) Union(other Int64Set) Int64Set {
 	unionedSet := set.Clone()
 	for v := range other {
 		unionedSet.doAdd(v)
@@ -168,8 +168,8 @@ func (set TypeSet) Union(other TypeSet) TypeSet {
 }
 
 // Intersect returns a new set with items that exist only in both sets.
-func (set TypeSet) Intersect(other TypeSet) TypeSet {
-	intersection := NewTypeSet()
+func (set Int64Set) Intersect(other Int64Set) Int64Set {
+	intersection := NewInt64Set()
 	// loop over smaller set
 	if set.Size() < other.Size() {
 		for v := range set {
@@ -188,8 +188,8 @@ func (set TypeSet) Intersect(other TypeSet) TypeSet {
 }
 
 // Difference returns a new set with items in the current set but not in the other set
-func (set TypeSet) Difference(other TypeSet) TypeSet {
-	differencedSet := NewTypeSet()
+func (set Int64Set) Difference(other Int64Set) Int64Set {
+	differencedSet := NewInt64Set()
 	for v := range set {
 		if !other.Contains(v) {
 			differencedSet.doAdd(v)
@@ -199,19 +199,19 @@ func (set TypeSet) Difference(other TypeSet) TypeSet {
 }
 
 // SymmetricDifference returns a new set with items in the current set or the other set but not in both.
-func (set TypeSet) SymmetricDifference(other TypeSet) TypeSet {
+func (set Int64Set) SymmetricDifference(other Int64Set) Int64Set {
 	aDiff := set.Difference(other)
 	bDiff := other.Difference(set)
 	return aDiff.Union(bDiff)
 }
 
 // Clear clears the entire set to be the empty set.
-func (set *TypeSet) Clear() {
-	*set = NewTypeSet()
+func (set *Int64Set) Clear() {
+	*set = NewInt64Set()
 }
 
 // Remove allows the removal of a single item from the set.
-func (set TypeSet) Remove(i Type) {
+func (set Int64Set) Remove(i int64) {
 	delete(set, i)
 }
 
@@ -219,8 +219,8 @@ func (set TypeSet) Remove(i Type) {
 
 // Send returns a channel that will send all the elements in order.
 // A goroutine is created to send the elements; this only terminates when all the elements have been consumed
-func (set TypeSet) Send() <-chan Type {
-	ch := make(chan Type)
+func (set Int64Set) Send() <-chan int64 {
+	ch := make(chan int64)
 	go func() {
 		for v := range set {
 			ch <- v
@@ -239,7 +239,7 @@ func (set TypeSet) Send() <-chan Type {
 //
 // Note that this method can also be used simply as a way to visit every element using a function
 // with some side-effects; such a function must always return true.
-func (set TypeSet) Forall(fn func(Type) bool) bool {
+func (set Int64Set) Forall(fn func(int64) bool) bool {
 	for v := range set {
 		if !fn(v) {
 			return false
@@ -251,7 +251,7 @@ func (set TypeSet) Forall(fn func(Type) bool) bool {
 // Exists applies a predicate function to every element in the set. If the function returns true,
 // the iteration terminates early. The returned value is true if an early return occurred.
 // or false if all elements were visited without finding a match.
-func (set TypeSet) Exists(fn func(Type) bool) bool {
+func (set Int64Set) Exists(fn func(int64) bool) bool {
 	for v := range set {
 		if fn(v) {
 			return true
@@ -260,8 +260,8 @@ func (set TypeSet) Exists(fn func(Type) bool) bool {
 	return false
 }
 
-// Foreach iterates over TypeSet and executes the passed func against each element.
-func (set TypeSet) Foreach(fn func(Type)) {
+// Foreach iterates over int64Set and executes the passed func against each element.
+func (set Int64Set) Foreach(fn func(int64)) {
 	for v := range set {
 		fn(v)
 	}
@@ -269,10 +269,10 @@ func (set TypeSet) Foreach(fn func(Type)) {
 
 //-------------------------------------------------------------------------------------------------
 
-// Filter returns a new TypeSet whose elements return true for func.
+// Filter returns a new Int64Set whose elements return true for func.
 // The original set is not modified
-func (set TypeSet) Filter(fn func(Type) bool) TypeSet {
-	result := NewTypeSet()
+func (set Int64Set) Filter(fn func(int64) bool) Int64Set {
+	result := NewInt64Set()
 	for v := range set {
 		if fn(v) {
 			result[v] = struct{}{}
@@ -281,14 +281,14 @@ func (set TypeSet) Filter(fn func(Type) bool) TypeSet {
 	return result
 }
 
-// Partition returns two new TypeSets whose elements return true or false for the predicate, p.
+// Partition returns two new int64Sets whose elements return true or false for the predicate, p.
 // The first result consists of all elements that satisfy the predicate and the second result consists of
 // all elements that don't. The relative order of the elements in the results is the same as in the
 // original list.
 // The original set is not modified
-func (set TypeSet) Partition(p func(Type) bool) (TypeSet, TypeSet) {
-	matching := NewTypeSet()
-	others := NewTypeSet()
+func (set Int64Set) Partition(p func(int64) bool) (Int64Set, Int64Set) {
+	matching := NewInt64Set()
+	others := NewInt64Set()
 	for v := range set {
 		if p(v) {
 			matching[v] = struct{}{}
@@ -299,13 +299,13 @@ func (set TypeSet) Partition(p func(Type) bool) (TypeSet, TypeSet) {
 	return matching, others
 }
 
-// Map returns a new TypeSet by transforming every element with a function fn.
+// Map returns a new Int64Set by transforming every element with a function fn.
 // The original set is not modified.
 //
 // This is a domain-to-range mapping function. For bespoke transformations to other types, copy and modify
 // this method appropriately.
-func (set TypeSet) Map(fn func(Type) Type) TypeSet {
-	result := NewTypeSet()
+func (set Int64Set) Map(fn func(int64) int64) Int64Set {
+	result := NewInt64Set()
 
 	for v := range set {
         result[fn(v)] = struct{}{}
@@ -314,14 +314,14 @@ func (set TypeSet) Map(fn func(Type) Type) TypeSet {
 	return result
 }
 
-// FlatMap returns a new TypeSet by transforming every element with a function fn that
+// FlatMap returns a new Int64Set by transforming every element with a function fn that
 // returns zero or more items in a slice. The resulting list may have a different size to the original list.
 // The original list is not modified.
 //
 // This is a domain-to-range mapping function. For bespoke transformations to other types, copy and modify
 // this method appropriately.
-func (set TypeSet) FlatMap(fn func(Type) []Type) TypeSet {
-	result := NewTypeSet()
+func (set Int64Set) FlatMap(fn func(int64) []int64) Int64Set {
+	result := NewInt64Set()
 
 	for v, _ := range set {
 	    for _, x := range fn(v) {
@@ -332,8 +332,8 @@ func (set TypeSet) FlatMap(fn func(Type) []Type) TypeSet {
 	return result
 }
 
-// CountBy gives the number elements of TypeSet that return true for the passed predicate.
-func (set TypeSet) CountBy(predicate func(Type) bool) (result int) {
+// CountBy gives the number elements of Int64Set that return true for the passed predicate.
+func (set Int64Set) CountBy(predicate func(int64) bool) (result int) {
 	for v := range set {
 		if predicate(v) {
 			result++
@@ -342,14 +342,34 @@ func (set TypeSet) CountBy(predicate func(Type) bool) (result int) {
 	return
 }
 
-// MinBy returns an element of TypeSet containing the minimum value, when compared to other elements
+
+//-------------------------------------------------------------------------------------------------
+// These methods are included when int64 is ordered.
+
+// Min returns the first element containing the minimum value, when compared to other elements.
+// Panics if the collection is empty.
+func (list Int64Set) Min() int64 {
+	return list.MinBy(func(a int64, b int64) bool {
+		return a < b
+	})
+}
+
+// Max returns the first element containing the maximum value, when compared to other elements.
+// Panics if the collection is empty.
+func (list Int64Set) Max() (result int64) {
+	return list.MaxBy(func(a int64, b int64) bool {
+		return a < b
+	})
+}
+
+// MinBy returns an element of Int64Set containing the minimum value, when compared to other elements
 // using a passed func defining ‘less’. In the case of multiple items being equally minimal, the first such
 // element is returned. Panics if there are no elements.
-func (set TypeSet) MinBy(less func(Type, Type) bool) Type {
+func (set Int64Set) MinBy(less func(int64, int64) bool) int64 {
 	if set.IsEmpty() {
 		panic("Cannot determine the minimum of an empty list.")
 	}
-	var m Type
+	var m int64
 	first := true
 	for v := range set {
 		if first {
@@ -362,14 +382,14 @@ func (set TypeSet) MinBy(less func(Type, Type) bool) Type {
 	return m
 }
 
-// MaxBy returns an element of TypeSet containing the maximum value, when compared to other elements
+// MaxBy returns an element of Int64Set containing the maximum value, when compared to other elements
 // using a passed func defining ‘less’. In the case of multiple items being equally maximal, the first such
 // element is returned. Panics if there are no elements.
-func (set TypeSet) MaxBy(less func(Type, Type) bool) Type {
+func (set Int64Set) MaxBy(less func(int64, int64) bool) int64 {
 	if set.IsEmpty() {
 		panic("Cannot determine the minimum of an empty list.")
 	}
-	var m Type
+	var m int64
 	first := true
 	for v := range set {
 		if first {
@@ -382,12 +402,25 @@ func (set TypeSet) MaxBy(less func(Type, Type) bool) Type {
 	return m
 }
 
+
+//-------------------------------------------------------------------------------------------------
+// These methods are included when int64 is numeric.
+
+// Sum returns the sum of all the elements in the set.
+func (set Int64Set) Sum() int64 {
+	sum := int64(0)
+	for v, _ := range set {
+		sum = sum + v
+	}
+	return sum
+}
+
 //-------------------------------------------------------------------------------------------------
 
 // Equals determines if two sets are equal to each other.
 // If they both are the same size and have the same items they are considered equal.
 // Order of items is not relevent for sets to be equal.
-func (set TypeSet) Equals(other TypeSet) bool {
+func (set Int64Set) Equals(other Int64Set) bool {
 	if set.Size() != other.Size() {
 		return false
 	}

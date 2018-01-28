@@ -2,14 +2,15 @@ package code
 
 import (
 	"fmt"
-	"github.com/rickb777/sqlgen2/schema"
 	"io"
 	"sort"
+	"github.com/rickb777/sqlgen2/schema"
+	"github.com/rickb777/sqlgen2/util"
 )
 
 const tabs = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 
-func WriteImports(w io.Writer, table *schema.TableDescription, setters schema.FieldList, packages StringSet) {
+func WriteImports(w io.Writer, table *schema.TableDescription, setters schema.FieldList, packages util.StringSet) {
 
 	// check each edge field to see if it is
 	// encoded, which might require us to import
@@ -41,13 +42,13 @@ func WriteImports(w io.Writer, table *schema.TableDescription, setters schema.Fi
 	}
 }
 
-func sortImports(pmap StringSet) []string {
+func sortImports(pmap util.StringSet) []string {
 	sorted := pmap.ToSlice()
 	sort.Strings(sorted)
 	return sorted
 }
 
-func doWriteImports(w io.Writer, pmap StringSet) {
+func doWriteImports(w io.Writer, pmap util.StringSet) {
 	// write the import block, including each
 	// encoder package that was specified.
 	fmt.Fprintln(w, "\nimport (")
