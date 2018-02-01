@@ -158,12 +158,30 @@ func (list FieldList) SqlNames() Identifiers {
 	return ids
 }
 
-func (list FieldList) NonAuto() FieldList {
+func (list FieldList) FilterNot(predicate func (*Field) bool) FieldList {
 	filtered := make(FieldList, 0, len(list))
 	for _, field := range list {
-		if !field.Tags.Auto {
+		if predicate(field) {
 			filtered = append(filtered, field)
 		}
 	}
 	return filtered
+}
+
+func (list FieldList) NoSkips() FieldList {
+	return list.FilterNot(func (field *Field) bool {
+		return !field.Tags.Skip
+	})
+}
+
+func (list FieldList) NoSkipOrPrimary() FieldList {
+	return list.FilterNot(func (field *Field) bool {
+		return !field.Tags.Skip && !field.Tags.Primary
+	})
+}
+
+func (list FieldList) NonAuto() FieldList {
+	return list.FilterNot(func (field *Field) bool {
+		return !field.Tags.Auto
+	})
 }

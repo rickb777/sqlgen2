@@ -120,8 +120,21 @@ func (dialect mysql) SplitAndQuote(csv string) string {
 	return baseSplitAndQuote(csv, "`", "`,`", "`")
 }
 
-func (dialect mysql) Quote(id string) string {
-	return backTickQuoted(id)
+func (dialect mysql) Quote(identifier string) string {
+	return backTickQuoted(identifier)
+}
+
+func (dialect mysql) QuoteW(w io.Writer, identifier string) {
+	backTickQuotedW(w, identifier)
+}
+
+func (dialect mysql) QuoteWithPlaceholder(w io.Writer, identifier string, idx int) {
+	backTickQuotedW(w, identifier)
+	io.WriteString(w, "=?")
+}
+
+func (dialect mysql) Placeholder(name string, j int) string {
+	return "?"
 }
 
 func (dialect mysql) Placeholders(n int) string {

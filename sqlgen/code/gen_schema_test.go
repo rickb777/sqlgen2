@@ -24,9 +24,9 @@ const NumXExampleColumns = 17
 
 const NumXExampleDataColumns = 16
 
-const XExampleColumnNames = "id,cat,username,mobile,qual,diff,age,bmi,active,labels,fave,avatar,foo1,foo2,bar1,bar2,updated"
+const XExampleColumnNames = "id,cat,username,mobile,qual,diff,age,bmi,active,labels,fave,avatar,foo1,foo2,foo3,bar1,updated"
 
-const XExampleDataColumnNames = "cat,username,mobile,qual,diff,age,bmi,active,labels,fave,avatar,foo1,foo2,bar1,bar2,updated"
+const XExampleDataColumnNames = "cat,username,mobile,qual,diff,age,bmi,active,labels,fave,avatar,foo1,foo2,foo3,bar1,updated"
 
 const XExamplePk = "id"
 `, "¬", "`", -1)
@@ -65,8 +65,8 @@ const sqlXExampleTableCreateColumnsSqlite = "\n"+
 " ¬avatar¬   blob,\n"+
 " ¬foo1¬     text,\n"+
 " ¬foo2¬     text default null,\n"+
+" ¬foo3¬     int default null,\n"+
 " ¬bar1¬     text,\n"+
-" ¬bar2¬     text default null,\n"+
 " ¬updated¬  text"
 
 const sqlXExampleTableCreateColumnsMysql = "\n"+
@@ -84,8 +84,8 @@ const sqlXExampleTableCreateColumnsMysql = "\n"+
 " ¬avatar¬   mediumblob,\n"+
 " ¬foo1¬     varchar(255),\n"+
 " ¬foo2¬     varchar(255) default null,\n"+
+" ¬foo3¬     int default null,\n"+
 " ¬bar1¬     varchar(255),\n"+
-" ¬bar2¬     varchar(255) default null,\n"+
 " ¬updated¬  varchar(100)"
 
 const sqlXExampleTableCreateColumnsPostgres = ¬
@@ -103,8 +103,8 @@ const sqlXExampleTableCreateColumnsPostgres = ¬
  "avatar"   byteaa,
  "foo1"     varchar(255),
  "foo2"     varchar(255) default null,
+ "foo3"     int default null,
  "bar1"     varchar(255),
- "bar2"     varchar(255) default null,
  "updated"  varchar(100)¬
 
 const sqlConstrainXExampleTable = ¬

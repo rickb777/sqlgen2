@@ -13,6 +13,7 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
 	"github.com/rickb777/sqlgen2/where"
+	"io"
 	"log"
 	"strings"
 )
@@ -689,6 +690,54 @@ func (tbl DbCompoundTable) getstringlist(req require.Requirement, sqlname string
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
+func constructDbCompoundInsert(w io.Writer, v *Compound, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
+	s = make([]interface{}, 0, 3)
+
+	comma := ""
+	io.WriteString(w, " (")
+
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "alpha")
+	s = append(s, v.Alpha)
+	comma = ","
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "beta")
+	s = append(s, v.Beta)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "category")
+	s = append(s, v.Category)
+	io.WriteString(w, ")")
+	return s, nil
+}
+
+func constructDbCompoundUpdate(w io.Writer, v *Compound, dialect schema.Dialect) (s []interface{}, err error) {
+	j := 1
+	s = make([]interface{}, 0, 3)
+
+	comma := ""
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "alpha", j)
+	s = append(s, v.Alpha)
+	comma = ", "
+	j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "beta", j)
+	s = append(s, v.Beta)
+	j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "category", j)
+	s = append(s, v.Category)
+	j++
+
+	return s, nil
+}
+
 //--------------------------------------------------------------------------------
 
 var allDbCompoundQuotedInserts = []string{
@@ -711,13 +760,6 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 	}
 
 	var count int64
-	columns := allDbCompoundQuotedInserts[tbl.Dialect().Index()]
-	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	if err != nil {
-		return err
-	}
-	defer st.Close()
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -728,13 +770,22 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 			}
 		}
 
-		fields, err := sliceDbCompound(v)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "INSERT INTO ")
+		io.WriteString(b, tbl.name.String())
+
+		fields, err := constructDbCompoundInsert(b, v, tbl.Dialect(), true)
 		if err != nil {
 			return tbl.logError(err)
 		}
 
+		io.WriteString(b, " VALUES (")
+		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
+		io.WriteString(b, ")")
+
+		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := st.ExecContext(tbl.ctx, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -758,15 +809,6 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl DbCompoundTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
-}
-
-func sliceDbCompound(v *Compound) ([]interface{}, error) {
-
-	return []interface{}{
-		v.Alpha,
-		v.Beta,
-		v.Category,
-	}, nil
 }
 
 //--------------------------------------------------------------------------------

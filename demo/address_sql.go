@@ -14,6 +14,7 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
 	"github.com/rickb777/sqlgen2/where"
+	"io"
 	"log"
 	"strings"
 )
@@ -743,6 +744,61 @@ func (tbl AddressTable) getstringlist(req require.Requirement, sqlname string, w
 }
 
 
+func constructAddressInsert(w io.Writer, v *Address, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
+	s = make([]interface{}, 0, 3)
+
+	comma := ""
+	io.WriteString(w, " (")
+
+	if withPk {
+		dialect.QuoteW(w, "id")
+		comma = ","
+		s = append(s, v.Id)
+	}
+
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "lines")
+	comma = ","
+	x, err := json.Marshal(&v.Lines)
+	if err != nil {
+		return nil, err
+	}
+	s = append(s, x)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "postcode")
+	s = append(s, v.Postcode)
+	comma = ","
+	io.WriteString(w, ")")
+	return s, nil
+}
+
+func constructAddressUpdate(w io.Writer, v *Address, dialect schema.Dialect) (s []interface{}, err error) {
+	j := 1
+	s = make([]interface{}, 0, 2)
+
+	comma := ""
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "lines", j)
+	comma = ", "
+		j++
+	x, err := json.Marshal(&v.Lines)
+	if err != nil {
+		return nil, err
+	}
+	s = append(s, x)
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "postcode", j)
+	s = append(s, v.Postcode)
+	comma = ", "
+		j++
+
+	return s, nil
+}
+
 //--------------------------------------------------------------------------------
 
 var allAddressQuotedInserts = []string{
@@ -765,13 +821,6 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 	}
 
 	var count int64
-	columns := allAddressQuotedInserts[tbl.Dialect().Index()]
-	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	if err != nil {
-		return err
-	}
-	defer st.Close()
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -782,13 +831,22 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 			}
 		}
 
-		fields, err := sliceAddressWithoutPk(v)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "INSERT INTO ")
+		io.WriteString(b, tbl.name.String())
+
+		fields, err := constructAddressInsert(b, v, tbl.Dialect(), false)
 		if err != nil {
 			return tbl.logError(err)
 		}
 
+		io.WriteString(b, " VALUES (")
+		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
+		io.WriteString(b, ")")
+
+		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := st.ExecContext(tbl.ctx, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -836,8 +894,9 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 	}
 
 	var count int64
-	columns := allAddressQuotedUpdates[tbl.Dialect().Index()]
-	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
+	dialect := tbl.Dialect()
+	//columns := allAddressQuotedUpdates[dialect.Index()]
+	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -848,12 +907,22 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 			}
 		}
 
-		args, err := sliceAddressWithoutPk(v)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "UPDATE ")
+		io.WriteString(b, tbl.name.String())
+		io.WriteString(b, " SET ")
+
+		args, err := constructAddressUpdate(b, v, dialect)
+		k := len(args)
 		args = append(args, v.Id)
 		if err != nil {
 			return count, tbl.logError(err)
 		}
 
+		io.WriteString(b, " WHERE ")
+		dialect.QuoteWithPlaceholder(b, "id", k)
+
+		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
@@ -862,20 +931,6 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 	}
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
-}
-
-func sliceAddressWithoutPk(v *Address) ([]interface{}, error) {
-
-	v1, err := json.Marshal(&v.Lines)
-	if err != nil {
-		return nil, err
-	}
-
-	return []interface{}{
-		v1,
-		v.Postcode,
-
-	}, nil
 }
 
 //--------------------------------------------------------------------------------

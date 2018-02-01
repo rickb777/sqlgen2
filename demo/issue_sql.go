@@ -14,6 +14,7 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
 	"github.com/rickb777/sqlgen2/where"
+	"io"
 	"log"
 	"strings"
 )
@@ -860,6 +861,104 @@ func (tbl IssueTable) getstringlist(req require.Requirement, sqlname string, wh 
 }
 
 
+func constructIssueInsert(w io.Writer, v *Issue, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
+	s = make([]interface{}, 0, 8)
+
+	comma := ""
+	io.WriteString(w, " (")
+
+	if withPk {
+		dialect.QuoteW(w, "id")
+		comma = ","
+		s = append(s, v.Id)
+	}
+
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "number")
+	s = append(s, v.Number)
+	comma = ","
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "date")
+	s = append(s, v.Date)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "title")
+	s = append(s, v.Title)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "bigbody")
+	s = append(s, v.Body)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "assignee")
+	s = append(s, v.Assignee)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "state")
+	s = append(s, v.State)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "labels")
+	x, err := json.Marshal(&v.Labels)
+	if err != nil {
+		return nil, err
+	}
+	s = append(s, x)
+	io.WriteString(w, ")")
+	return s, nil
+}
+
+func constructIssueUpdate(w io.Writer, v *Issue, dialect schema.Dialect) (s []interface{}, err error) {
+	j := 1
+	s = make([]interface{}, 0, 7)
+
+	comma := ""
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "number", j)
+	s = append(s, v.Number)
+	comma = ", "
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "date", j)
+	s = append(s, v.Date)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "title", j)
+	s = append(s, v.Title)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "bigbody", j)
+	s = append(s, v.Body)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "assignee", j)
+	s = append(s, v.Assignee)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "state", j)
+	s = append(s, v.State)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "labels", j)
+		j++
+	x, err := json.Marshal(&v.Labels)
+	if err != nil {
+		return nil, err
+	}
+	s = append(s, x)
+
+	return s, nil
+}
+
 //--------------------------------------------------------------------------------
 
 var allIssueQuotedInserts = []string{
@@ -882,13 +981,6 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 	}
 
 	var count int64
-	columns := allIssueQuotedInserts[tbl.Dialect().Index()]
-	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	if err != nil {
-		return err
-	}
-	defer st.Close()
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -899,13 +991,22 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 			}
 		}
 
-		fields, err := sliceIssueWithoutPk(v)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "INSERT INTO ")
+		io.WriteString(b, tbl.name.String())
+
+		fields, err := constructIssueInsert(b, v, tbl.Dialect(), false)
 		if err != nil {
 			return tbl.logError(err)
 		}
 
+		io.WriteString(b, " VALUES (")
+		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
+		io.WriteString(b, ")")
+
+		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := st.ExecContext(tbl.ctx, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -953,8 +1054,9 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 	}
 
 	var count int64
-	columns := allIssueQuotedUpdates[tbl.Dialect().Index()]
-	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
+	dialect := tbl.Dialect()
+	//columns := allIssueQuotedUpdates[dialect.Index()]
+	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -965,12 +1067,22 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 			}
 		}
 
-		args, err := sliceIssueWithoutPk(v)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "UPDATE ")
+		io.WriteString(b, tbl.name.String())
+		io.WriteString(b, " SET ")
+
+		args, err := constructIssueUpdate(b, v, dialect)
+		k := len(args)
 		args = append(args, v.Id)
 		if err != nil {
 			return count, tbl.logError(err)
 		}
 
+		io.WriteString(b, " WHERE ")
+		dialect.QuoteWithPlaceholder(b, "id", k)
+
+		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
@@ -979,25 +1091,6 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 	}
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
-}
-
-func sliceIssueWithoutPk(v *Issue) ([]interface{}, error) {
-
-	v7, err := json.Marshal(&v.Labels)
-	if err != nil {
-		return nil, err
-	}
-
-	return []interface{}{
-		v.Number,
-		v.Date,
-		v.Title,
-		v.Body,
-		v.Assignee,
-		v.State,
-		v7,
-
-	}, nil
 }
 
 //--------------------------------------------------------------------------------

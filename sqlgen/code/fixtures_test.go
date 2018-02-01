@@ -19,8 +19,10 @@ var bgi = Type{PkgPath: "math/big", PkgName: "big", Name: "Int", Base: Struct}
 var bys = Type{Name: "[]byte", Base: Slice}
 var scv1 = Type{Name: "Foo", IsScanner: true, IsValuer: true, Base: String}
 var scv2 = Type{Name: "Foo", IsScanner: true, IsValuer: true, Base: String, IsPtr: true}
+var scv3 = Type{Name: "Foo", IsScanner: true, IsValuer: true, Base: Int32, IsPtr: true}
 var bar1 = Type{Name: "Bar", Base: String}
-var bar2 = Type{Name: "Bar", Base: String, IsPtr: true}
+//var bar2 = Type{Name: "Bar", Base: String, IsPtr: true}
+//var bar3 = Type{Name: "Bar", Base: Int32, IsPtr: true}
 var tim = Type{PkgPath: "time", PkgName: "time", Name: "Time", Base: Struct}
 
 var id = &Field{Node{"Id", i64, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
@@ -37,8 +39,10 @@ var fave = &Field{Node{"Fave", bgi, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
 var avatar = &Field{Node{"Avatar", bys, nil}, "avatar", ENCNONE, Tag{}}
 var fooey1 = &Field{Node{"Foo1", scv1, nil}, "foo1", ENCNONE, Tag{}}
 var fooey2 = &Field{Node{"Foo2", scv2, nil}, "foo2", ENCNONE, Tag{}}
+var fooey3 = &Field{Node{"Foo3", scv3, nil}, "foo3", ENCNONE, Tag{}}
 var barey1 = &Field{Node{"Bar1", bar1, nil}, "bar1", ENCDRIVER, Tag{Encode: "driver"}}
-var barey2 = &Field{Node{"Bar2", bar2, nil}, "bar2", ENCDRIVER, Tag{Encode: "driver"}}
+//var barey2 = &Field{Node{"Bar2", bar2, nil}, "bar2", ENCDRIVER, Tag{Encode: "driver"}}
+//var barey3 = &Field{Node{"Bar3", bar3, nil}, "bar3", ENCDRIVER, Tag{Encode: "driver"}}
 var updated = &Field{Node{"Updated", tim, nil}, "updated", ENCTEXT, Tag{Size: 100, Encode: "text"}}
 
 var icat = &Index{"catIdx", false, FieldList{category}}
@@ -63,8 +67,10 @@ func fixtureTable() *TableDescription {
 			avatar,
 			fooey1,
 			fooey2,
+			fooey3,
 			barey1,
-			barey2,
+			//barey2,
+			//barey3,
 			updated,
 		},
 		Index: []*Index{

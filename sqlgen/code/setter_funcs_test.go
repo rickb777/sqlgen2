@@ -103,15 +103,15 @@ func (v *Example) SetFoo2(x Foo) *Example {
 	return v
 }
 
-// SetBar1 sets the Bar1 field and returns the modified Example.
-func (v *Example) SetBar1(x Bar) *Example {
-	v.Bar1 = x
+// SetFoo3 sets the Foo3 field and returns the modified Example.
+func (v *Example) SetFoo3(x Foo) *Example {
+	v.Foo3 = &x
 	return v
 }
 
-// SetBar2 sets the Bar2 field and returns the modified Example.
-func (v *Example) SetBar2(x Bar) *Example {
-	v.Bar2 = &x
+// SetBar1 sets the Bar1 field and returns the modified Example.
+func (v *Example) SetBar1(x Bar) *Example {
+	v.Bar1 = x
 	return v
 }
 
@@ -225,15 +225,15 @@ func (v *Example) SetFoo2(x Foo) *Example {
 	return v
 }
 
-// SetBar1 sets the Bar1 field and returns the modified Example.
-func (v *Example) SetBar1(x Bar) *Example {
-	v.Bar1 = x
+// SetFoo3 sets the Foo3 field and returns the modified Example.
+func (v *Example) SetFoo3(x Foo) *Example {
+	v.Foo3 = &x
 	return v
 }
 
-// SetBar2 sets the Bar2 field and returns the modified Example.
-func (v *Example) SetBar2(x Bar) *Example {
-	v.Bar2 = &x
+// SetBar1 sets the Bar1 field and returns the modified Example.
+func (v *Example) SetBar1(x Bar) *Example {
+	v.Bar1 = x
 	return v
 }
 
@@ -299,9 +299,9 @@ func (v *Example) SetFoo2(x Foo) *Example {
 	return v
 }
 
-// SetBar2 sets the Bar2 field and returns the modified Example.
-func (v *Example) SetBar2(x Bar) *Example {
-	v.Bar2 = &x
+// SetFoo3 sets the Foo3 field and returns the modified Example.
+func (v *Example) SetFoo3(x Foo) *Example {
+	v.Foo3 = &x
 	return v
 }
 `

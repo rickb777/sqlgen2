@@ -150,23 +150,41 @@ func postgresParam(i int) string {
 }
 
 func doubleQuoter(identifier string) string {
+	w := bytes.NewBuffer(make([]byte, 0, len(identifier)*2))
+	doubleQuoterW(w, identifier)
+	return w.String()
+}
+
+func doubleQuoterW(w io.Writer, identifier string) {
 	elements := strings.Split(identifier, ".")
-	return baseQuoted(elements, `"`, `"."`, `"`)
+	baseQuotedW(w, elements, `"`, `"."`, `"`)
 }
 
 func (dialect postgres) SplitAndQuote(csv string) string {
 	return baseSplitAndQuote(csv, `"`, `","`, `"`)
 }
 
-func (dialect postgres) Quote(id string) string {
-	return doubleQuoter(id)
+func (dialect postgres) Quote(identifier string) string {
+	return doubleQuoter(identifier)
 }
 
-func (dialect postgres) Quoter() func (identifier string) string {
+func (dialect postgres) QuoteW(w io.Writer, identifier string) {
+	doubleQuoterW(w, identifier)
+}
+
+func (dialect postgres) QuoteWithPlaceholder(w io.Writer, identifier string, idx int) {
+	doubleQuoterW(w, identifier)
+	io.WriteString(w, "$")
+	io.WriteString(w, strconv.Itoa(idx))
+}
+
+func (dialect postgres) Quoter() func(identifier string) string {
 	return doubleQuoter
 }
 
-const postgresPlaceholders = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
+func (dialect postgres) Placeholder(name string, j int) string {
+	return fmt.Sprintf("$%d", j)
+}
 
 func (dialect postgres) Placeholders(n int) string {
 	if n == 0 {
@@ -184,6 +202,8 @@ func (dialect postgres) Placeholders(n int) string {
 	}
 	return buf.String()
 }
+
+const postgresPlaceholders = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 
 // ReplacePlaceholders converts a string containing '?' placeholders to
 // the form used by PostgreSQL.
@@ -205,4 +225,3 @@ func (dialect postgres) ReplacePlaceholders(sql string) string {
 func (dialect postgres) CreateTableSettings() string {
 	return ""
 }
-

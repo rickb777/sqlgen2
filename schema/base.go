@@ -69,21 +69,31 @@ func baseSplitAndQuote(csv, before, between, after string) string {
 }
 
 func backTickQuoted(identifier string) string {
+	w := bytes.NewBuffer(make([]byte, 0, len(identifier) * 2))
+	backTickQuotedW(w, identifier)
+	return w.String()
+}
+
+func backTickQuotedW(w io.Writer, identifier string) {
 	elements := strings.Split(identifier, ".")
-	return baseQuoted(elements, "`", "`.`", "`")
+	baseQuotedW(w, elements, "`", "`.`", "`")
 }
 
 func baseQuoted(elements []string, before, between, after string) string {
-	w := bytes.NewBuffer(make([]byte, 0, 256))
+	w := bytes.NewBuffer(make([]byte, 0, len(elements) * 16))
+	baseQuotedW(w, elements, before, between, after)
+	return w.String()
+}
+
+func baseQuotedW(w io.Writer, elements []string, before, between, after string) {
 	io.WriteString(w, before)
-	sep := ""
-	for _, e := range elements {
-		io.WriteString(w, sep)
+	for i, e := range elements {
+		if i > 0 {
+			io.WriteString(w, between)
+		}
 		io.WriteString(w, e)
-		sep = between
 	}
 	io.WriteString(w, after)
-	return w.String()
 }
 
 const placeholders = "?,?,?,?,?,?,?,?,?,?"

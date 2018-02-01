@@ -6,52 +6,122 @@ import (
 	"bytes"
 )
 
-func TestWriteSliceFuncWithPk(t *testing.T) {
+func TestWriteConstructInsert(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteSliceFunc(buf, view, false)
+	WriteConstructInsert(buf, view)
 
 	code := buf.String()
 	expected := `
-func sliceXExample(v *Example) ([]interface{}, error) {
+func constructXExampleInsert(w io.Writer, v *Example, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
+	s = make([]interface{}, 0, 17)
 
-	v9, err := json.Marshal(&v.Labels)
+	comma := ""
+	io.WriteString(w, " (")
+
+	if withPk {
+		dialect.QuoteW(w, "id")
+		comma = ","
+		s = append(s, v.Id)
+	}
+
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "cat")
+	s = append(s, v.Cat)
+	comma = ","
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "username")
+	s = append(s, v.Name)
+	if v.Mobile != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "mobile")
+		s = append(s, v.Mobile)
+	}
+	if v.Qual != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "qual")
+		s = append(s, v.Qual)
+	}
+	if v.Diff != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "diff")
+		s = append(s, v.Diff)
+	}
+	if v.Age != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "age")
+		s = append(s, v.Age)
+	}
+	if v.Bmi != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "bmi")
+		s = append(s, v.Bmi)
+	}
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "active")
+	s = append(s, v.Active)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "labels")
+	x, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
 	}
-	v10, err := json.Marshal(&v.Fave)
+	s = append(s, x)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "fave")
+	x, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
-	v16, err := encoding.MarshalText(&v.Updated)
+	s = append(s, x)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "avatar")
+	s = append(s, v.Avatar)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "foo1")
+	s = append(s, v.Foo1)
+	if v.Foo2 != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "foo2")
+		s = append(s, v.Foo2)
+	}
+	if v.Foo3 != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "foo3")
+		s = append(s, v.Foo3)
+	}
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "bar1")
+	s = append(s, v.Bar1)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "updated")
+	x, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
 		return nil, err
 	}
-
-	return []interface{}{
-		v.Id,
-		v.Cat,
-		v.Name,
-		v.Mobile,
-		v.Qual,
-		v.Diff,
-		v.Age,
-		v.Bmi,
-		v.Active,
-		v9,
-		v10,
-		v.Avatar,
-		v.Foo1,
-		v.Foo2,
-		v.Bar1,
-		v.Bar2,
-		v16,
-
-	}, nil
+	s = append(s, x)
+	io.WriteString(w, ")")
+	return s, nil
 }
 `
 	if code != expected {
@@ -61,51 +131,152 @@ func sliceXExample(v *Example) ([]interface{}, error) {
 	}
 }
 
-func TestWriteSliceFuncWithoutPk(t *testing.T) {
+func TestWriteConstructUpdate(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteSliceFunc(buf, view, true)
+	WriteConstructUpdate(buf, view)
 
 	code := buf.String()
 	expected := `
-func sliceXExampleWithoutPk(v *Example) ([]interface{}, error) {
+func constructXExampleUpdate(w io.Writer, v *Example, dialect schema.Dialect) (s []interface{}, err error) {
+	j := 1
+	s = make([]interface{}, 0, 16)
 
-	v9, err := json.Marshal(&v.Labels)
+	comma := ""
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "cat", j)
+	s = append(s, v.Cat)
+	comma = ", "
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "username", j)
+	s = append(s, v.Name)
+		j++
+
+	io.WriteString(w, comma)
+	if v.Mobile != nil {
+		dialect.QuoteWithPlaceholder(w, "mobile", j)
+		s = append(s, v.Mobile)
+		j++
+	} else {
+		dialect.QuoteW(w, "mobile")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	if v.Qual != nil {
+		dialect.QuoteWithPlaceholder(w, "qual", j)
+		s = append(s, v.Qual)
+		j++
+	} else {
+		dialect.QuoteW(w, "qual")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	if v.Diff != nil {
+		dialect.QuoteWithPlaceholder(w, "diff", j)
+		s = append(s, v.Diff)
+		j++
+	} else {
+		dialect.QuoteW(w, "diff")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	if v.Age != nil {
+		dialect.QuoteWithPlaceholder(w, "age", j)
+		s = append(s, v.Age)
+		j++
+	} else {
+		dialect.QuoteW(w, "age")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	if v.Bmi != nil {
+		dialect.QuoteWithPlaceholder(w, "bmi", j)
+		s = append(s, v.Bmi)
+		j++
+	} else {
+		dialect.QuoteW(w, "bmi")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "active", j)
+	s = append(s, v.Active)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "labels", j)
+		j++
+	x, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
 	}
-	v10, err := json.Marshal(&v.Fave)
+	s = append(s, x)
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "fave", j)
+		j++
+	x, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
 	}
-	v16, err := encoding.MarshalText(&v.Updated)
+	s = append(s, x)
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "avatar", j)
+	s = append(s, v.Avatar)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "foo1", j)
+	s = append(s, v.Foo1)
+		j++
+
+	io.WriteString(w, comma)
+	if v.Foo2 != nil {
+		dialect.QuoteWithPlaceholder(w, "foo2", j)
+		s = append(s, v.Foo2)
+		j++
+	} else {
+		dialect.QuoteW(w, "foo2")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	if v.Foo3 != nil {
+		dialect.QuoteWithPlaceholder(w, "foo3", j)
+		s = append(s, v.Foo3)
+		j++
+	} else {
+		dialect.QuoteW(w, "foo3")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "bar1", j)
+	s = append(s, v.Bar1)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "updated", j)
+		j++
+	x, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
 		return nil, err
 	}
+	s = append(s, x)
 
-	return []interface{}{
-		v.Cat,
-		v.Name,
-		v.Mobile,
-		v.Qual,
-		v.Diff,
-		v.Age,
-		v.Bmi,
-		v.Active,
-		v9,
-		v10,
-		v.Avatar,
-		v.Foo1,
-		v.Foo2,
-		v.Bar1,
-		v.Bar2,
-		v16,
-
-	}, nil
+	return s, nil
 }
 `
 	if code != expected {

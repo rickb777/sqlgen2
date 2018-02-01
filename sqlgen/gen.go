@@ -145,15 +145,19 @@ func main() {
 	}
 
 	if flags.insert {
+		WriteConstructInsert(buf, view)
+	}
+
+	if flags.update {
+		WriteConstructUpdate(buf, view)
+	}
+
+	if flags.insert {
 		WriteInsertFunc(buf, view)
 	}
 
 	if flags.update {
 		WriteUpdateFunc(buf, view)
-	}
-
-	if flags.insert || flags.update {
-		WriteSliceFunc(buf, view, view.Table.HasLastInsertId())
 	}
 
 	if flags.delete {
@@ -187,10 +191,13 @@ func packagesToImport(flags funcFlags, hasPrimaryKey bool) util.StringSet {
 		"github.com/rickb777/sqlgen2/support",
 	)
 
-	if flags.schema {
+	if flags.insert || flags.update || flags.schema {
 		imports.Add("bytes")
 	}
-	if flags.schema || flags.sselect || flags.slice || flags.insert || flags.update || flags.delete {
+	if flags.insert || flags.update {
+		imports.Add("io")
+	}
+	if flags.sselect || flags.slice || flags.delete {
 		imports.Add("fmt")
 	}
 	if flags.sselect || flags.slice || flags.update || flags.delete {

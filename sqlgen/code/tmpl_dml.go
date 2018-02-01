@@ -362,7 +362,30 @@ var tSliceItem = template.Must(template.New("SliceItem").Funcs(funcMap).Parse(sS
 
 //-------------------------------------------------------------------------------------------------
 
-// function template to insert a single row, updating the primary key in the struct.
+const sConstructInsert = `
+func construct{{.Prefix}}{{.Type}}Insert(w io.Writer, v *{{.Type}}, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
+{{range .Body1}}{{.}}{{- end}}
+{{range .Body2}}{{.}}{{- end}}
+	return s, nil
+}
+`
+
+var tConstructInsert = template.Must(template.New("ConstructInsert").Funcs(funcMap).Parse(sConstructInsert))
+
+//-------------------------------------------------------------------------------------------------
+
+const sConstructUpdate = `
+func construct{{.Prefix}}{{.Type}}Update(w io.Writer, v *{{.Type}}, dialect schema.Dialect) (s []interface{}, err error) {
+{{range .Body1}}{{.}}{{- end}}
+{{range .Body2}}{{.}}{{- end}}
+	return s, nil
+}
+`
+
+var tConstructUpdate = template.Must(template.New("ConstructUpdate").Funcs(funcMap).Parse(sConstructUpdate))
+
+//-------------------------------------------------------------------------------------------------
+
 const sInsert = `
 //--------------------------------------------------------------------------------
 
@@ -384,13 +407,6 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 	}
 
 	var count int64
-	columns := all{{.CamelName}}QuotedInserts[tbl.Dialect().Index()]
-	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	if err != nil {
-		return err
-	}
-	defer st.Close()
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -401,13 +417,22 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 			}
 		}
 
-		fields, err := slice{{.Prefix}}{{.Type}}{{if .Table.HasLastInsertId}}WithoutPk{{end}}(v)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "INSERT INTO ")
+		io.WriteString(b, tbl.name.String())
+
+		fields, err := construct{{.Prefix}}{{.Type}}Insert(b, v, tbl.Dialect(), {{not .Table.HasLastInsertId}})
 		if err != nil {
 			return tbl.logError(err)
 		}
 
+		io.WriteString(b, " VALUES (")
+		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
+		io.WriteString(b, ")")
+
+		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := st.ExecContext(tbl.ctx, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -474,8 +499,9 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 	}
 
 	var count int64
-	columns := all{{.CamelName}}QuotedUpdates[tbl.Dialect().Index()]
-	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
+	dialect := tbl.Dialect()
+	//columns := all{{.CamelName}}QuotedUpdates[dialect.Index()]
+	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -486,12 +512,22 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 			}
 		}
 
-		args, err := slice{{.Prefix}}{{.Type}}WithoutPk(v)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "UPDATE ")
+		io.WriteString(b, tbl.name.String())
+		io.WriteString(b, " SET ")
+
+		args, err := construct{{.Prefix}}{{.Type}}Update(b, v, dialect)
+		k := len(args)
 		args = append(args, v.{{.Table.Primary.Name}})
 		if err != nil {
 			return count, tbl.logError(err)
 		}
 
+		io.WriteString(b, " WHERE ")
+		dialect.QuoteWithPlaceholder(b, "{{.Table.Primary.SqlName}}", k)
+
+		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err

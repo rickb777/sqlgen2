@@ -240,7 +240,7 @@ func scanRUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 		var v2 string
 		var v3 sql.NullInt64
 		var v4 sql.NullString
-		var v5 *Role
+		var v5 sql.NullString
 		var v6 bool
 		var v7 bool
 		var v8 []byte
@@ -278,7 +278,13 @@ func scanRUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 			a := v4.String
 			v.Avatar = &a
 		}
-		v.Role = v5
+		if v5.Valid {
+			v.Role = new(Role)
+			err = v.Role.Scan(v5.String)
+			if err != nil {
+				return nil, n, err
+			}
+		}
 		v.Active = v6
 		v.Admin = v7
 		err = json.Unmarshal(v8, &v.Fave)

@@ -108,8 +108,21 @@ func (dialect sqlite) SplitAndQuote(csv string) string {
 	return baseSplitAndQuote(csv, "`", "`,`", "`")
 }
 
-func (dialect sqlite) Quote(id string) string {
-	return backTickQuoted(id)
+func (dialect sqlite) Quote(identifier string) string {
+	return backTickQuoted(identifier)
+}
+
+func (dialect sqlite) QuoteW(w io.Writer, identifier string) {
+	backTickQuotedW(w, identifier)
+}
+
+func (dialect sqlite) QuoteWithPlaceholder(w io.Writer, identifier string, idx int) {
+	backTickQuotedW(w, identifier)
+	io.WriteString(w, "=?")
+}
+
+func (dialect sqlite) Placeholder(name string, j int) string {
+	return "?"
 }
 
 func (dialect sqlite) Placeholders(n int) string {

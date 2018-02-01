@@ -20,7 +20,10 @@ type Dialect interface {
 
 	SplitAndQuote(csv string) string
 	Quote(string) string
+	QuoteW(w io.Writer, identifier string)
+	QuoteWithPlaceholder(w io.Writer, identifier string, j int)
 	ReplacePlaceholders(sql string) string
+	Placeholder(name string, j int) string
 	Placeholders(n int) string
 }
 

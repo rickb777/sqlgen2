@@ -3,16 +3,17 @@
 package demo
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/constraint"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
 	"github.com/rickb777/sqlgen2/where"
+	"io"
 	"log"
 	"strings"
 )
@@ -250,7 +251,7 @@ func scanUUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 		var v2 string
 		var v3 sql.NullInt64
 		var v4 sql.NullString
-		var v5 *Role
+		var v5 sql.NullString
 		var v6 bool
 		var v7 bool
 		var v8 []byte
@@ -288,7 +289,13 @@ func scanUUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 			a := v4.String
 			v.Avatar = &a
 		}
-		v.Role = v5
+		if v5.Valid {
+			v.Role = new(Role)
+			err = v.Role.Scan(v5.String)
+			if err != nil {
+				return nil, n, err
+			}
+		}
 		v.Active = v6
 		v.Admin = v7
 		err = json.Unmarshal(v8, &v.Fave)
@@ -402,6 +409,90 @@ func (tbl UUserTable) ReplaceTableName(query string) string {
 	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 
+func constructUUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []interface{}, err error) {
+	j := 1
+	s = make([]interface{}, 0, 11)
+
+	comma := ""
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "login", j)
+	s = append(s, v.Login)
+	comma = ", "
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "emailaddress", j)
+	s = append(s, v.EmailAddress)
+		j++
+
+	io.WriteString(w, comma)
+	if v.AddressId != nil {
+		dialect.QuoteWithPlaceholder(w, "addressid", j)
+		s = append(s, v.AddressId)
+		j++
+	} else {
+		dialect.QuoteW(w, "addressid")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	if v.Avatar != nil {
+		dialect.QuoteWithPlaceholder(w, "avatar", j)
+		s = append(s, v.Avatar)
+		j++
+	} else {
+		dialect.QuoteW(w, "avatar")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	if v.Role != nil {
+		dialect.QuoteWithPlaceholder(w, "role", j)
+		s = append(s, v.Role)
+		j++
+	} else {
+		dialect.QuoteW(w, "role")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "active", j)
+	s = append(s, v.Active)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "admin", j)
+	s = append(s, v.Admin)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "fave", j)
+		j++
+	x, err := json.Marshal(&v.Fave)
+	if err != nil {
+		return nil, err
+	}
+	s = append(s, x)
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "lastupdated", j)
+	s = append(s, v.LastUpdated)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "token", j)
+	s = append(s, v.token)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "secret", j)
+	s = append(s, v.secret)
+		j++
+
+	return s, nil
+}
+
 // UpdateFields updates one or more columns, given a 'where' clause.
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
@@ -430,8 +521,9 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 	}
 
 	var count int64
-	columns := allUUserQuotedUpdates[tbl.Dialect().Index()]
-	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
+	dialect := tbl.Dialect()
+	//columns := allUUserQuotedUpdates[dialect.Index()]
+	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -442,12 +534,22 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 			}
 		}
 
-		args, err := sliceUUserWithoutPk(v)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "UPDATE ")
+		io.WriteString(b, tbl.name.String())
+		io.WriteString(b, " SET ")
+
+		args, err := constructUUserUpdate(b, v, dialect)
+		k := len(args)
 		args = append(args, v.Uid)
 		if err != nil {
 			return count, tbl.logError(err)
 		}
 
+		io.WriteString(b, " WHERE ")
+		dialect.QuoteWithPlaceholder(b, "uid", k)
+
+		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
@@ -456,27 +558,4 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 	}
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
-}
-
-func sliceUUserWithoutPk(v *User) ([]interface{}, error) {
-
-	v8, err := json.Marshal(&v.Fave)
-	if err != nil {
-		return nil, err
-	}
-
-	return []interface{}{
-		v.Login,
-		v.EmailAddress,
-		v.AddressId,
-		v.Avatar,
-		v.Role,
-		v.Active,
-		v.Admin,
-		v8,
-		v.LastUpdated,
-		v.token,
-		v.secret,
-
-	}, nil
 }

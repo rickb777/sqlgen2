@@ -19,6 +19,7 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/constraint"
+	"github.com/kortschak/utter"
 )
 
 var db *sql.DB
@@ -394,6 +395,7 @@ func select_known_user_requiring_one_should_return_user(t *testing.T, tbl DbUser
 
 func update_user_should_call_PreUpdate(t *testing.T, tbl DbUserTable, user *User) {
 	user.EmailAddress = "bah0@zzz.com"
+	utter.Dump(user)
 
 	n, err := tbl.Update(require.One, user)
 	Ω(err).Should(BeNil())
@@ -468,7 +470,7 @@ func TestGetters_using_database(t *testing.T) {
 	}
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d)
 
-	err := tbl.CreateTableWithIndexes(false)
+	err := tbl.CreateTableWithIndexes(true)
 	Ω(err).Should(BeNil())
 
 	err = tbl.Truncate(true)

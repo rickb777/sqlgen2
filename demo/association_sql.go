@@ -13,6 +13,7 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
 	"github.com/rickb777/sqlgen2/where"
+	"io"
 	"log"
 	"strings"
 )
@@ -778,6 +779,121 @@ func (tbl AssociationTable) getstringPtrlist(req require.Requirement, sqlname st
 }
 
 
+func constructAssociationInsert(w io.Writer, v *Association, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
+	s = make([]interface{}, 0, 6)
+
+	comma := ""
+	io.WriteString(w, " (")
+
+	if withPk {
+		dialect.QuoteW(w, "id")
+		comma = ","
+		s = append(s, v.Id)
+	}
+
+	if v.Name != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "name")
+		s = append(s, v.Name)
+		comma = ","
+	}
+	if v.Quality != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "quality")
+		s = append(s, v.Quality)
+		comma = ","
+	}
+	if v.Ref1 != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "ref1")
+		s = append(s, v.Ref1)
+		comma = ","
+	}
+	if v.Ref2 != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "ref2")
+		s = append(s, v.Ref2)
+		comma = ","
+	}
+	if v.Category != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "category")
+		s = append(s, v.Category)
+		comma = ","
+	}
+	io.WriteString(w, ")")
+	return s, nil
+}
+
+func constructAssociationUpdate(w io.Writer, v *Association, dialect schema.Dialect) (s []interface{}, err error) {
+	j := 1
+	s = make([]interface{}, 0, 5)
+
+	comma := ""
+
+	io.WriteString(w, comma)
+	if v.Name != nil {
+		dialect.QuoteWithPlaceholder(w, "name", j)
+		s = append(s, v.Name)
+		comma = ", "
+		j++
+	} else {
+		dialect.QuoteW(w, "name")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	if v.Quality != nil {
+		dialect.QuoteWithPlaceholder(w, "quality", j)
+		s = append(s, v.Quality)
+		comma = ", "
+		j++
+	} else {
+		dialect.QuoteW(w, "quality")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	if v.Ref1 != nil {
+		dialect.QuoteWithPlaceholder(w, "ref1", j)
+		s = append(s, v.Ref1)
+		comma = ", "
+		j++
+	} else {
+		dialect.QuoteW(w, "ref1")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	if v.Ref2 != nil {
+		dialect.QuoteWithPlaceholder(w, "ref2", j)
+		s = append(s, v.Ref2)
+		comma = ", "
+		j++
+	} else {
+		dialect.QuoteW(w, "ref2")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
+	if v.Category != nil {
+		dialect.QuoteWithPlaceholder(w, "category", j)
+		s = append(s, v.Category)
+		comma = ", "
+		j++
+	} else {
+		dialect.QuoteW(w, "category")
+		io.WriteString(w, "=NULL")
+	}
+
+	return s, nil
+}
+
 //--------------------------------------------------------------------------------
 
 var allAssociationQuotedInserts = []string{
@@ -800,13 +916,6 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 	}
 
 	var count int64
-	columns := allAssociationQuotedInserts[tbl.Dialect().Index()]
-	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	if err != nil {
-		return err
-	}
-	defer st.Close()
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -817,13 +926,22 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 			}
 		}
 
-		fields, err := sliceAssociationWithoutPk(v)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "INSERT INTO ")
+		io.WriteString(b, tbl.name.String())
+
+		fields, err := constructAssociationInsert(b, v, tbl.Dialect(), false)
 		if err != nil {
 			return tbl.logError(err)
 		}
 
+		io.WriteString(b, " VALUES (")
+		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
+		io.WriteString(b, ")")
+
+		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := st.ExecContext(tbl.ctx, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -871,8 +989,9 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 	}
 
 	var count int64
-	columns := allAssociationQuotedUpdates[tbl.Dialect().Index()]
-	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
+	dialect := tbl.Dialect()
+	//columns := allAssociationQuotedUpdates[dialect.Index()]
+	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -883,12 +1002,22 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 			}
 		}
 
-		args, err := sliceAssociationWithoutPk(v)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "UPDATE ")
+		io.WriteString(b, tbl.name.String())
+		io.WriteString(b, " SET ")
+
+		args, err := constructAssociationUpdate(b, v, dialect)
+		k := len(args)
 		args = append(args, v.Id)
 		if err != nil {
 			return count, tbl.logError(err)
 		}
 
+		io.WriteString(b, " WHERE ")
+		dialect.QuoteWithPlaceholder(b, "id", k)
+
+		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
@@ -897,19 +1026,6 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 	}
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
-}
-
-func sliceAssociationWithoutPk(v *Association) ([]interface{}, error) {
-
-
-	return []interface{}{
-		v.Name,
-		v.Quality,
-		v.Ref1,
-		v.Ref2,
-		v.Category,
-
-	}, nil
 }
 
 //--------------------------------------------------------------------------------

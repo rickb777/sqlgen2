@@ -13,6 +13,7 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
 	"github.com/rickb777/sqlgen2/where"
+	"io"
 	"log"
 	"strings"
 )
@@ -932,6 +933,177 @@ func (tbl HookTable) getuint64list(req require.Requirement, sqlname string, wh w
 }
 
 
+func constructHookInsert(w io.Writer, v *Hook, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
+	s = make([]interface{}, 0, 17)
+
+	comma := ""
+	io.WriteString(w, " (")
+
+	if withPk {
+		dialect.QuoteW(w, "id")
+		comma = ","
+		s = append(s, v.Id)
+	}
+
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "sha")
+	s = append(s, v.Sha)
+	comma = ","
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "after")
+	s = append(s, v.Dates.After)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "before")
+	s = append(s, v.Dates.Before)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "category")
+	s = append(s, v.Category)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "created")
+	s = append(s, v.Created)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "deleted")
+	s = append(s, v.Deleted)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "forced")
+	s = append(s, v.Forced)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "commit_id")
+	s = append(s, v.HeadCommit.ID)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "message")
+	s = append(s, v.HeadCommit.Message)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "timestamp")
+	s = append(s, v.HeadCommit.Timestamp)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "head_commit_author_name")
+	s = append(s, v.HeadCommit.Author.Name)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "head_commit_author_email")
+	s = append(s, v.HeadCommit.Author.Email)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "head_commit_author_username")
+	s = append(s, v.HeadCommit.Author.Username)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "head_commit_committer_name")
+	s = append(s, v.HeadCommit.Committer.Name)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "head_commit_committer_email")
+	s = append(s, v.HeadCommit.Committer.Email)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "head_commit_committer_username")
+	s = append(s, v.HeadCommit.Committer.Username)
+	io.WriteString(w, ")")
+	return s, nil
+}
+
+func constructHookUpdate(w io.Writer, v *Hook, dialect schema.Dialect) (s []interface{}, err error) {
+	j := 1
+	s = make([]interface{}, 0, 16)
+
+	comma := ""
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "sha", j)
+	s = append(s, v.Sha)
+	comma = ", "
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "after", j)
+	s = append(s, v.Dates.After)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "before", j)
+	s = append(s, v.Dates.Before)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "category", j)
+	s = append(s, v.Category)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "created", j)
+	s = append(s, v.Created)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "deleted", j)
+	s = append(s, v.Deleted)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "forced", j)
+	s = append(s, v.Forced)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "commit_id", j)
+	s = append(s, v.HeadCommit.ID)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "message", j)
+	s = append(s, v.HeadCommit.Message)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "timestamp", j)
+	s = append(s, v.HeadCommit.Timestamp)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "head_commit_author_name", j)
+	s = append(s, v.HeadCommit.Author.Name)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "head_commit_author_email", j)
+	s = append(s, v.HeadCommit.Author.Email)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "head_commit_author_username", j)
+	s = append(s, v.HeadCommit.Author.Username)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "head_commit_committer_name", j)
+	s = append(s, v.HeadCommit.Committer.Name)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "head_commit_committer_email", j)
+	s = append(s, v.HeadCommit.Committer.Email)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "head_commit_committer_username", j)
+	s = append(s, v.HeadCommit.Committer.Username)
+		j++
+
+	return s, nil
+}
+
 //--------------------------------------------------------------------------------
 
 var allHookQuotedInserts = []string{
@@ -954,13 +1126,6 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 	}
 
 	var count int64
-	columns := allHookQuotedInserts[tbl.Dialect().Index()]
-	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	if err != nil {
-		return err
-	}
-	defer st.Close()
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -971,13 +1136,22 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 			}
 		}
 
-		fields, err := sliceHookWithoutPk(v)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "INSERT INTO ")
+		io.WriteString(b, tbl.name.String())
+
+		fields, err := constructHookInsert(b, v, tbl.Dialect(), false)
 		if err != nil {
 			return tbl.logError(err)
 		}
 
+		io.WriteString(b, " VALUES (")
+		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
+		io.WriteString(b, ")")
+
+		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := st.ExecContext(tbl.ctx, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -1027,8 +1201,9 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 	}
 
 	var count int64
-	columns := allHookQuotedUpdates[tbl.Dialect().Index()]
-	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
+	dialect := tbl.Dialect()
+	//columns := allHookQuotedUpdates[dialect.Index()]
+	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -1039,12 +1214,22 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 			}
 		}
 
-		args, err := sliceHookWithoutPk(v)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "UPDATE ")
+		io.WriteString(b, tbl.name.String())
+		io.WriteString(b, " SET ")
+
+		args, err := constructHookUpdate(b, v, dialect)
+		k := len(args)
 		args = append(args, v.Id)
 		if err != nil {
 			return count, tbl.logError(err)
 		}
 
+		io.WriteString(b, " WHERE ")
+		dialect.QuoteWithPlaceholder(b, "id", k)
+
+		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
@@ -1053,30 +1238,6 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 	}
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
-}
-
-func sliceHookWithoutPk(v *Hook) ([]interface{}, error) {
-
-
-	return []interface{}{
-		v.Sha,
-		v.Dates.After,
-		v.Dates.Before,
-		v.Category,
-		v.Created,
-		v.Deleted,
-		v.Forced,
-		v.HeadCommit.ID,
-		v.HeadCommit.Message,
-		v.HeadCommit.Timestamp,
-		v.HeadCommit.Author.Name,
-		v.HeadCommit.Author.Email,
-		v.HeadCommit.Author.Username,
-		v.HeadCommit.Committer.Name,
-		v.HeadCommit.Committer.Email,
-		v.HeadCommit.Committer.Username,
-
-	}, nil
 }
 
 //--------------------------------------------------------------------------------

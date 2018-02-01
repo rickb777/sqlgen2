@@ -123,9 +123,9 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 		var v10 []byte
 		var v11 []byte
 		var v12 Foo
-		var v13 *Foo
-		var v14 Bar
-		var v15 *Bar
+		var v13 sql.NullString
+		var v14 sql.NullInt64
+		var v15 Bar
 		var v16 []byte
 
 		err = rows.Scan(
@@ -144,7 +144,7 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 			&v12,
 			&v13,
 			&v14,
-			v15,
+			&v15,
 			&v16,
 		)
 		if err != nil {
@@ -186,9 +186,21 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 		}
 		v.Avatar = v11
 		v.Foo1 = v12
-		v.Foo2 = v13
-		v.Bar1 = v14
-		v.Bar2 = v15
+		if v13.Valid {
+			v.Foo2 = new(Foo)
+			err = v.Foo2.Scan(v13.String)
+			if err != nil {
+				return nil, n, err
+			}
+		}
+		if v14.Valid {
+			v.Foo3 = new(Foo)
+			err = v.Foo3.Scan(v14.Int64)
+			if err != nil {
+				return nil, n, err
+			}
+		}
+		v.Bar1 = v15
 		err = encoding.UnmarshalText(v16, &v.Updated)
 		if err != nil {
 			return nil, n, err

@@ -203,20 +203,6 @@ var tScanRows = template.Must(template.New("ScanRows").Funcs(funcMap).Parse(sSca
 
 //-------------------------------------------------------------------------------------------------
 
-const sSliceRow = `
-func slice{{.Prefix}}{{.Type}}{{.Suffix}}(v *{{.Type}}) ([]interface{}, error) {
-{{range .Body1}}{{.}}{{- end}}
-{{range .Body2}}{{.}}{{- end}}
-	return []interface{}{
-{{range .Body3}}{{.}}{{- end}}
-	}, nil
-}
-`
-
-var tSliceRow = template.Must(template.New("SliceRow").Funcs(funcMap).Parse(sSliceRow))
-
-//-------------------------------------------------------------------------------------------------
-
 const sSetter = `
 // Set{{.Setter.Name}} sets the {{.Setter.Name}} field and returns the modified {{.Type}}.
 func (v *{{.Type}}) Set{{.Setter.Name}}(x {{.Setter.Type.Type}}) *{{.Type}} {
