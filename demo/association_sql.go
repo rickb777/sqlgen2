@@ -89,6 +89,11 @@ func (tbl AssociationTable) WithConstraint(cc ...constraint.Constraint) Associat
 	return tbl
 }
 
+// Constraints returns the table's constraints.
+func (tbl AssociationTable) Constraints() constraint.Constraints {
+	return tbl.constraints
+}
+
 // Ctx gets the current request context.
 func (tbl AssociationTable) Ctx() context.Context {
 	return tbl.ctx

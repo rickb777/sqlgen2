@@ -90,6 +90,11 @@ func (tbl IssueTable) WithConstraint(cc ...constraint.Constraint) IssueTable {
 	return tbl
 }
 
+// Constraints returns the table's constraints.
+func (tbl IssueTable) Constraints() constraint.Constraints {
+	return tbl.constraints
+}
+
 // Ctx gets the current request context.
 func (tbl IssueTable) Ctx() context.Context {
 	return tbl.ctx

@@ -49,8 +49,10 @@ func TestIdsUsedAsForeignKeys(t *testing.T) {
 	connect()
 	defer cleanup()
 
+	fkc0 := constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "cascade", "cascade"}
+
 	d := sqlgen2.NewDatabase(db, dialect)
-	persons := vanilla.NewPrimaryKeyTable(sqlgen2.TableName{"pfx_", "persons"}, d)
+	persons := vanilla.NewPrimaryKeyTable(sqlgen2.TableName{"pfx_", "persons"}, d).WithConstraint(fkc0)
 
 	if testing.Verbose() {
 		d.SetLogger(log.New(os.Stderr, "", log.LstdFlags))
@@ -69,17 +71,16 @@ func TestIdsUsedAsForeignKeys(t *testing.T) {
 	insertOne(d, fmt.Sprintf(person1b, aid1))
 	insertOne(d, fmt.Sprintf(person2a, aid2))
 
-	fkc := constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "cascade", "cascade"}
-	//ref := Reference{tn2, refCol}
+	fkc := persons.Constraints().FkConstraints()[0]
 
-	m1, err := fkc.IdsUsedAsForeignKeys(persons)
+	m1, err := fkc.RelationshipWith(persons.Name()).IdsUsedAsForeignKeys(persons)
 
 	Ω(err).Should(BeNil())
 	Ω(len(m1)).Should(BeEquivalentTo(2))
 	Ω(m1.Contains(aid1)).Should(BeTrue())
 	Ω(m1.Contains(aid2)).Should(BeTrue())
 
-	m2, err := fkc.IdsUnusedAsForeignKeys(persons)
+	m2, err := fkc.RelationshipWith(persons.Name()).IdsUnusedAsForeignKeys(persons)
 
 	Ω(err).Should(BeNil())
 	Ω(len(m2)).Should(BeEquivalentTo(2))

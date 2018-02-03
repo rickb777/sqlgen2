@@ -93,6 +93,11 @@ func (tbl AUserTable) WithConstraint(cc ...constraint.Constraint) AUserTable {
 	return tbl
 }
 
+// Constraints returns the table's constraints.
+func (tbl AUserTable) Constraints() constraint.Constraints {
+	return tbl.constraints
+}
+
 // Ctx gets the current request context.
 func (tbl AUserTable) Ctx() context.Context {
 	return tbl.ctx

@@ -86,6 +86,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithConstraint(cc ...constraint.Constr
 	return tbl
 }
 
+// Constraints returns the table's constraints.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Constraints() constraint.Constraints {
+	return tbl.constraints
+}
+
 // Ctx gets the current request context.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Ctx() context.Context {
 	return tbl.ctx

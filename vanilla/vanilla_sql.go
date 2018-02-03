@@ -86,6 +86,11 @@ func (tbl PrimaryKeyTable) WithConstraint(cc ...constraint.Constraint) PrimaryKe
 	return tbl
 }
 
+// Constraints gets the constraints.
+func (tbl PrimaryKeyTable) Constraints() constraint.Constraints {
+	return tbl.constraints
+}
+
 // Ctx gets the current request context.
 func (tbl PrimaryKeyTable) Ctx() context.Context {
 	return tbl.ctx

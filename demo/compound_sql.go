@@ -89,6 +89,11 @@ func (tbl DbCompoundTable) WithConstraint(cc ...constraint.Constraint) DbCompoun
 	return tbl
 }
 
+// Constraints returns the table's constraints.
+func (tbl DbCompoundTable) Constraints() constraint.Constraints {
+	return tbl.constraints
+}
+
 // Ctx gets the current request context.
 func (tbl DbCompoundTable) Ctx() context.Context {
 	return tbl.ctx

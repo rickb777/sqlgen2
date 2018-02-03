@@ -89,6 +89,11 @@ func (tbl HookTable) WithConstraint(cc ...constraint.Constraint) HookTable {
 	return tbl
 }
 
+// Constraints returns the table's constraints.
+func (tbl HookTable) Constraints() constraint.Constraints {
+	return tbl.constraints
+}
+
 // Ctx gets the current request context.
 func (tbl HookTable) Ctx() context.Context {
 	return tbl.ctx

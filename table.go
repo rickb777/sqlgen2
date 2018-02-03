@@ -66,6 +66,9 @@ type Table interface {
 
 	// WithConstraint returns a modified Table with added data consistency constraints.
 	//WithConstraint(cc ...sqlgen2.Constraint) SomeTypeTable {
+
+	// Constraints gets the constraints.
+	//Constraints() constraint.Constraints
 }
 
 type TableCreator interface {
