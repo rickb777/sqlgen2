@@ -47,7 +47,7 @@ func NewDbCompoundTable(name sqlgen2.TableName, d *sqlgen2.Database) DbCompoundT
 // CopyTableAsDbCompoundTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'Compound'. It doesn't copy the constraints of the original table.
 //
-// It serves to provide methods appropriate for 'Compound'. This is most useulf when thie is used to represent a
+// It serves to provide methods appropriate for 'Compound'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsDbCompoundTable(origin sqlgen2.Table) DbCompoundTable {
 	return DbCompoundTable{

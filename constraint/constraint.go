@@ -3,6 +3,8 @@ package constraint
 import (
 	"fmt"
 	"github.com/rickb777/sqlgen2"
+	"github.com/rickb777/sqlgen2/support"
+	"github.com/rickb777/sqlgen2/util"
 )
 
 type Dialect interface {
@@ -131,49 +133,54 @@ func (c FkConstraint) Disabled() FkConstraint {
 
 //-------------------------------------------------------------------------------------------------
 
-//func (c FkConstraint) IdsUnusedAsForeignKeys(tbl Table) (map[int64]struct{}, error) {
-//	// TODO benchmark two candidates and choose the better
-//	// http://stackoverflow.com/questions/3427353/sql-statement-question-how-to-retrieve-records-of-a-table-where-the-primary-ke?rq=1
-//	//	s := fmt.Sprintf(
-//	//		`SELECT a.%s
-//	//			FROM %s a
-//	//			WHERE NOT EXISTS (
-//	//   				SELECT 1 FROM %s b
-//	//   				WHERE %s.%s = %s.%s
-//	//			)`,
-//	//		primary.ForeignKeyColumn, primary.TableName, foreign.TableName, primary.TableName, primary.ForeignKeyColumn, foreign.TableName, foreign.ForeignKeyColumn)
-//
-//	// http://stackoverflow.com/questions/13108587/selecting-primary-keys-that-does-not-has-foreign-keys-in-another-table
-//	s := fmt.Sprintf(
-//		`SELECT a.%s
-//			FROM %s a
-//			LEFT OUTER JOIN %s b ON a.%s = b.%s
-//			WHERE b.%s IS null`,
-//		c.Parent.Column, c.Parent.TableName, tbl.Name(), c.Parent.Column, c.ForeignKeyColumn, c.ForeignKeyColumn)
-//	return fetchIds(tbl, s)
-//}
-//
-//func (c FkConstraint) IdsUsedAsForeignKeys(tbl Table) (map[int64]struct{}, error) {
-//	s := fmt.Sprintf(
-//		`SELECT DISTINCT a.%s AS Id
-//			FROM %s a
-//			INNER JOIN %s b ON a.%s = b.%s`,
-//		c.Parent.Column, c.Parent.TableName, tbl.Name(), c.Parent.Column, c.ForeignKeyColumn)
-//	return fetchIds(tbl, s)
-//}
-//
-//func fetchIds(tbl Table, s string) (map[int64]struct{}, error) {
-//	rows, err := tbl.DB().QueryContext(tbl.Ctx(), s)
-//	if err != nil {
-//		return nil, err
-//	}
-//	defer rows.Close()
-//
-//	set := make(map[int64]struct{})
-//	for rows.Next() {
-//		var id int64
-//		rows.Scan(&id)
-//		set[id] = struct{}{}
-//	}
-//	return set, rows.Err()
-//}
+// IdsUnusedAsForeignKeys finds all the primary keys in the parent table that have no foreign key
+// in the dependent (child) table.
+func (c FkConstraint) IdsUnusedAsForeignKeys(tbl sqlgen2.Table) (util.Int64Set, error) {
+	// TODO benchmark two candidates and choose the better
+	// http://stackoverflow.com/questions/3427353/sql-statement-question-how-to-retrieve-records-of-a-table-where-the-primary-ke?rq=1
+	//	s := fmt.Sprintf(
+	//		`SELECT a.%s
+	//			FROM %s a
+	//			WHERE NOT EXISTS (
+	//   				SELECT 1 FROM %s b
+	//   				WHERE %s.%s = %s.%s
+	//			)`,
+	//		primary.ForeignKeyColumn, primary.TableName, foreign.TableName, primary.TableName, primary.ForeignKeyColumn, foreign.TableName, foreign.ForeignKeyColumn)
+
+	// http://stackoverflow.com/questions/13108587/selecting-primary-keys-that-does-not-has-foreign-keys-in-another-table
+	s := fmt.Sprintf(
+		`SELECT a.%s
+			FROM %s%s a
+			LEFT OUTER JOIN %s b ON a.%s = b.%s
+			WHERE b.%s IS null`,
+		c.Parent.Column, tbl.Name().Prefix, c.Parent.TableName, tbl.Name(), c.Parent.Column, c.ForeignKeyColumn, c.ForeignKeyColumn)
+	return fetchIds(tbl, s)
+}
+
+// IdsUsedAsForeignKeys finds all the primary keys in the parent table that have at least one foreign key
+// in the dependent (child) table.
+func (c FkConstraint) IdsUsedAsForeignKeys(tbl sqlgen2.Table) (util.Int64Set, error) {
+	s := fmt.Sprintf(
+		`SELECT DISTINCT a.%s AS Id
+			FROM %s%s a
+			INNER JOIN %s b ON a.%s = b.%s`,
+		c.Parent.Column, tbl.Name().Prefix, c.Parent.TableName, tbl.Name(), c.Parent.Column, c.ForeignKeyColumn)
+	return fetchIds(tbl, s)
+}
+
+func fetchIds(tbl sqlgen2.Table, query string) (util.Int64Set, error) {
+	support.LogQuery(tbl.Logger(), query)
+	rows, err := tbl.Database().DB().QueryContext(tbl.Ctx(), query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	set := util.NewInt64Set()
+	for rows.Next() {
+		var id int64
+		rows.Scan(&id)
+		set.Add(id)
+	}
+	return set, rows.Err()
+}

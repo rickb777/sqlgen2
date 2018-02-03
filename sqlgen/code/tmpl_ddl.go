@@ -44,7 +44,7 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name sqlgen2.TableName, d *sqlgen2.Databa
 // CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}} copies a table instance, retaining the name etc but
 // providing methods appropriate for '{{.Type}}'. It doesn't copy the constraints of the original table.
 //
-// It serves to provide methods appropriate for '{{.Type}}'. This is most useulf when thie is used to represent a
+// It serves to provide methods appropriate for '{{.Type}}'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin sqlgen2.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
 	return {{.Prefix}}{{.Type}}{{.Thing}}{

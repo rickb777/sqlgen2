@@ -49,7 +49,7 @@ func NewCUserTable(name sqlgen2.TableName, d *sqlgen2.Database) CUserTable {
 // CopyTableAsCUserTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'User'. It doesn't copy the constraints of the original table.
 //
-// It serves to provide methods appropriate for 'User'. This is most useulf when thie is used to represent a
+// It serves to provide methods appropriate for 'User'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsCUserTable(origin sqlgen2.Table) CUserTable {
 	return CUserTable{

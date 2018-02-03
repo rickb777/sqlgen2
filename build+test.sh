@@ -43,9 +43,9 @@ cd ..
 
 ### Build Phase 2 ###
 
-go install .
+go install ./...
 
-for d in require schema sqlgen where; do
+for d in constraint require schema sqlgen where; do
   echo ./$d...
   go test $1 -covermode=count -coverprofile=./$d.out ./$d
   go tool cover -func=./$d.out
