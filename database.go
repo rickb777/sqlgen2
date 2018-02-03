@@ -6,6 +6,7 @@ import (
 	"log"
 	"context"
 	"database/sql"
+	"strings"
 )
 
 type Database struct {
@@ -94,6 +95,36 @@ func (database *Database) QueryRowContext(ctx context.Context, query string, arg
 
 //-------------------------------------------------------------------------------------------------
 
+// LogQuery writes query info to the logger, if it is not nil.
+func (database *Database) LogQuery(query string, args ...interface{}) {
+	//support.LogQuery(database.logger, query, args)
+	if database.logger != nil {
+		query = strings.TrimSpace(query)
+		if len(args) > 0 {
+			database.logger.Printf(query+" %v\n", args)
+		} else {
+			database.logger.Println(query)
+		}
+	}
+}
+
+// LogIfError writes error info to the logger, if neither the logger nor the error is nil.
+func (database *Database) LogIfError(err error) error {
+	if database.logger != nil && err != nil {
+		database.logger.Printf("Error: %s\n", err)
+	}
+	return err
+}
+
+// LogError writes error info to the logger, if the logger is not nil.
+func (database *Database) LogError(err error) error {
+	if database.logger != nil {
+		database.logger.Printf("Error: %s\n", err)
+	}
+	return err
+}
+
+//-------------------------------------------------------------------------------------------------
 
 // DoesTableExist gets all the table names in the database/schema.
 func (database *Database) TableExists(name TableName) (yes bool, err error) {

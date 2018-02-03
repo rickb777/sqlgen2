@@ -147,15 +147,15 @@ func (tbl CUserTable) Using(tx *sql.Tx) CUserTable {
 }
 
 func (tbl CUserTable) logQuery(query string, args ...interface{}) {
-	support.LogQuery(tbl.Logger(), query, args...)
+	tbl.database.LogQuery(query, args...)
 }
 
 func (tbl CUserTable) logError(err error) error {
-	return support.LogError(tbl.Logger(), err)
+	return tbl.database.LogError(err)
 }
 
 func (tbl CUserTable) logIfError(err error) error {
-	return support.LogIfError(tbl.Logger(), err)
+	return tbl.database.LogIfError(err)
 }
 
 
@@ -491,6 +491,13 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 	}
 
 	var count int64
+	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
+	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
+	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
+	//if err != nil {
+	//	return err
+	//}
+	//defer st.Close()
 
 	for _, v := range vv {
 		var iv interface{} = v

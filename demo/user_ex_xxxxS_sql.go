@@ -147,15 +147,15 @@ func (tbl SUserTable) Using(tx *sql.Tx) SUserTable {
 }
 
 func (tbl SUserTable) logQuery(query string, args ...interface{}) {
-	support.LogQuery(tbl.Logger(), query, args...)
+	tbl.database.LogQuery(query, args...)
 }
 
 func (tbl SUserTable) logError(err error) error {
-	return support.LogError(tbl.Logger(), err)
+	return tbl.database.LogError(err)
 }
 
 func (tbl SUserTable) logIfError(err error) error {
-	return support.LogIfError(tbl.Logger(), err)
+	return tbl.database.LogIfError(err)
 }
 
 

@@ -142,15 +142,15 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx *sql.Tx) {{.Prefix}}{{.Type}}
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logQuery(query string, args ...interface{}) {
-	support.LogQuery(tbl.Logger(), query, args...)
+	tbl.database.LogQuery(query, args...)
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logError(err error) error {
-	return support.LogError(tbl.Logger(), err)
+	return tbl.database.LogError(err)
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logIfError(err error) error {
-	return support.LogIfError(tbl.Logger(), err)
+	return tbl.database.LogIfError(err)
 }
 
 `
@@ -229,7 +229,7 @@ const sTruncate = `
 // are also truncated.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = tbl.Exec(nil, query)
+		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -246,7 +246,7 @@ var tTruncate = template.Must(template.New("Truncate").Funcs(funcMap).Parse(sTru
 const sCreateTableFunc = `
 // CreateTable creates the table.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateTable(ifNotExists bool) (int64, error) {
-	return tbl.Exec(nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) createTableSql(ifNotExists bool) string {
@@ -285,7 +285,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) ternary(flag bool, a, b string) string
 
 // DropTable drops the table, destroying all its data.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DropTable(ifExists bool) (int64, error) {
-	return tbl.Exec(nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) dropTableSql(ifExists bool) string {
@@ -327,6 +327,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ifNotExi
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect() == schema.Mysql {
+		// low-level no-logging Exec
 		tbl.Execer().ExecContext(tbl.Ctx(), tbl.drop{{$.Prefix}}{{camel .Name}}IndexSql(false))
 		ine = ""
 	}

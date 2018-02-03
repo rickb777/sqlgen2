@@ -145,15 +145,15 @@ func (tbl DbCompoundTable) Using(tx *sql.Tx) DbCompoundTable {
 }
 
 func (tbl DbCompoundTable) logQuery(query string, args ...interface{}) {
-	support.LogQuery(tbl.Logger(), query, args...)
+	tbl.database.LogQuery(query, args...)
 }
 
 func (tbl DbCompoundTable) logError(err error) error {
-	return support.LogError(tbl.Logger(), err)
+	return tbl.database.LogError(err)
 }
 
 func (tbl DbCompoundTable) logIfError(err error) error {
-	return support.LogIfError(tbl.Logger(), err)
+	return tbl.database.LogIfError(err)
 }
 
 //--------------------------------------------------------------------------------
@@ -192,7 +192,7 @@ const sqlDbAlphaBetaIndexColumns = "alpha,beta"
 
 // CreateTable creates the table.
 func (tbl DbCompoundTable) CreateTable(ifNotExists bool) (int64, error) {
-	return tbl.Exec(nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
@@ -235,7 +235,7 @@ func (tbl DbCompoundTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl DbCompoundTable) DropTable(ifExists bool) (int64, error) {
-	return tbl.Exec(nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl DbCompoundTable) dropTableSql(ifExists bool) string {
@@ -275,6 +275,7 @@ func (tbl DbCompoundTable) CreateAlphaBetaIndex(ifNotExist bool) error {
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect() == schema.Mysql {
+		// low-level no-logging Exec
 		tbl.Execer().ExecContext(tbl.Ctx(), tbl.dropDbAlphaBetaIndexSql(false))
 		ine = ""
 	}
@@ -325,7 +326,7 @@ func (tbl DbCompoundTable) DropIndexes(ifExist bool) (err error) {
 // are also truncated.
 func (tbl DbCompoundTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = tbl.Exec(nil, query)
+		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -760,6 +761,13 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 	}
 
 	var count int64
+	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
+	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
+	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
+	//if err != nil {
+	//	return err
+	//}
+	//defer st.Close()
 
 	for _, v := range vv {
 		var iv interface{} = v

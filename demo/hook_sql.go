@@ -145,15 +145,15 @@ func (tbl HookTable) Using(tx *sql.Tx) HookTable {
 }
 
 func (tbl HookTable) logQuery(query string, args ...interface{}) {
-	support.LogQuery(tbl.Logger(), query, args...)
+	tbl.database.LogQuery(query, args...)
 }
 
 func (tbl HookTable) logError(err error) error {
-	return support.LogError(tbl.Logger(), err)
+	return tbl.database.LogError(err)
 }
 
 func (tbl HookTable) logIfError(err error) error {
-	return support.LogIfError(tbl.Logger(), err)
+	return tbl.database.LogIfError(err)
 }
 
 
@@ -235,7 +235,7 @@ const sqlConstrainHookTable = `
 
 // CreateTable creates the table.
 func (tbl HookTable) CreateTable(ifNotExists bool) (int64, error) {
-	return tbl.Exec(nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl HookTable) createTableSql(ifNotExists bool) string {
@@ -278,7 +278,7 @@ func (tbl HookTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl HookTable) DropTable(ifExists bool) (int64, error) {
-	return tbl.Exec(nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl HookTable) dropTableSql(ifExists bool) string {
@@ -298,7 +298,7 @@ func (tbl HookTable) dropTableSql(ifExists bool) string {
 // are also truncated.
 func (tbl HookTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = tbl.Exec(nil, query)
+		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -1126,6 +1126,13 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 	}
 
 	var count int64
+	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
+	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
+	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
+	//if err != nil {
+	//	return err
+	//}
+	//defer st.Close()
 
 	for _, v := range vv {
 		var iv interface{} = v

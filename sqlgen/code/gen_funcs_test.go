@@ -528,7 +528,7 @@ func (tbl XExampleTable) Count(wh where.Expression) (count int64, err error) {
 
 //-------------------------------------------------------------------------------------------------
 
-func xTestWriteInsertFunc_noPK(t *testing.T) {
+func TestWriteInsertFunc_noPK(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -562,13 +562,13 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	}
 
 	var count int64
-	columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
-	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	if err != nil {
-		return err
-	}
-	defer st.Close()
+	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
+	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
+	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
+	//if err != nil {
+	//	return err
+	//}
+	//defer st.Close()
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -579,13 +579,22 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 			}
 		}
 
-		fields, err := sliceXExample(v, true)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "INSERT INTO ")
+		io.WriteString(b, tbl.name.String())
+
+		fields, err := constructXExampleInsert(b, v, tbl.Dialect(), true)
 		if err != nil {
 			return tbl.logError(err)
 		}
 
+		io.WriteString(b, " VALUES (")
+		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
+		io.WriteString(b, ")")
+
+		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := st.ExecContext(tbl.ctx, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -612,7 +621,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	}
 }
 
-func xTestWriteInsertFunc_withPK(t *testing.T) {
+func TestWriteInsertFunc_withPK(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -646,13 +655,13 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	}
 
 	var count int64
-	columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
-	query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	if err != nil {
-		return err
-	}
-	defer st.Close()
+	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
+	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
+	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
+	//if err != nil {
+	//	return err
+	//}
+	//defer st.Close()
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -663,13 +672,22 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 			}
 		}
 
-		fields, err := sliceXExample(v, false)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "INSERT INTO ")
+		io.WriteString(b, tbl.name.String())
+
+		fields, err := constructXExampleInsert(b, v, tbl.Dialect(), false)
 		if err != nil {
 			return tbl.logError(err)
 		}
 
+		io.WriteString(b, " VALUES (")
+		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
+		io.WriteString(b, ")")
+
+		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := st.ExecContext(tbl.ctx, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -698,7 +716,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 
 //-------------------------------------------------------------------------------------------------
 
-func xTestWriteUpdateFunc_noPK(t *testing.T) {
+func TestWriteUpdateFunc_noPK(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -724,7 +742,7 @@ func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expressi
 	}
 }
 
-func xTestWriteUpdateFunc_withPK(t *testing.T) {
+func TestWriteUpdateFunc_withPK(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
@@ -764,8 +782,9 @@ func (tbl XExampleTable) Update(req require.Requirement, vv ...*Example) (int64,
 	}
 
 	var count int64
-	columns := allXExampleQuotedUpdates[tbl.Dialect().Index()]
-	query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
+	dialect := tbl.Dialect()
+	//columns := allXExampleQuotedUpdates[dialect.Index()]
+	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -776,12 +795,22 @@ func (tbl XExampleTable) Update(req require.Requirement, vv ...*Example) (int64,
 			}
 		}
 
-		args, err := sliceXExample(v, false)
+		b := &bytes.Buffer{}
+		io.WriteString(b, "UPDATE ")
+		io.WriteString(b, tbl.name.String())
+		io.WriteString(b, " SET ")
+
+		args, err := constructXExampleUpdate(b, v, dialect)
+		k := len(args)
 		args = append(args, v.Id)
 		if err != nil {
 			return count, tbl.logError(err)
 		}
 
+		io.WriteString(b, " WHERE ")
+		dialect.QuoteWithPlaceholder(b, "id", k)
+
+		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err

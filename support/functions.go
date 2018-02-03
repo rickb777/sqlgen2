@@ -3,7 +3,6 @@ package support
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"strings"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/require"
@@ -19,11 +18,12 @@ func ReplaceTableName(tbl sqlgen2.Table, query string) string {
 func QueryOneNullThing(tbl sqlgen2.Table, req require.Requirement, holder interface{}, query string, args ...interface{}) error {
 	var n int64 = 0
 	query = ReplaceTableName(tbl, query)
-	LogQuery(tbl.Logger(), query, args...)
+	database := tbl.Database()
+	database.LogQuery(query, args...)
 
 	rows, err := tbl.DB().QueryContext(tbl.Ctx(), query, args...)
 	if err != nil {
-		return LogError(tbl.Logger(), err)
+		return database.LogError(err)
 	}
 	defer rows.Close()
 
@@ -31,7 +31,7 @@ func QueryOneNullThing(tbl sqlgen2.Table, req require.Requirement, holder interf
 		err = rows.Scan(holder)
 
 		if err == sql.ErrNoRows {
-			return LogIfError(tbl.Logger(), require.ErrorIfQueryNotSatisfiedBy(req, 0))
+			return database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, 0))
 		} else {
 			n++
 		}
@@ -41,21 +41,54 @@ func QueryOneNullThing(tbl sqlgen2.Table, req require.Requirement, holder interf
 		}
 	}
 
-	return LogIfError(tbl.Logger(), require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
+	return database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, n))
+}
+
+//-------------------------------------------------------------------------------------------------
+
+func GetInt64List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	dialect := tbl.Dialect()
+	database := tbl.Database()
+
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.Name(), whs, orderBy)
+
+	database.LogQuery(query, args...)
+	rows, err := database.DB().QueryContext(tbl.Ctx(), query, args...)
+	if err != nil {
+		return nil, database.LogError(err)
+	}
+	defer rows.Close()
+
+	var v int64
+	list := make([]int64, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // Exec executes a modification query (insert, update, delete, etc) and returns the number of items affected.
 func Exec(tbl sqlgen2.Table, req require.Requirement, query string, args ...interface{}) (int64, error) {
-	LogQuery(tbl.Logger(), query, args...)
-	res, err := tbl.Database().DB().ExecContext(tbl.Ctx(), query, args...)
+	database := tbl.Database()
+	database.LogQuery(query, args...)
+	res, err := tbl.Execer().ExecContext(tbl.Ctx(), query, args...)
 	if err != nil {
-		return 0, LogError(tbl.Logger(), err)
+		return 0, database.LogError(err)
 	}
 	n, err := res.RowsAffected()
-	return n, LogIfError(tbl.Logger(), require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+	return n, database.LogIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
+
 
 // UpdateFields writes certain fields of all the records matching a 'where' expression.
 func UpdateFields(tbl sqlgen2.Table, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
@@ -65,34 +98,4 @@ func UpdateFields(tbl sqlgen2.Table, req require.Requirement, wh where.Expressio
 	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.Name(), assignments, whs)
 	args := append(list.Values(), wargs...)
 	return Exec(tbl, req, query, args...)
-}
-
-//-------------------------------------------------------------------------------------------------
-
-// LogQuery writes query info to the logger, if it is not nil.
-func LogQuery(logger *log.Logger, query string, args ...interface{}) {
-	if logger != nil {
-		query = strings.TrimSpace(query)
-		if len(args) > 0 {
-			logger.Printf(query+" %v\n", args)
-		} else {
-			logger.Println(query)
-		}
-	}
-}
-
-// LogIfError writes error info to the logger, if the logger and the error are not nil.
-func LogIfError(logger *log.Logger, err error) error {
-	if logger != nil && err != nil {
-		logger.Printf("Error: %s\n", err)
-	}
-	return err
-}
-
-// LogError writes error info to the logger, if the logger is not nil.
-func LogError(logger *log.Logger, err error) error {
-	if logger != nil {
-		logger.Printf("Error: %s\n", err)
-	}
-	return err
 }

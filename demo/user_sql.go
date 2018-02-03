@@ -150,15 +150,15 @@ func (tbl DbUserTable) Using(tx *sql.Tx) DbUserTable {
 }
 
 func (tbl DbUserTable) logQuery(query string, args ...interface{}) {
-	support.LogQuery(tbl.Logger(), query, args...)
+	tbl.database.LogQuery(query, args...)
 }
 
 func (tbl DbUserTable) logError(err error) error {
-	return support.LogError(tbl.Logger(), err)
+	return tbl.database.LogError(err)
 }
 
 func (tbl DbUserTable) logIfError(err error) error {
-	return support.LogIfError(tbl.Logger(), err)
+	return tbl.database.LogIfError(err)
 }
 
 //--------------------------------------------------------------------------------
@@ -231,7 +231,7 @@ const sqlDbUserLoginIndexColumns = "login"
 
 // CreateTable creates the table.
 func (tbl DbUserTable) CreateTable(ifNotExists bool) (int64, error) {
-	return tbl.Exec(nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
@@ -274,7 +274,7 @@ func (tbl DbUserTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl DbUserTable) DropTable(ifExists bool) (int64, error) {
-	return tbl.Exec(nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl DbUserTable) dropTableSql(ifExists bool) string {
@@ -319,6 +319,7 @@ func (tbl DbUserTable) CreateUserEmailIndex(ifNotExist bool) error {
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect() == schema.Mysql {
+		// low-level no-logging Exec
 		tbl.Execer().ExecContext(tbl.Ctx(), tbl.dropDbUserEmailIndexSql(false))
 		ine = ""
 	}
@@ -355,6 +356,7 @@ func (tbl DbUserTable) CreateUserLoginIndex(ifNotExist bool) error {
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect() == schema.Mysql {
+		// low-level no-logging Exec
 		tbl.Execer().ExecContext(tbl.Ctx(), tbl.dropDbUserLoginIndexSql(false))
 		ine = ""
 	}
@@ -410,7 +412,7 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 // are also truncated.
 func (tbl DbUserTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = tbl.Exec(nil, query)
+		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -1190,6 +1192,13 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 	}
 
 	var count int64
+	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
+	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
+	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
+	//if err != nil {
+	//	return err
+	//}
+	//defer st.Close()
 
 	for _, v := range vv {
 		var iv interface{} = v

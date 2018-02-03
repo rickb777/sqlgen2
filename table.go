@@ -17,6 +17,9 @@ type Table interface {
 	// Database gets the shared database information.
 	Database() *Database
 
+	// Execer gets the wrapped database or transaction handle.
+	Execer() Execer
+
 	// DB gets the wrapped database handle, provided this is not within a transaction.
 	// Panics if it is in the wrong state - use IsTx() if necessary.
 	DB() *sql.DB

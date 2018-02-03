@@ -3,7 +3,6 @@ package constraint
 import (
 	"fmt"
 	"github.com/rickb777/sqlgen2"
-	"github.com/rickb777/sqlgen2/support"
 	"github.com/rickb777/sqlgen2/util"
 )
 
@@ -169,9 +168,11 @@ func (c FkConstraint) IdsUsedAsForeignKeys(tbl sqlgen2.Table) (util.Int64Set, er
 }
 
 func fetchIds(tbl sqlgen2.Table, query string) (util.Int64Set, error) {
-	support.LogQuery(tbl.Logger(), query)
-	rows, err := tbl.Database().DB().QueryContext(tbl.Ctx(), query)
+	database := tbl.Database()
+	database.LogQuery(query)
+	rows, err := tbl.Execer().QueryContext(tbl.Ctx(), query)
 	if err != nil {
+		database.LogError(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -182,5 +183,5 @@ func fetchIds(tbl sqlgen2.Table, query string) (util.Int64Set, error) {
 		rows.Scan(&id)
 		set.Add(id)
 	}
-	return set, rows.Err()
+	return set, database.LogIfError(rows.Err())
 }
