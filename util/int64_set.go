@@ -24,9 +24,31 @@ func ConvertInt64Set(values ...interface{}) (Int64Set, bool) {
 	set := make(Int64Set)
 
 	for _, i := range values {
-		v, ok := i.(int64)
-		if ok {
-		    set[v] = struct{}{}
+		switch i.(type) {
+		case int:
+			set[int64(i.(int))] = struct{}{}
+		case int8:
+			set[int64(i.(int8))] = struct{}{}
+		case int16:
+			set[int64(i.(int16))] = struct{}{}
+		case int32:
+			set[int64(i.(int32))] = struct{}{}
+		case int64:
+			set[int64(i.(int64))] = struct{}{}
+		case uint:
+			set[int64(i.(uint))] = struct{}{}
+		case uint8:
+			set[int64(i.(uint8))] = struct{}{}
+		case uint16:
+			set[int64(i.(uint16))] = struct{}{}
+		case uint32:
+			set[int64(i.(uint32))] = struct{}{}
+		case uint64:
+			set[int64(i.(uint64))] = struct{}{}
+		case float32:
+			set[int64(i.(float32))] = struct{}{}
+		case float64:
+			set[int64(i.(float64))] = struct{}{}
 		}
 	}
 
@@ -55,7 +77,7 @@ func (set Int64Set) ToSlice() []int64 {
 // ToInterfaceSlice returns the elements of the current set as a slice of arbitrary type.
 func (set Int64Set) ToInterfaceSlice() []interface{} {
 	var s []interface{}
-	for v := range set {
+	for v, _ := range set {
 		s = append(s, v)
 	}
 	return s
