@@ -22,13 +22,40 @@ func NewDatabase(db Execer, dialect schema.Dialect) *Database {
 	return &Database{db, dialect, context.Background(), nil, nil}
 }
 
+// DB gets the Execer, which is a *sql.DB except during testing.
 func (database *Database) DB() Execer {
 	return database.db
+}
+
+// BeginTx starts a transaction.
+//
+// The internal context, obtained using Ctx(), is used until the transaction is
+// committed or rolled back. If this context is cancelled, the sql package will
+// roll back the transaction. In this case, Tx.Commit will then return an error.
+//
+// The provided TxOptions is optional and may be nil if defaults should be used.
+// If a non-default isolation level is used that the driver doesn't support,
+// an error will be returned.
+//
+// Panics if the Execer is not TxStarter.
+func (database *Database) BeginTx(opts *sql.TxOptions) (*sql.Tx, error) {
+	return database.db.(TxStarter).BeginTx(database.ctx, opts)
+}
+
+// Begin starts a transaction using default options. The default isolation level is
+// dependent on the driver.
+func (database *Database) Begin() (*sql.Tx, error) {
+	return database.BeginTx(nil)
 }
 
 // Wrapper gets whatever structure is present, as needed.
 func (database *Database) Dialect() schema.Dialect {
 	return database.dialect
+}
+
+// Ctx gets the current request context.
+func (database *Database) Ctx() context.Context {
+	return database.ctx
 }
 
 // SetContext sets the context for subsequent queries.

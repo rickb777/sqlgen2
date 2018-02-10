@@ -65,7 +65,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryOne(req require.Requirement, qu
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -302,7 +302,7 @@ const sCountRows = `
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
-	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
+	row := tbl.db.QueryRowContext(tbl.Ctx(), query, args...)
 	err = row.Scan(&count)
 	return count, tbl.logIfError(err)
 }
@@ -336,7 +336,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) get{{.Tag}}list(req require.Require
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -409,7 +409,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 	var count int64
 	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
 	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
+	//st, err := tbl.db.PrepareContext(tbl.Ctx(), query)
 	//if err != nil {
 	//	return err
 	//}
@@ -439,7 +439,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
+		res, err := tbl.db.ExecContext(tbl.Ctx(), query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}

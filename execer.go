@@ -16,6 +16,11 @@ type Execer interface {
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
 
+// TxStarter is able to begin transactions. See database/sql/DB.
+type TxStarter interface {
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
+}
+
 // Type conformance assertions
 var _ Execer = &sql.DB{}
 var _ Execer = &sql.Tx{}

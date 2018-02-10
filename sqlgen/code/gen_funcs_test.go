@@ -104,7 +104,7 @@ func (tbl XExampleTable) doQueryOne(req require.Requirement, query string, args 
 
 func (tbl XExampleTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Example, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -347,7 +347,7 @@ func (tbl XExampleTable) getintlist(req require.Requirement, sqlname string, wh 
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -373,7 +373,7 @@ func (tbl XExampleTable) getint64list(req require.Requirement, sqlname string, w
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -399,7 +399,7 @@ func (tbl XExampleTable) getstringlist(req require.Requirement, sqlname string, 
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -507,7 +507,7 @@ func (tbl XExampleTable) Select(req require.Requirement, wh where.Expression, qc
 func (tbl XExampleTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
-	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
+	row := tbl.db.QueryRowContext(tbl.Ctx(), query, args...)
 	err = row.Scan(&count)
 	return count, tbl.logIfError(err)
 }
@@ -564,7 +564,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	var count int64
 	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
 	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
+	//st, err := tbl.db.PrepareContext(tbl.Ctx(), query)
 	//if err != nil {
 	//	return err
 	//}
@@ -594,7 +594,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
+		res, err := tbl.db.ExecContext(tbl.Ctx(), query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -657,7 +657,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	var count int64
 	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
 	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
+	//st, err := tbl.db.PrepareContext(tbl.Ctx(), query)
 	//if err != nil {
 	//	return err
 	//}
@@ -687,7 +687,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
+		res, err := tbl.db.ExecContext(tbl.Ctx(), query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}

@@ -289,6 +289,8 @@ func TestCrud_using_database(t *testing.T) {
 
 	update_user_should_call_PreUpdate(t, users, user2)
 
+	update_users_in_tx(t, users, user2)
+
 	delete_one_should_return_1(t, users)
 
 	count_empty_table_should_be_zero(t, users)
@@ -406,6 +408,27 @@ func update_user_should_call_PreUpdate(t *testing.T, tbl DbUserTable, user *User
 	Ω(err).Should(BeNil())
 	Ω(len(ss)).Should(Equal(1))
 	Ω(ss[0]).Should(Equal("bah0@zzz.com"))
+}
+
+func update_users_in_tx(t *testing.T, tbl DbUserTable, user *User) {
+	user.EmailAddress = "dude@zzz.com"
+	utter.Dump(user)
+
+	t2, err := tbl.BeginTx(nil)
+	Ω(err).Should(BeNil())
+
+	n, err := t2.Update(require.One, user)
+	Ω(err).Should(BeNil())
+	Ω(n).Should(BeEquivalentTo(1))
+	Ω(user.hash).Should(Equal("PreUpdate"))
+
+	err = t2.Tx().Commit()
+	Ω(err).Should(BeNil())
+
+	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("Uid", user.Uid), nil)
+	Ω(err).Should(BeNil())
+	Ω(len(ss)).Should(Equal(1))
+	Ω(ss[0]).Should(Equal("dude@zzz.com"))
 }
 
 func delete_one_should_return_1(t *testing.T, tbl DbUserTable) {

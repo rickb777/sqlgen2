@@ -68,11 +68,22 @@ func (tbl CUserTable) WithPrefix(pfx string) CUserTable {
 	return tbl
 }
 
-// WithContext sets the context for subsequent queries.
+// WithContext sets the context for subsequent queries via this table.
 // The result is a modified copy of the table; the original is unchanged.
+//
+// The shared context in the *Database is not altered by this method. So it
+// is possible to use different contexts for different (groups of) queries.
 func (tbl CUserTable) WithContext(ctx context.Context) CUserTable {
 	tbl.ctx = ctx
 	return tbl
+}
+
+// Ctx gets the current request context if defined, otherwise gets the shared *Database.Ctx().
+func (tbl CUserTable) Ctx() context.Context {
+	if tbl.ctx != nil {
+		return tbl.ctx
+	}
+	return tbl.database.Ctx()
 }
 
 // Database gets the shared database information.
@@ -94,11 +105,6 @@ func (tbl CUserTable) WithConstraint(cc ...constraint.Constraint) CUserTable {
 // Constraints returns the table's constraints.
 func (tbl CUserTable) Constraints() constraint.Constraints {
 	return tbl.constraints
-}
-
-// Ctx gets the current request context.
-func (tbl CUserTable) Ctx() context.Context {
-	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -134,12 +140,23 @@ func (tbl CUserTable) IsTx() bool {
 	return ok
 }
 
-// Begin starts a transaction. The default isolation level is dependent on the driver.
-// The result is a modified copy of the table; the original is unchanged.
+// BeginTx starts a transaction using the table's context.
+//
+// This context, obtained using Ctx(), is used until the transaction is committed
+// or rolled back. Note that this may or may not be the same context as that
+// of the shared *Database.
+//
+// If this context is cancelled, the sql package will roll back the transaction.
+// In this case, Tx.Commit will then return an error.
+//
+// The provided TxOptions is optional and may be nil if defaults should be used.
+// If a non-default isolation level is used that the driver doesn't support,
+// an error will be returned.
+//
+// Panics if the Execer is not TxStarter.
 func (tbl CUserTable) BeginTx(opts *sql.TxOptions) (CUserTable, error) {
-	d := tbl.db.(*sql.DB)
 	var err error
-	tbl.db, err = d.BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.Ctx(), opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -226,7 +243,7 @@ func (tbl CUserTable) doQueryOne(req require.Requirement, query string, args ...
 
 func (tbl CUserTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -498,7 +515,7 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 	var count int64
 	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
 	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
+	//st, err := tbl.db.PrepareContext(tbl.Ctx(), query)
 	//if err != nil {
 	//	return err
 	//}
@@ -528,7 +545,7 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
+		res, err := tbl.db.ExecContext(tbl.Ctx(), query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
