@@ -56,62 +56,23 @@ func TestWriteQueryRows(t *testing.T) {
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
-// Query is the low-level access method for Examples.
+// Query is the low-level request method for this table. The query is logged using whatever logger is
+// configured. If an error arises, this too is logged.
 //
-// It places a requirement, which may be nil, on the size of the expected results: this
-// controls whether an error is generated when this expectation is not met.
-//
-// Note that this method applies ReplaceTableName to the query string.
+// If you need a context other than the background, use WithContext before calling Query.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Example, error) {
-	query = tbl.ReplaceTableName(query)
-	vv, err := tbl.doQuery(req, false, query, args...)
-	return vv, err
-}
-
-// QueryOne is the low-level access method for one Example.
-// If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, *Example will be nil.
 //
-// Note that this method applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) QueryOne(query string, args ...interface{}) (*Example, error) {
-	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(nil, query, args...)
-}
-
-// MustQueryOne is the low-level access method for one Example.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this method applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) MustQueryOne(query string, args ...interface{}) (*Example, error) {
-	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(require.One, query, args...)
-}
-
-func (tbl XExampleTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Example, error) {
-	list, err := tbl.doQuery(req, true, query, args...)
-	if err != nil || len(list) == 0 {
-		return nil, err
-	}
-	return list[0], nil
-}
-
-func (tbl XExampleTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Example, error) {
+// The caller must call rows.Close() on the result.
+func (tbl XExampleTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	return rows, tbl.logIfError(err)
+}
 
-	vv, n, err := scanXExamples(rows, firstOnly)
-	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl XExampleTable) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 `, "¬", "`", -1)
 	if code != expected {
@@ -211,11 +172,6 @@ func (tbl XExampleTable) MustQueryOneNullFloat64(query string, args ...interface
 	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
-
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl XExampleTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
 `, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
@@ -295,6 +251,24 @@ func (tbl XExampleTable) GetExamples(req require.Requirement, id ...int64) (list
 
 	return list, err
 }
+
+func (tbl XExampleTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Example, error) {
+	list, err := tbl.doQuery(req, true, query, args...)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
+}
+
+func (tbl XExampleTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Example, error) {
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	vv, n, err := scanXExamples(rows, firstOnly)
+	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+}
 `, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
@@ -347,7 +321,7 @@ func (tbl XExampleTable) getintlist(req require.Requirement, sqlname string, wh 
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -373,7 +347,7 @@ func (tbl XExampleTable) getint64list(req require.Requirement, sqlname string, w
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -399,7 +373,7 @@ func (tbl XExampleTable) getstringlist(req require.Requirement, sqlname string, 
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -507,7 +481,7 @@ func (tbl XExampleTable) Select(req require.Requirement, wh where.Expression, qc
 func (tbl XExampleTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
-	row := tbl.db.QueryRowContext(tbl.Ctx(), query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
 	return count, tbl.logIfError(err)
 }
@@ -564,7 +538,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	var count int64
 	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
 	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.Ctx(), query)
+	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	//if err != nil {
 	//	return err
 	//}
@@ -594,7 +568,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.Ctx(), query, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -657,7 +631,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	var count int64
 	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
 	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.Ctx(), query)
+	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	//if err != nil {
 	//	return err
 	//}
@@ -687,7 +661,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.Ctx(), query, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -732,7 +706,7 @@ func TestWriteUpdateFunc_noPK(t *testing.T) {
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl, req, wh, fields...)
+	return support.UpdateFields(tbl.ctx, tbl, req, wh, fields...)
 }
 `, "¬", "`", -1)
 	if code != expected {
@@ -758,7 +732,7 @@ func TestWriteUpdateFunc_withPK(t *testing.T) {
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl, req, wh, fields...)
+	return support.UpdateFields(tbl.ctx, tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
@@ -937,7 +911,7 @@ func TestWriteExecFunc(t *testing.T) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
+	return support.Exec(tbl.ctx, tbl, req, query, args...)
 }
 `, "¬", "`", -1)
 	if code != expected {

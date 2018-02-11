@@ -56,7 +56,7 @@ func CopyTableAsAddressTable(origin sqlgen2.Table) AddressTable {
 		database:    origin.Database(),
 		db:          origin.DB(),
 		constraints: nil,
-		ctx:         origin.Ctx(),
+		ctx:         context.Background(),
 	}
 }
 
@@ -75,14 +75,6 @@ func (tbl AddressTable) WithPrefix(pfx string) AddressTable {
 func (tbl AddressTable) WithContext(ctx context.Context) AddressTable {
 	tbl.ctx = ctx
 	return tbl
-}
-
-// Ctx gets the current request context if defined, otherwise gets the shared *Database.Ctx().
-func (tbl AddressTable) Ctx() context.Context {
-	if tbl.ctx != nil {
-		return tbl.ctx
-	}
-	return tbl.database.Ctx()
 }
 
 // Database gets the shared database information.
@@ -140,10 +132,7 @@ func (tbl AddressTable) IsTx() bool {
 }
 
 // BeginTx starts a transaction using the table's context.
-//
-// This context, obtained using Ctx(), is used until the transaction is committed
-// or rolled back. Note that this may or may not be the same context as that
-// of the shared *Database.
+// This context is used until the transaction is committed or rolled back.
 //
 // If this context is cancelled, the sql package will roll back the transaction.
 // In this case, Tx.Commit will then return an error.
@@ -155,7 +144,7 @@ func (tbl AddressTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl AddressTable) BeginTx(opts *sql.TxOptions) (AddressTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.Ctx(), opts)
+	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -220,7 +209,7 @@ const sqlPostcodeIdxIndexColumns = "postcode"
 
 // CreateTable creates the table.
 func (tbl AddressTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl.ctx, tbl, nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl AddressTable) createTableSql(ifNotExists bool) string {
@@ -263,7 +252,7 @@ func (tbl AddressTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl AddressTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl.ctx, tbl, nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl AddressTable) dropTableSql(ifExists bool) string {
@@ -304,7 +293,7 @@ func (tbl AddressTable) CreatePostcodeIdxIndex(ifNotExist bool) error {
 
 	if ifNotExist && tbl.Dialect() == schema.Mysql {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.Ctx(), tbl.dropPostcodeIdxIndexSql(false))
+		tbl.Execer().ExecContext(tbl.ctx, tbl.dropPostcodeIdxIndexSql(false))
 		ine = ""
 	}
 
@@ -354,7 +343,7 @@ func (tbl AddressTable) DropIndexes(ifExist bool) (err error) {
 // are also truncated.
 func (tbl AddressTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(tbl, nil, query)
+		_, err = support.Exec(tbl.ctx, tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -369,113 +358,28 @@ func (tbl AddressTable) Truncate(force bool) (err error) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
+	return support.Exec(tbl.ctx, tbl, req, query, args...)
 }
 
 //--------------------------------------------------------------------------------
 
-// Query is the low-level access method for Addresses.
+// Query is the low-level request method for this table. The query is logged using whatever logger is
+// configured. If an error arises, this too is logged.
 //
-// It places a requirement, which may be nil, on the size of the expected results: this
-// controls whether an error is generated when this expectation is not met.
-//
-// Note that this method applies ReplaceTableName to the query string.
+// If you need a context other than the background, use WithContext before calling Query.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AddressTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Address, error) {
-	query = tbl.ReplaceTableName(query)
-	vv, err := tbl.doQuery(req, false, query, args...)
-	return vv, err
-}
-
-// QueryOne is the low-level access method for one Address.
-// If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, *Address will be nil.
 //
-// Note that this method applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl AddressTable) QueryOne(query string, args ...interface{}) (*Address, error) {
-	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(nil, query, args...)
-}
-
-// MustQueryOne is the low-level access method for one Address.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this method applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl AddressTable) MustQueryOne(query string, args ...interface{}) (*Address, error) {
-	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(require.One, query, args...)
-}
-
-func (tbl AddressTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Address, error) {
-	list, err := tbl.doQuery(req, true, query, args...)
-	if err != nil || len(list) == 0 {
-		return nil, err
-	}
-	return list[0], nil
-}
-
-func (tbl AddressTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
+// The caller must call rows.Close() on the result.
+func (tbl AddressTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	vv, n, err := scanAddresses(rows, firstOnly)
-	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	return rows, tbl.logIfError(err)
 }
 
-func scanAddresses(rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err error) {
-	for rows.Next() {
-		n++
-
-		var v0 int64
-		var v1 []byte
-		var v2 string
-
-		err = rows.Scan(
-			&v0,
-			&v1,
-			&v2,
-		)
-		if err != nil {
-			return vv, n, err
-		}
-
-		v := &Address{}
-		v.Id = v0
-		err = json.Unmarshal(v1, &v.Lines)
-		if err != nil {
-			return nil, n, err
-		}
-		v.Postcode = v2
-
-		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
-			err = hook.PostGet()
-			if err != nil {
-				return vv, n, err
-			}
-		}
-
-		vv = append(vv, v)
-
-		if firstOnly {
-			if rows.Next() {
-				n++
-			}
-			return vv, n, rows.Err()
-		}
-	}
-
-	return vv, n, rows.Err()
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl AddressTable) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 
 //--------------------------------------------------------------------------------
@@ -555,9 +459,50 @@ func (tbl AddressTable) MustQueryOneNullFloat64(query string, args ...interface{
 	return result, err
 }
 
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl AddressTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
+func scanAddresses(rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err error) {
+	for rows.Next() {
+		n++
+
+		var v0 int64
+		var v1 []byte
+		var v2 string
+
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+		)
+		if err != nil {
+			return vv, n, err
+		}
+
+		v := &Address{}
+		v.Id = v0
+		err = json.Unmarshal(v1, &v.Lines)
+		if err != nil {
+			return nil, n, err
+		}
+		v.Postcode = v2
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, n, err
+			}
+		}
+
+		vv = append(vv, v)
+
+		if firstOnly {
+			if rows.Next() {
+				n++
+			}
+			return vv, n, rows.Err()
+		}
+	}
+
+	return vv, n, rows.Err()
 }
 
 //--------------------------------------------------------------------------------
@@ -616,6 +561,24 @@ func (tbl AddressTable) GetAddresses(req require.Requirement, id ...int64) (list
 	}
 
 	return list, err
+}
+
+func (tbl AddressTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Address, error) {
+	list, err := tbl.doQuery(req, true, query, args...)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
+}
+
+func (tbl AddressTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	vv, n, err := scanAddresses(rows, firstOnly)
+	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -685,7 +648,7 @@ func (tbl AddressTable) Select(req require.Requirement, wh where.Expression, qc 
 func (tbl AddressTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
-	row := tbl.db.QueryRowContext(tbl.Ctx(), query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
 	return count, tbl.logIfError(err)
 }
@@ -720,7 +683,7 @@ func (tbl AddressTable) getint64list(req require.Requirement, sqlname string, wh
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -746,7 +709,7 @@ func (tbl AddressTable) getstringlist(req require.Requirement, sqlname string, w
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -846,7 +809,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 	var count int64
 	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
 	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.Ctx(), query)
+	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	//if err != nil {
 	//	return err
 	//}
@@ -876,7 +839,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.Ctx(), query, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -900,7 +863,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl AddressTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl, req, wh, fields...)
+	return support.UpdateFields(tbl.ctx, tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------

@@ -12,7 +12,7 @@ import (
 
 type User struct {
 	Uid          int64    `sql:"pk: true, auto: true"`
-	Login        string   `sql:"unique: user_login"`
+	Name         string   `sql:"unique: user_login"`
 	EmailAddress string   `sql:"unique: user_email"`
 	AddressId    *int64   `sql:"fk: addresses.id, onupdate: restrict, ondelete: restrict"`
 	Avatar       *string

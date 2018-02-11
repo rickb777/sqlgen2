@@ -56,7 +56,7 @@ func CopyTableAsIssueTable(origin sqlgen2.Table) IssueTable {
 		database:    origin.Database(),
 		db:          origin.DB(),
 		constraints: nil,
-		ctx:         origin.Ctx(),
+		ctx:         context.Background(),
 	}
 }
 
@@ -75,14 +75,6 @@ func (tbl IssueTable) WithPrefix(pfx string) IssueTable {
 func (tbl IssueTable) WithContext(ctx context.Context) IssueTable {
 	tbl.ctx = ctx
 	return tbl
-}
-
-// Ctx gets the current request context if defined, otherwise gets the shared *Database.Ctx().
-func (tbl IssueTable) Ctx() context.Context {
-	if tbl.ctx != nil {
-		return tbl.ctx
-	}
-	return tbl.database.Ctx()
 }
 
 // Database gets the shared database information.
@@ -140,10 +132,7 @@ func (tbl IssueTable) IsTx() bool {
 }
 
 // BeginTx starts a transaction using the table's context.
-//
-// This context, obtained using Ctx(), is used until the transaction is committed
-// or rolled back. Note that this may or may not be the same context as that
-// of the shared *Database.
+// This context is used until the transaction is committed or rolled back.
 //
 // If this context is cancelled, the sql package will roll back the transaction.
 // In this case, Tx.Commit will then return an error.
@@ -155,7 +144,7 @@ func (tbl IssueTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl IssueTable) BeginTx(opts *sql.TxOptions) (IssueTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.Ctx(), opts)
+	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -235,7 +224,7 @@ const sqlIssueAssigneeIndexColumns = "assignee"
 
 // CreateTable creates the table.
 func (tbl IssueTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl.ctx, tbl, nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl IssueTable) createTableSql(ifNotExists bool) string {
@@ -278,7 +267,7 @@ func (tbl IssueTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl IssueTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl.ctx, tbl, nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl IssueTable) dropTableSql(ifExists bool) string {
@@ -319,7 +308,7 @@ func (tbl IssueTable) CreateIssueAssigneeIndex(ifNotExist bool) error {
 
 	if ifNotExist && tbl.Dialect() == schema.Mysql {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.Ctx(), tbl.dropIssueAssigneeIndexSql(false))
+		tbl.Execer().ExecContext(tbl.ctx, tbl.dropIssueAssigneeIndexSql(false))
 		ine = ""
 	}
 
@@ -369,7 +358,7 @@ func (tbl IssueTable) DropIndexes(ifExist bool) (err error) {
 // are also truncated.
 func (tbl IssueTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(tbl, nil, query)
+		_, err = support.Exec(tbl.ctx, tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -384,128 +373,28 @@ func (tbl IssueTable) Truncate(force bool) (err error) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl IssueTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
+	return support.Exec(tbl.ctx, tbl, req, query, args...)
 }
 
 //--------------------------------------------------------------------------------
 
-// Query is the low-level access method for Issues.
+// Query is the low-level request method for this table. The query is logged using whatever logger is
+// configured. If an error arises, this too is logged.
 //
-// It places a requirement, which may be nil, on the size of the expected results: this
-// controls whether an error is generated when this expectation is not met.
-//
-// Note that this method applies ReplaceTableName to the query string.
+// If you need a context other than the background, use WithContext before calling Query.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl IssueTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Issue, error) {
-	query = tbl.ReplaceTableName(query)
-	vv, err := tbl.doQuery(req, false, query, args...)
-	return vv, err
-}
-
-// QueryOne is the low-level access method for one Issue.
-// If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, *Issue will be nil.
 //
-// Note that this method applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl IssueTable) QueryOne(query string, args ...interface{}) (*Issue, error) {
-	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(nil, query, args...)
-}
-
-// MustQueryOne is the low-level access method for one Issue.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this method applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl IssueTable) MustQueryOne(query string, args ...interface{}) (*Issue, error) {
-	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(require.One, query, args...)
-}
-
-func (tbl IssueTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Issue, error) {
-	list, err := tbl.doQuery(req, true, query, args...)
-	if err != nil || len(list) == 0 {
-		return nil, err
-	}
-	return list[0], nil
-}
-
-func (tbl IssueTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Issue, error) {
+// The caller must call rows.Close() on the result.
+func (tbl IssueTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	vv, n, err := scanIssues(rows, firstOnly)
-	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	return rows, tbl.logIfError(err)
 }
 
-func scanIssues(rows *sql.Rows, firstOnly bool) (vv []*Issue, n int64, err error) {
-	for rows.Next() {
-		n++
-
-		var v0 int64
-		var v1 int
-		var v2 Date
-		var v3 string
-		var v4 string
-		var v5 string
-		var v6 string
-		var v7 []byte
-
-		err = rows.Scan(
-			&v0,
-			&v1,
-			&v2,
-			&v3,
-			&v4,
-			&v5,
-			&v6,
-			&v7,
-		)
-		if err != nil {
-			return vv, n, err
-		}
-
-		v := &Issue{}
-		v.Id = v0
-		v.Number = v1
-		v.Date = v2
-		v.Title = v3
-		v.Body = v4
-		v.Assignee = v5
-		v.State = v6
-		err = json.Unmarshal(v7, &v.Labels)
-		if err != nil {
-			return nil, n, err
-		}
-
-		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
-			err = hook.PostGet()
-			if err != nil {
-				return vv, n, err
-			}
-		}
-
-		vv = append(vv, v)
-
-		if firstOnly {
-			if rows.Next() {
-				n++
-			}
-			return vv, n, rows.Err()
-		}
-	}
-
-	return vv, n, rows.Err()
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl IssueTable) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 
 //--------------------------------------------------------------------------------
@@ -585,9 +474,65 @@ func (tbl IssueTable) MustQueryOneNullFloat64(query string, args ...interface{})
 	return result, err
 }
 
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl IssueTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
+func scanIssues(rows *sql.Rows, firstOnly bool) (vv []*Issue, n int64, err error) {
+	for rows.Next() {
+		n++
+
+		var v0 int64
+		var v1 int
+		var v2 Date
+		var v3 string
+		var v4 string
+		var v5 string
+		var v6 string
+		var v7 []byte
+
+		err = rows.Scan(
+			&v0,
+			&v1,
+			&v2,
+			&v3,
+			&v4,
+			&v5,
+			&v6,
+			&v7,
+		)
+		if err != nil {
+			return vv, n, err
+		}
+
+		v := &Issue{}
+		v.Id = v0
+		v.Number = v1
+		v.Date = v2
+		v.Title = v3
+		v.Body = v4
+		v.Assignee = v5
+		v.State = v6
+		err = json.Unmarshal(v7, &v.Labels)
+		if err != nil {
+			return nil, n, err
+		}
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, n, err
+			}
+		}
+
+		vv = append(vv, v)
+
+		if firstOnly {
+			if rows.Next() {
+				n++
+			}
+			return vv, n, rows.Err()
+		}
+	}
+
+	return vv, n, rows.Err()
 }
 
 //--------------------------------------------------------------------------------
@@ -646,6 +591,24 @@ func (tbl IssueTable) GetIssues(req require.Requirement, id ...int64) (list []*I
 	}
 
 	return list, err
+}
+
+func (tbl IssueTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Issue, error) {
+	list, err := tbl.doQuery(req, true, query, args...)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
+}
+
+func (tbl IssueTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Issue, error) {
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	vv, n, err := scanIssues(rows, firstOnly)
+	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -715,7 +678,7 @@ func (tbl IssueTable) Select(req require.Requirement, wh where.Expression, qc wh
 func (tbl IssueTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
-	row := tbl.db.QueryRowContext(tbl.Ctx(), query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
 	return count, tbl.logIfError(err)
 }
@@ -785,7 +748,7 @@ func (tbl IssueTable) getDatelist(req require.Requirement, sqlname string, wh wh
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -811,7 +774,7 @@ func (tbl IssueTable) getintlist(req require.Requirement, sqlname string, wh whe
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -837,7 +800,7 @@ func (tbl IssueTable) getint64list(req require.Requirement, sqlname string, wh w
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -863,7 +826,7 @@ func (tbl IssueTable) getstringlist(req require.Requirement, sqlname string, wh 
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -1006,7 +969,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 	var count int64
 	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
 	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.Ctx(), query)
+	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	//if err != nil {
 	//	return err
 	//}
@@ -1036,7 +999,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.Ctx(), query, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -1060,7 +1023,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl IssueTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl, req, wh, fields...)
+	return support.UpdateFields(tbl.ctx, tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------

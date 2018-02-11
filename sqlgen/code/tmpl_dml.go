@@ -8,7 +8,7 @@ const sExec = `
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
+	return support.Exec(tbl.ctx, tbl, req, query, args...)
 }
 `
 
@@ -17,62 +17,23 @@ var tExec = template.Must(template.New("Exec").Funcs(funcMap).Parse(sExec))
 //-------------------------------------------------------------------------------------------------
 
 const sQueryRows = `
-// Query is the low-level access method for {{.Types}}.
+// Query is the low-level request method for this table. The query is logged using whatever logger is
+// configured. If an error arises, this too is logged.
 //
-// It places a requirement, which may be nil, on the size of the expected results: this
-// controls whether an error is generated when this expectation is not met.
-//
-// Note that this method applies ReplaceTableName to the query string.
+// If you need a context other than the background, use WithContext before calling Query.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(req require.Requirement, query string, args ...interface{}) ({{.List}}, error) {
-	query = tbl.ReplaceTableName(query)
-	vv, err := tbl.doQuery(req, false, query, args...)
-	return vv, err
-}
-
-// QueryOne is the low-level access method for one {{.Type}}.
-// If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, *{{.Type}} will be nil.
 //
-// Note that this method applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOne(query string, args ...interface{}) (*{{.Type}}, error) {
-	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(nil, query, args...)
-}
-
-// MustQueryOne is the low-level access method for one {{.Type}}.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this method applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustQueryOne(query string, args ...interface{}) (*{{.Type}}, error) {
-	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(require.One, query, args...)
-}
-
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryOne(req require.Requirement, query string, args ...interface{}) (*{{.Type}}, error) {
-	list, err := tbl.doQuery(req, true, query, args...)
-	if err != nil || len(list) == 0 {
-		return nil, err
-	}
-	return list[0], nil
-}
-
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
+// The caller must call rows.Close() on the result.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	return rows, tbl.logIfError(err)
+}
 
-	vv, n, err := scan{{.Prefix}}{{.Types}}(rows, firstOnly)
-	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 `
 
@@ -153,11 +114,6 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustQueryOneNullFloat64(query string, 
 	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
 }
-
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
 `
 
 var tQueryThings = template.Must(template.New("QueryThings").Funcs(funcMap).Parse(sQueryThings))
@@ -223,7 +179,25 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}(req require.Requirement,
 
 	return list, err
 }
+
 {{end -}}
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryOne(req require.Requirement, query string, args ...interface{}) (*{{.Type}}, error) {
+	list, err := tbl.doQuery(req, true, query, args...)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
+}
+
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	vv, n, err := scan{{.Prefix}}{{.Types}}(rows, firstOnly)
+	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+}
 `
 
 var tGetRow = template.Must(template.New("GetRow").Funcs(funcMap).Parse(sGetRow))
@@ -302,7 +276,7 @@ const sCountRows = `
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
-	row := tbl.db.QueryRowContext(tbl.Ctx(), query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
 	return count, tbl.logIfError(err)
 }
@@ -336,7 +310,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) get{{.Tag}}list(req require.Require
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -409,7 +383,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 	var count int64
 	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
 	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.Ctx(), query)
+	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	//if err != nil {
 	//	return err
 	//}
@@ -439,7 +413,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.Ctx(), query, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -477,7 +451,7 @@ const sUpdateFields = `
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl, req, wh, fields...)
+	return support.UpdateFields(tbl.ctx, tbl, req, wh, fields...)
 }
 `
 

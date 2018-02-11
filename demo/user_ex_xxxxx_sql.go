@@ -5,7 +5,6 @@ package demo
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/constraint"
 	"github.com/rickb777/sqlgen2/require"
@@ -55,7 +54,7 @@ func CopyTableAsXUserTable(origin sqlgen2.Table) XUserTable {
 		database:    origin.Database(),
 		db:          origin.DB(),
 		constraints: nil,
-		ctx:         origin.Ctx(),
+		ctx:         context.Background(),
 	}
 }
 
@@ -74,14 +73,6 @@ func (tbl XUserTable) WithPrefix(pfx string) XUserTable {
 func (tbl XUserTable) WithContext(ctx context.Context) XUserTable {
 	tbl.ctx = ctx
 	return tbl
-}
-
-// Ctx gets the current request context if defined, otherwise gets the shared *Database.Ctx().
-func (tbl XUserTable) Ctx() context.Context {
-	if tbl.ctx != nil {
-		return tbl.ctx
-	}
-	return tbl.database.Ctx()
 }
 
 // Database gets the shared database information.
@@ -139,10 +130,7 @@ func (tbl XUserTable) IsTx() bool {
 }
 
 // BeginTx starts a transaction using the table's context.
-//
-// This context, obtained using Ctx(), is used until the transaction is committed
-// or rolled back. Note that this may or may not be the same context as that
-// of the shared *Database.
+// This context is used until the transaction is committed or rolled back.
 //
 // If this context is cancelled, the sql package will roll back the transaction.
 // In this case, Tx.Commit will then return an error.
@@ -154,7 +142,7 @@ func (tbl XUserTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl XUserTable) BeginTx(opts *sql.TxOptions) (XUserTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.Ctx(), opts)
+	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -185,155 +173,31 @@ const NumXUserColumns = 12
 
 const NumXUserDataColumns = 11
 
-const XUserColumnNames = "uid,login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const XUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
 
-const XUserDataColumnNames = "login,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const XUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
 
 const XUserPk = "uid"
 
 //--------------------------------------------------------------------------------
 
-// Query is the low-level access method for Users.
+// Query is the low-level request method for this table. The query is logged using whatever logger is
+// configured. If an error arises, this too is logged.
 //
-// It places a requirement, which may be nil, on the size of the expected results: this
-// controls whether an error is generated when this expectation is not met.
-//
-// Note that this method applies ReplaceTableName to the query string.
+// If you need a context other than the background, use WithContext before calling Query.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl XUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	query = tbl.ReplaceTableName(query)
-	vv, err := tbl.doQuery(req, false, query, args...)
-	return vv, err
-}
-
-// QueryOne is the low-level access method for one User.
-// If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, *User will be nil.
 //
-// Note that this method applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XUserTable) QueryOne(query string, args ...interface{}) (*User, error) {
-	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(nil, query, args...)
-}
-
-// MustQueryOne is the low-level access method for one User.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this method applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XUserTable) MustQueryOne(query string, args ...interface{}) (*User, error) {
-	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(require.One, query, args...)
-}
-
-func (tbl XUserTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*User, error) {
-	list, err := tbl.doQuery(req, true, query, args...)
-	if err != nil || len(list) == 0 {
-		return nil, err
-	}
-	return list[0], nil
-}
-
-func (tbl XUserTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+// The caller must call rows.Close() on the result.
+func (tbl XUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	vv, n, err := scanXUsers(rows, firstOnly)
-	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	return rows, tbl.logIfError(err)
 }
 
-func scanXUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error) {
-	for rows.Next() {
-		n++
-
-		var v0 int64
-		var v1 string
-		var v2 string
-		var v3 sql.NullInt64
-		var v4 sql.NullString
-		var v5 sql.NullString
-		var v6 bool
-		var v7 bool
-		var v8 []byte
-		var v9 int64
-		var v10 string
-		var v11 string
-
-		err = rows.Scan(
-			&v0,
-			&v1,
-			&v2,
-			&v3,
-			&v4,
-			&v5,
-			&v6,
-			&v7,
-			&v8,
-			&v9,
-			&v10,
-			&v11,
-		)
-		if err != nil {
-			return vv, n, err
-		}
-
-		v := &User{}
-		v.Uid = v0
-		v.Login = v1
-		v.EmailAddress = v2
-		if v3.Valid {
-			a := v3.Int64
-			v.AddressId = &a
-		}
-		if v4.Valid {
-			a := v4.String
-			v.Avatar = &a
-		}
-		if v5.Valid {
-			v.Role = new(Role)
-			err = v.Role.Scan(v5.String)
-			if err != nil {
-				return nil, n, err
-			}
-		}
-		v.Active = v6
-		v.Admin = v7
-		err = json.Unmarshal(v8, &v.Fave)
-		if err != nil {
-			return nil, n, err
-		}
-		v.LastUpdated = v9
-		v.token = v10
-		v.secret = v11
-
-		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
-			err = hook.PostGet()
-			if err != nil {
-				return vv, n, err
-			}
-		}
-
-		vv = append(vv, v)
-
-		if firstOnly {
-			if rows.Next() {
-				n++
-			}
-			return vv, n, rows.Err()
-		}
-	}
-
-	return vv, n, rows.Err()
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl XUserTable) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 
 //--------------------------------------------------------------------------------
@@ -411,9 +275,4 @@ func (tbl XUserTable) QueryOneNullFloat64(query string, args ...interface{}) (re
 func (tbl XUserTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
 	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
 	return result, err
-}
-
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl XUserTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }

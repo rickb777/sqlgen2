@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func WriteRowsFunc(w io.Writer, view View) {
+func WriteScanRows(w io.Writer, view View) {
 
 	for i, field := range view.Table.Fields {
 		if !field.Tags.Skip {

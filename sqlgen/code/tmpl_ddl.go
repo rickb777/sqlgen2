@@ -52,7 +52,7 @@ func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin sqlgen2.Table)
 		database:    origin.Database(),
 		db:          origin.DB(),
 		constraints: nil,
-		ctx:         origin.Ctx(),
+		ctx:         context.Background(),
 	}
 }
 
@@ -71,14 +71,6 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithPrefix(pfx string) {{.Prefix}}{{.T
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithContext(ctx context.Context) {{.Prefix}}{{.Type}}{{.Thing}} {
 	tbl.ctx = ctx
 	return tbl
-}
-
-// Ctx gets the current request context if defined, otherwise gets the shared *Database.Ctx().
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Ctx() context.Context {
-	if tbl.ctx != nil {
-		return tbl.ctx
-	}
-	return tbl.database.Ctx()
 }
 
 // Database gets the shared database information.
@@ -136,10 +128,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
 }
 
 // BeginTx starts a transaction using the table's context.
-//
-// This context, obtained using Ctx(), is used until the transaction is committed
-// or rolled back. Note that this may or may not be the same context as that
-// of the shared *Database.
+// This context is used until the transaction is committed or rolled back.
 //
 // If this context is cancelled, the sql package will roll back the transaction.
 // In this case, Tx.Commit will then return an error.
@@ -151,7 +140,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) BeginTx(opts *sql.TxOptions) ({{.Prefix}}{{.Type}}{{.Thing}}, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.Ctx(), opts)
+	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -251,7 +240,7 @@ const sTruncate = `
 // are also truncated.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(tbl, nil, query)
+		_, err = support.Exec(tbl.ctx, tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -268,7 +257,7 @@ var tTruncate = template.Must(template.New("Truncate").Funcs(funcMap).Parse(sTru
 const sCreateTableFunc = `
 // CreateTable creates the table.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl.ctx, tbl, nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) createTableSql(ifNotExists bool) string {
@@ -307,7 +296,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) ternary(flag bool, a, b string) string
 
 // DropTable drops the table, destroying all its data.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl.ctx, tbl, nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) dropTableSql(ifExists bool) string {
@@ -350,7 +339,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ifNotExi
 
 	if ifNotExist && tbl.Dialect() == schema.Mysql {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.Ctx(), tbl.drop{{$.Prefix}}{{camel .Name}}IndexSql(false))
+		tbl.Execer().ExecContext(tbl.ctx, tbl.drop{{$.Prefix}}{{camel .Name}}IndexSql(false))
 		ine = ""
 	}
 

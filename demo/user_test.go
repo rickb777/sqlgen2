@@ -51,7 +51,7 @@ func cleanup() {
 
 func user(i int) *User {
 	return &User{
-		Login:        Sprintf("user%02d", i),
+		Name:         Sprintf("user%02d", i),
 		EmailAddress: Sprintf("foo%d@x.z", i),
 		Active:       true,
 		Fave:         big.NewInt(int64(i)),
@@ -68,7 +68,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
 		{schema.Sqlite,
 `CREATE TABLE IF NOT EXISTS prefix_users (
  ¬uid¬          integer primary key autoincrement,
- ¬login¬        text,
+ ¬name¬         text,
  ¬emailaddress¬ text,
  ¬addressid¬    bigint default null,
  ¬avatar¬       text default null,
@@ -85,7 +85,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
 		{schema.Mysql,
 `CREATE TABLE IF NOT EXISTS prefix_users (
  ¬uid¬          bigint primary key auto_increment,
- ¬login¬        varchar(255),
+ ¬name¬         varchar(255),
  ¬emailaddress¬ varchar(255),
  ¬addressid¬    bigint default null,
  ¬avatar¬       varchar(255) default null,
@@ -102,7 +102,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
 		{schema.Postgres,
 `CREATE TABLE IF NOT EXISTS prefix_users (
  "uid"          bigserial primary key,
- "login"        varchar(255),
+ "name"         varchar(255),
  "emailaddress" varchar(255),
  "addressid"    bigint default null,
  "avatar"       varchar(255) default null,
@@ -275,8 +275,6 @@ func TestCrud_using_database(t *testing.T) {
 
 	count_known_user_should_return_1(t, users)
 
-	query_unknown_user_should_return_empty_list(t, users)
-
 	select_unknown_user_should_return_empty_list(t, users)
 
 	select_unknown_user_requiring_one_should_return_error(t, users)
@@ -303,7 +301,7 @@ func count_empty_table_should_be_zero(t *testing.T, tbl DbUserTable) {
 }
 
 func insert_user_should_run_PreInsert(t *testing.T, tbl DbUserTable) *User {
-	user := &User{Login: "user1", EmailAddress: "foo@x.z"}
+	user := &User{Name: "user1", EmailAddress: "foo@x.z"}
 	user = user.SetRole(UserRole)
 	err := tbl.Insert(require.One, user)
 	Ω(err).Should(BeNil())
@@ -333,63 +331,50 @@ func must_get_unknown_user_should_return_error(t *testing.T, tbl DbUserTable, ex
 }
 
 func count_known_user_should_return_1(t *testing.T, tbl DbUserTable) {
-	count, err := tbl.Count(where.Eq("Login", "user1"))
+	count, err := tbl.Count(where.Eq("Name", "user1"))
 	Ω(err).Should(BeNil())
 	Ω(count).Should(BeEquivalentTo(1))
 }
 
-func query_unknown_user_should_return_empty_list(t *testing.T, tbl DbUserTable) {
-	list, err := tbl.Query(require.None, "select * from {TABLE} where Login=?", "foo")
-	Ω(err).Should(BeNil())
-	Ω(len(list)).Should(Equal(0))
-
-	u, err := tbl.QueryOne("select * from {TABLE} where Login=?", "foo")
-	Ω(err).Should(BeNil())
-	Ω(u).Should(BeNil())
-
-	_, err = tbl.MustQueryOne("select * from {TABLE} where Login=?", "foo")
-	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
-}
-
 func select_unknown_user_should_return_empty_list(t *testing.T, tbl DbUserTable) {
-	list, err := tbl.Select(require.None, where.Eq("Login", "unknown"), nil)
+	list, err := tbl.Select(require.None, where.Eq("Name", "unknown"), nil)
 	Ω(err).Should(BeNil())
 	Ω(len(list)).Should(Equal(0))
 }
 
 func select_unknown_user_requiring_one_should_return_error(t *testing.T, tbl DbUserTable) {
-	list, err := tbl.Select(require.None, where.Eq("Login", "unknown"), nil)
+	list, err := tbl.Select(require.None, where.Eq("Name", "unknown"), nil)
 	Ω(err).Should(BeNil())
 	Ω(len(list)).Should(Equal(0))
 
-	_, err = tbl.Select(require.One, where.Eq("Login", "unknown"), nil)
+	_, err = tbl.Select(require.One, where.Eq("Name", "unknown"), nil)
 	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
 }
 
 func query_one_nullstring_for_user_should_return_valid(t *testing.T, tbl DbUserTable) {
-	s, err := tbl.QueryOneNullString("select EmailAddress from {TABLE} where Login=?", "user1")
+	s, err := tbl.QueryOneNullString("select EmailAddress from {TABLE} where Name=?", "user1")
 	Ω(err).Should(BeNil())
 	Ω(s.Valid).Should(BeTrue())
 	Ω(s.String).Should(Equal("foo@x.z"))
 
-	s, err = tbl.MustQueryOneNullString("select EmailAddress from {TABLE} where Login=?", "user1")
+	s, err = tbl.MustQueryOneNullString("select EmailAddress from {TABLE} where Name=?", "user1")
 	Ω(err).Should(BeNil())
 	Ω(s.Valid).Should(BeTrue())
 	Ω(s.String).Should(Equal("foo@x.z"))
 }
 
 func query_one_nullstring_for_unknown_should_return_invalid(t *testing.T, tbl DbUserTable) {
-	s, err := tbl.QueryOneNullString("select EmailAddress from {TABLE} where Login=?", "foo")
+	s, err := tbl.QueryOneNullString("select EmailAddress from {TABLE} where Name=?", "foo")
 	Ω(err).Should(BeNil())
 	Ω(s.Valid).Should(BeFalse())
 
-	_, err = tbl.MustQueryOneNullString("select EmailAddress from {TABLE} where Login=?", "foo")
+	_, err = tbl.MustQueryOneNullString("select EmailAddress from {TABLE} where Name=?", "foo")
 	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
 	Ω(s.Valid).Should(BeFalse())
 }
 
 func select_known_user_requiring_one_should_return_user(t *testing.T, tbl DbUserTable) *User {
-	list, err := tbl.Select(require.One, where.Eq("Login", "user1"), nil)
+	list, err := tbl.Select(require.One, where.Eq("Name", "user1"), nil)
 	Ω(err).Should(BeNil())
 	Ω(len(list)).Should(Equal(1))
 	return list[0]
@@ -432,7 +417,7 @@ func update_users_in_tx(t *testing.T, tbl DbUserTable, user *User) {
 }
 
 func delete_one_should_return_1(t *testing.T, tbl DbUserTable) {
-	n, err := tbl.Delete(require.One, where.Eq("Login", "user1"))
+	n, err := tbl.Delete(require.One, where.Eq("Name", "user1"))
 	Ω(err).Should(BeNil())
 	Ω(n).Should(BeEquivalentTo(1))
 }
@@ -456,7 +441,7 @@ func TestMultiSelect_using_database(t *testing.T) {
 	const n = 3
 
 	var users []*User
-	user0 := &User{Login: "user0", EmailAddress: "foo0@x.z"}
+	user0 := &User{Name: "user0", EmailAddress: "foo0@x.z"}
 	// fave, avatar are null
 	users = append(users, user0)
 
@@ -464,7 +449,7 @@ func TestMultiSelect_using_database(t *testing.T) {
 		fave := big.NewInt(int64(i))
 		user := &User{Fave: fave}
 		user = user.SetRole(UserRole)
-		user = user.SetLogin(Sprintf("user%d", i))
+		user = user.SetName(Sprintf("user%d", i))
 		user = user.SetEmailAddress(Sprintf("foo%d@x.z", i))
 		user = user.SetAvatar(Sprintf("user%d-avatar%d", i, i))
 		users = append(users, user)
@@ -473,7 +458,7 @@ func TestMultiSelect_using_database(t *testing.T) {
 	err = tbl.Insert(require.All, users...)
 	Ω(err).Should(BeNil())
 
-	list, err := tbl.Select(nil, where.NotEq("Login", "nobody"), where.OrderBy("Login").Desc())
+	list, err := tbl.Select(nil, where.NotEq("Name", "nobody"), where.OrderBy("Name").Desc())
 	Ω(err).Should(BeNil())
 	Ω(len(list)).Should(Equal(n + 1))
 	for i := 0; i <= n; i++ {
@@ -509,13 +494,13 @@ func TestGetters_using_database(t *testing.T) {
 	err = tbl.Insert(require.All, list...)
 	Ω(err).Should(BeNil())
 
-	logins, err := tbl.SliceLogin(require.Exactly(n), where.NoOp(), where.OrderBy("login"))
+	names, err := tbl.SliceName(require.Exactly(n), where.NoOp(), where.OrderBy("name"))
 	Ω(err).Should(BeNil())
-	Ω(len(logins)).Should(Equal(n))
+	Ω(len(names)).Should(Equal(n))
 
 	for i := 0; i < n; i++ {
 		exp := Sprintf("user%02d", i)
-		Ω(logins[i]).Should(Equal(exp))
+		Ω(names[i]).Should(Equal(exp))
 	}
 }
 

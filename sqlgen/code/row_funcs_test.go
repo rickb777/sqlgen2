@@ -38,7 +38,7 @@ func TestWriteRowsFunc1(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 
-	WriteRowsFunc(buf, view)
+	WriteScanRows(buf, view)
 
 	code := buf.String()
 	expected := `
@@ -102,7 +102,7 @@ func TestWriteRowFunc2(t *testing.T) {
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
-	WriteRowsFunc(buf, view)
+	WriteScanRows(buf, view)
 
 	code := buf.String()
 	expected := `

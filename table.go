@@ -6,7 +6,6 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
-	"context"
 )
 
 // Table provides the generic features of each generated table handler.
@@ -30,9 +29,6 @@ type Table interface {
 
 	// IsTx tests whether this is within a transaction.
 	IsTx() bool
-
-	// Ctx gets the current request context.
-	Ctx() context.Context
 
 	// Dialect gets the database dialect.
 	Dialect() schema.Dialect
@@ -69,6 +65,17 @@ type Table interface {
 
 	// Constraints gets the constraints.
 	//Constraints() constraint.Constraints
+	//---------------------------------------------------------------------------------------------
+
+	// Query is the low-level request method for this table. The query is logged using whatever logger is
+	// configured. If an error arises, this too is logged.
+	//
+	// If you need a context other than the background, use WithContext before calling Query.
+	//
+	// The args are for any placeholder parameters in the query.
+	//
+	// The caller must call rows.Close() on the result.
+	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
 type TableCreator interface {
@@ -160,23 +167,17 @@ type TableWithCrud interface {
 
 	//---------------------------------------------------------------------------------------------
 	// The following type-specific methods are also provided (but are not part of this interface).
+	//GetSomeType(id int64) (*SomeType, error)
+	//MustGetSomeType(id int64) (*SomeType, error)
 	//
-	//QueryOne(query string, args ...interface{}) (*User, error)
-	//MustQueryOne(query string, args ...interface{}) (*User, error)
+	//GetSomeTypes(req require.Requirement, id ...int64) (list []*SomeType, err error)
 	//
-	//Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	//SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*SomeType, error)
+	//SelectOne(req require.Requirement, where where.Expression, orderBy string) (*SomeType, error)
+	//SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*SomeType, error)
+	//Select(req require.Requirement, where where.Expression, orderBy string) ([]*SomeType, error)
 	//
-	//GetUser(id int64) (*User, error)
-	//MustGetUser(id int64) (*User, error)
+	//Insert(req require.Requirement, vv ...*SomeType) error
 	//
-	//GetUsers(req require.Requirement, id ...int64) (list []*User, err error)
-	//
-	//SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error)
-	//SelectOne(req require.Requirement, where where.Expression, orderBy string) (*User, error)
-	//SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error)
-	//Select(req require.Requirement, where where.Expression, orderBy string) ([]*User, error)
-	//
-	//Insert(req require.Requirement, vv ...*User) error
-	//
-	//Update(req require.Requirement, vv ...*User) (int64, error)
+	//Update(req require.Requirement, vv ...*SomeType) (int64, error)
 }

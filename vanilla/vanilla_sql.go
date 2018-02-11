@@ -45,7 +45,7 @@ func CopyTableAsPrimaryKeyTable(origin sqlgen2.Table) PrimaryKeyTable {
 		database:    origin.Database(),
 		db:          origin.DB(),
 		constraints: nil,
-		ctx:         origin.Ctx(),
+		ctx:         context.Background(),
 	}
 }
 
@@ -160,6 +160,27 @@ func (tbl PrimaryKeyTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
+// Query is the low-level request method for this table. The query is logged using whatever logger is
+// configured. If an error arises, this too is logged.
+//
+// If you need a context other than the background, use WithContext before calling Query.
+//
+// The args are for any placeholder parameters in the query.
+//
+// The caller must call rows.Close() on the result.
+func (tbl PrimaryKeyTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	return rows, tbl.logIfError(err)
+}
+
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl PrimaryKeyTable) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
+}
+
+//--------------------------------------------------------------------------------
+
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, the result will be invalid.
@@ -235,11 +256,6 @@ func (tbl PrimaryKeyTable) MustQueryOneNullFloat64(query string, args ...interfa
 	return result, err
 }
 
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl PrimaryKeyTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
-
 //--------------------------------------------------------------------------------
 
 // CountWhere counts PrimaryKeys in the table that match a 'where' clause.
@@ -301,7 +317,7 @@ func (tbl PrimaryKeyTable) DeleteIn(req require.Requirement, id ...int64) (int64
 				args[i] = id[i]
 			}
 
-			n, err = support.Exec(tbl, nil, query, args...)
+			n, err = support.Exec(tbl.ctx, tbl, nil, query, args...)
 			count += n
 			if err != nil {
 				return count, err
@@ -319,7 +335,7 @@ func (tbl PrimaryKeyTable) DeleteIn(req require.Requirement, id ...int64) (int64
 			args[i] = id[i]
 		}
 
-		n, err = support.Exec(tbl, nil, query, args...)
+		n, err = support.Exec(tbl.ctx, tbl, nil, query, args...)
 		count += n
 	}
 
@@ -330,7 +346,7 @@ func (tbl PrimaryKeyTable) DeleteIn(req require.Requirement, id ...int64) (int64
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl PrimaryKeyTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := tbl.deleteRows(wh)
-	return support.Exec(tbl, req, query, args...)
+	return support.Exec(tbl.ctx, tbl, req, query, args...)
 }
 
 func (tbl PrimaryKeyTable) deleteRows(wh where.Expression) (string, []interface{}) {

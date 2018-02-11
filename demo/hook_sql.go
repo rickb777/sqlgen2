@@ -55,7 +55,7 @@ func CopyTableAsHookTable(origin sqlgen2.Table) HookTable {
 		database:    origin.Database(),
 		db:          origin.DB(),
 		constraints: nil,
-		ctx:         origin.Ctx(),
+		ctx:         context.Background(),
 	}
 }
 
@@ -74,14 +74,6 @@ func (tbl HookTable) WithPrefix(pfx string) HookTable {
 func (tbl HookTable) WithContext(ctx context.Context) HookTable {
 	tbl.ctx = ctx
 	return tbl
-}
-
-// Ctx gets the current request context if defined, otherwise gets the shared *Database.Ctx().
-func (tbl HookTable) Ctx() context.Context {
-	if tbl.ctx != nil {
-		return tbl.ctx
-	}
-	return tbl.database.Ctx()
 }
 
 // Database gets the shared database information.
@@ -139,10 +131,7 @@ func (tbl HookTable) IsTx() bool {
 }
 
 // BeginTx starts a transaction using the table's context.
-//
-// This context, obtained using Ctx(), is used until the transaction is committed
-// or rolled back. Note that this may or may not be the same context as that
-// of the shared *Database.
+// This context is used until the transaction is committed or rolled back.
 //
 // If this context is cancelled, the sql package will roll back the transaction.
 // In this case, Tx.Commit will then return an error.
@@ -154,7 +143,7 @@ func (tbl HookTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl HookTable) BeginTx(opts *sql.TxOptions) (HookTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.Ctx(), opts)
+	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -257,7 +246,7 @@ const sqlConstrainHookTable = `
 
 // CreateTable creates the table.
 func (tbl HookTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl.ctx, tbl, nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl HookTable) createTableSql(ifNotExists bool) string {
@@ -300,7 +289,7 @@ func (tbl HookTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl HookTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl.ctx, tbl, nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl HookTable) dropTableSql(ifExists bool) string {
@@ -320,7 +309,7 @@ func (tbl HookTable) dropTableSql(ifExists bool) string {
 // are also truncated.
 func (tbl HookTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(tbl, nil, query)
+		_, err = support.Exec(tbl.ctx, tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -335,67 +324,105 @@ func (tbl HookTable) Truncate(force bool) (err error) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl HookTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
+	return support.Exec(tbl.ctx, tbl, req, query, args...)
 }
 
 //--------------------------------------------------------------------------------
 
-// Query is the low-level access method for Hooks.
+// Query is the low-level request method for this table. The query is logged using whatever logger is
+// configured. If an error arises, this too is logged.
 //
-// It places a requirement, which may be nil, on the size of the expected results: this
-// controls whether an error is generated when this expectation is not met.
-//
-// Note that this method applies ReplaceTableName to the query string.
+// If you need a context other than the background, use WithContext before calling Query.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) Query(req require.Requirement, query string, args ...interface{}) (HookList, error) {
-	query = tbl.ReplaceTableName(query)
-	vv, err := tbl.doQuery(req, false, query, args...)
-	return vv, err
+//
+// The caller must call rows.Close() on the result.
+func (tbl HookTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	return rows, tbl.logIfError(err)
 }
 
-// QueryOne is the low-level access method for one Hook.
-// If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, *Hook will be nil.
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl HookTable) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
+}
+
+//--------------------------------------------------------------------------------
+
+// QueryOneNullString is a low-level access method for one string. This can be used for function queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
 //
-// Note that this method applies ReplaceTableName to the query string.
+// Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) QueryOne(query string, args ...interface{}) (*Hook, error) {
-	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(nil, query, args...)
+func (tbl HookTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
+	return result, err
 }
 
-// MustQueryOne is the low-level access method for one Hook.
+// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
+// such like.
 //
 // It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
 //
-// Note that this method applies ReplaceTableName to the query string.
+// Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) MustQueryOne(query string, args ...interface{}) (*Hook, error) {
-	query = tbl.ReplaceTableName(query)
-	return tbl.doQueryOne(require.One, query, args...)
+func (tbl HookTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+	return result, err
 }
 
-func (tbl HookTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Hook, error) {
-	list, err := tbl.doQuery(req, true, query, args...)
-	if err != nil || len(list) == 0 {
-		return nil, err
-	}
-	return list[0], nil
+// QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
+	return result, err
 }
 
-func (tbl HookTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) (HookList, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
+// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+	return result, err
+}
 
-	vv, n, err := scanHooks(rows, firstOnly)
-	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+// QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
+// such like. If the query selected many rows, only the first is returned; the rest are discarded.
+// If not found, the result will be invalid.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
+	return result, err
+}
+
+// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
+// such like.
+//
+// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
+//
+// Note that this applies ReplaceTableName to the query string.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl HookTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+	return result, err
 }
 
 func scanHooks(rows *sql.Rows, firstOnly bool) (vv HookList, n int64, err error) {
@@ -485,88 +512,6 @@ func scanHooks(rows *sql.Rows, firstOnly bool) (vv HookList, n int64, err error)
 
 //--------------------------------------------------------------------------------
 
-// QueryOneNullString is a low-level access method for one string. This can be used for function queries and
-// such like. If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, the result will be invalid.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl HookTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl HookTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
-	return result, err
-}
-
-// QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-// such like. If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, the result will be invalid.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl HookTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl HookTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
-	return result, err
-}
-
-// QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-// such like. If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, the result will be invalid.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl HookTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl HookTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
-	return result, err
-}
-
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl HookTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
-
-//--------------------------------------------------------------------------------
-
 var allHookQuotedColumnNames = []string{
 	schema.Sqlite.SplitAndQuote(HookColumnNames),
 	schema.Mysql.SplitAndQuote(HookColumnNames),
@@ -621,6 +566,24 @@ func (tbl HookTable) GetHooks(req require.Requirement, id ...uint64) (list HookL
 	}
 
 	return list, err
+}
+
+func (tbl HookTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Hook, error) {
+	list, err := tbl.doQuery(req, true, query, args...)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
+}
+
+func (tbl HookTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) (HookList, error) {
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	vv, n, err := scanHooks(rows, firstOnly)
+	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -690,7 +653,7 @@ func (tbl HookTable) Select(req require.Requirement, wh where.Expression, qc whe
 func (tbl HookTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
 	tbl.logQuery(query, args...)
-	row := tbl.db.QueryRowContext(tbl.Ctx(), query, args...)
+	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
 	return count, tbl.logIfError(err)
 }
@@ -830,7 +793,7 @@ func (tbl HookTable) getCategorylist(req require.Requirement, sqlname string, wh
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -856,7 +819,7 @@ func (tbl HookTable) getEmaillist(req require.Requirement, sqlname string, wh wh
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -882,7 +845,7 @@ func (tbl HookTable) getboollist(req require.Requirement, sqlname string, wh whe
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -908,7 +871,7 @@ func (tbl HookTable) getstringlist(req require.Requirement, sqlname string, wh w
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -934,7 +897,7 @@ func (tbl HookTable) getuint64list(req require.Requirement, sqlname string, wh w
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
 	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
 	if err != nil {
 		return nil, tbl.logError(err)
 	}
@@ -1150,7 +1113,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 	var count int64
 	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
 	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.Ctx(), query)
+	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
 	//if err != nil {
 	//	return err
 	//}
@@ -1180,7 +1143,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.Ctx(), query, fields...)
+		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -1206,7 +1169,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl HookTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl, req, wh, fields...)
+	return support.UpdateFields(tbl.ctx, tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------

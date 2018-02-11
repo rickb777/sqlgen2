@@ -8,9 +8,7 @@ import (
 	"github.com/rickb777/sqlgen2/util"
 )
 
-const tabs = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
-
-func WriteImports(w io.Writer, table *schema.TableDescription, setters schema.FieldList, packages util.StringSet) {
+func ImportsForFields(table *schema.TableDescription, packages util.StringSet) {
 
 	// check each edge field to see if it is
 	// encoded, which might require us to import
@@ -30,15 +28,26 @@ func WriteImports(w io.Writer, table *schema.TableDescription, setters schema.Fi
 			}
 		}
 	}
+}
 
+func ImportsForSetters(setters schema.FieldList, packages util.StringSet) {
 	for _, field := range setters {
 		if field.Type.PkgPath != "" {
 			packages.Add(field.Type.PkgPath)
 		}
 	}
+}
 
+func WriteImports(w io.Writer, packages util.StringSet) {
 	if packages.NonEmpty() {
-		doWriteImports(w, packages)
+		// write the import block, including each
+		// encoder package that was specified.
+		fmt.Fprintln(w, "\nimport (")
+		imports := sortImports(packages)
+		for _, pkg := range imports {
+			fmt.Fprintf(w, "\t%q\n", pkg)
+		}
+		fmt.Fprintln(w, ")")
 	}
 }
 
@@ -46,15 +55,4 @@ func sortImports(pmap util.StringSet) []string {
 	sorted := pmap.ToSlice()
 	sort.Strings(sorted)
 	return sorted
-}
-
-func doWriteImports(w io.Writer, pmap util.StringSet) {
-	// write the import block, including each
-	// encoder package that was specified.
-	fmt.Fprintln(w, "\nimport (")
-	imports := sortImports(pmap)
-	for _, pkg := range imports {
-		fmt.Fprintf(w, "\t%q\n", pkg)
-	}
-	fmt.Fprintln(w, ")")
 }

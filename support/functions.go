@@ -7,6 +7,7 @@ import (
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/where"
+	"context"
 )
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
@@ -19,11 +20,10 @@ func QueryOneNullThing(tbl sqlgen2.Table, req require.Requirement, holder interf
 	var n int64 = 0
 	query = ReplaceTableName(tbl, query)
 	database := tbl.Database()
-	database.LogQuery(query, args...)
 
-	rows, err := tbl.DB().QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.Query(query, args...)
 	if err != nil {
-		return database.LogError(err)
+		return err
 	}
 	defer rows.Close()
 
@@ -54,10 +54,9 @@ func GetInt64List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh
 	orderBy := where.BuildQueryConstraint(qc, dialect)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.Name(), whs, orderBy)
 
-	database.LogQuery(query, args...)
-	rows, err := database.DB().QueryContext(tbl.Ctx(), query, args...)
+	rows, err := tbl.Query(query, args...)
 	if err != nil {
-		return nil, database.LogError(err)
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -78,10 +77,10 @@ func GetInt64List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh
 //-------------------------------------------------------------------------------------------------
 
 // Exec executes a modification query (insert, update, delete, etc) and returns the number of items affected.
-func Exec(tbl sqlgen2.Table, req require.Requirement, query string, args ...interface{}) (int64, error) {
+func Exec(ctx context.Context, tbl sqlgen2.Table, req require.Requirement, query string, args ...interface{}) (int64, error) {
 	database := tbl.Database()
 	database.LogQuery(query, args...)
-	res, err := tbl.Execer().ExecContext(tbl.Ctx(), query, args...)
+	res, err := tbl.Execer().ExecContext(ctx, query, args...)
 	if err != nil {
 		return 0, database.LogError(err)
 	}
@@ -91,11 +90,11 @@ func Exec(tbl sqlgen2.Table, req require.Requirement, query string, args ...inte
 
 
 // UpdateFields writes certain fields of all the records matching a 'where' expression.
-func UpdateFields(tbl sqlgen2.Table, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+func UpdateFields(ctx context.Context, tbl sqlgen2.Table, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect(), 1), ", ")
 	whs, wargs := where.BuildExpression(wh, tbl.Dialect())
 	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.Name(), assignments, whs)
 	args := append(list.Values(), wargs...)
-	return Exec(tbl, req, query, args...)
+	return Exec(ctx, tbl, req, query, args...)
 }

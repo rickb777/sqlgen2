@@ -148,11 +148,8 @@ func (rel Relationship) IdsUsedAsForeignKeys(tbl sqlgen2.Table) (util.Int64Set, 
 }
 
 func fetchIds(tbl sqlgen2.Table, query string) (util.Int64Set, error) {
-	database := tbl.Database()
-	database.LogQuery(query)
-	rows, err := tbl.Execer().QueryContext(tbl.Ctx(), query)
+	rows, err := tbl.Query(query)
 	if err != nil {
-		database.LogError(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -163,5 +160,5 @@ func fetchIds(tbl sqlgen2.Table, query string) (util.Int64Set, error) {
 		rows.Scan(&id)
 		set.Add(id)
 	}
-	return set, database.LogIfError(rows.Err())
+	return set, tbl.Database().LogIfError(rows.Err())
 }

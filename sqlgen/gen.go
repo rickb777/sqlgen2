@@ -112,11 +112,18 @@ func main() {
 
 	setters := view.FilterSetters(genSetters)
 
+	importSet := packagesToImport(flags, view.Table.HasPrimaryKey())
+
+	if flags.sselect || flags.insert || flags.update {
+		ImportsForFields(table, importSet)
+	}
+	ImportsForSetters(setters, importSet)
+
 	buf := &bytes.Buffer{}
 
 	WritePackageHeader(buf, mainPkg)
 
-	WriteImports(buf, table, setters, packagesToImport(flags, view.Table.HasPrimaryKey()))
+	WriteImports(buf, importSet)
 
 	WriteType(buf, view)
 
@@ -132,10 +139,10 @@ func main() {
 	}
 
 	WriteQueryRows(buf, view)
-	WriteRowsFunc(buf, view)
 	WriteQueryThings(buf, view)
 
 	if flags.sselect {
+		WriteScanRows(buf, view)
 		WriteGetRow(buf, view)
 		WriteSelectRowsFuncs(buf, view)
 	}
