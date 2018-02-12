@@ -168,6 +168,11 @@ func (tbl IssueTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl IssueTable) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
+}
+
 
 //--------------------------------------------------------------------------------
 
@@ -388,11 +393,6 @@ func (tbl IssueTable) Exec(req require.Requirement, query string, args ...interf
 // The caller must call rows.Close() on the result.
 func (tbl IssueTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl.ctx, tbl, query, args...)
-}
-
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl IssueTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 
 //--------------------------------------------------------------------------------

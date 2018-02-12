@@ -67,11 +67,6 @@ func TestWriteQueryRows(t *testing.T) {
 func (tbl XExampleTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl.ctx, tbl, query, args...)
 }
-
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl XExampleTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
 `, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")

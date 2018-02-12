@@ -164,6 +164,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
+// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) ReplaceTableName(query string) string {
+	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
+}
+
 `
 
 var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
