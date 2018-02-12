@@ -65,4 +65,26 @@ Information:
     	Trace the whole astract syntax tree (very verbose).
 ```
 
-The options `-schema`, `-read`, `-insert`, -`update`, `-delete`, and `-slice` are all off by default; **you should normally include `-all`**, unless you have other needs.
+The options `-schema`, `-read`, `-insert`, -`update`, `-delete`, and `-slice` are all off by default.
+
+**You should normally include `-all`**, unless you have other needs.
+
+
+## Examples
+
+```
+sqlgen -type demo.User -all user.go role.go
+```
+
+This reads the files user.go and role.go. It searches for type `User` in package `demo`. It generates type `UserTable` along with all available optional methods. The generated code is written to `user_sql.go`.
+
+```
+sqlgen -type demo.User -o usertable_sql.go -gofmt -v -prefix Db -all -setters=all user.go role.go
+```
+
+This reads the files user.go and role.go. It searches for type `User` in package `demo`. It generates type `DbUserTable` along with all available optional methods and also setters for all fields in type `User`. The generated code is reformatted to the normal standards and written to `usertable_sql.go`. Verbose progress is printed.
+
+
+## See also 
+
+* the [**tutorial**](tutorial.md).
