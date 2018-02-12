@@ -80,9 +80,9 @@ The two generated structs are related to a provided type called `Database`.
 
 ![database-and-tables](database-and-tables.png)
 
-Although `UserTable` and `AddressTable` both implement the `sqlgen2.Table` interface, they are not directly related to each other.
-
 You normally have exactly one [`*Database`](https://godoc.org/github.com/rickb777/sqlgen2#Database) in your app for each `*sql.DB` connection. The `*Database` also holds the query logger (if you need one).
+
+Although `UserTable` and `AddressTable` both implement the `sqlgen2.Table` interface, they are not directly related to each other. By convention, they are passed by copy instead of as pointers. This allows some fluent methods to make local alterations - especially the `WithPrefix` and `WithContext` methods (e.g. in [address_sql.go](../demo/address_sql.go)).
 
 
 ## Controlling What the Columns Mean
