@@ -40,7 +40,7 @@ sqlgen -type demo.User user.go
 sqlgen -type demo.Address address.go
 ```
 
-The tool generates code that includes `user_sql.go`:
+The tool generates `user_sql.go`:
 
 ```Go
 type UserTable struct {
@@ -53,6 +53,8 @@ type UserTable struct {
 func NewUserTable(name sqlgen2.TableName, d *sqlgen2.Database) DbUserTable {
 	// ... etc
 }
+
+// lots of methods on UserTable
 ```
 
 and `address_sql.go`:
@@ -68,6 +70,8 @@ type AddressTable struct {
 func NewAddressTable(name sqlgen2.TableName, d *sqlgen2.Database) DbUserTable {
 	// ... etc
 }
+
+// lots of methods on AddressTable
 ```
 
 These table structs are types that have many methods for accessing the database table. You have some control over what methods are included or not, and this will be described further later on. For example, you might not need update methods on a log table.
@@ -76,11 +80,18 @@ The two generated structs are related to a provided type called `Database`.
 
 ![database-and-tables](database-and-tables.png)
 
-You normally have exactly one [`*Database`](https://godoc.org/github.com/rickb777/sqlgen2#Database) in your app: it wraps the `*sql.DB` connection and logger (if you need one).
+Although `UserTable` and `AddressTable` both implement the `sqlgen2.Table` interface, they are not directly related to each other.
+
+You normally have exactly one [`*Database`](https://godoc.org/github.com/rickb777/sqlgen2#Database) in your app for each `*sql.DB` connection. The `*Database` also holds the query logger (if you need one).
+
 
 ## Controlling What the Columns Mean
 
-This is a great start, but what if we want to specify primary keys, column sizes and more? This may be achieved by annotating your code using Go tags. For example, we can tag the `ID` field to indicate it is a primary key and will auto increment:
+In the examples above, we haven't been able to define which field is the primary key column. Nor did we set the sizes of strings, etc etc.
+
+So ... what if we want to specify primary keys, column sizes and more? You almost certainly want to do this in many cases.
+
+This may be achieved by annotating your code using Go tags. For example, we can tag the `Uid` field to indicate it is a primary key and will auto increment:
 
 ```diff
 type User struct {
@@ -94,38 +105,15 @@ type User struct {
 This information allows the tool to generate smarter SQL statements:
 
 ```diff
-CREATE TABLE IF NOT EXISTS users (
--user_id     INTEGER
-+user_id     INTEGER PRIMARY KEY AUTOINCREMENT
-,user_login  TEXT
-,user_email  TEXT
+CREATE TABLE users (
+-user_id     INTEGER,
++user_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+ user_login  TEXT
+ user_email  TEXT
 );
 ```
 
-Including SQL statements to select, insert, update and delete data using the primary key:
-
-```Go
-const SelectUserPkeyStmt = `
-SELECT 
- id,
- login,
- email
-WHERE user_id=?
-`
-
-const UpdateUserPkeyStmt = `
-UPDATE users SET 
- id=?,
- login=?,
- email=?
-WHERE user_id=?
-`
-
-const DeleteUserPkeyStmt = `
-DELETE FROM users 
-WHERE user_id=?
-`
-```
+### Indexed columns
 
 We can take this one step further and annotate indexes. In our example, we probably want to make sure the `user_login` field has a unique index:
 
@@ -160,7 +148,7 @@ The important tags are:
 | index    | string        | the column has an index                                      |
 | unique   | string        | the column has a unique index                                |
 
-See [**full details of tags**](tags.md).
+This is not a complete list: see instead the [**full details of tags**](tags.md).
 
 
 ## Nesting
@@ -227,23 +215,6 @@ Name:
 The generated code supports the following SQL dialects: `postgres`, `mysql` and `sqlite`. You decide at runtime which you need to use.
 
 
-### Indexes
-
-If your columns need indexes, `sqlgen` includes extra code for CRUD operations based on the indexed columns as well as on the primary key. This example shows a primary key column `Id`, an indexed column `Name `, and a uniquely indexed column `EmailAddress`.
-
-```Go
-type User struct {
-	Uid          int64    `sql:"pk: true, auto: true"`
-	Name         string   `sql:"index: user_name"`
-	EmailAddress string   `sql:"unique: user_email"`
-	AddressId    *int64   `sql:"fk: addresses.id, onupdate: restrict, ondelete: restrict"`
-    // ... other fields not showm
-}
-```
-
-[List of all the tags](tags.md).
-
-
 ## Joins and Views
 
 Writing join queries is easy if you already know how to write the SQL. Sqlgen2 doesn't do this for you, but provides a `Query` method to do the heavy lifting.
@@ -286,7 +257,7 @@ type User struct {
 }
 ```
 
-See the [command line options](usage.md).
+See the [**command line options**](usage.md).
 
 
 ## Restrictions
@@ -295,3 +266,9 @@ See the [command line options](usage.md).
  * Compound foreign keys are not supported.
  * In the structs used for tables, the imports must not use '.' or be renamed.
 
+
+## See Also
+
+ * [**command line options**](usage.md).
+ * [**api**](api.md)
+ * [**struct tags**](tags.md).

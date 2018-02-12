@@ -36,6 +36,19 @@ The double-quoted string is actually treated as a snippet of YAML, so it needs s
 For string tags, you need to surround the value in single quotes if it contains any spaces. For example, `sql:"check: 'age >= 18'"`. You don't need quotes if there aren't any spaces.
 
 
+## Indexes
+
+If your columns need indexes, `sqlgen` includes extra code for CRUD operations based on the indexed columns as well as on the primary key. This example shows a primary key column `Uid`, an indexed column `Name `, and a uniquely indexed column `EmailAddress`.
+
+```Go
+type User struct {
+	Uid          int64    `sql:"pk: true, auto: true"`
+	Name         string   `sql:"index: user_name"`
+	EmailAddress string   `sql:"unique: user_email"`
+    // ... other fields not showm
+}
+```
+
 ## Encode
 
 * "json" - the struct field will be marshalled using Go's JSON marshaller and stored as a string of JSON.
@@ -86,7 +99,7 @@ type User struct {
 }
 ```
 
-There is no auto-detection for these encoding interfaces. Use this setting as and when you need it.
+There is no auto-detection for these encoding interfaces. Use this setting as and when you need it. The compiler will tell you if you got it wrong (e.g. the `MyStruct` type was missing one of the required methods).
 
 
 ## Check Constraints
@@ -103,12 +116,13 @@ When `fk` is specified, it must contain a table name and the primary key in that
 ```Go
 type User struct {
 	Uid          int64    `sql:"pk: true, auto: true"`
+	// ...
 	AddressId    *int64   `sql:"fk: addresses.id, onupdate: restrict, ondelete: restrict"`
 	// ... other fields not shown
 }
 ```
 
-This describes a `users` table that refers to an `addresses` table using a foreign key. The primary key of `addresses` is `id`.
+This describes a `users` table that refers to an `addresses` table using a foreign key, which is optional in this case (i.e. it's a pointer). The primary key of table `addresses` is a column called `id` and so the foreign key is denoted using `fk: addresses.id`.
 
 The `onupdate` and `ondelete` options cause `... ON UPDATE ...` and `... ON DELETE ...` clauses being to be added to the resulting SQL.
 
