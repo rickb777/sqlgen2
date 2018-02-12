@@ -38,9 +38,9 @@ For string tags, you need to surround the value in single quotes if it contains 
 
 ## Encode
 
-* "json" the struct field will be marshalled using Go's JSON marshaller and stored as a string of JSON.
-* "text" the struct field will be marshalled using a TextMarshaler and stored as a string. You have to provide the TextMarshaller.
-* "driver" the struct field will be marshalled by Go's SQL driver using interfaces implemented by you: `sql.Scanner` and `driver.Valuer`. The column type is whatever you want; your `Scanner` and `Valuer` functions must support the type you choose.
+* "json" - the struct field will be marshalled using Go's JSON marshaller and stored as a string of JSON.
+* "text" - the struct field will be marshalled using a TextMarshaler and stored as a string. You have to provide the TextMarshaller.
+* "driver" - the struct field will be marshalled by Go's SQL driver using interfaces implemented by you: `sql.Scanner` and `driver.Valuer`. The column type is whatever you want; your `Scanner` and `Valuer` functions must support the type you choose.
 
 
 ### JSON Encoding
@@ -70,7 +70,9 @@ type User struct {
 }
 ```
 
-You don't always have to do this because your types (such as `MyStruct`) are inspected and will normally be auto-detected. However, for struct types that contain other fields, ambiguity arises. You can use this setting to resolve the ambiguity; otherwise the internal fields will be treated as table columns. In the example above, `Stuff` is treated as a single database column and `MyStruct` must provide `Scan` and `Value` methods.
+You don't always have to do this because your types (such as `MyStruct`) are inspected and will normally be auto-detected. However, for struct types that contain other fields, ambiguity arises. You can use this setting to resolve the ambiguity; otherwise the internal fields will be treated as table columns.
+
+In the example above, `Stuff` is treated as a single database column and `MyStruct` must provide `Scan` and `Value` methods. No fields within `MyStruct` are inspected; they are ignored instead.
 
 
 ### Text Encoding
@@ -109,3 +111,8 @@ type User struct {
 This describes a `users` table that refers to an `addresses` table using a foreign key. The primary key of `addresses` is `id`.
 
 The `onupdate` and `ondelete` options cause `... ON UPDATE ...` and `... ON DELETE ...` clauses being to be added to the resulting SQL.
+
+
+## See Also
+
+ * back to [**the tutorial**](tutorial.md)

@@ -11,7 +11,7 @@ You are expected to understand your own database; *sqlgen* removes the hard work
 
 Then, *sqlgen* generates code that maps these onto the corresponding database tables.
 
-Consider these two `structs`, both of which are in the [demo](https://github.com/rickb777/sqlgen2/tree/master/demo) package.
+Consider these two structs, both of which are in the [demo](https://github.com/rickb777/sqlgen2/tree/master/demo) package.
 
 ```Go
 type User struct {
@@ -70,9 +70,9 @@ func NewAddressTable(name sqlgen2.TableName, d *sqlgen2.Database) DbUserTable {
 }
 ```
 
-The table `structs` have many methods to access the table. You have some control over what is provided and this will be described further later on. For example, you might not need update methods on a log table.
+These table structs are types that have many methods for accessing the database table. You have some control over what methods are included or not, and this will be described further later on. For example, you might not need update methods on a log table.
 
-The two generated `structs` are related to a provided type called `Database`.
+The two generated structs are related to a provided type called `Database`.
 
 ![database-and-tables](database-and-tables.png)
 
@@ -146,7 +146,7 @@ const CreateUserName  = `
 CREATE UNIQUE INDEX IF NOT EXISTS user_login ON users (user_login)
 ```
 
-#### Tags Summary
+## Tags Summary
 
 The important tags are:
 
@@ -160,11 +160,12 @@ The important tags are:
 | index    | string        | the column has an index                                      |
 | unique   | string        | the column has a unique index                                |
 
-See more details in [tags.md](tags.md).
+See [**full details of tags**](tags.md).
 
-### Nesting
 
-Nested Go structures can be flattened into a single database table. As an example, we have a `User` and `Address` with a one-to-one relationship. In some cases, we may prefer to de-normalize our data and store in a single table, avoiding un-necessary joins.
+## Nesting
+
+Nested Go structures will normally be flattened into a single database table. As an example, we have a `User` and `Address` with a one-to-one relationship. In some cases, we may prefer to de-normalize our data and store in a single table, avoiding un-necessary joins.
 
 ```diff
 type User struct {
@@ -194,9 +195,11 @@ CREATE TALBE IF NOT EXISTS users (
 );
 ```
 
-### Shared Nested Structs With Tags
+### Conflicting Tags in Shared Nested Structs
 
-If you want to nest a struct into several types that you want to process with sqlgen, you might run up against a challenge: the field tags needed in one case might be inappropriate for another case. But there's an easy way around this issue: you can supply a Yaml file that sets the tags needed in each case. The Yaml file has tags that override the tags in the Go source code.
+If you want to nest a struct into several types that you want to process with *sqlgen*, you might run up against a challenge: the field tags needed in one case might be inappropriate for another case. In the `Address` example above, we might also nest `Address` into some other structs but not with the same set of tags.
+
+There's an easy way around this issue: you can supply a Yaml file that sets the tags needed in each case. The Yaml file has tags that override the tags in the Go source code.
 
 If you prefer, you can even use this approach for all tags; this means you don't need *any* tags in the Go source code.
 
@@ -288,6 +291,7 @@ See the [command line options](usage.md).
 
 ## Restrictions
 
-* Compound primaries are not supported
-* In the structs used for tables, the imports must not use '.' or be renamed.
+ * Compound primary keys are not supported.
+ * Compound foreign keys are not supported.
+ * In the structs used for tables, the imports must not use '.' or be renamed.
 
