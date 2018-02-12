@@ -162,7 +162,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS user_login ON users (user_login)
 
 Driver encoding means explicitly deferring to the `sql.Scanner` and `driver.Valuer` methods on your type.
 
-See more details in [TAGS.md](TAGS.md).
+See more details in [tags.md](tags.md).
 
 ### Nesting
 
@@ -281,6 +281,9 @@ type User struct {
 }
 ```
 
+[List of all the tags](tags.md).
+
+
 ## Joins and Views
 
 Writing join queries is easy if you already know how to write the SQL. Sqlgen2 doesn't do this for you, but provides a `Query` method to do the heavy lifting.
@@ -366,6 +369,11 @@ type User struct {
 }
 ```
 
-The current version is not smart enough to find the whole tree of source code containing dependent types. So you need
-to list all the Go source files you want it to parse. This is an implementation limitation in the current version.
+See the [command line options](usage.md).
+
+
+## Restrictions
+
+* Compound primaries are not supported
+* In the structs used for tables, the imports must not use '.' or be renamed.
 
