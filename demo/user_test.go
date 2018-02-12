@@ -119,7 +119,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		d := sqlgen2.NewDatabase(nil, c.dialect)
+		d := sqlgen2.NewDatabase(nil, c.dialect, nil, nil)
 		tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d).
 			WithPrefix("prefix_").
 			WithConstraint(
@@ -149,7 +149,7 @@ func outputDiff(a, name string) {
 func TestCreateIndexSql(t *testing.T) {
 	RegisterTestingT(t)
 
-	d := sqlgen2.NewDatabase(nil, schema.Postgres)
+	d := sqlgen2.NewDatabase(nil, schema.Postgres, nil, nil)
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d).WithPrefix("prefix_")
 	s := tbl.createDbUserEmailIndexSql("IF NOT EXISTS ")
 	expected := `CREATE UNIQUE INDEX IF NOT EXISTS prefix_user_email ON prefix_users (emailaddress)`
@@ -169,7 +169,7 @@ func TestDropIndexSql(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		d := sqlgen2.NewDatabase(nil, c.d)
+		d := sqlgen2.NewDatabase(nil, c.d, nil, nil)
 		tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d).WithPrefix("prefix_")
 		s := tbl.dropDbUserEmailIndexSql(true)
 		Ω(s).Should(Equal(c.expected))
@@ -181,7 +181,7 @@ func TestUpdateFields_ok_using_mock(t *testing.T) {
 
 	mockDb := mockExecer{RowsAffected: 1}
 
-	d := sqlgen2.NewDatabase(mockDb, schema.Mysql)
+	d := sqlgen2.NewDatabase(mockDb, schema.Mysql, nil, nil)
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d)
 
 	n, err := tbl.UpdateFields(require.One, where.NoOp(),
@@ -198,7 +198,7 @@ func TestUpdateFields_error_using_mock(t *testing.T) {
 	exp := Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
-	d := sqlgen2.NewDatabase(mockDb, schema.Mysql)
+	d := sqlgen2.NewDatabase(mockDb, schema.Mysql, nil, nil)
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d)
 
 	_, err := tbl.UpdateFields(nil, where.NoOp(),
@@ -213,7 +213,7 @@ func TestUpdate_ok_using_mock(t *testing.T) {
 
 	mockDb := mockExecer{RowsAffected: 1}
 
-	d := sqlgen2.NewDatabase(mockDb, schema.Mysql)
+	d := sqlgen2.NewDatabase(mockDb, schema.Mysql, nil, nil)
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d)
 
 	n, err := tbl.Update(require.One, &User{})
@@ -228,7 +228,7 @@ func TestUpdate_error_using_mock(t *testing.T) {
 	exp := Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
-	d := sqlgen2.NewDatabase(mockDb, schema.Mysql)
+	d := sqlgen2.NewDatabase(mockDb, schema.Mysql, nil, nil)
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d)
 
 	_, err := tbl.Update(nil, &User{})
@@ -243,9 +243,10 @@ func TestCrud_using_database(t *testing.T) {
 	connect()
 	defer cleanup()
 
-	d := sqlgen2.NewDatabase(db, dialect)
+	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
 	if testing.Verbose() {
-		d.SetLogger(log.New(os.Stderr, "", log.LstdFlags))
+		lgr := log.New(os.Stderr, "", log.LstdFlags)
+		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
 	}
 	addresses := NewAddressTable(sqlgen2.TableName{Name: "addresses"}, d)
 
@@ -429,9 +430,10 @@ func TestMultiSelect_using_database(t *testing.T) {
 	connect()
 	defer cleanup()
 
-	d := sqlgen2.NewDatabase(db, dialect)
+	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
 	if testing.Verbose() {
-		d.SetLogger(log.New(os.Stderr, "", log.LstdFlags))
+		lgr := log.New(os.Stderr, "", log.LstdFlags)
+		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
 	}
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d)
 
@@ -472,9 +474,10 @@ func TestGetters_using_database(t *testing.T) {
 	connect()
 	defer cleanup()
 
-	d := sqlgen2.NewDatabase(db, dialect)
+	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
 	if testing.Verbose() {
-		d.SetLogger(log.New(os.Stderr, "", log.LstdFlags))
+		lgr := log.New(os.Stderr, "", log.LstdFlags)
+		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
 	}
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d)
 
@@ -509,9 +512,10 @@ func TestBulk_delete_using_database(t *testing.T) {
 	connect()
 	defer cleanup()
 
-	d := sqlgen2.NewDatabase(db, dialect)
+	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
 	if testing.Verbose() {
-		d.SetLogger(log.New(os.Stderr, "", log.LstdFlags))
+		lgr := log.New(os.Stderr, "", log.LstdFlags)
+		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
 	}
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d)
 

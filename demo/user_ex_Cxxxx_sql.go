@@ -193,9 +193,7 @@ const CUserPk = "uid"
 //
 // The caller must call rows.Close() on the result.
 func (tbl CUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	return rows, tbl.logIfError(err)
+	return support.Query(tbl.ctx, tbl, query, args...)
 }
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.

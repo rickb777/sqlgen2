@@ -51,12 +51,13 @@ func TestIdsUsedAsForeignKeys(t *testing.T) {
 
 	fkc0 := constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "cascade", "cascade"}
 
-	d := sqlgen2.NewDatabase(db, dialect)
-	persons := vanilla.NewPrimaryKeyTable(sqlgen2.TableName{"pfx_", "persons"}, d).WithConstraint(fkc0)
-
+	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
 	if testing.Verbose() {
-		d.SetLogger(log.New(os.Stderr, "", log.LstdFlags))
+		lgr := log.New(os.Stderr, "", log.LstdFlags)
+		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
 	}
+
+	persons := vanilla.NewPrimaryKeyTable(sqlgen2.TableName{"pfx_", "persons"}, d).WithConstraint(fkc0)
 
 	setupSql := strings.Replace(createTables, "¬", "`", -1)
 	_, err := d.Exec(setupSql)

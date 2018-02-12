@@ -76,7 +76,24 @@ func GetInt64List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh
 
 //-------------------------------------------------------------------------------------------------
 
+// Query is the low-level request method for this table.
+//
+// The query is logged using whatever logger is configured. If an error arises, this too is logged.
+//
+// The args are for any placeholder parameters in the query.
+//
+// The caller must call rows.Close() on the result.
+func Query(ctx context.Context, tbl sqlgen2.Table, query string, args ...interface{}) (*sql.Rows, error) {
+	database := tbl.Database()
+	database.LogQuery(query, args...)
+	rows, err := tbl.Execer().QueryContext(ctx, query, args...)
+	return rows, database.LogIfError(err)
+}
+
+
 // Exec executes a modification query (insert, update, delete, etc) and returns the number of items affected.
+//
+// The query is logged using whatever logger is configured. If an error arises, this too is logged.
 func Exec(ctx context.Context, tbl sqlgen2.Table, req require.Requirement, query string, args ...interface{}) (int64, error) {
 	database := tbl.Database()
 	database.LogQuery(query, args...)

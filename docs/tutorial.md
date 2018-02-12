@@ -29,7 +29,7 @@ type Address struct {
 }
 ```
 
-These represent tables that have a one-to-many relationship.
+These represent tables that have a one-to-many relationship. By the way, notice how `User.AddressId` is a pointer - as a convention, we use pointers for optional items.
 
 ![demo tables](demo-tables.png)
 
@@ -71,6 +71,12 @@ func NewAddressTable(name sqlgen2.TableName, d *sqlgen2.Database) DbUserTable {
 ```
 
 The table `structs` have many methods to access the table. You have some control over what is provided and this will be described further later on. For example, you might not need update methods on a log table.
+
+The two generated `structs` are related to a provided type called `Database`.
+
+![database-and-tables](database-and-tables.png)
+
+You normally have exactly one [`*Database`](https://godoc.org/github.com/rickb777/sqlgen2#Database) in your app: it wraps the `*sql.DB` connection and logger (if you need one).
 
 ## Controlling What the Columns Mean
 
