@@ -30,13 +30,20 @@ Install or upgrade with this command:
 go get -u github.com/rickb777/sqlgen2
 ```
 
+This will fetch the source code, compile it, and leave a `sqlgen` binary in your bin folder ready to use.
+
+You will also need to import the `sqlgen2` package and other sub-packages in your source code.
+
+
 ## Usage
 
 See the [**command line usage**](docs/usage.md).
 
+
 ## Tutorial
 
 See the [**tutorial**](docs/tutorial.md).
+
 
 ## Benchmarks
 
@@ -52,7 +59,7 @@ cd bench
 go test -bench=Bench
 ```
 
-Example selecing a single row:
+Example selecting a single row:
 
 ```
 BenchmarkMeddlerRow-4      30000        42773 ns/op
@@ -68,6 +75,9 @@ BenchmarkMeddlerRows-4      2000      1025218 ns/op
 BenchmarkSqlxRows-4         2000       807213 ns/op
 BenchmarkSqlgenRows-4       2000       700673 ns/op
 ```
+
+CAUTION - these figures might not be up to date.
+
 
 ## Credits
 

@@ -148,19 +148,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS user_login ON users (user_login)
 
 #### Tags Summary
 
+The important tags are:
+
 | Tag      | Value         | Purpose                                                      |
 | -------- | ------------- | ------------------------------------------------------------ |
 | pk       | true or false | the column is the primary key                                |
-| auto     | true or false | the column is auto-incrementing (ignored if not using MySQL) |
-| prefixed | true or false | the column name is made unique using a computed prefix       |
+| auto     | true or false | the column is auto-incrementing (applies to MySQL only)      |
 | name     | string        | the column name                                              |
 | type     | string        | overrides the column type explicitly                         |
 | size     | integer       | sets the storage size for the column                         |
-| encode   | string        | encodes as "json", "text" or using the "driver"              |
 | index    | string        | the column has an index                                      |
 | unique   | string        | the column has a unique index                                |
-
-Driver encoding means explicitly deferring to the `sql.Scanner` and `driver.Valuer` methods on your type.
 
 See more details in [tags.md](tags.md).
 
@@ -221,47 +219,6 @@ Name:
   size: 50
 ```
 
-### JSON Encoding
-
-Some types in your struct may not have native equivalents in your database such as `[]string`. These values can be marshalled and stored as JSON in the database.
-
-```diff
-type User struct {
-    Uid    int64  `sql:"pk: true"`
-    Name   string
-    Email  string
-+   Label  []string `sql:"encode: json"
-}
-```
-
-### Driver Encoding
-
-If you have a field type that implements `sql.Scanner`, `driver.Valuer` and you want to use this explicitly as the column encoding to string data, specify `encode: driver`, e.g.
-
-```
-type User struct {
-    Uid    int64    `sql:"pk: true"`
-    Stuff  MyStruct `sql:"encode: driver"`
-}
-```
-
-You don't always have to do this because your types are inspected and will normally be auto-detected. However, for struct types that contain other fields, ambiguity arises. You can use this setting to resolve the ambiguity; otherwise the internal fields will be treated as table columns.
-
-
-### Text Encoding
-
-If you have a field type that implements `encoding.MashalText`, `encoding.UnmashalText` and you want to use this as the column encoding to string data, specify `encode: text`, e.g.
-
-```
-type User struct {
-    Uid    int64    `sql:"pk: true"`
-    Thing  MyStruct `sql:"encode: text"`
-}
-```
-
-There is no auto-detection for these enciding interfaces. Use this setting as and when you need it.
-
-
 ### Dialects
 
 The generated code supports the following SQL dialects: `postgres`, `mysql` and `sqlite`. You decide at runtime which you need to use.
@@ -297,59 +254,16 @@ You will probably find it helpful to use `-kind View`, which will cause your gen
 
 ## The API
 
-The generated API contains a useful range of data-definition methods (create table, etc) and data-manipulation methods. The latter are all specialisations of Query and Exec. Query is the only method that is always included.
+Package `github.com/rickb777/sqlgen2/require` provides:
 
-The API is summarised in [package sqlgen2](https://godoc.org/github.com/rickb777/sqlgen2) and [execer.go](https://github.com/rickb777/sqlgen2/blob/master/execer.go). See the interfaces `Table`, `TableCreator`, `TableWithIndexes`, and especially `TableWithCrud`.
+ * requirements that specify the expected size of the result set, or the number of rows affected, as appropriate.  
 
-But these interfaces are only part of the story. Where appropriate, the methods are type-safe. So, `Query` returns `[]User` (in the case of supporting the type `User`).
+Package `github.com/rickb777/sqlgen2/where` provides:
 
-Because of the nature of Go's interfaces, the type-safe methods aren't expressly listed in the `TableWithCrud` interface. It's really useful to examine the generated code directly, in order to understand what's going on. There are some examples in the `demo` folder - see in particular [**user_sql.go**](https://github.com/rickb777/sqlgen2/blob/master/demo/user_sql.go), also [**shown here**](https://godoc.org/github.com/rickb777/sqlgen2/demo#DbUserTable).
- 
+ * a builder API for 'where' clauses
+ * query constraints  
 
-### Declarative requirements
-
-Exec, Select, Insert, Update and many other generated API methods accept a `require.Requirement` argument as the first parameter.
-
-The requirement specifies the expected size of the result set, or the number of rows affected, as appropriate. If a requirement is not met, an error is returned with helpful diagnostics.
-
-```Go
-    err := tbl.Insert(require.Exactly(5), a, b c, d, e)
-    ...
-```
-
-This can be easily ignored (just set it to nil). But it is often very useful, especially for Insert, Update and Delete methods.
-
-
-### Where-expressions
-
-Select, Count, Update and Delete methods accept where-expressions as parameters. Example:
-
-```Go
-    wh := where.Eq("name", "Andy").And(where.Gt("age", 18))
-    value, err := tbl.Select(nil, wh, nil)
-    ...
-```
-
-### Query Constraints
-
-Select, Count, Update and Delete methods also accept query constraints as parameters. These specify result ordering and limit/offset parameters. Example:
-
-```Go
-    qc := where.OrderBy("name").Limit(10)
-    value, err := tbl.Select(nil, nil, qc)
-    ...
-```
-
-
-### Slice methods
-
-This `SliceXxxx` set of methods returns vertical slices from the table, i.e. a set of values (strings, ints or floats) that come from one column of the table. They have a common format
-
-```Go
-SliceXxxx(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]T, error)
-```
-
-where *T* is the type of the corresponding field.
+See [**api**](api.md) for details of these and of the methodss generated for the table types.
 
 
 ## Go Generate
