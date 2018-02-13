@@ -92,7 +92,7 @@ var all{{.CamelName}}QuotedColumnNames = []string{
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}(req require.Requirement, id ...{{.Table.Primary.Type.Name}}) (list {{.List}}, err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}(req require.Requirement, id ...{{.Table.Primary.Type.Type}}) (list {{.List}}, err error) {
 	if len(id) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(id))
@@ -111,7 +111,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}
 
 // Get{{.Type}}By{{.Table.Primary.Name}} gets the record with a given primary key value.
 // If not found, *{{.Type}} will be nil.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.Type}}, error) {
 	return tbl.get{{.Type}}(req, "{{.Table.Primary.SqlName}}", id)
 }
 
@@ -120,7 +120,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(
 {{if and .Single .Unique -}}{{$field := index .Fields 0 -}}
 // Get{{$.Type}}By{{$field.Node.Name}} gets the record with a given {{$field.SqlName}} value.
 // If not found, *{{$.Type}} will be nil.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{$field.Node.Name}}(req require.Requirement, value {{$field.Type.Name}}) (*{{$.Type}}, error) {
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{$field.Node.Name}}(req require.Requirement, value {{$field.Type.Type}}) (*{{$.Type}}, error) {
 	return tbl.get{{$.Type}}(req, "{{$field.SqlName}}", value)
 }
 
@@ -128,7 +128,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{$field.Node.Name}}
 {{if and .Single (not .Unique) -}}{{$field := index .Fields 0 -}}
 // Get{{$.Types}}By{{$field.Node.Name}} gets the records with a given {{$field.SqlName}} value.
 // If not found, *{{$.Type}} will be nil.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{$field.Node.Name}}(req require.Requirement, value {{$field.Type.Name}}) ({{$.List}}, error) {
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{$field.Node.Name}}(req require.Requirement, value {{$field.Type.Type}}) ({{$.List}}, error) {
 	return tbl.get{{$.Types}}(req, "{{$field.SqlName}}", value)
 }
 
@@ -505,7 +505,7 @@ const sDelete = `
 {{if .Table.Primary -}}
 // Delete{{.Types}} deletes rows from the table, given some primary keys.
 // The list of ids can be arbitrarily long.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requirement, id ...{{.Table.Primary.Type.Name}}) (int64, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requirement, id ...{{.Table.Primary.Type.Type}}) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE %s IN (%s)"
 
