@@ -61,7 +61,8 @@ func (database *Database) Dialect() schema.Dialect {
 	return database.dialect
 }
 
-// Logger gets the trace logger.
+// Logger gets the trace logger. Note that you can use this to rotate the output writer,
+// or even disable it completely (via ioutil.Discard).
 func (database *Database) Logger() *log.Logger {
 	return database.logger
 }
