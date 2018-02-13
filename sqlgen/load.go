@@ -234,6 +234,17 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags par
 		field.Type.Base = parse.Slice
 	}
 
+	prefix := ""
+	if tag.Prefixed {
+		prefix = Underscore(field.JoinParts(1, "_")) + "_"
+	}
+
+	if tag.Name != "" {
+		field.SqlName = string(prefix + strings.ToLower(tag.Name))
+	} else {
+		field.SqlName = string(prefix + strings.ToLower(field.Name))
+	}
+
 	if tag.Primary {
 		if ctx.table.Primary != nil {
 			exit.Fail(1, "%s, %s: compound primary keys are not supported.\n",
@@ -254,7 +265,7 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags par
 	}
 
 	if tag.Natural {
-		tag.Unique = leaf.Name() + "Idx"
+		tag.Unique = field.SqlName + "_idx"
 	}
 
 	if tag.Unique != "" {
@@ -276,17 +287,6 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags par
 		} else {
 			output.Info("%s.%s: Warning: unrecognised type %q\n  (allowed: %s)\n", pkg, leaf.Name(), tag.Type, allowedSqlTypeStrings())
 		}
-	}
-
-	prefix := ""
-	if tag.Prefixed {
-		prefix = Underscore(field.JoinParts(1, "_")) + "_"
-	}
-
-	if tag.Name != "" {
-		field.SqlName = string(prefix + strings.ToLower(tag.Name))
-	} else {
-		field.SqlName = string(prefix + strings.ToLower(field.Name))
 	}
 
 	ctx.table.Fields = append(ctx.table.Fields, field)

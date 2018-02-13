@@ -151,8 +151,8 @@ func TestCreateIndexSql(t *testing.T) {
 
 	d := sqlgen2.NewDatabase(nil, schema.Postgres, nil, nil)
 	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d).WithPrefix("prefix_")
-	s := tbl.createDbEmailAddressIdxIndexSql("IF NOT EXISTS ")
-	expected := `CREATE UNIQUE INDEX IF NOT EXISTS prefix_EmailAddressIdx ON prefix_users (emailaddress)`
+	s := tbl.createDbEmailaddressIdxIndexSql("IF NOT EXISTS ")
+	expected := `CREATE UNIQUE INDEX IF NOT EXISTS prefix_emailaddress_idx ON prefix_users (emailaddress)`
 	Ω(s).Should(Equal(expected))
 }
 
@@ -163,15 +163,15 @@ func TestDropIndexSql(t *testing.T) {
 		d        schema.Dialect
 		expected string
 	}{
-		{schema.Sqlite, `DROP INDEX IF EXISTS prefix_EmailAddressIdx`},
-		{schema.Mysql, `DROP INDEX prefix_EmailAddressIdx ON prefix_users`},
-		{schema.Postgres, `DROP INDEX IF EXISTS prefix_EmailAddressIdx`},
+		{schema.Sqlite, `DROP INDEX IF EXISTS prefix_emailaddress_idx`},
+		{schema.Mysql, `DROP INDEX prefix_emailaddress_idx ON prefix_users`},
+		{schema.Postgres, `DROP INDEX IF EXISTS prefix_emailaddress_idx`},
 	}
 
 	for _, c := range cases {
 		d := sqlgen2.NewDatabase(nil, c.d, nil, nil)
 		tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d).WithPrefix("prefix_")
-		s := tbl.dropDbEmailAddressIdxIndexSql(true)
+		s := tbl.dropDbEmailaddressIdxIndexSql(true)
 		Ω(s).Should(Equal(c.expected))
 	}
 }
