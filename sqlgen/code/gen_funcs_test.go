@@ -98,21 +98,8 @@ func TestWriteQueryThings(t *testing.T) {
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl XExampleTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -123,21 +110,8 @@ func (tbl XExampleTable) MustQueryOneNullString(query string, args ...interface{
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl XExampleTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -148,21 +122,8 @@ func (tbl XExampleTable) MustQueryOneNullInt64(query string, args ...interface{}
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl XExampleTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 `, "¬", "`", -1)
@@ -179,7 +140,7 @@ func TestWriteGetRow(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "")
-	view.Table = simpleFixtureTable()
+	view.Table = fixtureTable()
 
 	buf := &bytes.Buffer{}
 
@@ -197,48 +158,64 @@ var allXExampleQuotedColumnNames = []string{
 
 //--------------------------------------------------------------------------------
 
-// GetExample gets the record with a given primary key value.
-// If not found, *Example will be nil.
-func (tbl XExampleTable) GetExample(id int64) (*Example, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allXExampleQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"))
-	v, err := tbl.doQueryOne(nil, query, id)
-	return v, err
-}
-
-// MustGetExample gets the record with a given primary key value.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-func (tbl XExampleTable) MustGetExample(id int64) (*Example, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allXExampleQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"))
-	v, err := tbl.doQueryOne(require.One, query, id)
-	return v, err
-}
-
-// GetExamples gets records from the table according to a list of primary keys.
+// GetExamplesById gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl XExampleTable) GetExamples(req require.Requirement, id ...int64) (list []*Example, err error) {
+func (tbl XExampleTable) GetExamplesById(req require.Requirement, id ...int64) (list []*Example, err error) {
 	if len(id) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(id))
 		}
-		dialect := tbl.Dialect()
-		pl := dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allXExampleQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
 			args[i] = v
 		}
 
+		list, err = tbl.getExamples(req, "id", args...)
+	}
+
+	return list, err
+}
+
+// GetExampleById gets the record with a given primary key value.
+// If not found, *Example will be nil.
+func (tbl XExampleTable) GetExampleById(req require.Requirement, id int64) (*Example, error) {
+	return tbl.getExample(req, "id", id)
+}
+
+// GetExamplesByCat gets the records with a given cat value.
+// If not found, *Example will be nil.
+func (tbl XExampleTable) GetExamplesByCat(req require.Requirement, value Category) ([]*Example, error) {
+	return tbl.getExamples(req, "cat", value)
+}
+
+// GetExampleByName gets the record with a given username value.
+// If not found, *Example will be nil.
+func (tbl XExampleTable) GetExampleByName(req require.Requirement, value string) (*Example, error) {
+	return tbl.getExample(req, "username", value)
+}
+
+func (tbl XExampleTable) getExample(req require.Requirement, column string, arg interface{}) (*Example, error) {
+	dialect := tbl.Dialect()
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allXExampleQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column))
+	v, err := tbl.doQueryOne(req, query, arg)
+	return v, err
+}
+
+func (tbl XExampleTable) getExamples(req require.Requirement, column string, args ...interface{}) (list []*Example, err error) {
+	if len(args) > 0 {
+		if req == require.All {
+			req = require.Exactly(len(args))
+		}
+		dialect := tbl.Dialect()
+		pl := dialect.Placeholders(len(args))
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allXExampleQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), pl)
 		list, err = tbl.doQuery(req, false, query, args...)
 	}
 

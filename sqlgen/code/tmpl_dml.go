@@ -40,21 +40,8 @@ const sQueryThings = `
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -65,21 +52,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustQueryOneNullString(query string, a
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -90,21 +64,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustQueryOneNullInt64(query string, ar
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 `
@@ -125,55 +86,77 @@ var all{{.CamelName}}QuotedColumnNames = []string{
 {{if .Table.Primary -}}
 //--------------------------------------------------------------------------------
 
-// Get{{.Type}} gets the record with a given primary key value.
-// If not found, *{{.Type}} will be nil.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}(id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		all{{.CamelName}}QuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("{{.Table.Primary.SqlName}}"))
-	v, err := tbl.doQueryOne(nil, query, id)
-	return v, err
-}
-
-// MustGet{{.Type}} gets the record with a given primary key value.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) MustGet{{.Type}}(id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		all{{.CamelName}}QuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("{{.Table.Primary.SqlName}}"))
-	v, err := tbl.doQueryOne(require.One, query, id)
-	return v, err
-}
-
-// Get{{.Types}} gets records from the table according to a list of primary keys.
+// Get{{.Types}}By{{.Table.Primary.Name}} gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}(req require.Requirement, id ...{{.Table.Primary.Type.Name}}) (list {{.List}}, err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}(req require.Requirement, id ...{{.Table.Primary.Type.Name}}) (list {{.List}}, err error) {
 	if len(id) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(id))
 		}
-		dialect := tbl.Dialect()
-		pl := dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			all{{.CamelName}}QuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("{{.Table.Primary.SqlName}}"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
 			args[i] = v
 		}
 
+		list, err = tbl.get{{.Types}}(req, "{{.Table.Primary.SqlName}}", args...)
+	}
+
+	return list, err
+}
+
+// Get{{.Type}}By{{.Table.Primary.Name}} gets the record with a given primary key value.
+// If not found, *{{.Type}} will be nil.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Name}}) (*{{.Type}}, error) {
+	return tbl.get{{.Type}}(req, "{{.Table.Primary.SqlName}}", id)
+}
+
+{{end -}}
+{{range .Table.Index -}}
+{{if and .Single .Unique -}}{{$field := index .Fields 0 -}}
+// Get{{$.Type}}By{{$field.Node.Name}} gets the record with a given {{$field.SqlName}} value.
+// If not found, *{{$.Type}} will be nil.
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{$field.Node.Name}}(req require.Requirement, value {{$field.Type.Name}}) (*{{$.Type}}, error) {
+	return tbl.get{{$.Type}}(req, "{{$field.SqlName}}", value)
+}
+
+{{end -}}
+{{if and .Single (not .Unique) -}}{{$field := index .Fields 0 -}}
+// Get{{$.Types}}By{{$field.Node.Name}} gets the records with a given {{$field.SqlName}} value.
+// If not found, *{{$.Type}} will be nil.
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{$field.Node.Name}}(req require.Requirement, value {{$field.Type.Name}}) ({{$.List}}, error) {
+	return tbl.get{{$.Types}}(req, "{{$field.SqlName}}", value)
+}
+
+{{end -}}
+{{end -}}
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Type}}(req require.Requirement, column string, arg interface{}) (*{{.Type}}, error) {
+	dialect := tbl.Dialect()
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		all{{.CamelName}}QuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column))
+	v, err := tbl.doQueryOne(req, query, arg)
+	return v, err
+}
+
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Types}}(req require.Requirement, column string, args ...interface{}) (list {{.List}}, err error) {
+	if len(args) > 0 {
+		if req == require.All {
+			req = require.Exactly(len(args))
+		}
+		dialect := tbl.Dialect()
+		pl := dialect.Placeholders(len(args))
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			all{{.CamelName}}QuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), pl)
 		list, err = tbl.doQuery(req, false, query, args...)
 	}
 
 	return list, err
 }
 
-{{end -}}
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryOne(req require.Requirement, query string, args ...interface{}) (*{{.Type}}, error) {
 	list, err := tbl.doQuery(req, true, query, args...)
 	if err != nil || len(list) == 0 {

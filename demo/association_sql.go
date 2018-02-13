@@ -322,21 +322,8 @@ func (tbl AssociationTable) Query(query string, args ...interface{}) (*sql.Rows,
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl AssociationTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -347,21 +334,8 @@ func (tbl AssociationTable) MustQueryOneNullString(query string, args ...interfa
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl AssociationTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -372,21 +346,8 @@ func (tbl AssociationTable) MustQueryOneNullInt64(query string, args ...interfac
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl AssociationTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -467,48 +428,52 @@ var allAssociationQuotedColumnNames = []string{
 
 //--------------------------------------------------------------------------------
 
-// GetAssociation gets the record with a given primary key value.
-// If not found, *Association will be nil.
-func (tbl AssociationTable) GetAssociation(id int64) (*Association, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allAssociationQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"))
-	v, err := tbl.doQueryOne(nil, query, id)
-	return v, err
-}
-
-// MustGetAssociation gets the record with a given primary key value.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-func (tbl AssociationTable) MustGetAssociation(id int64) (*Association, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allAssociationQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"))
-	v, err := tbl.doQueryOne(require.One, query, id)
-	return v, err
-}
-
-// GetAssociations gets records from the table according to a list of primary keys.
+// GetAssociationsById gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl AssociationTable) GetAssociations(req require.Requirement, id ...int64) (list []*Association, err error) {
+func (tbl AssociationTable) GetAssociationsById(req require.Requirement, id ...int64) (list []*Association, err error) {
 	if len(id) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(id))
 		}
-		dialect := tbl.Dialect()
-		pl := dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allAssociationQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
 			args[i] = v
 		}
 
+		list, err = tbl.getAssociations(req, "id", args...)
+	}
+
+	return list, err
+}
+
+// GetAssociationById gets the record with a given primary key value.
+// If not found, *Association will be nil.
+func (tbl AssociationTable) GetAssociationById(req require.Requirement, id int64) (*Association, error) {
+	return tbl.getAssociation(req, "id", id)
+}
+
+func (tbl AssociationTable) getAssociation(req require.Requirement, column string, arg interface{}) (*Association, error) {
+	dialect := tbl.Dialect()
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allAssociationQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column))
+	v, err := tbl.doQueryOne(req, query, arg)
+	return v, err
+}
+
+func (tbl AssociationTable) getAssociations(req require.Requirement, column string, args ...interface{}) (list []*Association, err error) {
+	if len(args) > 0 {
+		if req == require.All {
+			req = require.Exactly(len(args))
+		}
+		dialect := tbl.Dialect()
+		pl := dialect.Placeholders(len(args))
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allAssociationQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), pl)
 		list, err = tbl.doQuery(req, false, query, args...)
 	}
 

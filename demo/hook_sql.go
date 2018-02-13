@@ -355,21 +355,8 @@ func (tbl HookTable) Query(query string, args ...interface{}) (*sql.Rows, error)
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl HookTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl HookTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -380,21 +367,8 @@ func (tbl HookTable) MustQueryOneNullString(query string, args ...interface{}) (
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl HookTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl HookTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -405,21 +379,8 @@ func (tbl HookTable) MustQueryOneNullInt64(query string, args ...interface{}) (r
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl HookTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl HookTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -518,48 +479,52 @@ var allHookQuotedColumnNames = []string{
 
 //--------------------------------------------------------------------------------
 
-// GetHook gets the record with a given primary key value.
-// If not found, *Hook will be nil.
-func (tbl HookTable) GetHook(id uint64) (*Hook, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allHookQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"))
-	v, err := tbl.doQueryOne(nil, query, id)
-	return v, err
-}
-
-// MustGetHook gets the record with a given primary key value.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-func (tbl HookTable) MustGetHook(id uint64) (*Hook, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allHookQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"))
-	v, err := tbl.doQueryOne(require.One, query, id)
-	return v, err
-}
-
-// GetHooks gets records from the table according to a list of primary keys.
+// GetHooksById gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl HookTable) GetHooks(req require.Requirement, id ...uint64) (list HookList, err error) {
+func (tbl HookTable) GetHooksById(req require.Requirement, id ...uint64) (list HookList, err error) {
 	if len(id) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(id))
 		}
-		dialect := tbl.Dialect()
-		pl := dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allHookQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
 			args[i] = v
 		}
 
+		list, err = tbl.getHooks(req, "id", args...)
+	}
+
+	return list, err
+}
+
+// GetHookById gets the record with a given primary key value.
+// If not found, *Hook will be nil.
+func (tbl HookTable) GetHookById(req require.Requirement, id uint64) (*Hook, error) {
+	return tbl.getHook(req, "id", id)
+}
+
+func (tbl HookTable) getHook(req require.Requirement, column string, arg interface{}) (*Hook, error) {
+	dialect := tbl.Dialect()
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allHookQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column))
+	v, err := tbl.doQueryOne(req, query, arg)
+	return v, err
+}
+
+func (tbl HookTable) getHooks(req require.Requirement, column string, args ...interface{}) (list HookList, err error) {
+	if len(args) > 0 {
+		if req == require.All {
+			req = require.Exactly(len(args))
+		}
+		dialect := tbl.Dialect()
+		pl := dialect.Placeholders(len(args))
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allHookQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), pl)
 		list, err = tbl.doQuery(req, false, query, args...)
 	}
 

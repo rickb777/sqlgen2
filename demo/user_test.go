@@ -311,7 +311,7 @@ func insert_user_should_run_PreInsert(t *testing.T, tbl DbUserTable) *User {
 }
 
 func get_user_should_call_PostGet_and_match_expected(t *testing.T, tbl DbUserTable, expected *User) {
-	user, err := tbl.GetUser(expected.Uid)
+	user, err := tbl.GetUserByUid(nil, expected.Uid)
 	Ω(err).Should(BeNil())
 	if user.hash != "PostGet" {
 		t.Fatalf("%q", user.hash)
@@ -321,13 +321,13 @@ func get_user_should_call_PostGet_and_match_expected(t *testing.T, tbl DbUserTab
 }
 
 func get_unknown_user_should_return_nil(t *testing.T, tbl DbUserTable, expected *User) {
-	user, err := tbl.GetUser(expected.Uid + 100000)
+	user, err := tbl.GetUserByUid(nil, expected.Uid + 100000)
 	Ω(err).Should(BeNil())
 	Ω(user).Should(BeNil())
 }
 
 func must_get_unknown_user_should_return_error(t *testing.T, tbl DbUserTable, expected *User) {
-	_, err := tbl.MustGetUser(expected.Uid + 100000)
+	_, err := tbl.GetUserByUid(require.One, expected.Uid + 100000)
 	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
 }
 
@@ -353,23 +353,23 @@ func select_unknown_user_requiring_one_should_return_error(t *testing.T, tbl DbU
 }
 
 func query_one_nullstring_for_user_should_return_valid(t *testing.T, tbl DbUserTable) {
-	s, err := tbl.QueryOneNullString("select EmailAddress from {TABLE} where Name=?", "user1")
+	s, err := tbl.QueryOneNullString(nil, "select EmailAddress from {TABLE} where Name=?", "user1")
 	Ω(err).Should(BeNil())
 	Ω(s.Valid).Should(BeTrue())
 	Ω(s.String).Should(Equal("foo@x.z"))
 
-	s, err = tbl.MustQueryOneNullString("select EmailAddress from {TABLE} where Name=?", "user1")
+	s, err = tbl.QueryOneNullString(require.One, "select EmailAddress from {TABLE} where Name=?", "user1")
 	Ω(err).Should(BeNil())
 	Ω(s.Valid).Should(BeTrue())
 	Ω(s.String).Should(Equal("foo@x.z"))
 }
 
 func query_one_nullstring_for_unknown_should_return_invalid(t *testing.T, tbl DbUserTable) {
-	s, err := tbl.QueryOneNullString("select EmailAddress from {TABLE} where Name=?", "foo")
+	s, err := tbl.QueryOneNullString(nil, "select EmailAddress from {TABLE} where Name=?", "foo")
 	Ω(err).Should(BeNil())
 	Ω(s.Valid).Should(BeFalse())
 
-	_, err = tbl.MustQueryOneNullString("select EmailAddress from {TABLE} where Name=?", "foo")
+	_, err = tbl.QueryOneNullString(require.One, "select EmailAddress from {TABLE} where Name=?", "foo")
 	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
 	Ω(s.Valid).Should(BeFalse())
 }

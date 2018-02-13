@@ -207,21 +207,8 @@ func (tbl XUserTable) Query(query string, args ...interface{}) (*sql.Rows, error
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl XUserTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XUserTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl XUserTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -232,21 +219,8 @@ func (tbl XUserTable) MustQueryOneNullString(query string, args ...interface{}) 
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl XUserTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XUserTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl XUserTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -257,20 +231,7 @@ func (tbl XUserTable) MustQueryOneNullInt64(query string, args ...interface{}) (
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl XUserTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XUserTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl XUserTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }

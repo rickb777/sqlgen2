@@ -110,35 +110,17 @@ type TableWithCrud interface {
 	// QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 	// such like. If the query selected many rows, only the first is returned; the rest are discarded.
 	// If not found, the result will be invalid.
-	QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error)
-
-	// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
-	// such like.
-	//
-	// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-	MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 
 	// QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
 	// such like. If the query selected many rows, only the first is returned; the rest are discarded.
 	// If not found, the result will be invalid.
-	QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error)
-
-	// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-	// such like.
-	//
-	// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-	MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 
 	// QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
 	// such like. If the query selected many rows, only the first is returned; the rest are discarded.
 	// If not found, the result will be invalid.
-	QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error)
-
-	// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-	// such like.
-	//
-	// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-	MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
 	// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
 	ReplaceTableName(query string) string

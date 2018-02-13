@@ -176,13 +176,13 @@ func (tbl AddressTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
-const NumAddressColumns = 3
+const NumAddressColumns = 4
 
-const NumAddressDataColumns = 2
+const NumAddressDataColumns = 3
 
-const AddressColumnNames = "id,lines,postcode"
+const AddressColumnNames = "id,lines,town,postcode"
 
-const AddressDataColumnNames = "lines,postcode"
+const AddressDataColumnNames = "lines,town,postcode"
 
 const AddressPk = "id"
 
@@ -191,16 +191,19 @@ const AddressPk = "id"
 const sqlAddressTableCreateColumnsSqlite = "\n"+
 " `id`       integer primary key autoincrement,\n"+
 " `lines`    text,\n"+
+" `town`     text default null,\n"+
 " `postcode` text"
 
 const sqlAddressTableCreateColumnsMysql = "\n"+
 " `id`       bigint primary key auto_increment,\n"+
 " `lines`    json,\n"+
+" `town`     varchar(80) default null,\n"+
 " `postcode` varchar(20)"
 
 const sqlAddressTableCreateColumnsPostgres = `
  "id"       bigserial primary key,
  "lines"    json,
+ "town"     varchar(80) default null,
  "postcode" varchar(20)`
 
 const sqlConstrainAddressTable = `
@@ -209,6 +212,8 @@ const sqlConstrainAddressTable = `
 //--------------------------------------------------------------------------------
 
 const sqlPostcodeIdxIndexColumns = "postcode"
+
+const sqlTownIdxIndexColumns = "town"
 
 //--------------------------------------------------------------------------------
 
@@ -286,6 +291,11 @@ func (tbl AddressTable) CreateIndexes(ifNotExist bool) (err error) {
 		return err
 	}
 
+	err = tbl.CreateTownIdxIndex(ifNotExist)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -326,10 +336,52 @@ func (tbl AddressTable) dropPostcodeIdxIndexSql(ifExists bool) string {
 	return fmt.Sprintf("DROP INDEX %s%spostcodeIdx%s", ie, indexPrefix, onTbl)
 }
 
+// CreateTownIdxIndex creates the townIdx index.
+func (tbl AddressTable) CreateTownIdxIndex(ifNotExist bool) error {
+	ine := tbl.ternary(ifNotExist && tbl.Dialect() != schema.Mysql, "IF NOT EXISTS ", "")
+
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+
+	if ifNotExist && tbl.Dialect() == schema.Mysql {
+		// low-level no-logging Exec
+		tbl.Execer().ExecContext(tbl.ctx, tbl.dropTownIdxIndexSql(false))
+		ine = ""
+	}
+
+	_, err := tbl.Exec(nil, tbl.createTownIdxIndexSql(ine))
+	return err
+}
+
+func (tbl AddressTable) createTownIdxIndexSql(ifNotExists string) string {
+	indexPrefix := tbl.name.PrefixWithoutDot()
+	return fmt.Sprintf("CREATE INDEX %s%stownIdx ON %s (%s)", ifNotExists, indexPrefix,
+		tbl.name, sqlTownIdxIndexColumns)
+}
+
+// DropTownIdxIndex drops the townIdx index.
+func (tbl AddressTable) DropTownIdxIndex(ifExists bool) error {
+	_, err := tbl.Exec(nil, tbl.dropTownIdxIndexSql(ifExists))
+	return err
+}
+
+func (tbl AddressTable) dropTownIdxIndexSql(ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := tbl.ternary(ifExists && tbl.Dialect() != schema.Mysql, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect() == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	indexPrefix := tbl.name.PrefixWithoutDot()
+	return fmt.Sprintf("DROP INDEX %s%stownIdx%s", ie, indexPrefix, onTbl)
+}
+
 // DropIndexes executes queries that drop the indexes on by the Address table.
 func (tbl AddressTable) DropIndexes(ifExist bool) (err error) {
 
 	err = tbl.DropPostcodeIdxIndex(ifExist)
+	if err != nil {
+		return err
+	}
+
+	err = tbl.DropTownIdxIndex(ifExist)
 	if err != nil {
 		return err
 	}
@@ -389,21 +441,8 @@ func (tbl AddressTable) Query(query string, args ...interface{}) (*sql.Rows, err
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AddressTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl AddressTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl AddressTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -414,21 +453,8 @@ func (tbl AddressTable) MustQueryOneNullString(query string, args ...interface{}
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AddressTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl AddressTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl AddressTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -439,21 +465,8 @@ func (tbl AddressTable) MustQueryOneNullInt64(query string, args ...interface{})
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AddressTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl AddressTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl AddressTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -463,12 +476,14 @@ func scanAddresses(rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err 
 
 		var v0 int64
 		var v1 []byte
-		var v2 string
+		var v2 sql.NullString
+		var v3 string
 
 		err = rows.Scan(
 			&v0,
 			&v1,
 			&v2,
+			&v3,
 		)
 		if err != nil {
 			return vv, n, err
@@ -480,7 +495,11 @@ func scanAddresses(rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err 
 		if err != nil {
 			return nil, n, err
 		}
-		v.Postcode = v2
+		if v2.Valid {
+			a := v2.String
+			v.Town = &a
+		}
+		v.Postcode = v3
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
@@ -513,48 +532,64 @@ var allAddressQuotedColumnNames = []string{
 
 //--------------------------------------------------------------------------------
 
-// GetAddress gets the record with a given primary key value.
-// If not found, *Address will be nil.
-func (tbl AddressTable) GetAddress(id int64) (*Address, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allAddressQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"))
-	v, err := tbl.doQueryOne(nil, query, id)
-	return v, err
-}
-
-// MustGetAddress gets the record with a given primary key value.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-func (tbl AddressTable) MustGetAddress(id int64) (*Address, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allAddressQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"))
-	v, err := tbl.doQueryOne(require.One, query, id)
-	return v, err
-}
-
-// GetAddresses gets records from the table according to a list of primary keys.
+// GetAddressesById gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl AddressTable) GetAddresses(req require.Requirement, id ...int64) (list []*Address, err error) {
+func (tbl AddressTable) GetAddressesById(req require.Requirement, id ...int64) (list []*Address, err error) {
 	if len(id) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(id))
 		}
-		dialect := tbl.Dialect()
-		pl := dialect.Placeholders(len(id))
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allAddressQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote("id"), pl)
 		args := make([]interface{}, len(id))
 
 		for i, v := range id {
 			args[i] = v
 		}
 
+		list, err = tbl.getAddresses(req, "id", args...)
+	}
+
+	return list, err
+}
+
+// GetAddressById gets the record with a given primary key value.
+// If not found, *Address will be nil.
+func (tbl AddressTable) GetAddressById(req require.Requirement, id int64) (*Address, error) {
+	return tbl.getAddress(req, "id", id)
+}
+
+// GetAddressesByPostcode gets the records with a given postcode value.
+// If not found, *Address will be nil.
+func (tbl AddressTable) GetAddressesByPostcode(req require.Requirement, value string) ([]*Address, error) {
+	return tbl.getAddresses(req, "postcode", value)
+}
+
+// GetAddressesByTown gets the records with a given town value.
+// If not found, *Address will be nil.
+func (tbl AddressTable) GetAddressesByTown(req require.Requirement, value string) ([]*Address, error) {
+	return tbl.getAddresses(req, "town", value)
+}
+
+func (tbl AddressTable) getAddress(req require.Requirement, column string, arg interface{}) (*Address, error) {
+	dialect := tbl.Dialect()
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allAddressQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column))
+	v, err := tbl.doQueryOne(req, query, arg)
+	return v, err
+}
+
+func (tbl AddressTable) getAddresses(req require.Requirement, column string, args ...interface{}) (list []*Address, err error) {
+	if len(args) > 0 {
+		if req == require.All {
+			req = require.Exactly(len(args))
+		}
+		dialect := tbl.Dialect()
+		pl := dialect.Placeholders(len(args))
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allAddressQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), pl)
 		list, err = tbl.doQuery(req, false, query, args...)
 	}
 
@@ -667,6 +702,13 @@ func (tbl AddressTable) SliceId(req require.Requirement, wh where.Expression, qc
 	return tbl.getint64list(req, "id", wh, qc)
 }
 
+// SliceTown gets the Town column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl AddressTable) SliceTown(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return tbl.getstringPtrlist(req, "town", wh, qc)
+}
+
 // SlicePostcode gets the Postcode column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
@@ -727,9 +769,35 @@ func (tbl AddressTable) getstringlist(req require.Requirement, sqlname string, w
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
+func (tbl AddressTable) getstringPtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v string
+	list := make([]string, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
 
 func constructAddressInsert(w io.Writer, v *Address, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
-	s = make([]interface{}, 0, 3)
+	s = make([]interface{}, 0, 4)
 
 	comma := ""
 	io.WriteString(w, " (")
@@ -749,6 +817,13 @@ func constructAddressInsert(w io.Writer, v *Address, dialect schema.Dialect, wit
 		return nil, err
 	}
 	s = append(s, x)
+	if v.Town != nil {
+		io.WriteString(w, comma)
+
+		dialect.QuoteW(w, "town")
+		s = append(s, v.Town)
+		comma = ","
+	}
 	io.WriteString(w, comma)
 
 	dialect.QuoteW(w, "postcode")
@@ -760,7 +835,7 @@ func constructAddressInsert(w io.Writer, v *Address, dialect schema.Dialect, wit
 
 func constructAddressUpdate(w io.Writer, v *Address, dialect schema.Dialect) (s []interface{}, err error) {
 	j := 1
-	s = make([]interface{}, 0, 2)
+	s = make([]interface{}, 0, 3)
 
 	comma := ""
 
@@ -775,6 +850,17 @@ func constructAddressUpdate(w io.Writer, v *Address, dialect schema.Dialect) (s 
 	s = append(s, x)
 
 	io.WriteString(w, comma)
+	if v.Town != nil {
+		dialect.QuoteWithPlaceholder(w, "town", j)
+		s = append(s, v.Town)
+		comma = ", "
+		j++
+	} else {
+		dialect.QuoteW(w, "town")
+		io.WriteString(w, "=NULL")
+	}
+
+	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "postcode", j)
 	s = append(s, v.Postcode)
 	comma = ", "
@@ -787,11 +873,11 @@ func constructAddressUpdate(w io.Writer, v *Address, dialect schema.Dialect) (s 
 
 var allAddressQuotedInserts = []string{
 	// Sqlite
-	"(`lines`,`postcode`) VALUES (?,?)",
+	"(`lines`,`town`,`postcode`) VALUES (?,?,?)",
 	// Mysql
-	"(`lines`,`postcode`) VALUES (?,?)",
+	"(`lines`,`town`,`postcode`) VALUES (?,?,?)",
 	// Postgres
-	`("lines","postcode") VALUES ($1,$2) returning "id"`,
+	`("lines","town","postcode") VALUES ($1,$2,$3) returning "id"`,
 }
 
 //--------------------------------------------------------------------------------
@@ -868,11 +954,11 @@ func (tbl AddressTable) UpdateFields(req require.Requirement, wh where.Expressio
 
 var allAddressQuotedUpdates = []string{
 	// Sqlite
-	"`lines`=?,`postcode`=? WHERE `id`=?",
+	"`lines`=?,`town`=?,`postcode`=? WHERE `id`=?",
 	// Mysql
-	"`lines`=?,`postcode`=? WHERE `id`=?",
+	"`lines`=?,`town`=?,`postcode`=? WHERE `id`=?",
 	// Postgres
-	`"lines"=$2,"postcode"=$3 WHERE "id"=$1`,
+	`"lines"=$2,"town"=$3,"postcode"=$4 WHERE "id"=$1`,
 }
 
 //--------------------------------------------------------------------------------

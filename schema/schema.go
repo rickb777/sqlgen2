@@ -108,6 +108,10 @@ func (i *Index) Columns() string {
 	return i.Fields.SqlNames().MkString(",")
 }
 
+func (i *Index) Single() bool {
+	return len(i.Fields) == 1
+}
+
 //-------------------------------------------------------------------------------------------------
 
 // Parts gets the node containment chain as a sequence of names of parts.
