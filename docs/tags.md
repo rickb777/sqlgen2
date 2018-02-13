@@ -21,6 +21,7 @@ The double-quoted string is actually treated as a snippet of YAML, so it needs s
 | -------- | ------------- | ----------------------------------------------------------------- |
 | pk       | true or false | the column is the primary key                                     |
 | auto     | true or false | the column is auto-incrementing (ignored if not using MySQL)      |
+| nk       | true or false | the column is the natural key; a unique index will be created     |
 | prefixed | true or false | the column name is made unique using a computed prefix            |
 | name     | string        | the column name (default is the field's name)                     |
 | type     | string        | overrides the column type explicitly                              |
@@ -34,6 +35,8 @@ The double-quoted string is actually treated as a snippet of YAML, so it needs s
 | ondelete | string        | one of "cascade", "delete", "restrict", "set default", "set null" |
 
 For string tags, you need to surround the value in single quotes if it contains any spaces. For example, `sql:"check: 'age >= 18'"`. You don't need quotes if there aren't any spaces.
+
+Marking a field to be a natural key is the same as adding a single-column unique index. A common pattern is to define a natural key based on the business properties of the field (for example all email addresses in a table are unique and provide normative identity), and also provide a surrogate key for the primary key using an int64 (or similar) as the internal identity. Natural keys often make inferior foreign keys; surrogate keys are usually better.
 
 
 ## Indexes

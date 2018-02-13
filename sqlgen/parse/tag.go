@@ -20,6 +20,7 @@ type Tag struct {
 	Type       string `yaml:"type"`
 	Prefixed   bool   `yaml:"prefixed"`
 	Primary    bool   `yaml:"pk"`
+	Natural    bool   `yaml:"nk"`
 	Auto       bool   `yaml:"auto"`
 	Index      string `yaml:"index"`
 	Unique     string `yaml:"unique"`
@@ -79,6 +80,31 @@ func validate(tag *Tag) error {
 	sep := ""
 	buf := &bytes.Buffer{}
 
+	if tag.Primary && tag.Natural {
+		fmt.Fprintf(buf, "%sprimary key cannot also be a natural key", sep)
+		sep = "; "
+	}
+
+	if tag.Auto && tag.Natural {
+		fmt.Fprintf(buf, "%snatural key cannot use auto-increment", sep)
+		sep = "; "
+	}
+
+	if tag.Auto && !tag.Primary {
+		fmt.Fprintf(buf, "%sauto-increment can only be used on primary keys", sep)
+		sep = "; "
+	}
+
+	if tag.Natural && tag.Index != "" {
+		fmt.Fprintf(buf, "%snatural key cannot be used with index", sep)
+		sep = "; "
+	}
+
+	if tag.Natural && tag.Unique != "" {
+		fmt.Fprintf(buf, "%snatural key should not be used with unique", sep)
+		sep = "; "
+	}
+
 	if tag.Size < 0 {
 		fmt.Fprintf(buf, "%ssize cannot be negative (%d)", sep, tag.Size)
 		sep = "; "
@@ -90,6 +116,11 @@ func validate(tag *Tag) error {
 	}
 
 	if tag.ForeignKey != "" {
+		if tag.Primary || tag.Natural {
+			fmt.Fprintf(buf, "%sforeign key cannot also be a primary key nor a natural key", sep)
+			sep = "; "
+		}
+
 		slice := strings.Split(tag.ForeignKey, ".")
 		if len(slice) != 2 {
 			fmt.Fprintf(buf, "%sfk value (%q) must be in 'tablename.column' form", sep, tag.ForeignKey)

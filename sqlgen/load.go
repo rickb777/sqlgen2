@@ -253,6 +253,10 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags par
 		index.Fields = append(index.Fields, field)
 	}
 
+	if tag.Natural {
+		tag.Unique = leaf.Name() + "Idx"
+	}
+
 	if tag.Unique != "" {
 		index, ok := ctx.indices[tag.Unique]
 		if !ok {

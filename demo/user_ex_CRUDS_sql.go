@@ -239,7 +239,7 @@ const sqlConstrainAUserTable = `
 
 //--------------------------------------------------------------------------------
 
-const sqlAUserEmailIndexColumns = "emailaddress"
+const sqlAEmailAddressIdxIndexColumns = "emailaddress"
 
 const sqlAUserLoginIndexColumns = "name"
 
@@ -314,7 +314,7 @@ func (tbl AUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 // CreateIndexes executes queries that create the indexes needed by the User table.
 func (tbl AUserTable) CreateIndexes(ifNotExist bool) (err error) {
 
-	err = tbl.CreateUserEmailIndex(ifNotExist)
+	err = tbl.CreateEmailAddressIdxIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
@@ -327,8 +327,8 @@ func (tbl AUserTable) CreateIndexes(ifNotExist bool) (err error) {
 	return nil
 }
 
-// CreateUserEmailIndex creates the user_email index.
-func (tbl AUserTable) CreateUserEmailIndex(ifNotExist bool) error {
+// CreateEmailAddressIdxIndex creates the EmailAddressIdx index.
+func (tbl AUserTable) CreateEmailAddressIdxIndex(ifNotExist bool) error {
 	ine := tbl.ternary(ifNotExist && tbl.Dialect() != schema.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -336,32 +336,32 @@ func (tbl AUserTable) CreateUserEmailIndex(ifNotExist bool) error {
 
 	if ifNotExist && tbl.Dialect() == schema.Mysql {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, tbl.dropAUserEmailIndexSql(false))
+		tbl.Execer().ExecContext(tbl.ctx, tbl.dropAEmailAddressIdxIndexSql(false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(nil, tbl.createAUserEmailIndexSql(ine))
+	_, err := tbl.Exec(nil, tbl.createAEmailAddressIdxIndexSql(ine))
 	return err
 }
 
-func (tbl AUserTable) createAUserEmailIndexSql(ifNotExists string) string {
+func (tbl AUserTable) createAEmailAddressIdxIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.name.PrefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_email ON %s (%s)", ifNotExists, indexPrefix,
-		tbl.name, sqlAUserEmailIndexColumns)
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%sEmailAddressIdx ON %s (%s)", ifNotExists, indexPrefix,
+		tbl.name, sqlAEmailAddressIdxIndexColumns)
 }
 
-// DropUserEmailIndex drops the user_email index.
-func (tbl AUserTable) DropUserEmailIndex(ifExists bool) error {
-	_, err := tbl.Exec(nil, tbl.dropAUserEmailIndexSql(ifExists))
+// DropEmailAddressIdxIndex drops the EmailAddressIdx index.
+func (tbl AUserTable) DropEmailAddressIdxIndex(ifExists bool) error {
+	_, err := tbl.Exec(nil, tbl.dropAEmailAddressIdxIndexSql(ifExists))
 	return err
 }
 
-func (tbl AUserTable) dropAUserEmailIndexSql(ifExists bool) string {
+func (tbl AUserTable) dropAEmailAddressIdxIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.Dialect() != schema.Mysql, "IF EXISTS ", "")
 	onTbl := tbl.ternary(tbl.Dialect() == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
 	indexPrefix := tbl.name.PrefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_email%s", ie, indexPrefix, onTbl)
+	return fmt.Sprintf("DROP INDEX %s%sEmailAddressIdx%s", ie, indexPrefix, onTbl)
 }
 
 // CreateUserLoginIndex creates the user_login index.
@@ -404,7 +404,7 @@ func (tbl AUserTable) dropAUserLoginIndexSql(ifExists bool) string {
 // DropIndexes executes queries that drop the indexes on by the User table.
 func (tbl AUserTable) DropIndexes(ifExist bool) (err error) {
 
-	err = tbl.DropUserEmailIndex(ifExist)
+	err = tbl.DropEmailAddressIdxIndex(ifExist)
 	if err != nil {
 		return err
 	}

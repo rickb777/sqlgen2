@@ -31,10 +31,6 @@ func TestParseTag(t *testing.T) {
 			&Tag{Primary: true, Auto: true},
 		},
 		{
-			TagKey + `:"auto: true"`,
-			&Tag{Primary: false, Auto: true},
-		},
-		{
 			TagKey + `:"name: foo"`,
 			&Tag{Name: "foo"},
 		},
@@ -83,8 +79,36 @@ func TestParseValidation(t *testing.T) {
 			`unrecognised encode value "x"`,
 		},
 		{
+			TagKey + `:"auto: true"`,
+			`auto-increment can only be used on primary keys`,
+		},
+		{
+			TagKey + `:"nk: true, auto: true"`,
+			`natural key cannot use auto-increment; auto-increment can only be used on primary keys`,
+		},
+		{
+			TagKey + `:"pk: true, nk: true"`,
+			`primary key cannot also be a natural key`,
+		},
+		{
 			TagKey + `:"fk: x"`,
 			`fk value ("x") must be in 'tablename.column' form`,
+		},
+		{
+			TagKey + `:"pk: true, fk: a.b"`,
+			`foreign key cannot also be a primary key nor a natural key`,
+		},
+		{
+			TagKey + `:"nk: true, fk: a.b"`,
+			`foreign key cannot also be a primary key nor a natural key`,
+		},
+		{
+			TagKey + `:"nk: true, index: foo"`,
+			`natural key cannot be used with index`,
+		},
+		{
+			TagKey + `:"nk: true, unique: foo"`,
+			`natural key should not be used with unique`,
 		},
 		{
 			TagKey + `:"onupdate: x"`,
@@ -101,6 +125,10 @@ func TestParseValidation(t *testing.T) {
 		{
 			TagKey + `:"size: -1"`,
 			`size cannot be negative (-1)`,
+		},
+		{
+			TagKey + `:"encode: foo"`,
+			`unrecognised encode value "foo"`,
 		},
 	}
 
