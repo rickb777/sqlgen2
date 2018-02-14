@@ -504,6 +504,12 @@ func (tbl DbCompoundTable) doQuery(req require.Requirement, firstOnly bool, quer
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
+// Fetch fetches a list of Compound based on a supplied query. This is mostly used for join queries that map its
+// result columns to the fields of Compound. Other queries might be better handled by GetXxx or Select methods.
+func (tbl DbCompoundTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Compound, error) {
+	return tbl.doQuery(req, false, query, args...)
+}
+
 //--------------------------------------------------------------------------------
 
 // SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause

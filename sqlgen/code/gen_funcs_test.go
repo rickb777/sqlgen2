@@ -239,6 +239,12 @@ func (tbl XExampleTable) doQuery(req require.Requirement, firstOnly bool, query 
 	vv, n, err := scanXExamples(rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
+
+// Fetch fetches a list of Example based on a supplied query. This is mostly used for join queries that map its
+// result columns to the fields of Example. Other queries might be better handled by GetXxx or Select methods.
+func (tbl XExampleTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Example, error) {
+	return tbl.doQuery(req, false, query, args...)
+}
 `, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")

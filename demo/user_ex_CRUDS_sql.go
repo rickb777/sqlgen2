@@ -675,6 +675,12 @@ func (tbl AUserTable) doQuery(req require.Requirement, firstOnly bool, query str
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
+// Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
+// result columns to the fields of User. Other queries might be better handled by GetXxx or Select methods.
+func (tbl AUserTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return tbl.doQuery(req, false, query, args...)
+}
+
 //--------------------------------------------------------------------------------
 
 // SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause

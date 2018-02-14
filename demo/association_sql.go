@@ -498,6 +498,12 @@ func (tbl AssociationTable) doQuery(req require.Requirement, firstOnly bool, que
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
+// Fetch fetches a list of Association based on a supplied query. This is mostly used for join queries that map its
+// result columns to the fields of Association. Other queries might be better handled by GetXxx or Select methods.
+func (tbl AssociationTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Association, error) {
+	return tbl.doQuery(req, false, query, args...)
+}
+
 //--------------------------------------------------------------------------------
 
 // SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause

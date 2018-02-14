@@ -174,6 +174,12 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQuery(req require.Requirement, first
 	vv, n, err := scan{{.Prefix}}{{.Types}}(rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
+
+// Fetch fetches a list of {{.Type}} based on a supplied query. This is mostly used for join queries that map its
+// result columns to the fields of {{.Type}}. Other queries might be better handled by GetXxx or Select methods.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Fetch(req require.Requirement, query string, args ...interface{}) ({{.List}}, error) {
+	return tbl.doQuery(req, false, query, args...)
+}
 `
 
 var tGetRow = template.Must(template.New("GetRow").Funcs(funcMap).Parse(sGetRow))

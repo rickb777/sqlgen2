@@ -614,6 +614,12 @@ func (tbl AddressTable) doQuery(req require.Requirement, firstOnly bool, query s
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
+// Fetch fetches a list of Address based on a supplied query. This is mostly used for join queries that map its
+// result columns to the fields of Address. Other queries might be better handled by GetXxx or Select methods.
+func (tbl AddressTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Address, error) {
+	return tbl.doQuery(req, false, query, args...)
+}
+
 //--------------------------------------------------------------------------------
 
 // SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
