@@ -204,7 +204,7 @@ func packagesToImport(flags funcFlags, hasPrimaryKey bool) util.StringSet {
 	if flags.insert || flags.update {
 		imports.Add("io")
 	}
-	if flags.sselect || flags.slice || flags.delete {
+	if flags.insert || flags.sselect || flags.slice || flags.delete {
 		imports.Add("fmt")
 	}
 	if flags.sselect || flags.slice || flags.update || flags.delete {

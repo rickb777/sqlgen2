@@ -91,8 +91,8 @@ func (dialect sqlite) FieldDDL(w io.Writer, field *Field, comma string) string {
 	return backTickFieldDDL(w, field, comma, dialect)
 }
 
-func (dialect sqlite) InsertDML(table *TableDescription) string {
-	return baseInsertDML(table, baseQueryPlaceholders(table.NumColumnNames(false)))
+func (dialect sqlite) InsertHasReturningPhrase() bool {
+	return false
 }
 
 func (dialect sqlite) UpdateDML(table *TableDescription) string {

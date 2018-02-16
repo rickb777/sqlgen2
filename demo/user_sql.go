@@ -636,8 +636,8 @@ func (tbl DbUserTable) GetUserByName(req require.Requirement, value string) (*Us
 
 func (tbl DbUserTable) getUser(req require.Requirement, column string, arg interface{}) (*User, error) {
 	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allDbUserQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column))
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
+		allDbUserQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), dialect.Placeholder(column, 1))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -1138,17 +1138,6 @@ func constructDbUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []in
 
 //--------------------------------------------------------------------------------
 
-var allDbUserQuotedInserts = []string{
-	// Sqlite
-	"(`name`,`emailaddress`,`addressid`,`avatar`,`role`,`active`,`admin`,`fave`,`lastupdated`,`token`,`secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-	// Mysql
-	"(`name`,`emailaddress`,`addressid`,`avatar`,`role`,`active`,`admin`,`fave`,`lastupdated`,`token`,`secret`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-	// Postgres
-	`("name","emailaddress","addressid","avatar","role","active","admin","fave","lastupdated","token","secret") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning "uid"`,
-}
-
-//--------------------------------------------------------------------------------
-
 // Insert adds new records for the Users.
 // The Users have their primary key fields set to the new record identifiers.
 // The User.PreInsert() method will be called, if it exists.
@@ -1165,6 +1154,12 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 	//	return err
 	//}
 	//defer st.Close()
+
+	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
+	returning := ""
+	if tbl.Dialect().InsertHasReturningPhrase() {
+		returning = fmt.Sprintf(" returning %q", DbUserPk)
+	}
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -1187,20 +1182,30 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 		io.WriteString(b, " VALUES (")
 		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
 		io.WriteString(b, ")")
+		io.WriteString(b, returning)
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
-		if err != nil {
-			return tbl.logError(err)
+
+		var n int64 = 1
+		if insertHasReturningPhrase {
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			err = row.Scan(&v.Uid)
+
+		} else {
+			res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if err != nil {
+				return tbl.logError(err)
+			}
+
+			v.Uid, err = res.LastInsertId()
+			if err != nil {
+				return tbl.logError(err)
+			}
+
+			n, err = res.RowsAffected()
 		}
 
-		v.Uid, err = res.LastInsertId()
-		if err != nil {
-			return tbl.logError(err)
-		}
-
-		n, err := res.RowsAffected()
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -1257,7 +1262,7 @@ func (tbl DbUserTable) Update(req require.Requirement, vv ...*User) (int64, erro
 		io.WriteString(b, " SET ")
 
 		args, err := constructDbUserUpdate(b, v, dialect)
-		k := len(args)
+		k := len(args) + 1
 		args = append(args, v.Uid)
 		if err != nil {
 			return count, tbl.logError(err)

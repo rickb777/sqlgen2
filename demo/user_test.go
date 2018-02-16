@@ -332,50 +332,56 @@ func must_get_unknown_user_should_return_error(t *testing.T, tbl DbUserTable, ex
 }
 
 func count_known_user_should_return_1(t *testing.T, tbl DbUserTable) {
-	count, err := tbl.Count(where.Eq("Name", "user1"))
+	count, err := tbl.Count(where.Eq("name", "user1"))
 	Ω(err).Should(BeNil())
 	Ω(count).Should(BeEquivalentTo(1))
 }
 
 func select_unknown_user_should_return_empty_list(t *testing.T, tbl DbUserTable) {
-	list, err := tbl.Select(require.None, where.Eq("Name", "unknown"), nil)
+	list, err := tbl.Select(require.None, where.Eq("name", "unknown"), nil)
 	Ω(err).Should(BeNil())
 	Ω(len(list)).Should(Equal(0))
 }
 
 func select_unknown_user_requiring_one_should_return_error(t *testing.T, tbl DbUserTable) {
-	list, err := tbl.Select(require.None, where.Eq("Name", "unknown"), nil)
+	list, err := tbl.Select(require.None, where.Eq("name", "unknown"), nil)
 	Ω(err).Should(BeNil())
 	Ω(len(list)).Should(Equal(0))
 
-	_, err = tbl.Select(require.One, where.Eq("Name", "unknown"), nil)
+	_, err = tbl.Select(require.One, where.Eq("name", "unknown"), nil)
 	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
 }
 
 func query_one_nullstring_for_user_should_return_valid(t *testing.T, tbl DbUserTable) {
-	s, err := tbl.QueryOneNullString(nil, "select EmailAddress from {TABLE} where Name=?", "user1")
+	dialect := tbl.Dialect()
+	p := dialect.Placeholder("name", 1)
+	q := Sprintf("select %s from {TABLE} where %s=%s", dialect.Quote("emailaddress"), dialect.Quote("name"), p)
+	s, err := tbl.QueryOneNullString(nil, q, "user1")
 	Ω(err).Should(BeNil())
 	Ω(s.Valid).Should(BeTrue())
 	Ω(s.String).Should(Equal("foo@x.z"))
 
-	s, err = tbl.QueryOneNullString(require.One, "select EmailAddress from {TABLE} where Name=?", "user1")
+	s, err = tbl.QueryOneNullString(require.One, q, "user1")
 	Ω(err).Should(BeNil())
 	Ω(s.Valid).Should(BeTrue())
 	Ω(s.String).Should(Equal("foo@x.z"))
 }
 
 func query_one_nullstring_for_unknown_should_return_invalid(t *testing.T, tbl DbUserTable) {
-	s, err := tbl.QueryOneNullString(nil, "select EmailAddress from {TABLE} where Name=?", "foo")
+	dialect := tbl.Dialect()
+	p := tbl.Dialect().Placeholder("name", 1)
+	q := Sprintf("select %s from {TABLE} where %s=%s", dialect.Quote("emailaddress"), dialect.Quote("name"), p)
+	s, err := tbl.QueryOneNullString(nil, q, "foo")
 	Ω(err).Should(BeNil())
 	Ω(s.Valid).Should(BeFalse())
 
-	_, err = tbl.QueryOneNullString(require.One, "select EmailAddress from {TABLE} where Name=?", "foo")
+	_, err = tbl.QueryOneNullString(require.One, q, "foo")
 	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
 	Ω(s.Valid).Should(BeFalse())
 }
 
 func select_known_user_requiring_one_should_return_user(t *testing.T, tbl DbUserTable) *User {
-	list, err := tbl.Select(require.One, where.Eq("Name", "user1"), nil)
+	list, err := tbl.Select(require.One, where.Eq("name", "user1"), nil)
 	Ω(err).Should(BeNil())
 	Ω(len(list)).Should(Equal(1))
 	return list[0]
@@ -390,7 +396,7 @@ func update_user_should_call_PreUpdate(t *testing.T, tbl DbUserTable, user *User
 	Ω(n).Should(BeEquivalentTo(1))
 	Ω(user.hash).Should(Equal("PreUpdate"))
 
-	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("Uid", user.Uid), nil)
+	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("uid", user.Uid), nil)
 	Ω(err).Should(BeNil())
 	Ω(len(ss)).Should(Equal(1))
 	Ω(ss[0]).Should(Equal("bah0@zzz.com"))
@@ -411,14 +417,14 @@ func update_users_in_tx(t *testing.T, tbl DbUserTable, user *User) {
 	err = t2.Tx().Commit()
 	Ω(err).Should(BeNil())
 
-	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("Uid", user.Uid), nil)
+	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("uid", user.Uid), nil)
 	Ω(err).Should(BeNil())
 	Ω(len(ss)).Should(Equal(1))
 	Ω(ss[0]).Should(Equal("dude@zzz.com"))
 }
 
 func delete_one_should_return_1(t *testing.T, tbl DbUserTable) {
-	n, err := tbl.Delete(require.One, where.Eq("Name", "user1"))
+	n, err := tbl.Delete(require.One, where.Eq("name", "user1"))
 	Ω(err).Should(BeNil())
 	Ω(n).Should(BeEquivalentTo(1))
 }
@@ -460,7 +466,7 @@ func TestMultiSelect_using_database(t *testing.T) {
 	err = tbl.Insert(require.All, users...)
 	Ω(err).Should(BeNil())
 
-	list, err := tbl.Select(nil, where.NotEq("Name", "nobody"), where.OrderBy("Name").Desc())
+	list, err := tbl.Select(nil, where.NotEq("name", "nobody"), where.OrderBy("name").Desc())
 	Ω(err).Should(BeNil())
 	Ω(len(list)).Should(Equal(n + 1))
 	for i := 0; i <= n; i++ {

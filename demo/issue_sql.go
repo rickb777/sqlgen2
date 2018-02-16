@@ -541,8 +541,8 @@ func (tbl IssueTable) GetIssuesByAssignee(req require.Requirement, value string)
 
 func (tbl IssueTable) getIssue(req require.Requirement, column string, arg interface{}) (*Issue, error) {
 	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allIssueQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column))
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
+		allIssueQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), dialect.Placeholder(column, 1))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -922,17 +922,6 @@ func constructIssueUpdate(w io.Writer, v *Issue, dialect schema.Dialect) (s []in
 
 //--------------------------------------------------------------------------------
 
-var allIssueQuotedInserts = []string{
-	// Sqlite
-	"(`number`,`date`,`title`,`bigbody`,`assignee`,`state`,`labels`) VALUES (?,?,?,?,?,?,?)",
-	// Mysql
-	"(`number`,`date`,`title`,`bigbody`,`assignee`,`state`,`labels`) VALUES (?,?,?,?,?,?,?)",
-	// Postgres
-	`("number","date","title","bigbody","assignee","state","labels") VALUES ($1,$2,$3,$4,$5,$6,$7) returning "id"`,
-}
-
-//--------------------------------------------------------------------------------
-
 // Insert adds new records for the Issues.
 // The Issues have their primary key fields set to the new record identifiers.
 // The Issue.PreInsert() method will be called, if it exists.
@@ -949,6 +938,12 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 	//	return err
 	//}
 	//defer st.Close()
+
+	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
+	returning := ""
+	if tbl.Dialect().InsertHasReturningPhrase() {
+		returning = fmt.Sprintf(" returning %q", IssuePk)
+	}
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -971,20 +966,30 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 		io.WriteString(b, " VALUES (")
 		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
 		io.WriteString(b, ")")
+		io.WriteString(b, returning)
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
-		if err != nil {
-			return tbl.logError(err)
+
+		var n int64 = 1
+		if insertHasReturningPhrase {
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			err = row.Scan(&v.Id)
+
+		} else {
+			res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if err != nil {
+				return tbl.logError(err)
+			}
+
+			v.Id, err = res.LastInsertId()
+			if err != nil {
+				return tbl.logError(err)
+			}
+	
+			n, err = res.RowsAffected()
 		}
 
-		v.Id, err = res.LastInsertId()
-		if err != nil {
-			return tbl.logError(err)
-		}
-
-		n, err := res.RowsAffected()
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -1041,7 +1046,7 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 		io.WriteString(b, " SET ")
 
 		args, err := constructIssueUpdate(b, v, dialect)
-		k := len(args)
+		k := len(args) + 1
 		args = append(args, v.Id)
 		if err != nil {
 			return count, tbl.logError(err)

@@ -510,8 +510,8 @@ func (tbl HookTable) GetHookById(req require.Requirement, id uint64) (*Hook, err
 
 func (tbl HookTable) getHook(req require.Requirement, column string, arg interface{}) (*Hook, error) {
 	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allHookQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column))
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
+		allHookQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), dialect.Placeholder(column, 1))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -1060,17 +1060,6 @@ func constructHookUpdate(w io.Writer, v *Hook, dialect schema.Dialect) (s []inte
 
 //--------------------------------------------------------------------------------
 
-var allHookQuotedInserts = []string{
-	// Sqlite
-	"(`sha`,`after`,`before`,`category`,`created`,`deleted`,`forced`,`commit_id`,`message`,`timestamp`,`head_commit_author_name`,`head_commit_author_email`,`head_commit_author_username`,`head_commit_committer_name`,`head_commit_committer_email`,`head_commit_committer_username`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-	// Mysql
-	"(`sha`,`after`,`before`,`category`,`created`,`deleted`,`forced`,`commit_id`,`message`,`timestamp`,`head_commit_author_name`,`head_commit_author_email`,`head_commit_author_username`,`head_commit_committer_name`,`head_commit_committer_email`,`head_commit_committer_username`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-	// Postgres
-	`("sha","after","before","category","created","deleted","forced","commit_id","message","timestamp","head_commit_author_name","head_commit_author_email","head_commit_author_username","head_commit_committer_name","head_commit_committer_email","head_commit_committer_username") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) returning "id"`,
-}
-
-//--------------------------------------------------------------------------------
-
 // Insert adds new records for the Hooks.
 // The Hooks have their primary key fields set to the new record identifiers.
 // The Hook.PreInsert() method will be called, if it exists.
@@ -1087,6 +1076,12 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 	//	return err
 	//}
 	//defer st.Close()
+
+	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
+	returning := ""
+	if tbl.Dialect().InsertHasReturningPhrase() {
+		returning = fmt.Sprintf(" returning %q", HookPk)
+	}
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -1109,22 +1104,34 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 		io.WriteString(b, " VALUES (")
 		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
 		io.WriteString(b, ")")
+		io.WriteString(b, returning)
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
-		if err != nil {
-			return tbl.logError(err)
+
+		var n int64 = 1
+		if insertHasReturningPhrase {
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			var i64 int64
+			err = row.Scan(&i64)
+			v.Id = uint64(i64)
+
+		} else {
+			res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if err != nil {
+				return tbl.logError(err)
+			}
+
+			i64, err := res.LastInsertId()
+			v.Id = uint64(i64)
+			
+			if err != nil {
+				return tbl.logError(err)
+			}
+	
+			n, err = res.RowsAffected()
 		}
 
-		_i64, err := res.LastInsertId()
-		v.Id = uint64(_i64)
-		
-		if err != nil {
-			return tbl.logError(err)
-		}
-
-		n, err := res.RowsAffected()
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -1181,7 +1188,7 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 		io.WriteString(b, " SET ")
 
 		args, err := constructHookUpdate(b, v, dialect)
-		k := len(args)
+		k := len(args) + 1
 		args = append(args, v.Id)
 		if err != nil {
 			return count, tbl.logError(err)

@@ -12,11 +12,10 @@ type Dialect interface {
 
 	TableDDL(*TableDescription) string
 	FieldDDL(w io.Writer, field *Field, comma string) string
-	InsertDML(*TableDescription) string
-	UpdateDML(*TableDescription) string
 	TruncateDDL(tableName string, force bool) []string
 	CreateTableSettings() string
 	FieldAsColumn(*Field) string
+	InsertHasReturningPhrase() bool
 
 	SplitAndQuote(csv string) string
 	Quote(string) string

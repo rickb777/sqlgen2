@@ -381,7 +381,7 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 		io.WriteString(b, " SET ")
 
 		args, err := constructUUserUpdate(b, v, dialect)
-		k := len(args)
+		k := len(args) + 1
 		args = append(args, v.Uid)
 		if err != nil {
 			return count, tbl.logError(err)

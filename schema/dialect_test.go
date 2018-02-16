@@ -3,48 +3,7 @@ package schema
 import (
 	"testing"
 	. "github.com/onsi/gomega"
-	"strings"
 )
-
-func TestInsertDML(t *testing.T) {
-	RegisterTestingT(t)
-
-	table := &TableDescription{"Foo", "Foo", FieldList{id, category, name}, nil, id}
-
-	cases := []struct {
-		di       Dialect
-		expected string
-	}{
-		{Sqlite, "\"(`cat`,`username`) VALUES (?,?)\""},
-		{Mysql, "\"(`cat`,`username`) VALUES (?,?)\""},
-		{Postgres, "`(\"cat\",\"username\") VALUES ($1,$2) returning \"id\"`"},
-	}
-	for _, c := range cases {
-		s := c.di.InsertDML(table)
-		Ω(s).Should(Equal(c.expected), c.di.String())
-	}
-}
-
-func TestUpdateDML(t *testing.T) {
-	RegisterTestingT(t)
-
-	table := &TableDescription{"Foo", "Foo", FieldList{id, category, name}, nil, id}
-
-	cases := []struct {
-		di       Dialect
-		expected string
-	}{
-		{Sqlite, strings.Replace(`"¬cat¬=?,¬username¬=? WHERE ¬id¬=?"`, "¬", "`", -1)},
-
-		{Mysql, strings.Replace(`"¬cat¬=?,¬username¬=? WHERE ¬id¬=?"`, "¬", "`", -1)},
-
-		{Postgres, strings.Replace(`¬"cat"=$2,"username"=$3 WHERE "id"=$1¬`, "¬", "`", -1)},
-	}
-	for _, c := range cases {
-		s := c.di.UpdateDML(table)
-		Ω(s).Should(Equal(c.expected), c.di.String())
-	}
-}
 
 func TestSplitAndQuote(t *testing.T) {
 	RegisterTestingT(t)

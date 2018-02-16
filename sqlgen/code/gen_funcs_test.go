@@ -201,8 +201,8 @@ func (tbl XExampleTable) GetExampleByName(req require.Requirement, value string)
 
 func (tbl XExampleTable) getExample(req require.Requirement, column string, arg interface{}) (*Example, error) {
 	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allXExampleQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column))
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
+		allXExampleQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), dialect.Placeholder(column, 1))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -492,17 +492,6 @@ func TestWriteInsertFunc_noPK(t *testing.T) {
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
-var allXExampleQuotedInserts = []string{
-	// Sqlite
-	"(¬name¬,¬age¬) VALUES (?,?)",
-	// Mysql
-	"(¬name¬,¬age¬) VALUES (?,?)",
-	// Postgres
-	¬("name","age") VALUES ($1,$2)¬,
-}
-
-//--------------------------------------------------------------------------------
-
 // Insert adds new records for the Examples.
 
 // The Example.PreInsert() method will be called, if it exists.
@@ -520,6 +509,8 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	//}
 	//defer st.Close()
 
+	insertHasReturningPhrase := false
+	returning := ""
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
@@ -541,20 +532,31 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 		io.WriteString(b, " VALUES (")
 		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
 		io.WriteString(b, ")")
+		io.WriteString(b, returning)
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
-		if err != nil {
-			return tbl.logError(err)
+
+		var n int64 = 1
+		if insertHasReturningPhrase {
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			var i64 int64
+			err = row.Scan(&i64)
+
+		} else {
+			res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if err != nil {
+				return tbl.logError(err)
+			}
+
+			
+			if err != nil {
+				return tbl.logError(err)
+			}
+	
+			n, err = res.RowsAffected()
 		}
 
-		
-		if err != nil {
-			return tbl.logError(err)
-		}
-
-		n, err := res.RowsAffected()
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -585,17 +587,6 @@ func TestWriteInsertFunc_withPK(t *testing.T) {
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
-var allXExampleQuotedInserts = []string{
-	// Sqlite
-	"(¬name¬,¬age¬) VALUES (?,?)",
-	// Mysql
-	"(¬name¬,¬age¬) VALUES (?,?)",
-	// Postgres
-	¬("name","age") VALUES ($1,$2) returning "id"¬,
-}
-
-//--------------------------------------------------------------------------------
-
 // Insert adds new records for the Examples.
 // The Examples have their primary key fields set to the new record identifiers.
 // The Example.PreInsert() method will be called, if it exists.
@@ -612,6 +603,12 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	//	return err
 	//}
 	//defer st.Close()
+
+	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
+	returning := ""
+	if tbl.Dialect().InsertHasReturningPhrase() {
+		returning = fmt.Sprintf(" returning %q", XExamplePk)
+	}
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -634,20 +631,30 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 		io.WriteString(b, " VALUES (")
 		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
 		io.WriteString(b, ")")
+		io.WriteString(b, returning)
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
-		if err != nil {
-			return tbl.logError(err)
+
+		var n int64 = 1
+		if insertHasReturningPhrase {
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			err = row.Scan(&v.Id)
+
+		} else {
+			res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if err != nil {
+				return tbl.logError(err)
+			}
+
+			v.Id, err = res.LastInsertId()
+			if err != nil {
+				return tbl.logError(err)
+			}
+	
+			n, err = res.RowsAffected()
 		}
 
-		v.Id, err = res.LastInsertId()
-		if err != nil {
-			return tbl.logError(err)
-		}
-
-		n, err := res.RowsAffected()
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -751,7 +758,7 @@ func (tbl XExampleTable) Update(req require.Requirement, vv ...*Example) (int64,
 		io.WriteString(b, " SET ")
 
 		args, err := constructXExampleUpdate(b, v, dialect)
-		k := len(args)
+		k := len(args) + 1
 		args = append(args, v.Id)
 		if err != nil {
 			return count, tbl.logError(err)

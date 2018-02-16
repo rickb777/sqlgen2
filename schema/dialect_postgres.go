@@ -99,21 +99,8 @@ func (dialect postgres) FieldDDL(w io.Writer, field *Field, comma string) string
 	return ",\n" // for next iteration
 }
 
-func (dialect postgres) InsertDML(table *TableDescription) string {
-	w := &bytes.Buffer{}
-	w.WriteString("`(")
-
-	table.Fields.NonAuto().SqlNames().MkString3W(w, `"`, `","`, `"`)
-
-	w.WriteString(") VALUES (")
-	w.WriteString(dialect.Placeholders(table.NumColumnNames(false)))
-	w.WriteString(")")
-	if table.Primary != nil {
-		w.WriteString(" returning ")
-		w.WriteString(doubleQuoter(table.Primary.SqlName))
-	}
-	w.WriteByte('`')
-	return w.String()
+func (dialect postgres) InsertHasReturningPhrase() bool {
+	return true
 }
 
 func (dialect postgres) UpdateDML(table *TableDescription) string {
@@ -174,7 +161,7 @@ func (dialect postgres) QuoteW(w io.Writer, identifier string) {
 
 func (dialect postgres) QuoteWithPlaceholder(w io.Writer, identifier string, idx int) {
 	doubleQuoterW(w, identifier)
-	io.WriteString(w, "$")
+	io.WriteString(w, "=$")
 	io.WriteString(w, strconv.Itoa(idx))
 }
 

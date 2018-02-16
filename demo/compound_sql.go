@@ -465,8 +465,8 @@ var allDbCompoundQuotedColumnNames = []string{
 
 func (tbl DbCompoundTable) getCompound(req require.Requirement, column string, arg interface{}) (*Compound, error) {
 	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allDbCompoundQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column))
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
+		allDbCompoundQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), dialect.Placeholder(column, 1))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -714,17 +714,6 @@ func constructDbCompoundUpdate(w io.Writer, v *Compound, dialect schema.Dialect)
 
 //--------------------------------------------------------------------------------
 
-var allDbCompoundQuotedInserts = []string{
-	// Sqlite
-	"(`alpha`,`beta`,`category`) VALUES (?,?,?)",
-	// Mysql
-	"(`alpha`,`beta`,`category`) VALUES (?,?,?)",
-	// Postgres
-	`("alpha","beta","category") VALUES ($1,$2,$3)`,
-}
-
-//--------------------------------------------------------------------------------
-
 // Insert adds new records for the Compounds.
 
 // The Compound.PreInsert() method will be called, if it exists.
@@ -742,6 +731,8 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 	//}
 	//defer st.Close()
 
+	insertHasReturningPhrase := false
+	returning := ""
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
@@ -763,19 +754,30 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 		io.WriteString(b, " VALUES (")
 		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
 		io.WriteString(b, ")")
+		io.WriteString(b, returning)
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
-		if err != nil {
-			return tbl.logError(err)
+
+		var n int64 = 1
+		if insertHasReturningPhrase {
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			var i64 int64
+			err = row.Scan(&i64)
+
+		} else {
+			res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if err != nil {
+				return tbl.logError(err)
+			}
+
+			if err != nil {
+				return tbl.logError(err)
+			}
+
+			n, err = res.RowsAffected()
 		}
 
-		if err != nil {
-			return tbl.logError(err)
-		}
-
-		n, err := res.RowsAffected()
 		if err != nil {
 			return tbl.logError(err)
 		}

@@ -136,8 +136,8 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{$field.Node.Name}
 {{end -}}
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Type}}(req require.Requirement, column string, arg interface{}) (*{{.Type}}, error) {
 	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		all{{.CamelName}}QuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column))
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
+		all{{.CamelName}}QuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), dialect.Placeholder(column, 1))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -345,15 +345,6 @@ var tConstructUpdate = template.Must(template.New("ConstructUpdate").Funcs(funcM
 const sInsert = `
 //--------------------------------------------------------------------------------
 
-var all{{.CamelName}}QuotedInserts = []string{
-{{- range .Dialects}}
-	// {{.}}
-	{{.InsertDML $.Table}},
-{{- end}}
-}
-
-//--------------------------------------------------------------------------------
-
 // Insert adds new records for the {{.Types}}.
 {{if .Table.HasLastInsertId}}// The {{.Types}} have their primary key fields set to the new record identifiers.{{end}}
 // The {{.Type}}.PreInsert() method will be called, if it exists.
@@ -371,6 +362,14 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 	//}
 	//defer st.Close()
 
+	insertHasReturningPhrase := {{if .Table.HasLastInsertId -}}tbl.Dialect().InsertHasReturningPhrase(){{else}}false{{end}}
+	returning := ""
+	{{if .Table.Primary -}}
+	if tbl.Dialect().InsertHasReturningPhrase() {
+		returning = fmt.Sprintf(" returning %q", {{.Prefix}}{{.Type}}Pk)
+	}
+
+	{{end -}}
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
@@ -392,27 +391,48 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 		io.WriteString(b, " VALUES (")
 		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
 		io.WriteString(b, ")")
+		io.WriteString(b, returning)
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
-		res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
-		if err != nil {
-			return tbl.logError(err)
+
+		var n int64 = 1
+		if insertHasReturningPhrase {
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			{{if .Table.HasLastInsertId -}}
+			{{if eq .Table.Primary.Type.Name "int64" -}}
+			err = row.Scan(&v.{{.Table.Primary.Name}})
+			{{- else -}}
+			var i64 int64
+			err = row.Scan(&i64)
+			v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(i64)
+			{{- end}}
+			{{- else -}}
+			var i64 int64
+			err = row.Scan(&i64)
+			{{- end}}
+
+		} else {
+			res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if err != nil {
+				return tbl.logError(err)
+			}
+
+			{{if .Table.HasLastInsertId -}}
+			{{if eq .Table.Primary.Type.Name "int64" -}}
+			v.{{.Table.Primary.Name}}, err = res.LastInsertId()
+			{{- else -}}
+			i64, err := res.LastInsertId()
+			v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(i64)
+			{{end}}
+			{{- end}}
+			if err != nil {
+				return tbl.logError(err)
+			}
+	
+			n, err = res.RowsAffected()
 		}
 
-		{{if .Table.HasLastInsertId -}}
-		{{if eq .Table.Primary.Type.Name "int64" -}}
-		v.{{.Table.Primary.Name}}, err = res.LastInsertId()
-		{{- else -}}
-		_i64, err := res.LastInsertId()
-		v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(_i64)
-		{{end}}
-		{{- end}}
-		if err != nil {
-			return tbl.logError(err)
-		}
-
-		n, err := res.RowsAffected()
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -481,7 +501,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 		io.WriteString(b, " SET ")
 
 		args, err := construct{{.Prefix}}{{.Type}}Update(b, v, dialect)
-		k := len(args)
+		k := len(args) + 1
 		args = append(args, v.{{.Table.Primary.Name}})
 		if err != nil {
 			return count, tbl.logError(err)

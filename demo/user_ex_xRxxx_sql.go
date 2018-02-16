@@ -377,8 +377,8 @@ func (tbl RUserTable) GetUserByName(req require.Requirement, value string) (*Use
 
 func (tbl RUserTable) getUser(req require.Requirement, column string, arg interface{}) (*User, error) {
 	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allRUserQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column))
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
+		allRUserQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), dialect.Placeholder(column, 1))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
