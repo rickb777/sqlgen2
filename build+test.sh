@@ -61,3 +61,8 @@ done
 
 cd demo
 ./build.sh sqlite mysql postgres
+
+cd ..
+echo
+echo go vet -shadow=true -composites=false ./...
+go vet -shadow=true -composites=false ./...

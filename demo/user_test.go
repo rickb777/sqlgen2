@@ -353,7 +353,6 @@ func select_unknown_user_requiring_one_should_return_error(t *testing.T, tbl DbU
 }
 
 func query_one_nullstring_for_user_should_return_valid(t *testing.T, tbl DbUserTable) {
-	dialect := tbl.Dialect()
 	p := dialect.Placeholder("name", 1)
 	q := Sprintf("select %s from {TABLE} where %s=%s", dialect.Quote("emailaddress"), dialect.Quote("name"), p)
 	s, err := tbl.QueryOneNullString(nil, q, "user1")
@@ -368,7 +367,6 @@ func query_one_nullstring_for_user_should_return_valid(t *testing.T, tbl DbUserT
 }
 
 func query_one_nullstring_for_unknown_should_return_invalid(t *testing.T, tbl DbUserTable) {
-	dialect := tbl.Dialect()
 	p := tbl.Dialect().Placeholder("name", 1)
 	q := Sprintf("select %s from {TABLE} where %s=%s", dialect.Quote("emailaddress"), dialect.Quote("name"), p)
 	s, err := tbl.QueryOneNullString(nil, q, "foo")

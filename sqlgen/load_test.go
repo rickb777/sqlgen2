@@ -712,7 +712,7 @@ func sideBySideDiff(a, b string) string {
 	buf := &bytes.Buffer{}
 	i := 0
 	for _, ea := range aa {
-		ea := strings.Replace(ea, "\t", "    ", -1)
+		ea = strings.Replace(ea, "\t", "    ", -1)
 		buf.WriteString(fmt.Sprintf("%-50s", truncate(ea, 50)))
 		if i < len(bb) {
 			eb := strings.Replace(bb[i], "\t", "    ", -1)
