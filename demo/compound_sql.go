@@ -766,13 +766,13 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 			err = row.Scan(&i64)
 
 		} else {
-			res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
-			if err != nil {
-				return tbl.logError(err)
+			res, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if e2 != nil {
+				return tbl.logError(e2)
 			}
 
-			if err != nil {
-				return tbl.logError(err)
+			if e2 != nil {
+				return tbl.logError(e2)
 			}
 
 			n, err = res.RowsAffected()

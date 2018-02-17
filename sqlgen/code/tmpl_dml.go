@@ -413,21 +413,21 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 			{{- end}}
 
 		} else {
-			res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
-			if err != nil {
-				return tbl.logError(err)
+			res, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if e2 != nil {
+				return tbl.logError(e2)
 			}
 
 			{{if .Table.HasLastInsertId -}}
 			{{if eq .Table.Primary.Type.Name "int64" -}}
 			v.{{.Table.Primary.Name}}, err = res.LastInsertId()
 			{{- else -}}
-			i64, err := res.LastInsertId()
+			i64, e2 := res.LastInsertId()
 			v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(i64)
 			{{end}}
 			{{- end}}
-			if err != nil {
-				return tbl.logError(err)
+			if e2 != nil {
+				return tbl.logError(e2)
 			}
 	
 			n, err = res.RowsAffected()

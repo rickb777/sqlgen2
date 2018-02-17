@@ -977,14 +977,14 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 			err = row.Scan(&v.Id)
 
 		} else {
-			res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
-			if err != nil {
-				return tbl.logError(err)
+			res, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if e2 != nil {
+				return tbl.logError(e2)
 			}
 
 			v.Id, err = res.LastInsertId()
-			if err != nil {
-				return tbl.logError(err)
+			if e2 != nil {
+				return tbl.logError(e2)
 			}
 	
 			n, err = res.RowsAffected()

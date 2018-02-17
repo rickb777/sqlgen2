@@ -1195,14 +1195,14 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 			err = row.Scan(&v.Uid)
 
 		} else {
-			res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
-			if err != nil {
-				return tbl.logError(err)
+			res, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if e2 != nil {
+				return tbl.logError(e2)
 			}
 
 			v.Uid, err = res.LastInsertId()
-			if err != nil {
-				return tbl.logError(err)
+			if e2 != nil {
+				return tbl.logError(e2)
 			}
 	
 			n, err = res.RowsAffected()

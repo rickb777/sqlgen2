@@ -1117,16 +1117,16 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 			v.Id = uint64(i64)
 
 		} else {
-			res, err := tbl.db.ExecContext(tbl.ctx, query, fields...)
-			if err != nil {
-				return tbl.logError(err)
+			res, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if e2 != nil {
+				return tbl.logError(e2)
 			}
 
-			i64, err := res.LastInsertId()
+			i64, e2 := res.LastInsertId()
 			v.Id = uint64(i64)
 			
-			if err != nil {
-				return tbl.logError(err)
+			if e2 != nil {
+				return tbl.logError(e2)
 			}
 	
 			n, err = res.RowsAffected()
