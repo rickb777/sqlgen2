@@ -211,7 +211,7 @@ const sqlIssueTableCreateColumnsMysql = "\n"+
 const sqlIssueTableCreateColumnsPostgres = `
  "id"       bigserial primary key,
  "number"   bigint,
- "date"     byteaa,
+ "date"     bytea,
  "title"    varchar(512),
  "bigbody"  varchar(2048),
  "assignee" varchar(255),

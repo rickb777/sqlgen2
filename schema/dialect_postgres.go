@@ -36,7 +36,7 @@ func (dialect postgres) FieldAsColumn(field *Field) string {
 		return varchar(field.Tags.Size)
 	}
 
-	column := "byteaa"
+	column := "bytea"
 
 	switch field.Type.Base {
 	case parse.Int, parse.Int64:

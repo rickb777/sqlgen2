@@ -100,7 +100,7 @@ const sqlXExampleTableCreateColumnsPostgres = ¬
  "active"   boolean,
  "labels"   json,
  "fave"     json,
- "avatar"   byteaa,
+ "avatar"   bytea,
  "foo1"     varchar(255),
  "foo2"     varchar(255) default null,
  "foo3"     integer default null,
