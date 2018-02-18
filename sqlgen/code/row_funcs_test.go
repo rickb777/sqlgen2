@@ -165,15 +165,15 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 		}
 		if v5.Valid {
 			a := int32(v5.Int64)
-			v.Diff = &a
+			v.Numbers.Diff = &a
 		}
 		if v6.Valid {
 			a := uint32(v6.Int64)
-			v.Age = &a
+			v.Numbers.Age = &a
 		}
 		if v7.Valid {
 			a := float32(v7.Float64)
-			v.Bmi = &a
+			v.Numbers.Bmi = &a
 		}
 		v.Active = v8
 		err = json.Unmarshal(v9, &v.Labels)

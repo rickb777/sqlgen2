@@ -230,7 +230,7 @@ const sqlHookTableCreateColumnsPostgres = `
  "sha"                            varchar(255),
  "after"                          varchar(20),
  "before"                         varchar(20),
- "category"                       tinyint unsigned,
+ "category"                       smallint,
  "created"                        boolean,
  "deleted"                        boolean,
  "forced"                         boolean,

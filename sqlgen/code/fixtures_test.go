@@ -25,15 +25,17 @@ var bar1 = Type{Name: "Bar", Base: String}
 //var bar3 = Type{Name: "Bar", Base: Int32, IsPtr: true}
 var tim = Type{PkgPath: "time", PkgName: "time", Name: "Time", Base: Struct}
 
+var nums = &Node{Name: "Numbers", Type: Type{PkgName: "pkg1", Name: "Numbers", Base: Struct}}
+
 var id = &Field{Node{"Id", i64, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
 var category = &Field{Node{"Cat", cat, nil}, "cat", ENCNONE, Tag{Index: "catIdx"}}
 var name = &Field{Node{"Name", str, nil}, "username", ENCNONE, Tag{Size: 2048, Name: "username", Unique: "nameIdx"}}
 var mobile = &Field{Node{"Mobile", phn, nil}, "mobile", ENCNONE, Tag{}}
 var active = &Field{Node{"Active", boo, nil}, "active", ENCNONE, Tag{}}
 var qual = &Field{Node{"Qual", spt, nil}, "qual", ENCNONE, Tag{}}
-var diff = &Field{Node{"Diff", ipt, nil}, "diff", ENCNONE, Tag{}}
-var age = &Field{Node{"Age", upt, nil}, "age", ENCNONE, Tag{}}
-var bmi = &Field{Node{"Bmi", fpt, nil}, "bmi", ENCNONE, Tag{}}
+var diff = &Field{Node{"Diff", ipt, nums}, "diff", ENCNONE, Tag{}}
+var age = &Field{Node{"Age", upt, nums}, "age", ENCNONE, Tag{}}
+var bmi = &Field{Node{"Bmi", fpt, nums}, "bmi", ENCNONE, Tag{}}
 var labels = &Field{Node{"Labels", sli, nil}, "labels", ENCJSON, Tag{Encode: "json"}}
 var fave = &Field{Node{"Fave", bgi, nil}, "fave", ENCJSON, Tag{Encode: "json"}}
 var avatar = &Field{Node{"Avatar", bys, nil}, "avatar", ENCNONE, Tag{}}

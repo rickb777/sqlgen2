@@ -178,13 +178,13 @@ func (tbl CUserTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
-const NumCUserColumns = 12
+const NumCUserColumns = 22
 
-const NumCUserDataColumns = 11
+const NumCUserDataColumns = 21
 
-const CUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const CUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-const CUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const CUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 const CUserPk = "uid"
 
@@ -241,7 +241,7 @@ func (tbl CUserTable) QueryOneNullFloat64(req require.Requirement, query string,
 }
 
 func constructCUserInsert(w io.Writer, v *User, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
-	s = make([]interface{}, 0, 12)
+	s = make([]interface{}, 0, 22)
 
 	comma := ""
 	io.WriteString(w, " (")
@@ -299,6 +299,46 @@ func constructCUserInsert(w io.Writer, v *User, dialect schema.Dialect, withPk b
 
 	dialect.QuoteW(w, "lastupdated")
 	s = append(s, v.LastUpdated)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "i8")
+	s = append(s, v.Numbers.I8)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "u8")
+	s = append(s, v.Numbers.U8)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "i16")
+	s = append(s, v.Numbers.I16)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "u16")
+	s = append(s, v.Numbers.U16)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "i32")
+	s = append(s, v.Numbers.I32)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "u32")
+	s = append(s, v.Numbers.U32)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "i64")
+	s = append(s, v.Numbers.I64)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "u64")
+	s = append(s, v.Numbers.U64)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "f32")
+	s = append(s, v.Numbers.F32)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "f64")
+	s = append(s, v.Numbers.F64)
 	io.WriteString(w, comma)
 
 	dialect.QuoteW(w, "token")

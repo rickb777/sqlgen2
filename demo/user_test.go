@@ -77,6 +77,16 @@ func TestCreateTable_sql_syntax(t *testing.T) {
  ¬admin¬        boolean,
  ¬fave¬         text,
  ¬lastupdated¬  bigint,
+ ¬i8¬           tinyint,
+ ¬u8¬           tinyint unsigned,
+ ¬i16¬          smallint,
+ ¬u16¬          smallint unsigned,
+ ¬i32¬          int,
+ ¬u32¬          int unsigned,
+ ¬i64¬          bigint,
+ ¬u64¬          bigint unsigned,
+ ¬f32¬          float,
+ ¬f64¬          double,
  ¬token¬        text,
  ¬secret¬       text,
  CONSTRAINT prefix_users_c1 foreign key (¬addressid¬) references prefix_addresses (¬id¬) on update restrict on delete restrict,
@@ -94,6 +104,16 @@ func TestCreateTable_sql_syntax(t *testing.T) {
  ¬admin¬        tinyint(1),
  ¬fave¬         json,
  ¬lastupdated¬  bigint,
+ ¬i8¬           tinyint,
+ ¬u8¬           tinyint unsigned,
+ ¬i16¬          smallint,
+ ¬u16¬          smallint unsigned,
+ ¬i32¬          int,
+ ¬u32¬          int unsigned,
+ ¬i64¬          bigint,
+ ¬u64¬          bigint unsigned,
+ ¬f32¬          float,
+ ¬f64¬          double,
  ¬token¬        varchar(255),
  ¬secret¬       varchar(255),
  CONSTRAINT prefix_users_c1 foreign key (¬addressid¬) references prefix_addresses (¬id¬) on update restrict on delete restrict,
@@ -111,6 +131,16 @@ func TestCreateTable_sql_syntax(t *testing.T) {
  "admin"        boolean,
  "fave"         json,
  "lastupdated"  bigint,
+ "i8"           int8,
+ "u8"           smallint,
+ "i16"          smallint,
+ "u16"          integer,
+ "i32"          integer,
+ "u32"          bigint,
+ "i64"          bigint,
+ "u64"          bigint,
+ "f32"          real,
+ "f64"          double precision,
  "token"        varchar(255),
  "secret"       varchar(255),
  CONSTRAINT prefix_users_c1 foreign key ("addressid") references prefix_addresses ("id") on update restrict on delete restrict,
@@ -547,6 +577,66 @@ func TestBulk_delete_using_database(t *testing.T) {
 	j, err := tbl.DeleteUsers(require.All, ids...)
 	Ω(err).Should(BeNil())
 	Ω(j).Should(BeEquivalentTo(n))
+}
+
+//-------------------------------------------------------------------------------------------------
+
+func TestNumericRanges_using_database(t *testing.T) {
+	RegisterTestingT(t)
+	connect()
+	defer cleanup()
+
+	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
+	if testing.Verbose() {
+		lgr := log.New(os.Stderr, "", log.LstdFlags)
+		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
+	}
+	tbl := NewDbUserTable(sqlgen2.TableName{Name: "users"}, d)
+
+	err := tbl.CreateTableWithIndexes(true)
+	Ω(err).Should(BeNil())
+
+	err = tbl.Truncate(true)
+	Ω(err).Should(BeNil())
+
+	const n = 63 // note: cannot support 64 bits unsigned
+
+	list := make([]*User, n)
+	for i := 0; i < n; i++ {
+		j := uint64(1) << uint(i)
+		u := user(i)
+		u.Numbers.I8 = int8(j)
+		u.Numbers.U8 = uint8(j)
+		u.Numbers.I16 = int16(j)
+		u.Numbers.U16 = uint16(j)
+		u.Numbers.I32 = int32(j)
+		u.Numbers.U32 = uint32(j)
+		u.Numbers.I64 = int64(j)
+		u.Numbers.U64 = j
+		u.Numbers.F32 = float32(j)
+		u.Numbers.F64 = float64(j)
+		list[i] = u
+	}
+
+	err = tbl.Insert(require.All, list...)
+	Ω(err).Should(BeNil())
+
+	for i := 0; i < n; i++ {
+		j := uint64(1) << uint(i)
+		name := Sprintf("user%02d", i)
+		u, err := tbl.GetUserByName(require.One, name)
+		Ω(err).Should(BeNil())
+		Ω(u.Numbers.I8).Should(Equal(int8(j)), name)
+		Ω(u.Numbers.U8).Should(Equal(uint8(j)), name)
+		Ω(u.Numbers.I16).Should(Equal(int16(j)), name)
+		Ω(u.Numbers.U16).Should(Equal(uint16(j)), name)
+		Ω(u.Numbers.I32).Should(Equal(int32(j)), name)
+		Ω(u.Numbers.U32).Should(Equal(uint32(j)), name)
+		Ω(u.Numbers.I64).Should(Equal(int64(j)), name)
+		Ω(u.Numbers.U64).Should(Equal(j), name)
+		Ω(u.Numbers.F32).Should(Equal(float32(j)), name)
+		Ω(u.Numbers.F64).Should(Equal(float64(j)), name)
+	}
 }
 
 //-------------------------------------------------------------------------------------------------

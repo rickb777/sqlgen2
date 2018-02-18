@@ -195,7 +195,7 @@ const sqlDbCompoundTableCreateColumnsMysql = "\n" +
 const sqlDbCompoundTableCreateColumnsPostgres = `
  "alpha"    varchar(255),
  "beta"     varchar(255),
- "category" tinyint unsigned`
+ "category" smallint`
 
 const sqlConstrainDbCompoundTable = `
 `

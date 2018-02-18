@@ -50,23 +50,23 @@ func constructXExampleInsert(w io.Writer, v *Example, dialect schema.Dialect, wi
 		dialect.QuoteW(w, "qual")
 		s = append(s, v.Qual)
 	}
-	if v.Diff != nil {
+	if v.Numbers.Diff != nil {
 		io.WriteString(w, comma)
 
 		dialect.QuoteW(w, "diff")
-		s = append(s, v.Diff)
+		s = append(s, v.Numbers.Diff)
 	}
-	if v.Age != nil {
+	if v.Numbers.Age != nil {
 		io.WriteString(w, comma)
 
 		dialect.QuoteW(w, "age")
-		s = append(s, v.Age)
+		s = append(s, v.Numbers.Age)
 	}
-	if v.Bmi != nil {
+	if v.Numbers.Bmi != nil {
 		io.WriteString(w, comma)
 
 		dialect.QuoteW(w, "bmi")
-		s = append(s, v.Bmi)
+		s = append(s, v.Numbers.Bmi)
 	}
 	io.WriteString(w, comma)
 
@@ -180,9 +180,9 @@ func constructXExampleUpdate(w io.Writer, v *Example, dialect schema.Dialect) (s
 	}
 
 	io.WriteString(w, comma)
-	if v.Diff != nil {
+	if v.Numbers.Diff != nil {
 		dialect.QuoteWithPlaceholder(w, "diff", j)
-		s = append(s, v.Diff)
+		s = append(s, v.Numbers.Diff)
 		j++
 	} else {
 		dialect.QuoteW(w, "diff")
@@ -190,9 +190,9 @@ func constructXExampleUpdate(w io.Writer, v *Example, dialect schema.Dialect) (s
 	}
 
 	io.WriteString(w, comma)
-	if v.Age != nil {
+	if v.Numbers.Age != nil {
 		dialect.QuoteWithPlaceholder(w, "age", j)
-		s = append(s, v.Age)
+		s = append(s, v.Numbers.Age)
 		j++
 	} else {
 		dialect.QuoteW(w, "age")
@@ -200,9 +200,9 @@ func constructXExampleUpdate(w io.Writer, v *Example, dialect schema.Dialect) (s
 	}
 
 	io.WriteString(w, comma)
-	if v.Bmi != nil {
+	if v.Numbers.Bmi != nil {
 		dialect.QuoteWithPlaceholder(w, "bmi", j)
-		s = append(s, v.Bmi)
+		s = append(s, v.Numbers.Bmi)
 		j++
 	} else {
 		dialect.QuoteW(w, "bmi")

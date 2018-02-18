@@ -90,20 +90,20 @@ const sqlXExampleTableCreateColumnsMysql = "\n"+
 
 const sqlXExampleTableCreateColumnsPostgres = ¬
  "id"       bigserial primary key,
- "cat"      int,
+ "cat"      integer,
  "username" varchar(2048),
  "mobile"   varchar(255) default null,
  "qual"     varchar(255) default null,
- "diff"     int default null,
- "age"      int unsigned default null,
- "bmi"      float default null,
+ "diff"     integer default null,
+ "age"      bigint default null,
+ "bmi"      real default null,
  "active"   boolean,
  "labels"   json,
  "fave"     json,
  "avatar"   byteaa,
  "foo1"     varchar(255),
  "foo2"     varchar(255) default null,
- "foo3"     int default null,
+ "foo3"     integer default null,
  "bar1"     varchar(255),
  "updated"  varchar(100)¬
 

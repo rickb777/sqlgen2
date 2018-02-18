@@ -22,6 +22,9 @@ type User struct {
 	Fave         *big.Int `sql:"encode: json"`
 	LastUpdated  int64
 
+	// something just to aid test coverage
+	Numbers Numbers
+
 	// oauth token and secret
 	token  string
 	secret string
@@ -29,6 +32,19 @@ type User struct {
 	// randomly generated hash used to sign user
 	// session and application tokens.
 	hash string `sql:"-"`
+}
+
+type Numbers struct {
+	I8  int8
+	U8  uint8
+	I16 int16
+	U16 uint16
+	I32 int32
+	U32 uint32
+	I64 int64
+	U64 uint64
+	F32 float32
+	F64 float64
 }
 
 // These hooks are just used here for testing, but you could put whatever you like in them.

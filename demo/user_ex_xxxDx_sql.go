@@ -176,13 +176,13 @@ func (tbl DUserTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
-const NumDUserColumns = 12
+const NumDUserColumns = 22
 
-const NumDUserDataColumns = 11
+const NumDUserDataColumns = 21
 
-const DUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const DUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-const DUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const DUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 const DUserPk = "uid"
 

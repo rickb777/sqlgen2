@@ -265,6 +265,13 @@ See the [**command line options**](usage.md).
  * Compound primary keys are not supported.
  * Compound foreign keys are not supported.
  * In the structs used for tables, the imports must not use '.' or be renamed.
+ * `uint64` is only supported in the range 0 .. 2^63-1
+
+The database/sql/driver package imposes the restriction on `uint64`. The easy work-around is to
+use `int64` instead. It's also possible to defined a bespoke `driver.DefaultValueConverted` that
+amends the restricted behaviour, explicitly converting `uint64` on input to `int64` and converting
+back to `uint64` on output - and then take care to never insert a signed integer into the same column.
+                                 
 
 
 ## See Also

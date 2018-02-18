@@ -178,13 +178,13 @@ func (tbl UUserTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
-const NumUUserColumns = 12
+const NumUUserColumns = 22
 
-const NumUUserDataColumns = 11
+const NumUUserDataColumns = 21
 
-const UUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const UUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-const UUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const UUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 const UUserPk = "uid"
 
@@ -252,7 +252,7 @@ func (tbl UUserTable) QueryOneNullFloat64(req require.Requirement, query string,
 
 func constructUUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []interface{}, err error) {
 	j := 1
-	s = make([]interface{}, 0, 11)
+	s = make([]interface{}, 0, 21)
 
 	comma := ""
 
@@ -322,6 +322,56 @@ func constructUUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 		j++
 
 	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "i8", j)
+	s = append(s, v.Numbers.I8)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "u8", j)
+	s = append(s, v.Numbers.U8)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "i16", j)
+	s = append(s, v.Numbers.I16)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "u16", j)
+	s = append(s, v.Numbers.U16)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "i32", j)
+	s = append(s, v.Numbers.I32)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "u32", j)
+	s = append(s, v.Numbers.U32)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "i64", j)
+	s = append(s, v.Numbers.I64)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "u64", j)
+	s = append(s, v.Numbers.U64)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "f32", j)
+	s = append(s, v.Numbers.F32)
+		j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "f64", j)
+	s = append(s, v.Numbers.F64)
+		j++
+
+	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "token", j)
 	s = append(s, v.token)
 		j++
@@ -345,11 +395,11 @@ func (tbl UUserTable) UpdateFields(req require.Requirement, wh where.Expression,
 
 var allUUserQuotedUpdates = []string{
 	// Sqlite
-	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`token`=?,`secret`=? WHERE `uid`=?",
+	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`i8`=?,`u8`=?,`i16`=?,`u16`=?,`i32`=?,`u32`=?,`i64`=?,`u64`=?,`f32`=?,`f64`=?,`token`=?,`secret`=? WHERE `uid`=?",
 	// Mysql
-	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`token`=?,`secret`=? WHERE `uid`=?",
+	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`i8`=?,`u8`=?,`i16`=?,`u16`=?,`i32`=?,`u32`=?,`i64`=?,`u64`=?,`f32`=?,`f64`=?,`token`=?,`secret`=? WHERE `uid`=?",
 	// Postgres
-	`"name"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"token"=$11,"secret"=$12 WHERE "uid"=$1`,
+	`"name"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"i8"=$11,"u8"=$12,"i16"=$13,"u16"=$14,"i32"=$15,"u32"=$16,"i64"=$17,"u64"=$18,"f32"=$19,"f64"=$20,"token"=$21,"secret"=$22 WHERE "uid"=$1`,
 }
 
 //--------------------------------------------------------------------------------

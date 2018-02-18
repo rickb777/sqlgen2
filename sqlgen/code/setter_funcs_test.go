@@ -51,19 +51,19 @@ func (v *Example) SetQual(x string) *Example {
 
 // SetDiff sets the Diff field and returns the modified Example.
 func (v *Example) SetDiff(x int32) *Example {
-	v.Diff = &x
+	v.Numbers.Diff = &x
 	return v
 }
 
 // SetAge sets the Age field and returns the modified Example.
 func (v *Example) SetAge(x uint32) *Example {
-	v.Age = &x
+	v.Numbers.Age = &x
 	return v
 }
 
 // SetBmi sets the Bmi field and returns the modified Example.
 func (v *Example) SetBmi(x float32) *Example {
-	v.Bmi = &x
+	v.Numbers.Bmi = &x
 	return v
 }
 
@@ -173,19 +173,19 @@ func (v *Example) SetQual(x string) *Example {
 
 // SetDiff sets the Diff field and returns the modified Example.
 func (v *Example) SetDiff(x int32) *Example {
-	v.Diff = &x
+	v.Numbers.Diff = &x
 	return v
 }
 
 // SetAge sets the Age field and returns the modified Example.
 func (v *Example) SetAge(x uint32) *Example {
-	v.Age = &x
+	v.Numbers.Age = &x
 	return v
 }
 
 // SetBmi sets the Bmi field and returns the modified Example.
 func (v *Example) SetBmi(x float32) *Example {
-	v.Bmi = &x
+	v.Numbers.Bmi = &x
 	return v
 }
 
@@ -277,19 +277,19 @@ func (v *Example) SetQual(x string) *Example {
 
 // SetDiff sets the Diff field and returns the modified Example.
 func (v *Example) SetDiff(x int32) *Example {
-	v.Diff = &x
+	v.Numbers.Diff = &x
 	return v
 }
 
 // SetAge sets the Age field and returns the modified Example.
 func (v *Example) SetAge(x uint32) *Example {
-	v.Age = &x
+	v.Numbers.Age = &x
 	return v
 }
 
 // SetBmi sets the Bmi field and returns the modified Example.
 func (v *Example) SetBmi(x float32) *Example {
-	v.Bmi = &x
+	v.Numbers.Bmi = &x
 	return v
 }
 

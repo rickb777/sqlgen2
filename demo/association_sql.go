@@ -209,7 +209,7 @@ const sqlAssociationTableCreateColumnsPostgres = `
  "quality"  varchar(255) default null,
  "ref1"     bigint default null,
  "ref2"     bigint default null,
- "category" tinyint unsigned default null`
+ "category" smallint default null`
 
 const sqlConstrainAssociationTable = `
 `

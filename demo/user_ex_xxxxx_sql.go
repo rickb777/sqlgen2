@@ -174,13 +174,13 @@ func (tbl XUserTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
-const NumXUserColumns = 12
+const NumXUserColumns = 22
 
-const NumXUserDataColumns = 11
+const NumXUserDataColumns = 21
 
-const XUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const XUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-const XUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const XUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 const XUserPk = "uid"
 

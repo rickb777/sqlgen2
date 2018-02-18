@@ -177,13 +177,13 @@ func (tbl RUserTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
-const NumRUserColumns = 12
+const NumRUserColumns = 22
 
-const NumRUserDataColumns = 11
+const NumRUserDataColumns = 21
 
-const RUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const RUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-const RUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const RUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 const RUserPk = "uid"
 
@@ -253,8 +253,18 @@ func scanRUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 		var v7 bool
 		var v8 []byte
 		var v9 int64
-		var v10 string
-		var v11 string
+		var v10 int8
+		var v11 uint8
+		var v12 int16
+		var v13 uint16
+		var v14 int32
+		var v15 uint32
+		var v16 int64
+		var v17 uint64
+		var v18 float32
+		var v19 float64
+		var v20 string
+		var v21 string
 
 		err = rows.Scan(
 			&v0,
@@ -269,6 +279,16 @@ func scanRUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 			&v9,
 			&v10,
 			&v11,
+			&v12,
+			&v13,
+			&v14,
+			&v15,
+			&v16,
+			&v17,
+			&v18,
+			&v19,
+			&v20,
+			&v21,
 		)
 		if err != nil {
 			return vv, n, err
@@ -300,8 +320,18 @@ func scanRUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 			return nil, n, err
 		}
 		v.LastUpdated = v9
-		v.token = v10
-		v.secret = v11
+		v.Numbers.I8 = v10
+		v.Numbers.U8 = v11
+		v.Numbers.I16 = v12
+		v.Numbers.U16 = v13
+		v.Numbers.I32 = v14
+		v.Numbers.U32 = v15
+		v.Numbers.I64 = v16
+		v.Numbers.U64 = v17
+		v.Numbers.F32 = v18
+		v.Numbers.F64 = v19
+		v.token = v20
+		v.secret = v21
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {

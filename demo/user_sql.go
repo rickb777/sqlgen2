@@ -179,13 +179,13 @@ func (tbl DbUserTable) ReplaceTableName(query string) string {
 
 //--------------------------------------------------------------------------------
 
-const NumDbUserColumns = 12
+const NumDbUserColumns = 22
 
-const NumDbUserDataColumns = 11
+const NumDbUserDataColumns = 21
 
-const DbUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const DbUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-const DbUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,token,secret"
+const DbUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 const DbUserPk = "uid"
 
@@ -202,6 +202,16 @@ const sqlDbUserTableCreateColumnsSqlite = "\n" +
 	" `admin`        boolean,\n" +
 	" `fave`         text,\n" +
 	" `lastupdated`  bigint,\n" +
+	" `i8`           tinyint,\n" +
+	" `u8`           tinyint unsigned,\n" +
+	" `i16`          smallint,\n" +
+	" `u16`          smallint unsigned,\n" +
+	" `i32`          int,\n" +
+	" `u32`          int unsigned,\n" +
+	" `i64`          bigint,\n" +
+	" `u64`          bigint unsigned,\n" +
+	" `f32`          float,\n" +
+	" `f64`          double,\n" +
 	" `token`        text,\n" +
 	" `secret`       text"
 
@@ -216,6 +226,16 @@ const sqlDbUserTableCreateColumnsMysql = "\n" +
 	" `admin`        tinyint(1),\n" +
 	" `fave`         json,\n" +
 	" `lastupdated`  bigint,\n" +
+	" `i8`           tinyint,\n" +
+	" `u8`           tinyint unsigned,\n" +
+	" `i16`          smallint,\n" +
+	" `u16`          smallint unsigned,\n" +
+	" `i32`          int,\n" +
+	" `u32`          int unsigned,\n" +
+	" `i64`          bigint,\n" +
+	" `u64`          bigint unsigned,\n" +
+	" `f32`          float,\n" +
+	" `f64`          double,\n" +
 	" `token`        varchar(255),\n" +
 	" `secret`       varchar(255)"
 
@@ -230,6 +250,16 @@ const sqlDbUserTableCreateColumnsPostgres = `
  "admin"        boolean,
  "fave"         json,
  "lastupdated"  bigint,
+ "i8"           int8,
+ "u8"           smallint,
+ "i16"          smallint,
+ "u16"          integer,
+ "i32"          integer,
+ "u32"          bigint,
+ "i64"          bigint,
+ "u64"          bigint,
+ "f32"          real,
+ "f64"          double precision,
  "token"        varchar(255),
  "secret"       varchar(255)`
 
@@ -512,8 +542,18 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error
 		var v7 bool
 		var v8 []byte
 		var v9 int64
-		var v10 string
-		var v11 string
+		var v10 int8
+		var v11 uint8
+		var v12 int16
+		var v13 uint16
+		var v14 int32
+		var v15 uint32
+		var v16 int64
+		var v17 uint64
+		var v18 float32
+		var v19 float64
+		var v20 string
+		var v21 string
 
 		err = rows.Scan(
 			&v0,
@@ -528,6 +568,16 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error
 			&v9,
 			&v10,
 			&v11,
+			&v12,
+			&v13,
+			&v14,
+			&v15,
+			&v16,
+			&v17,
+			&v18,
+			&v19,
+			&v20,
+			&v21,
 		)
 		if err != nil {
 			return vv, n, err
@@ -559,8 +609,18 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error
 			return nil, n, err
 		}
 		v.LastUpdated = v9
-		v.token = v10
-		v.secret = v11
+		v.Numbers.I8 = v10
+		v.Numbers.U8 = v11
+		v.Numbers.I16 = v12
+		v.Numbers.U16 = v13
+		v.Numbers.I32 = v14
+		v.Numbers.U32 = v15
+		v.Numbers.I64 = v16
+		v.Numbers.U64 = v17
+		v.Numbers.F32 = v18
+		v.Numbers.F64 = v19
+		v.token = v20
+		v.secret = v21
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
@@ -825,6 +885,76 @@ func (tbl DbUserTable) SliceLastupdated(req require.Requirement, wh where.Expres
 	return tbl.getint64list(req, "lastupdated", wh, qc)
 }
 
+// SliceI8 gets the I8 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbUserTable) SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
+	return tbl.getint8list(req, "i8", wh, qc)
+}
+
+// SliceU8 gets the U8 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbUserTable) SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
+	return tbl.getuint8list(req, "u8", wh, qc)
+}
+
+// SliceI16 gets the I16 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbUserTable) SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
+	return tbl.getint16list(req, "i16", wh, qc)
+}
+
+// SliceU16 gets the U16 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbUserTable) SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
+	return tbl.getuint16list(req, "u16", wh, qc)
+}
+
+// SliceI32 gets the I32 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbUserTable) SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
+	return tbl.getint32list(req, "i32", wh, qc)
+}
+
+// SliceU32 gets the U32 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbUserTable) SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
+	return tbl.getuint32list(req, "u32", wh, qc)
+}
+
+// SliceI64 gets the I64 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbUserTable) SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64list(req, "i64", wh, qc)
+}
+
+// SliceU64 gets the U64 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbUserTable) SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+	return tbl.getuint64list(req, "u64", wh, qc)
+}
+
+// SliceF32 gets the F32 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbUserTable) SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+	return tbl.getfloat32list(req, "f32", wh, qc)
+}
+
+// SliceF64 gets the F64 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbUserTable) SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+	return tbl.getfloat64list(req, "f64", wh, qc)
+}
+
 func (tbl DbUserTable) getRolePtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
 	dialect := tbl.Dialect()
 	whs, args := where.BuildExpression(wh, dialect)
@@ -865,6 +995,110 @@ func (tbl DbUserTable) getboollist(req require.Requirement, sqlname string, wh w
 
 	var v bool
 	list := make([]bool, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+func (tbl DbUserTable) getfloat32list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v float32
+	list := make([]float32, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+func (tbl DbUserTable) getfloat64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v float64
+	list := make([]float64, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+func (tbl DbUserTable) getint16list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v int16
+	list := make([]int16, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+func (tbl DbUserTable) getint32list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v int32
+	list := make([]int32, 0, 10)
 
 	for rows.Next() {
 		err = rows.Scan(&v)
@@ -929,6 +1163,32 @@ func (tbl DbUserTable) getint64Ptrlist(req require.Requirement, sqlname string, 
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
+func (tbl DbUserTable) getint8list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v int8
+	list := make([]int8, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
 func (tbl DbUserTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	dialect := tbl.Dialect()
 	whs, args := where.BuildExpression(wh, dialect)
@@ -981,8 +1241,112 @@ func (tbl DbUserTable) getstringPtrlist(req require.Requirement, sqlname string,
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
+func (tbl DbUserTable) getuint16list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v uint16
+	list := make([]uint16, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+func (tbl DbUserTable) getuint32list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v uint32
+	list := make([]uint32, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+func (tbl DbUserTable) getuint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v uint64
+	list := make([]uint64, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+func (tbl DbUserTable) getuint8list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v uint8
+	list := make([]uint8, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
 func constructDbUserInsert(w io.Writer, v *User, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
-	s = make([]interface{}, 0, 12)
+	s = make([]interface{}, 0, 22)
 
 	comma := ""
 	io.WriteString(w, " (")
@@ -1042,6 +1406,46 @@ func constructDbUserInsert(w io.Writer, v *User, dialect schema.Dialect, withPk 
 	s = append(s, v.LastUpdated)
 	io.WriteString(w, comma)
 
+	dialect.QuoteW(w, "i8")
+	s = append(s, v.Numbers.I8)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "u8")
+	s = append(s, v.Numbers.U8)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "i16")
+	s = append(s, v.Numbers.I16)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "u16")
+	s = append(s, v.Numbers.U16)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "i32")
+	s = append(s, v.Numbers.I32)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "u32")
+	s = append(s, v.Numbers.U32)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "i64")
+	s = append(s, v.Numbers.I64)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "u64")
+	s = append(s, v.Numbers.U64)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "f32")
+	s = append(s, v.Numbers.F32)
+	io.WriteString(w, comma)
+
+	dialect.QuoteW(w, "f64")
+	s = append(s, v.Numbers.F64)
+	io.WriteString(w, comma)
+
 	dialect.QuoteW(w, "token")
 	s = append(s, v.token)
 	io.WriteString(w, comma)
@@ -1054,7 +1458,7 @@ func constructDbUserInsert(w io.Writer, v *User, dialect schema.Dialect, withPk 
 
 func constructDbUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []interface{}, err error) {
 	j := 1
-	s = make([]interface{}, 0, 11)
+	s = make([]interface{}, 0, 21)
 
 	comma := ""
 
@@ -1121,6 +1525,56 @@ func constructDbUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []in
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "lastupdated", j)
 	s = append(s, v.LastUpdated)
+	j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "i8", j)
+	s = append(s, v.Numbers.I8)
+	j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "u8", j)
+	s = append(s, v.Numbers.U8)
+	j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "i16", j)
+	s = append(s, v.Numbers.I16)
+	j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "u16", j)
+	s = append(s, v.Numbers.U16)
+	j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "i32", j)
+	s = append(s, v.Numbers.I32)
+	j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "u32", j)
+	s = append(s, v.Numbers.U32)
+	j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "i64", j)
+	s = append(s, v.Numbers.I64)
+	j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "u64", j)
+	s = append(s, v.Numbers.U64)
+	j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "f32", j)
+	s = append(s, v.Numbers.F32)
+	j++
+
+	io.WriteString(w, comma)
+	dialect.QuoteWithPlaceholder(w, "f64", j)
+	s = append(s, v.Numbers.F64)
 	j++
 
 	io.WriteString(w, comma)
@@ -1226,11 +1680,11 @@ func (tbl DbUserTable) UpdateFields(req require.Requirement, wh where.Expression
 
 var allDbUserQuotedUpdates = []string{
 	// Sqlite
-	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`token`=?,`secret`=? WHERE `uid`=?",
+	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`i8`=?,`u8`=?,`i16`=?,`u16`=?,`i32`=?,`u32`=?,`i64`=?,`u64`=?,`f32`=?,`f64`=?,`token`=?,`secret`=? WHERE `uid`=?",
 	// Mysql
-	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`token`=?,`secret`=? WHERE `uid`=?",
+	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`i8`=?,`u8`=?,`i16`=?,`u16`=?,`i32`=?,`u32`=?,`i64`=?,`u64`=?,`f32`=?,`f64`=?,`token`=?,`secret`=? WHERE `uid`=?",
 	// Postgres
-	`"name"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"token"=$11,"secret"=$12 WHERE "uid"=$1`,
+	`"name"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"i8"=$11,"u8"=$12,"i16"=$13,"u16"=$14,"i32"=$15,"u32"=$16,"i64"=$17,"u64"=$18,"f32"=$19,"f64"=$20,"token"=$21,"secret"=$22 WHERE "uid"=$1`,
 }
 
 //--------------------------------------------------------------------------------
@@ -1412,6 +1866,66 @@ func (v *User) SetFave(x big.Int) *User {
 // SetLastUpdated sets the LastUpdated field and returns the modified User.
 func (v *User) SetLastUpdated(x int64) *User {
 	v.LastUpdated = x
+	return v
+}
+
+// SetI8 sets the I8 field and returns the modified User.
+func (v *User) SetI8(x int8) *User {
+	v.Numbers.I8 = x
+	return v
+}
+
+// SetU8 sets the U8 field and returns the modified User.
+func (v *User) SetU8(x uint8) *User {
+	v.Numbers.U8 = x
+	return v
+}
+
+// SetI16 sets the I16 field and returns the modified User.
+func (v *User) SetI16(x int16) *User {
+	v.Numbers.I16 = x
+	return v
+}
+
+// SetU16 sets the U16 field and returns the modified User.
+func (v *User) SetU16(x uint16) *User {
+	v.Numbers.U16 = x
+	return v
+}
+
+// SetI32 sets the I32 field and returns the modified User.
+func (v *User) SetI32(x int32) *User {
+	v.Numbers.I32 = x
+	return v
+}
+
+// SetU32 sets the U32 field and returns the modified User.
+func (v *User) SetU32(x uint32) *User {
+	v.Numbers.U32 = x
+	return v
+}
+
+// SetI64 sets the I64 field and returns the modified User.
+func (v *User) SetI64(x int64) *User {
+	v.Numbers.I64 = x
+	return v
+}
+
+// SetU64 sets the U64 field and returns the modified User.
+func (v *User) SetU64(x uint64) *User {
+	v.Numbers.U64 = x
+	return v
+}
+
+// SetF32 sets the F32 field and returns the modified User.
+func (v *User) SetF32(x float32) *User {
+	v.Numbers.F32 = x
+	return v
+}
+
+// SetF64 sets the F64 field and returns the modified User.
+func (v *User) SetF64(x float64) *User {
+	v.Numbers.F64 = x
 	return v
 }
 

@@ -25,7 +25,8 @@ func (d postgres) Alias() string {
 	return "PostgreSQL"
 }
 
-// https://www.postgresql.org/docs/9.5/static/datatype.html
+// https://www.postgresql.org/docs/9.6/static/datatype.html
+// https://www.convert-in.com/mysql-to-postgres-types-mapping.htm
 
 func (dialect postgres) FieldAsColumn(field *Field) string {
 	switch field.Encode {
@@ -41,23 +42,28 @@ func (dialect postgres) FieldAsColumn(field *Field) string {
 	case parse.Int, parse.Int64:
 		column = "bigint"
 	case parse.Int8:
-		column = "tinyint"
+		column = "int8"
 	case parse.Int16:
 		column = "smallint"
 	case parse.Int32:
-		column = "int"
+		column = "integer"
 	case parse.Uint, parse.Uint64:
-		column = "bigint unsigned"
+		// Some DBs (including postgresql) do not support unsigned integers. Rejecting
+		// uint64 >= 1<<63 prevents them becoming indistinguishable from int64s < 0. If you need
+		// to insert such int64 anyway, you have to explicitly convert in on input to int64 and
+		// convert it back to uint64 on output - and take care to never insert a signed integer
+		// into the same column.
+		column = "bigint" // incomplete number range but more storage efficiency
 	case parse.Uint8:
-		column = "tinyint unsigned"
+		column = "smallint"
 	case parse.Uint16:
-		column = "smallint unsigned"
+		column = "integer"
 	case parse.Uint32:
-		column = "int unsigned"
+		column = "bigint"
 	case parse.Float32:
-		column = "float"
+		column = "real"
 	case parse.Float64:
-		column = "double"
+		column = "double precision"
 	case parse.Bool:
 		column = "boolean"
 	case parse.String:
