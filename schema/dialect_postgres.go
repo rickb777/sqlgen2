@@ -144,7 +144,7 @@ func postgresParam(i int) string {
 
 func doubleQuoter(identifier string) string {
 	w := bytes.NewBuffer(make([]byte, 0, len(identifier)*2))
-	doubleQuoterW(w, identifier)
+	doubleQuoterW(w, strings.ToLower(identifier))
 	return w.String()
 }
 

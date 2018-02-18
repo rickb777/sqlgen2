@@ -1,12 +1,19 @@
 #!/bin/bash -e
 cd $(dirname $0)
 
+function announce
+{
+  echo
+  echo $@
+}
+
 . go-get.sh
 
 PATH=$HOME/gopath/bin:$GOPATH/bin:$PATH
 
 # delete artefacts from previous build (if any)
-rm -f *.out */*.txt demo/*_sql.go
+mkdir -p reports
+rm -f reports/*.out reports/*.html */*.txt demo/*_sql.go
 
 ### Dependencies ###
 
@@ -33,10 +40,10 @@ cd sqlgen
 go install .
 
 for d in code output parse; do
-  echo sqlgen/$d...
-  go test $1 -covermode=count -coverprofile=../$d.out ./$d
-  go tool cover -func=../$d.out
-  [ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+  announce sqlgen/$d
+  go test ./$1 -covermode=count -coverprofile=../reports/sqlgen-$d.out ./$d
+  go tool cover -html=../reports/sqlgen-$d.out -o ../reports/sqlgen-$d.html
+  [ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=../reports/sqlgen-$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN
 done
 
 cd ..
@@ -46,10 +53,10 @@ cd ..
 go install ./...
 
 for d in constraint require schema sqlgen where; do
-  echo ./$d...
-  go test $1 -covermode=count -coverprofile=./$d.out ./$d
-  go tool cover -func=./$d.out
-  [ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+  announce ./$d
+  go test $1 -covermode=count -coverprofile=reports/$d.out ./$d
+  go tool cover -html=reports/$d.out -o reports/$d.html
+  [ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=reports/$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN
 done
 
 #echo .
@@ -59,6 +66,7 @@ done
 
 ### Demo ###
 
+announce demo
 cd demo
 ./build.sh sqlite mysql postgres
 

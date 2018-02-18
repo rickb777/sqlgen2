@@ -266,9 +266,11 @@ func TestQueryConstraint(t *testing.T) {
 		{Literal("order by foo"), "order by foo", "order by foo", "order by foo"},
 		{OrderBy("foo").Asc(), "ORDER BY `foo`", "ORDER BY `foo`", `ORDER BY "foo"`},
 		{OrderBy("foo").Desc(), "ORDER BY `foo` DESC", "ORDER BY `foo` DESC", `ORDER BY "foo" DESC`},
+		{OrderBy("foo").OrderBy("bar"), "ORDER BY `bar`", "ORDER BY `bar`", `ORDER BY "bar"`},
 		{Limit(0), "", "", ""},
 		{Limit(10), "LIMIT 10", "LIMIT 10", "LIMIT 10"},
 		{Offset(20), "OFFSET 20", "OFFSET 20", "OFFSET 20"},
+		{Limit(5).OrderBy("foo", "bar"), "ORDER BY `foo`,`bar` LIMIT 5", "ORDER BY `foo`,`bar` LIMIT 5", `ORDER BY "foo","bar" LIMIT 5`},
 		{OrderBy("foo").Desc().Limit(10).Offset(20), "ORDER BY `foo` DESC LIMIT 10 OFFSET 20", "ORDER BY `foo` DESC LIMIT 10 OFFSET 20", `ORDER BY "foo" DESC LIMIT 10 OFFSET 20`},
 	}
 
@@ -276,7 +278,7 @@ func TestQueryConstraint(t *testing.T) {
 		var sql string
 
 		if c.qc != nil {
-			sql = c.qc.Build(schema.Sqlite)
+			sql = BuildQueryConstraint(c.qc, schema.Sqlite)
 		}
 
 		if sql != c.expSqlite {
@@ -284,7 +286,7 @@ func TestQueryConstraint(t *testing.T) {
 		}
 
 		if c.qc != nil {
-			sql = c.qc.Build(schema.Mysql)
+			sql = BuildQueryConstraint(c.qc, schema.Mysql)
 		}
 
 		if sql != c.expMysql {
@@ -292,7 +294,7 @@ func TestQueryConstraint(t *testing.T) {
 		}
 
 		if c.qc != nil {
-			sql = c.qc.Build(schema.Postgres)
+			sql = BuildQueryConstraint(c.qc, schema.Postgres)
 		}
 
 		if sql != c.expPostgres {
