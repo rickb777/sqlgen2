@@ -144,17 +144,17 @@ func postgresParam(i int) string {
 
 func doubleQuoter(identifier string) string {
 	w := bytes.NewBuffer(make([]byte, 0, len(identifier)*2))
-	doubleQuoterW(w, strings.ToLower(identifier))
+	doubleQuoterW(w, identifier)
 	return w.String()
 }
 
 func doubleQuoterW(w io.Writer, identifier string) {
-	elements := strings.Split(identifier, ".")
+	elements := strings.Split(strings.ToLower(identifier), ".")
 	baseQuotedW(w, elements, `"`, `"."`, `"`)
 }
 
 func (dialect postgres) SplitAndQuote(csv string) string {
-	return baseSplitAndQuote(csv, `"`, `","`, `"`)
+	return baseSplitAndQuote(strings.ToLower(csv), `"`, `","`, `"`)
 }
 
 func (dialect postgres) Quote(identifier string) string {
