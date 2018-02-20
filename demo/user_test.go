@@ -25,7 +25,8 @@ import (
 var db *sql.DB
 var dialect schema.Dialect
 
-func connect() {
+func connect(t *testing.T) {
+	db = nil
 	dbDriver, ok := os.LookupEnv("GO_DRIVER")
 	if !ok {
 		dbDriver = "sqlite3"
@@ -37,7 +38,13 @@ func connect() {
 	}
 	conn, err := sql.Open(dbDriver, dsn)
 	if err != nil {
-		panic(err)
+		t.Logf("\n***Warning: unable to connect to %s (%v); test is only partially complete.\n\n", dbDriver, err)
+		return
+	}
+	err = conn.Ping()
+	if err != nil {
+		t.Logf("\n***Warning: unable to connect to %s (%v); test is only partially complete.\n\n", dbDriver, err)
+		return
 	}
 	db = conn
 }
@@ -270,7 +277,10 @@ func TestUpdate_error_using_mock(t *testing.T) {
 
 func TestCrud_using_database(t *testing.T) {
 	RegisterTestingT(t)
-	connect()
+	connect(t)
+	if db == nil {
+		return
+	}
 	defer cleanup()
 
 	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
@@ -461,7 +471,10 @@ func delete_one_should_return_1(t *testing.T, tbl DbUserTable) {
 
 func TestMultiSelect_using_database(t *testing.T) {
 	RegisterTestingT(t)
-	connect()
+	connect(t)
+	if db == nil {
+		return
+	}
 	defer cleanup()
 
 	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
@@ -505,7 +518,10 @@ func TestMultiSelect_using_database(t *testing.T) {
 
 func TestGetters_using_database(t *testing.T) {
 	RegisterTestingT(t)
-	connect()
+	connect(t)
+	if db == nil {
+		return
+	}
 	defer cleanup()
 
 	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
@@ -543,7 +559,10 @@ func TestGetters_using_database(t *testing.T) {
 
 func TestBulk_delete_using_database(t *testing.T) {
 	RegisterTestingT(t)
-	connect()
+	connect(t)
+	if db == nil {
+		return
+	}
 	defer cleanup()
 
 	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
@@ -583,7 +602,10 @@ func TestBulk_delete_using_database(t *testing.T) {
 
 func TestNumericRanges_using_database(t *testing.T) {
 	RegisterTestingT(t)
-	connect()
+	connect(t)
+	if db == nil {
+		return
+	}
 	defer cleanup()
 
 	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
