@@ -43,6 +43,13 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 		},
 
 		{
+			NotNull("name"),
+			"WHERE `name` IS NOT NULL",
+			`WHERE "name" IS NOT NULL`,
+			nil,
+		},
+
+		{
 			Condition{"name"," <>?", []interface{}{"Boo"}},
 			"WHERE `name` <>?",
 			`WHERE "name" <>$1`,

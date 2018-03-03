@@ -8,9 +8,14 @@ import (
 const and = " AND "
 const or = " OR "
 
-// Null returns an 'ISNULL' condition on a column.
+// Null returns an 'IS NULL' condition on a column.
 func Null(column string) Condition {
 	return Condition{column, " IS NULL", []interface{}{}}
+}
+
+// NotNull returns an 'IS NOT NULL' condition on a column.
+func NotNull(column string) Condition {
+	return Condition{column, " IS NOT NULL", []interface{}{}}
 }
 
 // Eq returns an equality condition on a column.
