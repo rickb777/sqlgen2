@@ -13,7 +13,7 @@ func Null(column string) Condition {
 	return Condition{column, " IS NULL", []interface{}{}}
 }
 
-// NotNull returns an 'IS NOT NULL' condition on a column.
+// NotNull returns an 'IS NOT NULL' condition on a column. It's also possible to use Not(Null(...)).
 func NotNull(column string) Condition {
 	return Condition{column, " IS NOT NULL", []interface{}{}}
 }
@@ -51,6 +51,11 @@ func LtEq(column string, value interface{}) Condition {
 // Between returns a between condition on a column.
 func Between(column string, a, b interface{}) Condition {
 	return Condition{column, " BETWEEN ? AND ?", []interface{}{a, b}}
+}
+
+// Like returns a pattern-matching condition on a column. Be careful: this can hurt performance.
+func Like(column string, pattern string) Condition {
+	return Condition{column, " LIKE ?", []interface{}{pattern}}
 }
 
 // In returns an in condition on a column.

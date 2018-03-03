@@ -64,6 +64,13 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 		},
 
 		{
+			Like("name", "F%"),
+			"WHERE `name` LIKE ?",
+			`WHERE "name" LIKE $1`,
+			[]interface{}{"F%"},
+		},
+
+		{
 			NoOp().And(nameEqFred),
 			"WHERE (`name`=?)",
 			`WHERE ("name"=$1)`,
