@@ -76,6 +76,9 @@ var funcMap = template.FuncMap{
 	"ticked": func(s interface{}) string {
 		return fmt.Sprintf("`\n%s\n`", s)
 	},
+	"lc": func(s interface{}) string {
+		return ToLower(fmt.Sprintf("%s", s))
+	},
 	"title": func(s interface{}) string {
 		return Title(fmt.Sprintf("%s", s))
 	},

@@ -4,6 +4,7 @@ import (
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"strings"
 	"sort"
+	"fmt"
 )
 
 type SqlEncode int
@@ -104,6 +105,10 @@ func (i *Index) UniqueStr() string {
 	return ""
 }
 
+func (i *Index) JoinedNames(sep string) string {
+	return i.Fields.Names().MkString(sep)
+}
+
 func (i *Index) Columns() string {
 	return i.Fields.SqlNames().MkString(",")
 }
@@ -152,6 +157,30 @@ func (list FieldList) DistinctTypes() []Type {
 	slice := types.ToSlice()
 	sort.Slice(slice, func(i, j int) bool { return slice[i].Tag() < slice[j].Tag() })
 	return slice
+}
+
+func (list FieldList) FormalParams() Identifiers {
+	parts := make(Identifiers, len(list))
+	for i, field := range list {
+		parts[i] = fmt.Sprintf(`%s %s`, strings.ToLower(field.Name), field.Type.Type())
+	}
+	return parts
+}
+
+func (list FieldList) WhereClauses() Identifiers {
+	parts := make(Identifiers, len(list))
+	for i, field := range list {
+		parts[i] = fmt.Sprintf(`where.Eq(%q, %s)`, field.SqlName, strings.ToLower(field.Name))
+	}
+	return parts
+}
+
+func (list FieldList) Names() Identifiers {
+	ids := make(Identifiers, len(list))
+	for i, field := range list {
+		ids[i] = field.Name
+	}
+	return ids
 }
 
 func (list FieldList) SqlNames() Identifiers {

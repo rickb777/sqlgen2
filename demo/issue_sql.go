@@ -533,10 +533,10 @@ func (tbl IssueTable) GetIssueById(req require.Requirement, id int64) (*Issue, e
 	return tbl.getIssue(req, "id", id)
 }
 
-// GetIssuesByAssignee gets the records with a given assignee value.
-// If not found, *Issue will be nil.
-func (tbl IssueTable) GetIssuesByAssignee(req require.Requirement, value string) ([]*Issue, error) {
-	return tbl.getIssues(req, "assignee", value)
+// GetIssuesByAssignee gets the records with a given [assignee] value.
+// If not found, []*Issue will be empty (nil).
+func (tbl IssueTable) GetIssuesByAssignee(req require.Requirement, assignee string) ([]*Issue, error) {
+	return tbl.Select(req, where.And(where.Eq("assignee", assignee)), nil)
 }
 
 func (tbl IssueTable) getIssue(req require.Requirement, column string, arg interface{}) (*Issue, error) {

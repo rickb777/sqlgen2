@@ -463,6 +463,12 @@ var allDbCompoundQuotedColumnNames = []string{
 	schema.Postgres.SplitAndQuote(DbCompoundColumnNames),
 }
 
+// GetCompoundByAlphaAndBeta gets the record with given [alpha beta] values.
+// If not found, *Compound will be nil.
+func (tbl DbCompoundTable) GetCompoundByAlphaAndBeta(req require.Requirement, alpha string, beta string) (*Compound, error) {
+	return tbl.SelectOne(req, where.And(where.Eq("alpha", alpha), where.Eq("beta", beta)), nil)
+}
+
 func (tbl DbCompoundTable) getCompound(req require.Requirement, column string, arg interface{}) (*Compound, error) {
 	dialect := tbl.Dialect()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",

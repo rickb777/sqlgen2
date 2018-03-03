@@ -117,19 +117,18 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(
 
 {{end -}}
 {{range .Table.Index -}}
-{{if and .Single .Unique -}}{{$field := index .Fields 0 -}}
-// Get{{$.Type}}By{{$field.Node.Name}} gets the record with a given {{$field.SqlName}} value.
+{{if .Unique -}}
+// Get{{$.Type}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames}} value{{if not .Single}}s{{end}}.
 // If not found, *{{$.Type}} will be nil.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{$field.Node.Name}}(req require.Requirement, value {{$field.Type.Type}}) (*{{$.Type}}, error) {
-	return tbl.get{{$.Type}}(req, "{{$field.SqlName}}", value)
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.Type}}, error) {
+	return tbl.SelectOne(req, where.And({{.Fields.WhereClauses.MkString ", "}}), nil)
 }
 
-{{end -}}
-{{if and .Single (not .Unique) -}}{{$field := index .Fields 0 -}}
-// Get{{$.Types}}By{{$field.Node.Name}} gets the records with a given {{$field.SqlName}} value.
-// If not found, *{{$.Type}} will be nil.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{$field.Node.Name}}(req require.Requirement, value {{$field.Type.Type}}) ({{$.List}}, error) {
-	return tbl.get{{$.Types}}(req, "{{$field.SqlName}}", value)
+{{ else -}}
+// Get{{$.Types}}By{{.JoinedNames "And"}} gets the records with{{if .Single}} a{{end}} given {{.Fields.SqlNames}} value{{if not .Single}}s{{end}}.
+// If not found, {{$.List}} will be empty (nil).
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, {{range .Fields}}{{lc .Name}} {{.Type.Type}}{{end}}) ({{$.List}}, error) {
+	return tbl.Select(req, where.And({{.Fields.WhereClauses.MkString ", "}}), nil)
 }
 
 {{end -}}

@@ -561,16 +561,16 @@ func (tbl AddressTable) GetAddressById(req require.Requirement, id int64) (*Addr
 	return tbl.getAddress(req, "id", id)
 }
 
-// GetAddressesByPostcode gets the records with a given postcode value.
-// If not found, *Address will be nil.
-func (tbl AddressTable) GetAddressesByPostcode(req require.Requirement, value string) ([]*Address, error) {
-	return tbl.getAddresses(req, "postcode", value)
+// GetAddressesByPostcode gets the records with a given [postcode] value.
+// If not found, []*Address will be empty (nil).
+func (tbl AddressTable) GetAddressesByPostcode(req require.Requirement, postcode string) ([]*Address, error) {
+	return tbl.Select(req, where.And(where.Eq("postcode", postcode)), nil)
 }
 
-// GetAddressesByTown gets the records with a given town value.
-// If not found, *Address will be nil.
-func (tbl AddressTable) GetAddressesByTown(req require.Requirement, value string) ([]*Address, error) {
-	return tbl.getAddresses(req, "town", value)
+// GetAddressesByTown gets the records with a given [town] value.
+// If not found, []*Address will be empty (nil).
+func (tbl AddressTable) GetAddressesByTown(req require.Requirement, town string) ([]*Address, error) {
+	return tbl.Select(req, where.And(where.Eq("town", town)), nil)
 }
 
 func (tbl AddressTable) getAddress(req require.Requirement, column string, arg interface{}) (*Address, error) {

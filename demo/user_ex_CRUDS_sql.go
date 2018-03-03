@@ -682,16 +682,16 @@ func (tbl AUserTable) GetUserByUid(req require.Requirement, id int64) (*User, er
 	return tbl.getUser(req, "uid", id)
 }
 
-// GetUserByEmailAddress gets the record with a given emailaddress value.
+// GetUserByEmailAddress gets the record with a given [emailaddress] value.
 // If not found, *User will be nil.
-func (tbl AUserTable) GetUserByEmailAddress(req require.Requirement, value string) (*User, error) {
-	return tbl.getUser(req, "emailaddress", value)
+func (tbl AUserTable) GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error) {
+	return tbl.SelectOne(req, where.And(where.Eq("emailaddress", emailaddress)), nil)
 }
 
-// GetUserByName gets the record with a given name value.
+// GetUserByName gets the record with a given [name] value.
 // If not found, *User will be nil.
-func (tbl AUserTable) GetUserByName(req require.Requirement, value string) (*User, error) {
-	return tbl.getUser(req, "name", value)
+func (tbl AUserTable) GetUserByName(req require.Requirement, name string) (*User, error) {
+	return tbl.SelectOne(req, where.And(where.Eq("name", name)), nil)
 }
 
 func (tbl AUserTable) getUser(req require.Requirement, column string, arg interface{}) (*User, error) {
