@@ -14,6 +14,9 @@ Usage of sqlgen:
   -kind string
     	Kind of model: you could use 'Table', 'View', 'Join' etc as required (default "Table")
 
+  -table string
+    	Name of the database table (default is derived from the type name as a plural)
+
   -list string
     	List type for slice of model objects; optional.
 
