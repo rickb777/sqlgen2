@@ -45,7 +45,7 @@ func simpleNoPKTable() *TableDescription {
 func TestWriteQueryRows(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = simpleFixtureTable()
 
 	buf := &bytes.Buffer{}
@@ -80,7 +80,7 @@ func (tbl XExampleTable) Query(query string, args ...interface{}) (*sql.Rows, er
 func TestWriteQueryThings(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = simpleFixtureTable()
 
 	buf := &bytes.Buffer{}
@@ -139,7 +139,7 @@ func (tbl XExampleTable) QueryOneNullFloat64(req require.Requirement, query stri
 func TestWriteGetRow(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = fixtureTable()
 
 	buf := &bytes.Buffer{}
@@ -258,7 +258,7 @@ func (tbl XExampleTable) Fetch(req require.Requirement, query string, args ...in
 func TestWriteSelectItem(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = simpleFixtureTable()
 
 	buf := &bytes.Buffer{}
@@ -380,7 +380,7 @@ func (tbl XExampleTable) getstringlist(req require.Requirement, sqlname string, 
 func TestWriteSelectRow(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = simpleFixtureTable()
 
 
@@ -481,7 +481,7 @@ func (tbl XExampleTable) Count(wh where.Expression) (count int64, err error) {
 func TestWriteInsertFunc_noPK(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = simpleNoPKTable()
 
 	buf := &bytes.Buffer{}
@@ -576,7 +576,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 func TestWriteInsertFunc_withPK(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = simpleFixtureTable()
 
 	buf := &bytes.Buffer{}
@@ -676,7 +676,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 func TestWriteUpdateFunc_noPK(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = simpleNoPKTable()
 
 	buf := &bytes.Buffer{}
@@ -702,7 +702,7 @@ func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expressi
 func TestWriteUpdateFunc_withPK(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = simpleFixtureTable()
 
 	buf := &bytes.Buffer{}
@@ -788,7 +788,7 @@ func (tbl XExampleTable) Update(req require.Requirement, vv ...*Example) (int64,
 func TestWriteDeleteFunc(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = simpleFixtureTable()
 
 	buf := &bytes.Buffer{}
@@ -878,7 +878,7 @@ func (tbl XExampleTable) deleteRows(wh where.Expression) (string, []interface{})
 func TestWriteExecFunc(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = simpleFixtureTable()
 
 	buf := &bytes.Buffer{}

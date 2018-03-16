@@ -36,11 +36,11 @@ var _ sqlgen2.TableWithIndexes = &DbUserTable{}
 var _ sqlgen2.TableWithCrud = &DbUserTable{}
 
 // NewDbUserTable returns a new table instance.
-// If a blank table name is supplied, the default name "users" will be used instead.
+// If a blank table name is supplied, the default name "the_users" will be used instead.
 // The request context is initialised with the background.
 func NewDbUserTable(name string, d *sqlgen2.Database) DbUserTable {
 	if name == "" {
-		name = "users"
+		name = "the_users"
 	}
 	table := DbUserTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
 	table.constraints = append(table.constraints,

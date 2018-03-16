@@ -20,7 +20,7 @@ import (
 func main() {
 	start := time.Now()
 
-	var oFile, typeName, prefix, list, kind, tagsFile, genSetters string
+	var oFile, typeName, prefix, list, kind, tableName, tagsFile, genSetters string
 	var flags = funcFlags{}
 	var all, sselect, insert, gofmt bool
 
@@ -31,7 +31,8 @@ func main() {
 	flag.StringVar(&prefix, "prefix", "", "Prefix for names of generated types; optional.\n" +
 		"\tUse this if you need to avoid name collisions.")
 	flag.StringVar(&list, "list", "", "List type for slice of model objects; optional.")
-	flag.StringVar(&kind, "kind", "Table", "Kind of model: you could use 'Table', 'View', 'Join' etc as required")
+	flag.StringVar(&kind, "kind", "Table", "Kind of model: you could use 'Table', 'View', 'Join' etc as required.")
+	flag.StringVar(&tableName, "table", "", "The name for the database table; default is based on the struct name as a plural.")
 	flag.StringVar(&tagsFile, "tags", "", "A YAML file containing tags that augment and override any in the Go struct(s); optional.\n" +
 		"\tTags control the SQL type, size, column name, indexes etc.")
 	flag.BoolVar(&Verbose, "v", false, "Show progress messages.")
@@ -104,7 +105,7 @@ func main() {
 		utter.Dump(table)
 	}
 
-	view := NewView(name, prefix, list)
+	view := NewView(name, prefix, tableName, list)
 	view.Table = table
 	view.Thing = kind
 	view.Interface1 = primaryInterface(table, flags.schema)

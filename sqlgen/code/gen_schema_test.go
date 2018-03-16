@@ -10,7 +10,7 @@ import (
 func TestWritePrimaryDeclarations(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
@@ -40,7 +40,7 @@ const XExamplePk = "id"
 func TestWriteSchemaDeclarations(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 

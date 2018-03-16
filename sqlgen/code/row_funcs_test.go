@@ -33,7 +33,7 @@ func TestWriteRowsFunc1(t *testing.T) {
 		},
 	}
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = table
 
 	buf := &bytes.Buffer{}
@@ -98,7 +98,7 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 func TestWriteRowFunc2(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "")
+	view := NewView("Example", "X", "", "")
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 

@@ -15,6 +15,7 @@ type View struct {
 	Prefix     string
 	Type       string
 	Types      string
+	DbName     string
 	Thing      string
 	Interface1 string
 	Interface2 string
@@ -28,24 +29,26 @@ type View struct {
 	Setter     *schema.Field
 }
 
-func NewView(name, prefix, list string) View {
+func NewView(name, prefix, tableName, list string) View {
 	if list == "" {
 		list = fmt.Sprintf("[]*%s", name)
+	}
+	pl := Pluralize(name)
+	tn := ToLower(pl)
+	if tableName != "" {
+		tn = tableName
 	}
 	return View{
 		Prefix:     prefix,
 		Type:       name,
-		Types:      Pluralize(name),
+		Types:      pl,
+		DbName:     tn,
 		Thing:      "Table",
 		Interface1: "sqlgen2.Table",
 		Interface2: "sqlgen2.Table",
 		List:       list,
 		Dialects:   schema.AllDialects,
 	}
-}
-
-func (v View) DbName() string {
-	return ToLower(v.Types)
 }
 
 func (v View) CamelName() string {
