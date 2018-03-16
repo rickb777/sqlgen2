@@ -37,11 +37,11 @@ var _ sqlgen2.TableWithCrud = &AUserTable{}
 // NewAUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewAUserTable(name sqlgen2.TableName, d *sqlgen2.Database) AUserTable {
-	if name.Name == "" {
-		name.Name = "users"
+func NewAUserTable(name string, d *sqlgen2.Database) AUserTable {
+	if name == "" {
+		name = "users"
 	}
-	table := AUserTable{name, d, d.DB(), nil, context.Background()}
+	table := AUserTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
 	table.constraints = append(table.constraints,
 		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	

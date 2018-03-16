@@ -36,11 +36,11 @@ var _ sqlgen2.Table = &CUserTable{}
 // NewCUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewCUserTable(name sqlgen2.TableName, d *sqlgen2.Database) CUserTable {
-	if name.Name == "" {
-		name.Name = "users"
+func NewCUserTable(name string, d *sqlgen2.Database) CUserTable {
+	if name == "" {
+		name = "users"
 	}
-	table := CUserTable{name, d, d.DB(), nil, context.Background()}
+	table := CUserTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
 	table.constraints = append(table.constraints,
 		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	

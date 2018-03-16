@@ -7,12 +7,15 @@ if [ -z "$GOPATH" ]; then
   exit 1
 fi
 
-export PKGDIR=$(go env GOOS)_$(go env GOARCH)
-
-function go_get
+function getBinary
 {
-  if [ ! -f $GOPATH/pkg/$PKGDIR/$1 ]; then
+  if ! type -p $1 >/dev/null; then
     echo go get $2
     go get $2
   fi
 }
+
+getBinary dep       github.com/golang/dep/cmd/dep
+getBinary goveralls github.com/mattn/goveralls
+
+dep ensure

@@ -37,11 +37,11 @@ var _ sqlgen2.TableWithCrud = &IssueTable{}
 // NewIssueTable returns a new table instance.
 // If a blank table name is supplied, the default name "issues" will be used instead.
 // The request context is initialised with the background.
-func NewIssueTable(name sqlgen2.TableName, d *sqlgen2.Database) IssueTable {
-	if name.Name == "" {
-		name.Name = "issues"
+func NewIssueTable(name string, d *sqlgen2.Database) IssueTable {
+	if name == "" {
+		name = "issues"
 	}
-	table := IssueTable{name, d, d.DB(), nil, context.Background()}
+	table := IssueTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
 	return table
 }
 

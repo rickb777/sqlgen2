@@ -36,11 +36,11 @@ var _ sqlgen2.TableWithCrud = &HookTable{}
 // NewHookTable returns a new table instance.
 // If a blank table name is supplied, the default name "hooks" will be used instead.
 // The request context is initialised with the background.
-func NewHookTable(name sqlgen2.TableName, d *sqlgen2.Database) HookTable {
-	if name.Name == "" {
-		name.Name = "hooks"
+func NewHookTable(name string, d *sqlgen2.Database) HookTable {
+	if name == "" {
+		name = "hooks"
 	}
-	table := HookTable{name, d, d.DB(), nil, context.Background()}
+	table := HookTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
 	return table
 }
 

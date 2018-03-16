@@ -36,11 +36,11 @@ var _ sqlgen2.TableWithCrud = &AssociationTable{}
 // NewAssociationTable returns a new table instance.
 // If a blank table name is supplied, the default name "associations" will be used instead.
 // The request context is initialised with the background.
-func NewAssociationTable(name sqlgen2.TableName, d *sqlgen2.Database) AssociationTable {
-	if name.Name == "" {
-		name.Name = "associations"
+func NewAssociationTable(name string, d *sqlgen2.Database) AssociationTable {
+	if name == "" {
+		name = "associations"
 	}
-	table := AssociationTable{name, d, d.DB(), nil, context.Background()}
+	table := AssociationTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
 	return table
 }
 

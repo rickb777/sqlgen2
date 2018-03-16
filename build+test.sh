@@ -7,25 +7,13 @@ function announce
   echo $@
 }
 
-. go-get.sh
-
 PATH=$HOME/gopath/bin:$GOPATH/bin:$PATH
+
+. go-get.sh
 
 # delete artefacts from previous build (if any)
 mkdir -p reports
 rm -f reports/*.out reports/*.html */*.txt demo/*_sql.go
-
-### Dependencies ###
-
-go_get bitbucket.org/pkg/inflect.a        bitbucket.org/pkg/inflect
-go_get github.com/acsellers/inflections.a github.com/acsellers/inflections
-go_get github.com/kortschak/utter.a       github.com/kortschak/utter
-go_get gopkg.in/yaml.v2.a                 gopkg.in/yaml.v2
-
-if ! type -p goveralls; then
-  echo go get github.com/mattn/goveralls
-  go get github.com/mattn/goveralls
-fi
 
 ### Collection Types ###
 # these generated files hardly ever need to change (see github.com/rickb777/runtemplate to do so)

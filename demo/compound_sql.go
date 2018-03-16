@@ -36,11 +36,11 @@ var _ sqlgen2.TableWithCrud = &DbCompoundTable{}
 // NewDbCompoundTable returns a new table instance.
 // If a blank table name is supplied, the default name "compounds" will be used instead.
 // The request context is initialised with the background.
-func NewDbCompoundTable(name sqlgen2.TableName, d *sqlgen2.Database) DbCompoundTable {
-	if name.Name == "" {
-		name.Name = "compounds"
+func NewDbCompoundTable(name string, d *sqlgen2.Database) DbCompoundTable {
+	if name == "" {
+		name = "compounds"
 	}
-	table := DbCompoundTable{name, d, d.DB(), nil, context.Background()}
+	table := DbCompoundTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
 	return table
 }
 

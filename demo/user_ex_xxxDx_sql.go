@@ -34,11 +34,11 @@ var _ sqlgen2.Table = &DUserTable{}
 // NewDUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewDUserTable(name sqlgen2.TableName, d *sqlgen2.Database) DUserTable {
-	if name.Name == "" {
-		name.Name = "users"
+func NewDUserTable(name string, d *sqlgen2.Database) DUserTable {
+	if name == "" {
+		name = "users"
 	}
-	table := DUserTable{name, d, d.DB(), nil, context.Background()}
+	table := DUserTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
 	table.constraints = append(table.constraints,
 		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	

@@ -1,16 +1,11 @@
 #!/bin/bash -e
 cd $(dirname $0)
 
+PATH=$HOME/gopath/bin:$GOPATH/bin:$PATH
+
 . ../go-get.sh
 
-PATH=$HOME/gopath/bin:$GOPATH/bin:$PATH
 rm -f *_sql.go
-
-# note: if your GOPATH contains multiple parts, this will always poll the Github sources so will run slower.
-go_get github.com/mattn/go-sqlite3.a    github.com/mattn/go-sqlite3
-go_get github.com/go-sql-driver/mysql.a github.com/go-sql-driver/mysql
-go_get github.com/lib/pq.a              github.com/lib/pq
-go_get github.com/onsi/gomega.a         github.com/onsi/gomega
 
 go generate .
 

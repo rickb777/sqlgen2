@@ -37,11 +37,11 @@ var _ sqlgen2.TableWithCrud = &AddressTable{}
 // NewAddressTable returns a new table instance.
 // If a blank table name is supplied, the default name "addresses" will be used instead.
 // The request context is initialised with the background.
-func NewAddressTable(name sqlgen2.TableName, d *sqlgen2.Database) AddressTable {
-	if name.Name == "" {
-		name.Name = "addresses"
+func NewAddressTable(name string, d *sqlgen2.Database) AddressTable {
+	if name == "" {
+		name = "addresses"
 	}
-	table := AddressTable{name, d, d.DB(), nil, context.Background()}
+	table := AddressTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
 	return table
 }
 

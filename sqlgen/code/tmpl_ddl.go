@@ -29,11 +29,11 @@ var _ {{.Interface2}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
 // New{{.Prefix}}{{.Type}}{{.Thing}} returns a new table instance.
 // If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.
 // The request context is initialised with the background.
-func New{{.Prefix}}{{.Type}}{{.Thing}}(name sqlgen2.TableName, d *sqlgen2.Database) {{.Prefix}}{{.Type}}{{.Thing}} {
-	if name.Name == "" {
-		name.Name = "{{.DbName}}"
+func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d *sqlgen2.Database) {{.Prefix}}{{.Type}}{{.Thing}} {
+	if name == "" {
+		name = "{{.DbName}}"
 	}
-	table := {{.Prefix}}{{.Type}}{{.Thing}}{name, d, d.DB(), nil, context.Background()}
+	table := {{.Prefix}}{{.Type}}{{.Thing}}{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
 	{{- range .Constraints}}
 	table.constraints = append(table.constraints,
 		{{.GoString}})
