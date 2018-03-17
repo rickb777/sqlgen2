@@ -17,10 +17,15 @@ rm -f reports/*.out reports/*.html */*.txt demo/*_sql.go
 
 ### Collection Types ###
 # these generated files hardly ever need to change (see github.com/rickb777/runtemplate to do so)
-[ -f schema/type_set.go ]   || runtemplate -tpl simple/set.tpl  -output schema/type_set.go  Type=Type   Comparable:true Ordered:false Numeric:false
-[ -f util/int64_set.go ]    || runtemplate -tpl simple/set.tpl  -output util/int64_set.go   Type=int64  Comparable:true Ordered:true  Numeric:true
-[ -f util/string_list.go ]  || runtemplate -tpl simple/list.tpl -output util/string_list.go Type=string Comparable:true Ordered:true  Numeric:false
-[ -f util/string_set.go ]   || runtemplate -tpl simple/set.tpl  -output util/string_set.go  Type=string Comparable:true Ordered:true  Numeric:false
+[ -f schema/type_set.go ]           || runtemplate -tpl simple/set.tpl  -output schema/type_set.go  Type=Type   Comparable:true Ordered:false Numeric:false
+[ -f util/int64_set.go ]            || runtemplate -tpl simple/set.tpl  -output util/int64_set.go   Type=int64  Comparable:true Ordered:true  Numeric:true
+[ -f util/string_list.go ]          || runtemplate -tpl simple/list.tpl -output util/string_list.go Type=string Comparable:true Ordered:true  Numeric:false
+[ -f util/string_set.go ]           || runtemplate -tpl simple/set.tpl  -output util/string_set.go  Type=string Comparable:true Ordered:true  Numeric:false
+if [ ! -f util/string_any_map.go ]; then
+  runtemplate -v -tpl simple/map.tpl  -output util/string_any_map.xx Key=string Type=any
+  sed 's#any#interface\{\}#g#' < util/string_any_map.xx > util/string_any_map.go
+  rm util/string_any_map.xx
+fi
 
 ### Build Phase 1 ###
 

@@ -62,6 +62,16 @@ func user(i int) *User {
 		EmailAddress: Sprintf("foo%d@x.z", i),
 		Active:       true,
 		Fave:         big.NewInt(int64(i)),
+		Numbers: Numbers{
+			I8:  int8(i * 5),
+			U8:  uint8(i * 5),
+			I16: int16(i * 10),
+			U16: uint16(i * 10),
+			I32: int32(i * 100),
+			U32: uint32(i * 100),
+			F32: float32(i * 50),
+			F64: float64(i * 200),
+		},
 	}
 }
 
@@ -304,9 +314,11 @@ func TestCrud_using_database(t *testing.T) {
 	err = users.CreateTableWithIndexes(false)
 	Ω(err).Should(BeNil())
 
-	count_empty_table_should_be_zero(t, users)
+	count_remainder_should_be(t, users, 0)
 
-	user1 := insert_user_should_run_PreInsert(t, users)
+	insert_user_should_run_PreInsert(t, users, "user1")
+	user1 := insert_user_should_run_PreInsert(t, users, "user2")
+	insert_user_should_run_PreInsert(t, users, "user3")
 
 	get_user_should_call_PostGet_and_match_expected(t, users, user1)
 
@@ -332,17 +344,17 @@ func TestCrud_using_database(t *testing.T) {
 
 	delete_one_should_return_1(t, users)
 
-	count_empty_table_should_be_zero(t, users)
+	count_remainder_should_be(t, users, 2)
 }
 
-func count_empty_table_should_be_zero(t *testing.T, tbl DbUserTable) {
+func count_remainder_should_be(t *testing.T, tbl DbUserTable, expected int64) {
 	c1, err := tbl.Count(where.NoOp())
 	Ω(err).Should(BeNil())
-	Ω(c1).Should(Equal(int64(0)))
+	Ω(c1).Should(Equal(expected))
 }
 
-func insert_user_should_run_PreInsert(t *testing.T, tbl DbUserTable) *User {
-	user := &User{Name: "user1", EmailAddress: "foo@x.z"}
+func insert_user_should_run_PreInsert(t *testing.T, tbl DbUserTable, name string) *User {
+	user := &User{Name: name, EmailAddress: name + "@x.z"}
 	user = user.SetRole(UserRole)
 	err := tbl.Insert(require.One, user)
 	Ω(err).Should(BeNil())
@@ -361,13 +373,13 @@ func get_user_should_call_PostGet_and_match_expected(t *testing.T, tbl DbUserTab
 }
 
 func get_unknown_user_should_return_nil(t *testing.T, tbl DbUserTable, expected *User) {
-	user, err := tbl.GetUserByUid(nil, expected.Uid + 100000)
+	user, err := tbl.GetUserByUid(nil, expected.Uid+100000)
 	Ω(err).Should(BeNil())
 	Ω(user).Should(BeNil())
 }
 
 func must_get_unknown_user_should_return_error(t *testing.T, tbl DbUserTable, expected *User) {
-	_, err := tbl.GetUserByUid(require.One, expected.Uid + 100000)
+	_, err := tbl.GetUserByUid(require.One, expected.Uid+100000)
 	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
 }
 
@@ -398,12 +410,12 @@ func query_one_nullstring_for_user_should_return_valid(t *testing.T, tbl DbUserT
 	s, err := tbl.QueryOneNullString(nil, q, "user1")
 	Ω(err).Should(BeNil())
 	Ω(s.Valid).Should(BeTrue())
-	Ω(s.String).Should(Equal("foo@x.z"))
+	Ω(s.String).Should(Equal("user1@x.z"))
 
 	s, err = tbl.QueryOneNullString(require.One, q, "user1")
 	Ω(err).Should(BeNil())
 	Ω(s.Valid).Should(BeTrue())
-	Ω(s.String).Should(Equal("foo@x.z"))
+	Ω(s.String).Should(Equal("user1@x.z"))
 }
 
 func query_one_nullstring_for_unknown_should_return_invalid(t *testing.T, tbl DbUserTable) {
@@ -555,6 +567,62 @@ func TestGetters_using_database(t *testing.T) {
 		exp := Sprintf("user%02d", i)
 		Ω(names[i]).Should(Equal(exp))
 	}
+}
+
+func TestRowsAsMaps_using_database(t *testing.T) {
+	RegisterTestingT(t)
+	connect(t)
+	if db == nil {
+		return
+	}
+	defer cleanup()
+
+	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
+	if testing.Verbose() {
+		lgr := log.New(os.Stderr, "", log.LstdFlags)
+		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
+	}
+	tbl := NewDbUserTable("users", d)
+
+	err := tbl.CreateTableWithIndexes(true)
+	Ω(err).Should(BeNil())
+
+	err = tbl.Truncate(true)
+	Ω(err).Should(BeNil())
+
+	const n = 5
+
+	list := make([]*User, n)
+	for i := 0; i < n; i++ {
+		list[i] = user(i)
+	}
+
+	err = tbl.Insert(require.All, list...)
+	Ω(err).Should(BeNil())
+
+	rows, err := tbl.Query("SELECT * from users")
+	Ω(err).Should(BeNil())
+
+	ram, err := sqlgen2.WrapRows(rows)
+	Ω(err).Should(BeNil())
+
+	i := 0
+	for ram.Next() {
+		m, err := ram.ScanToMap()
+		Ω(err).Should(BeNil())
+
+		Ω(len(m.Columns)).Should(Equal(22))
+		Ω(len(m.ColumnTypes)).Should(Equal(22))
+		Ω(len(m.Data)).Should(Equal(22))
+
+		Ω(m.Data["name"]).Should(BeEquivalentTo(Sprintf("user%02d", i)), Sprintf("%+v %+v", m.ColumnTypes[1], m.Data["name"]))
+		Ω(m.Data["admin"]).Should(BeEquivalentTo(false), Sprintf("%+v %+v", m.ColumnTypes[7], m.Data["admin"]))
+		Ω(m.Data["i8"]).Should(BeEquivalentTo(i*5), Sprintf("%+v %+v", m.ColumnTypes[10], m.Data["i8"]))
+		//m.Data["fave"].(sql.Scanner)
+		//Ω(m.Data["fave"].(big.Int)).Should(BeEquivalentTo(big.NewInt(int64(i))), Sprintf("%+v", m))
+		i++
+	}
+	Ω(i).Should(Equal(n))
 }
 
 func TestBulk_delete_using_database(t *testing.T) {

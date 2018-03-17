@@ -208,6 +208,8 @@ func (tbl UUserTable) Exec(req require.Requirement, query string, args ...interf
 // The args are for any placeholder parameters in the query.
 //
 // The caller must call rows.Close() on the result.
+//
+// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
 func (tbl UUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl.ctx, tbl, query, args...)
 }
