@@ -5,3 +5,4 @@ _docs
 .idea/workspace.xml
 reports/
 vendor/
+util/version.go

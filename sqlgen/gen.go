@@ -15,6 +15,7 @@ import (
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"github.com/rickb777/sqlgen2/util"
+	"fmt"
 )
 
 func main() {
@@ -57,7 +58,13 @@ func main() {
 
 	flag.Parse()
 
-	Require(flag.NArg() > 0, "At least one input file (or path) is required; put this after the other arguments.\n")
+	Require(flag.NArg() > 0, "At least one input file (or path) is required; put this after the other arguments.\n"+
+		"  version   - prints the current version then exits.")
+
+	if flag.Args()[0] == "version" {
+		fmt.Printf("sqlgen %s\n       branch %s built on %s\n       origin %s\n", util.Version, util.GitBranch, util.BuildDate, util.GitOrigin)
+		os.Exit(0)
+	}
 
 	if sselect {
 		flags.sselect = true
