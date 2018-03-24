@@ -29,6 +29,7 @@ fi
 
 ### Build Phase 1 ###
 
+./version.sh
 cd sqlgen
 go install .
 
