@@ -14,6 +14,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
+	"github.com/spf13/cast"
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/where"
 	"github.com/rickb777/sqlgen2/schema"
@@ -64,13 +65,15 @@ func user(i int) *User {
 		Fave:         big.NewInt(int64(i)),
 		Numbers: Numbers{
 			I8:  int8(i * 5),
-			U8:  uint8(i * 5),
+			U8:  uint8(i * 6),
 			I16: int16(i * 10),
-			U16: uint16(i * 10),
+			U16: uint16(i * 11),
 			I32: int32(i * 100),
-			U32: uint32(i * 100),
-			F32: float32(i * 50),
-			F64: float64(i * 200),
+			U32: uint32(i * 101),
+			I64: int64(i * 200),
+			U64: uint64(i * 201),
+			F32: float32(i * 300),
+			F64: float64(i * 301),
 		},
 	}
 }
@@ -496,7 +499,10 @@ func TestMultiSelect_using_database(t *testing.T) {
 	}
 	tbl := NewDbUserTable("users", d)
 
-	err := tbl.CreateTableWithIndexes(true)
+	_, err := tbl.DropTable(true)
+	Ω(err).Should(BeNil())
+
+	err = tbl.CreateTableWithIndexes(true)
 	Ω(err).Should(BeNil())
 
 	const n = 3
@@ -615,11 +621,23 @@ func TestRowsAsMaps_using_database(t *testing.T) {
 		Ω(len(m.ColumnTypes)).Should(Equal(22))
 		Ω(len(m.Data)).Should(Equal(22))
 
-		Ω(m.Data["name"]).Should(BeEquivalentTo(Sprintf("user%02d", i)), Sprintf("%+v %+v", m.ColumnTypes[1], m.Data["name"]))
-		Ω(m.Data["admin"]).Should(BeEquivalentTo(false), Sprintf("%+v %+v", m.ColumnTypes[7], m.Data["admin"]))
-		Ω(m.Data["i8"]).Should(BeEquivalentTo(i*5), Sprintf("%+v %+v", m.ColumnTypes[10], m.Data["i8"]))
-		//m.Data["fave"].(sql.Scanner)
-		//Ω(m.Data["fave"].(big.Int)).Should(BeEquivalentTo(big.NewInt(int64(i))), Sprintf("%+v", m))
+		Ω(m.Data["name"]).Should(BeEquivalentTo(Sprintf("user%02d", i)), Sprintf("%d %+v %#v", i, m.ColumnTypes[1], m.Data["name"]))
+		Ω(cast.ToBool(m.Data["admin"])).Should(Equal(false), Sprintf("%d %+v %#v", i, m.ColumnTypes[7], m.Data["admin"]))
+		Ω(cast.ToInt(cast.ToString(m.Data["i8"]))).Should(Equal(i*5), Sprintf("%d %+v %#v", i, m.ColumnTypes[10], m.Data["i8"]))
+		Ω(cast.ToInt(cast.ToString(m.Data["u8"]))).Should(Equal(i*6), Sprintf("%d %+v %#v", i, m.ColumnTypes[11], m.Data["u8"]))
+		Ω(cast.ToInt(cast.ToString(m.Data["i16"]))).Should(Equal(i*10), Sprintf("%d %+v %#v", i, m.ColumnTypes[12], m.Data["i16"]))
+		Ω(cast.ToInt(cast.ToString(m.Data["u16"]))).Should(Equal(i*11), Sprintf("%d %+v %#v", i, m.ColumnTypes[13], m.Data["u16"]))
+		Ω(cast.ToInt(cast.ToString(m.Data["i32"]))).Should(Equal(i*100), Sprintf("%d %+v %#v", i, m.ColumnTypes[14], m.Data["i32"]))
+		Ω(cast.ToInt(cast.ToString(m.Data["u32"]))).Should(Equal(i*101), Sprintf("%d %+v %#v", i, m.ColumnTypes[15], m.Data["u32"]))
+		Ω(cast.ToInt(cast.ToString(m.Data["i64"]))).Should(Equal(i*200), Sprintf("%d %+v %#v", i, m.ColumnTypes[16], m.Data["i64"]))
+		Ω(cast.ToInt(cast.ToString(m.Data["u64"]))).Should(Equal(i*201), Sprintf("%d %+v %#v", i, m.ColumnTypes[17], m.Data["u64"]))
+		Ω(cast.ToFloat32(cast.ToString(m.Data["f32"]))).Should(BeEquivalentTo(i*300), Sprintf("%d %+v %#v", i, m.ColumnTypes[18], m.Data["f32"]))
+		Ω(cast.ToFloat32(cast.ToString(m.Data["f64"]))).Should(BeEquivalentTo(i*301), Sprintf("%d %+v %#v", i, m.ColumnTypes[19], m.Data["f64"]))
+
+		fave := big.NewInt(-1)
+		err = fave.UnmarshalJSON(m.Data["fave"].([]byte))
+		Ω(err).Should(BeNil())
+		Ω(fave.Cmp(big.NewInt(int64(i)))).Should(Equal(0), Sprintf("%d %+v %#v", i, m.ColumnTypes[8], m.Data["fave"]))
 		i++
 	}
 	Ω(i).Should(Equal(n))

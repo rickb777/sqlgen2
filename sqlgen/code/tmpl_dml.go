@@ -129,7 +129,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{.JoinedNames "And"
 {{ else -}}
 // Get{{$.Types}}By{{.JoinedNames "And"}} gets the records with{{if .Single}} a{{end}} given {{.Fields.SqlNames}} value{{if not .Single}}s{{end}}.
 // If not found, {{$.List}} will be empty (nil).
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, {{range .Fields}}{{lc .Name}} {{.Type.Type}}{{end}}) ({{$.List}}, error) {
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error) {
 	return tbl.Select(req, where.And({{.Fields.WhereClauses.MkString ", "}}), nil)
 }
 

@@ -60,6 +60,12 @@
   version = "v1.3.0"
 
 [[projects]]
+  name = "github.com/spf13/cast"
+  packages = ["."]
+  revision = "8965335b8c7107321228e3e3702cab9832751bac"
+  version = "v1.2.0"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = [
@@ -102,6 +108,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "837e8718a9afd0752f7e4799b331b3a869bfd4d82dd4fccfd9b90e567e27a4b6"
+  inputs-digest = "49dc5039193006d9667d6a8b1e03f938307859e536ca45dfab8d3b9ea6d06626"
   solver-name = "gps-cdcl"
   solver-version = 1
