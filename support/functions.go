@@ -7,7 +7,6 @@ import (
 	"github.com/rickb777/sqlgen2"
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/where"
-	"context"
 )
 
 // ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
@@ -83,10 +82,10 @@ func GetInt64List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh
 // The args are for any placeholder parameters in the query.
 //
 // The caller must call rows.Close() on the result.
-func Query(ctx context.Context, tbl sqlgen2.Table, query string, args ...interface{}) (*sql.Rows, error) {
+func Query(tbl sqlgen2.Table, query string, args ...interface{}) (*sql.Rows, error) {
 	database := tbl.Database()
 	database.LogQuery(query, args...)
-	rows, err := tbl.Execer().QueryContext(ctx, query, args...)
+	rows, err := tbl.Execer().QueryContext(tbl.Ctx(), query, args...)
 	return rows, database.LogIfError(err)
 }
 
@@ -94,10 +93,10 @@ func Query(ctx context.Context, tbl sqlgen2.Table, query string, args ...interfa
 // Exec executes a modification query (insert, update, delete, etc) and returns the number of items affected.
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
-func Exec(ctx context.Context, tbl sqlgen2.Table, req require.Requirement, query string, args ...interface{}) (int64, error) {
+func Exec(tbl sqlgen2.Table, req require.Requirement, query string, args ...interface{}) (int64, error) {
 	database := tbl.Database()
 	database.LogQuery(query, args...)
-	res, err := tbl.Execer().ExecContext(ctx, query, args...)
+	res, err := tbl.Execer().ExecContext(tbl.Ctx(), query, args...)
 	if err != nil {
 		return 0, database.LogError(err)
 	}
@@ -107,11 +106,11 @@ func Exec(ctx context.Context, tbl sqlgen2.Table, req require.Requirement, query
 
 
 // UpdateFields writes certain fields of all the records matching a 'where' expression.
-func UpdateFields(ctx context.Context, tbl sqlgen2.Table, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+func UpdateFields(tbl sqlgen2.Table, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	list := sqlgen2.NamedArgList(fields)
 	assignments := strings.Join(list.Assignments(tbl.Dialect(), 1), ", ")
 	whs, wargs := where.BuildExpression(wh, tbl.Dialect())
 	query := fmt.Sprintf("UPDATE %s SET %s %s", tbl.Name(), assignments, whs)
 	args := append(list.Values(), wargs...)
-	return Exec(ctx, tbl, req, query, args...)
+	return Exec(tbl, req, query, args...)
 }

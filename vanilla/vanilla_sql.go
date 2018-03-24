@@ -212,7 +212,7 @@ const PrimaryKeyDataColumnNames = ""
 //
 // The args are for any placeholder parameters in the query.
 func (tbl PrimaryKeyTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl.ctx, tbl, req, query, args...)
+	return support.Exec(tbl, req, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -228,7 +228,7 @@ func (tbl PrimaryKeyTable) Exec(req require.Requirement, query string, args ...i
 //
 // Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
 func (tbl PrimaryKeyTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return support.Query(tbl.ctx, tbl, query, args...)
+	return support.Query(tbl, query, args...)
 }
 
 //--------------------------------------------------------------------------------

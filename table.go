@@ -32,6 +32,7 @@ type Table interface {
 	IsTx() bool
 
 	// Constraints returns the table's constraints.
+	// (not included here because of package inter-dependencies)
 	//Constraints() constraint.Constraints
 
 	// Ctx gets the current request context.

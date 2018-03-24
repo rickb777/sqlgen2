@@ -216,7 +216,7 @@ const UUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,adm
 //
 // The args are for any placeholder parameters in the query.
 func (tbl UUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl.ctx, tbl, req, query, args...)
+	return support.Exec(tbl, req, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -232,7 +232,7 @@ func (tbl UUserTable) Exec(req require.Requirement, query string, args ...interf
 //
 // Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
 func (tbl UUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return support.Query(tbl.ctx, tbl, query, args...)
+	return support.Query(tbl, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -411,7 +411,7 @@ func constructUUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl UUserTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl.ctx, tbl, req, wh, fields...)
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------

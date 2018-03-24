@@ -294,7 +294,7 @@ const sqlDbUserLoginIndexColumns = "name"
 
 // CreateTable creates the table.
 func (tbl DbUserTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl.ctx, tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
@@ -337,7 +337,7 @@ func (tbl DbUserTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl DbUserTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl.ctx, tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl DbUserTable) dropTableSql(ifExists bool) string {
@@ -475,7 +475,7 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 // are also truncated.
 func (tbl DbUserTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(tbl.ctx, tbl, nil, query)
+		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -490,7 +490,7 @@ func (tbl DbUserTable) Truncate(force bool) (err error) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl.ctx, tbl, req, query, args...)
+	return support.Exec(tbl, req, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -506,7 +506,7 @@ func (tbl DbUserTable) Exec(req require.Requirement, query string, args ...inter
 //
 // Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
 func (tbl DbUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return support.Query(tbl.ctx, tbl, query, args...)
+	return support.Query(tbl, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -1685,7 +1685,7 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl DbUserTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl.ctx, tbl, req, wh, fields...)
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------

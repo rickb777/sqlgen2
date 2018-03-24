@@ -216,7 +216,7 @@ const sqlDbAlphaBetaIndexColumns = "alpha,beta"
 
 // CreateTable creates the table.
 func (tbl DbCompoundTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl.ctx, tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
@@ -259,7 +259,7 @@ func (tbl DbCompoundTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl DbCompoundTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl.ctx, tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl DbCompoundTable) dropTableSql(ifExists bool) string {
@@ -350,7 +350,7 @@ func (tbl DbCompoundTable) DropIndexes(ifExist bool) (err error) {
 // are also truncated.
 func (tbl DbCompoundTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(tbl.ctx, tbl, nil, query)
+		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -365,7 +365,7 @@ func (tbl DbCompoundTable) Truncate(force bool) (err error) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl.ctx, tbl, req, query, args...)
+	return support.Exec(tbl, req, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -381,7 +381,7 @@ func (tbl DbCompoundTable) Exec(req require.Requirement, query string, args ...i
 //
 // Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
 func (tbl DbCompoundTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return support.Query(tbl.ctx, tbl, query, args...)
+	return support.Query(tbl, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -807,7 +807,7 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl DbCompoundTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl.ctx, tbl, req, wh, fields...)
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------

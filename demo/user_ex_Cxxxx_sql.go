@@ -222,7 +222,7 @@ const CUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,adm
 //
 // Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
 func (tbl CUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return support.Query(tbl.ctx, tbl, query, args...)
+	return support.Query(tbl, query, args...)
 }
 
 //--------------------------------------------------------------------------------

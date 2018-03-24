@@ -241,7 +241,7 @@ const sqlTownIdxIndexColumns = "town"
 
 // CreateTable creates the table.
 func (tbl AddressTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl.ctx, tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
 }
 
 func (tbl AddressTable) createTableSql(ifNotExists bool) string {
@@ -284,7 +284,7 @@ func (tbl AddressTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl AddressTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl.ctx, tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
 }
 
 func (tbl AddressTable) dropTableSql(ifExists bool) string {
@@ -422,7 +422,7 @@ func (tbl AddressTable) DropIndexes(ifExist bool) (err error) {
 // are also truncated.
 func (tbl AddressTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(tbl.ctx, tbl, nil, query)
+		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -437,7 +437,7 @@ func (tbl AddressTable) Truncate(force bool) (err error) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl.ctx, tbl, req, query, args...)
+	return support.Exec(tbl, req, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -453,7 +453,7 @@ func (tbl AddressTable) Exec(req require.Requirement, query string, args ...inte
 //
 // Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
 func (tbl AddressTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return support.Query(tbl.ctx, tbl, query, args...)
+	return support.Query(tbl, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -975,7 +975,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl AddressTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl.ctx, tbl, req, wh, fields...)
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
