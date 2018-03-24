@@ -16,7 +16,6 @@ import (
 	"github.com/rickb777/sqlgen2/where"
 	"io"
 	"log"
-	"strings"
 )
 
 // IssueTable holds a given table name with the database reference, providing access methods below.
@@ -28,6 +27,7 @@ type IssueTable struct {
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
 	ctx			context.Context
+	pk          string
 }
 
 // Type conformance checks
@@ -41,8 +41,15 @@ func NewIssueTable(name string, d *sqlgen2.Database) IssueTable {
 	if name == "" {
 		name = "issues"
 	}
-	table := IssueTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
-	return table
+	var constraints constraint.Constraints
+	return IssueTable{
+		name:        sqlgen2.TableName{"", name},
+		database:    d,
+		db:          d.DB(),
+		constraints: constraints,
+		ctx:         context.Background(),
+		pk:          "id",
+	}
 }
 
 // CopyTableAsIssueTable copies a table instance, retaining the name etc but
@@ -57,8 +64,18 @@ func CopyTableAsIssueTable(origin sqlgen2.Table) IssueTable {
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         context.Background(),
+		pk:          "id",
 	}
 }
+
+
+// SetPkColumn sets the name of the primary key column. It defaults to "id".
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl IssueTable) SetPkColumn(pk string) IssueTable {
+	tbl.pk = pk
+	return tbl
+}
+
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -98,6 +115,11 @@ func (tbl IssueTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
+// Ctx gets the current request context.
+func (tbl IssueTable) Ctx() context.Context {
+	return tbl.ctx
+}
+
 // Dialect gets the database dialect.
 func (tbl IssueTable) Dialect() schema.Dialect {
 	return tbl.database.Dialect()
@@ -107,6 +129,13 @@ func (tbl IssueTable) Dialect() schema.Dialect {
 func (tbl IssueTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
+
+
+// PkColumn gets the column name used as a primary key.
+func (tbl IssueTable) PkColumn() string {
+	return tbl.pk
+}
+
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -168,11 +197,6 @@ func (tbl IssueTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl IssueTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
-
 
 //--------------------------------------------------------------------------------
 
@@ -183,8 +207,6 @@ const NumIssueDataColumns = 7
 const IssueColumnNames = "id,number,date,title,bigbody,assignee,state,labels"
 
 const IssueDataColumnNames = "number,date,title,bigbody,assignee,state,labels"
-
-const IssuePk = "id"
 
 //--------------------------------------------------------------------------------
 
@@ -523,7 +545,7 @@ func (tbl IssueTable) GetIssuesById(req require.Requirement, id ...int64) (list 
 			args[i] = v
 		}
 
-		list, err = tbl.getIssues(req, "id", args...)
+		list, err = tbl.getIssues(req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -532,7 +554,7 @@ func (tbl IssueTable) GetIssuesById(req require.Requirement, id ...int64) (list 
 // GetIssueById gets the record with a given primary key value.
 // If not found, *Issue will be nil.
 func (tbl IssueTable) GetIssueById(req require.Requirement, id int64) (*Issue, error) {
-	return tbl.getIssue(req, "id", id)
+	return tbl.getIssue(req, tbl.pk, id)
 }
 
 // GetIssuesByAssignee gets the records with a given [assignee] value.
@@ -668,13 +690,6 @@ func (tbl IssueTable) Count(wh where.Expression) (count int64, err error) {
 }
 
 //--------------------------------------------------------------------------------
-
-// SliceId gets the Id column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl IssueTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64list(req, "id", wh, qc)
-}
 
 // SliceNumber gets the Number column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
@@ -944,7 +959,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
 	returning := ""
 	if tbl.Dialect().InsertHasReturningPhrase() {
-		returning = fmt.Sprintf(" returning %q", IssuePk)
+		returning = fmt.Sprintf(" returning %q", tbl.pk)
 	}
 
 	for _, v := range vv {
@@ -1055,7 +1070,7 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 		}
 
 		io.WriteString(b, " WHERE ")
-		dialect.QuoteWithPlaceholder(b, "id", k)
+		dialect.QuoteWithPlaceholder(b, tbl.pk, k)
 
 		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
@@ -1087,7 +1102,7 @@ func (tbl IssueTable) DeleteIssues(req require.Requirement, id ...int64) (int64,
 		max = len(id)
 	}
 	dialect := tbl.Dialect()
-	col := dialect.Quote("id")
+	col := dialect.Quote(tbl.pk)
 	args := make([]interface{}, max)
 
 	if len(id) > batch {

@@ -57,7 +57,7 @@ func TestIdsUsedAsForeignKeys(t *testing.T) {
 		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
 	}
 
-	persons := vanilla.NewPrimaryKeyTable(sqlgen2.TableName{"pfx_", "persons"}, d).WithConstraint(fkc0)
+	persons := vanilla.NewPrimaryKeyTable("persons", d).WithPrefix("pfx_").WithConstraint(fkc0)
 
 	setupSql := strings.Replace(createTables, "¬", "`", -1)
 	_, err := d.Exec(setupSql)

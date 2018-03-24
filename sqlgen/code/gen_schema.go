@@ -38,7 +38,6 @@ func WritePrimaryDeclarations(w io.Writer, view View) {
 	fmt.Fprintf(w, constStringQ, tableName+"ColumnNames", view.Table.ColumnNames(true).MkString(","))
 	if view.Table.HasPrimaryKey() {
 		fmt.Fprintf(w, constStringQ, tableName+"DataColumnNames", view.Table.ColumnNames(false).MkString(","))
-		fmt.Fprintf(w, constStringQ, tableName+"Pk", view.Table.Primary.SqlName)
 	}
 }
 

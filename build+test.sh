@@ -40,9 +40,12 @@ for d in code output parse; do
   [ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=../reports/sqlgen-$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN
 done
 
-cd ..
-
 ### Build Phase 2 ###
+
+cd ..
+sqlgen -type vanilla.PrimaryKey -o vanilla/vanilla_sql.go -read -delete -slice -v vanilla/vanilla.go
+
+### Build Phase 3 ###
 
 go install ./...
 

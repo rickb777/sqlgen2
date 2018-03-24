@@ -105,7 +105,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}
 			args[i] = v
 		}
 
-		list, err = tbl.get{{.Types}}(req, "{{.Table.Primary.SqlName}}", args...)
+		list, err = tbl.get{{.Types}}(req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -114,7 +114,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}
 // Get{{.Type}}By{{.Table.Primary.Name}} gets the record with a given primary key value.
 // If not found, *{{.Type}} will be nil.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.Type}}, error) {
-	return tbl.get{{.Type}}(req, "{{.Table.Primary.SqlName}}", id)
+	return tbl.get{{.Type}}(req, tbl.pk, id)
 }
 
 {{end -}}
@@ -278,7 +278,7 @@ var tCountRows = template.Must(template.New("CountRows").Funcs(funcMap).Parse(sC
 
 const sSliceItem = `
 //--------------------------------------------------------------------------------
-{{range .Table.SimpleFields}}
+{{range .Table.SimpleFields.NoSkipOrPrimary}}
 // Slice{{.Name}} gets the {{.Name}} column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
@@ -286,7 +286,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require
 	return tbl.get{{.Type.Tag}}list(req, "{{.SqlName}}", wh, qc)
 }
 {{end}}
-{{range .Table.SimpleFields.DistinctTypes}}
+{{range .Table.SimpleFields.NoSkips.DistinctTypes}}
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) get{{.Tag}}list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
 	dialect := tbl.Dialect()
 	whs, args := where.BuildExpression(wh, dialect)
@@ -367,7 +367,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 	returning := ""
 	{{if .Table.Primary -}}
 	if tbl.Dialect().InsertHasReturningPhrase() {
-		returning = fmt.Sprintf(" returning %q", {{.Prefix}}{{.Type}}Pk)
+		returning = fmt.Sprintf(" returning %q", tbl.pk)
 	}
 
 	{{end -}}
@@ -509,7 +509,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 		}
 
 		io.WriteString(b, " WHERE ")
-		dialect.QuoteWithPlaceholder(b, "{{.Table.Primary.SqlName}}", k)
+		dialect.QuoteWithPlaceholder(b, tbl.pk, k)
 
 		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
@@ -547,7 +547,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 		max = len(id)
 	}
 	dialect := tbl.Dialect()
-	col := dialect.Quote("{{.Table.Primary.SqlName}}")
+	col := dialect.Quote(tbl.pk)
 	args := make([]interface{}, max)
 
 	if len(id) > batch {

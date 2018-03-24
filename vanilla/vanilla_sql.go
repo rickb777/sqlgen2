@@ -1,3 +1,5 @@
+// THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
+
 package vanilla
 
 import (
@@ -11,7 +13,6 @@ import (
 	"github.com/rickb777/sqlgen2/support"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
-	"strings"
 )
 
 // PrimaryKeyTable holds a given table name with the database reference, providing access methods below.
@@ -22,23 +23,37 @@ type PrimaryKeyTable struct {
 	database    *sqlgen2.Database
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
-	ctx         context.Context
+	ctx			context.Context
 	pk          string
 }
 
 // Type conformance checks
 var _ sqlgen2.Table = &PrimaryKeyTable{}
+var _ sqlgen2.Table = &PrimaryKeyTable{}
 
 // NewPrimaryKeyTable returns a new table instance.
-// The primary key column defaults to "id" but can subsequently be altered.
+// If a blank table name is supplied, the default name "primarykeys" will be used instead.
 // The request context is initialised with the background.
-func NewPrimaryKeyTable(name sqlgen2.TableName, d *sqlgen2.Database) PrimaryKeyTable {
-	table := PrimaryKeyTable{name, d, d.DB(), nil, context.Background(), "id"}
-	return table
+func NewPrimaryKeyTable(name string, d *sqlgen2.Database) PrimaryKeyTable {
+	if name == "" {
+		name = "primarykeys"
+	}
+	var constraints constraint.Constraints
+	return PrimaryKeyTable{
+		name:        sqlgen2.TableName{"", name},
+		database:    d,
+		db:          d.DB(),
+		constraints: constraints,
+		ctx:         context.Background(),
+		pk:          "id",
+	}
 }
 
 // CopyTableAsPrimaryKeyTable copies a table instance, retaining the name etc but
-// providing methods appropriate for the primary key. It doesn't copy the constraints of the original table.
+// providing methods appropriate for 'PrimaryKey'. It doesn't copy the constraints of the original table.
+//
+// It serves to provide methods appropriate for 'PrimaryKey'. This is most useful when this is used to represent a
+// join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsPrimaryKeyTable(origin sqlgen2.Table) PrimaryKeyTable {
 	return PrimaryKeyTable{
 		name:        origin.Name(),
@@ -46,15 +61,18 @@ func CopyTableAsPrimaryKeyTable(origin sqlgen2.Table) PrimaryKeyTable {
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         context.Background(),
+		pk:          "id",
 	}
 }
 
-// SetPkColumn sets the name of the primary key column
+
+// SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl PrimaryKeyTable) SetPkColumn(pk string) PrimaryKeyTable {
 	tbl.pk = pk
 	return tbl
 }
+
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -63,8 +81,11 @@ func (tbl PrimaryKeyTable) WithPrefix(pfx string) PrimaryKeyTable {
 	return tbl
 }
 
-// WithContext sets the context for subsequent queries.
+// WithContext sets the context for subsequent queries via this table.
 // The result is a modified copy of the table; the original is unchanged.
+//
+// The shared context in the *Database is not altered by this method. So it
+// is possible to use different contexts for different (groups of) queries.
 func (tbl PrimaryKeyTable) WithContext(ctx context.Context) PrimaryKeyTable {
 	tbl.ctx = ctx
 	return tbl
@@ -86,7 +107,7 @@ func (tbl PrimaryKeyTable) WithConstraint(cc ...constraint.Constraint) PrimaryKe
 	return tbl
 }
 
-// Constraints gets the constraints.
+// Constraints returns the table's constraints.
 func (tbl PrimaryKeyTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
@@ -105,6 +126,13 @@ func (tbl PrimaryKeyTable) Dialect() schema.Dialect {
 func (tbl PrimaryKeyTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
+
+
+// PkColumn gets the column name used as a primary key.
+func (tbl PrimaryKeyTable) PkColumn() string {
+	return tbl.pk
+}
+
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -129,12 +157,20 @@ func (tbl PrimaryKeyTable) IsTx() bool {
 	return ok
 }
 
-// Begin starts a transaction. The default isolation level is dependent on the driver.
-// The result is a modified copy of the table; the original is unchanged.
+// BeginTx starts a transaction using the table's context.
+// This context is used until the transaction is committed or rolled back.
+//
+// If this context is cancelled, the sql package will roll back the transaction.
+// In this case, Tx.Commit will then return an error.
+//
+// The provided TxOptions is optional and may be nil if defaults should be used.
+// If a non-default isolation level is used that the driver doesn't support,
+// an error will be returned.
+//
+// Panics if the Execer is not TxStarter.
 func (tbl PrimaryKeyTable) BeginTx(opts *sql.TxOptions) (PrimaryKeyTable, error) {
-	d := tbl.db.(*sql.DB)
 	var err error
-	tbl.db, err = d.BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -158,6 +194,27 @@ func (tbl PrimaryKeyTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
+
+//--------------------------------------------------------------------------------
+
+const NumPrimaryKeyColumns = 1
+
+const NumPrimaryKeyDataColumns = 0
+
+const PrimaryKeyColumnNames = "id"
+
+const PrimaryKeyDataColumnNames = ""
+
+//--------------------------------------------------------------------------------
+
+// Exec executes a query without returning any rows.
+// It returns the number of rows affected (if the database driver supports this).
+//
+// The args are for any placeholder parameters in the query.
+func (tbl PrimaryKeyTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(tbl.ctx, tbl, req, query, args...)
+}
+
 //--------------------------------------------------------------------------------
 
 // Query is the low-level request method for this table. The query is logged using whatever logger is
@@ -168,13 +225,10 @@ func (tbl PrimaryKeyTable) logIfError(err error) error {
 // The args are for any placeholder parameters in the query.
 //
 // The caller must call rows.Close() on the result.
+//
+// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
 func (tbl PrimaryKeyTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl.ctx, tbl, query, args...)
-}
-
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl PrimaryKeyTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 
 //--------------------------------------------------------------------------------
@@ -186,21 +240,8 @@ func (tbl PrimaryKeyTable) ReplaceTableName(query string) string {
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl PrimaryKeyTable) QueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullString is a low-level access method for one string. This can be used for function queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl PrimaryKeyTable) MustQueryOneNullString(query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl PrimaryKeyTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -211,21 +252,8 @@ func (tbl PrimaryKeyTable) MustQueryOneNullString(query string, args ...interfac
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl PrimaryKeyTable) QueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
-	return result, err
-}
-
-// MustQueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl PrimaryKeyTable) MustQueryOneNullInt64(query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
+func (tbl PrimaryKeyTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -236,25 +264,193 @@ func (tbl PrimaryKeyTable) MustQueryOneNullInt64(query string, args ...interface
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl PrimaryKeyTable) QueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, nil, &result, query, args...)
+func (tbl PrimaryKeyTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
-// MustQueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-// such like.
-//
-// It places a requirement that exactly one result must be found; an error is generated when this expectation is not met.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl PrimaryKeyTable) MustQueryOneNullFloat64(query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, require.One, &result, query, args...)
-	return result, err
+func scanPrimaryKeys(rows *sql.Rows, firstOnly bool) (vv []*PrimaryKey, n int64, err error) {
+	for rows.Next() {
+		n++
+
+		var v0 int64
+
+		err = rows.Scan(
+			&v0,
+		)
+		if err != nil {
+			return vv, n, err
+		}
+
+		v := &PrimaryKey{}
+		v.Id = v0
+
+		var iv interface{} = v
+		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+			err = hook.PostGet()
+			if err != nil {
+				return vv, n, err
+			}
+		}
+
+		vv = append(vv, v)
+
+		if firstOnly {
+			if rows.Next() {
+				n++
+			}
+			return vv, n, rows.Err()
+		}
+	}
+
+	return vv, n, rows.Err()
 }
 
 //--------------------------------------------------------------------------------
+
+var allPrimaryKeyQuotedColumnNames = []string{
+	schema.Sqlite.SplitAndQuote(PrimaryKeyColumnNames),
+	schema.Mysql.SplitAndQuote(PrimaryKeyColumnNames),
+	schema.Postgres.SplitAndQuote(PrimaryKeyColumnNames),
+}
+
+//--------------------------------------------------------------------------------
+
+// GetPrimaryKeysById gets records from the table according to a list of primary keys.
+// Although the list of ids can be arbitrarily long, there are practical limits;
+// note that Oracle DB has a limit of 1000.
+//
+// It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
+// controls whether an error is generated not all the ids produce a result.
+func (tbl PrimaryKeyTable) GetPrimaryKeysById(req require.Requirement, id ...int64) (list []*PrimaryKey, err error) {
+	if len(id) > 0 {
+		if req == require.All {
+			req = require.Exactly(len(id))
+		}
+		args := make([]interface{}, len(id))
+
+		for i, v := range id {
+			args[i] = v
+		}
+
+		list, err = tbl.getPrimaryKeys(req, tbl.pk, args...)
+	}
+
+	return list, err
+}
+
+// GetPrimaryKeyById gets the record with a given primary key value.
+// If not found, *PrimaryKey will be nil.
+func (tbl PrimaryKeyTable) GetPrimaryKeyById(req require.Requirement, id int64) (*PrimaryKey, error) {
+	return tbl.getPrimaryKey(req, tbl.pk, id)
+}
+
+func (tbl PrimaryKeyTable) getPrimaryKey(req require.Requirement, column string, arg interface{}) (*PrimaryKey, error) {
+	dialect := tbl.Dialect()
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
+		allPrimaryKeyQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), dialect.Placeholder(column, 1))
+	v, err := tbl.doQueryOne(req, query, arg)
+	return v, err
+}
+
+func (tbl PrimaryKeyTable) getPrimaryKeys(req require.Requirement, column string, args ...interface{}) (list []*PrimaryKey, err error) {
+	if len(args) > 0 {
+		if req == require.All {
+			req = require.Exactly(len(args))
+		}
+		dialect := tbl.Dialect()
+		pl := dialect.Placeholders(len(args))
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allPrimaryKeyQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), pl)
+		list, err = tbl.doQuery(req, false, query, args...)
+	}
+
+	return list, err
+}
+
+func (tbl PrimaryKeyTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*PrimaryKey, error) {
+	list, err := tbl.doQuery(req, true, query, args...)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
+}
+
+func (tbl PrimaryKeyTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*PrimaryKey, error) {
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	vv, n, err := scanPrimaryKeys(rows, firstOnly)
+	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+}
+
+// Fetch fetches a list of PrimaryKey based on a supplied query. This is mostly used for join queries that map its
+// result columns to the fields of PrimaryKey. Other queries might be better handled by GetXxx or Select methods.
+func (tbl PrimaryKeyTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*PrimaryKey, error) {
+	return tbl.doQuery(req, false, query, args...)
+}
+
+//--------------------------------------------------------------------------------
+
+// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
+// and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
+// If not found, *Example will be nil.
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.One
+// controls whether an error is generated when no result is found.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl PrimaryKeyTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*PrimaryKey, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
+		allPrimaryKeyQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
+	v, err := tbl.doQueryOne(req, query, args...)
+	return v, err
+}
+
+// SelectOne allows a single PrimaryKey to be obtained from the sqlgen2.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+// If not found, *Example will be nil.
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.One
+// controls whether an error is generated when no result is found.
+func (tbl PrimaryKeyTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*PrimaryKey, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	return tbl.SelectOneWhere(req, whs, orderBy, args...)
+}
+
+// SelectWhere allows PrimaryKeys to be obtained from the table that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
+// controls whether an error is generated when no result is found.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl PrimaryKeyTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*PrimaryKey, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
+		allPrimaryKeyQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
+	vv, err := tbl.doQuery(req, false, query, args...)
+	return vv, err
+}
+
+// Select allows PrimaryKeys to be obtained from the table that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
+// controls whether an error is generated when no result is found.
+func (tbl PrimaryKeyTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*PrimaryKey, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	return tbl.SelectWhere(req, whs, orderBy, args...)
+}
 
 // CountWhere counts PrimaryKeys in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
@@ -277,18 +473,39 @@ func (tbl PrimaryKeyTable) Count(wh where.Expression) (count int64, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SliceId gets the primary key column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl PrimaryKeyTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.GetInt64List(tbl, req, tbl.pk, wh, qc)
+
+func (tbl PrimaryKeyTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v int64
+	list := make([]int64, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
+
 
 //--------------------------------------------------------------------------------
 
-// DeleteIn deletes rows from the table, given some primary keys.
+// DeletePrimaryKeys deletes rows from the table, given some primary keys.
 // The list of ids can be arbitrarily long.
-func (tbl PrimaryKeyTable) DeleteIn(req require.Requirement, id ...int64) (int64, error) {
+func (tbl PrimaryKeyTable) DeletePrimaryKeys(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE %s IN (%s)"
 
@@ -315,7 +532,7 @@ func (tbl PrimaryKeyTable) DeleteIn(req require.Requirement, id ...int64) (int64
 				args[i] = id[i]
 			}
 
-			n, err = support.Exec(tbl.ctx, tbl, nil, query, args...)
+			n, err = tbl.Exec(nil, query, args...)
 			count += n
 			if err != nil {
 				return count, err
@@ -333,7 +550,7 @@ func (tbl PrimaryKeyTable) DeleteIn(req require.Requirement, id ...int64) (int64
 			args[i] = id[i]
 		}
 
-		n, err = support.Exec(tbl.ctx, tbl, nil, query, args...)
+		n, err = tbl.Exec(nil, query, args...)
 		count += n
 	}
 
@@ -344,7 +561,7 @@ func (tbl PrimaryKeyTable) DeleteIn(req require.Requirement, id ...int64) (int64
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl PrimaryKeyTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := tbl.deleteRows(wh)
-	return support.Exec(tbl.ctx, tbl, req, query, args...)
+	return tbl.Exec(req, query, args...)
 }
 
 func (tbl PrimaryKeyTable) deleteRows(wh where.Expression) (string, []interface{}) {
@@ -352,3 +569,5 @@ func (tbl PrimaryKeyTable) deleteRows(wh where.Expression) (string, []interface{
 	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }
+
+//--------------------------------------------------------------------------------

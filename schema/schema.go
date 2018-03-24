@@ -62,6 +62,13 @@ func (t *TableDescription) HasPrimaryKey() bool {
 	return t.Primary != nil
 }
 
+func (t *TableDescription) SafePrimary() Field {
+	if t.Primary != nil {
+		return *t.Primary
+	}
+	return Field{}
+}
+
 func (t *TableDescription) NumColumnNames(withAuto bool) int {
 	num := 0
 	for _, f := range t.Fields {

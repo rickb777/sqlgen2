@@ -15,7 +15,6 @@ import (
 	"github.com/rickb777/sqlgen2/where"
 	"io"
 	"log"
-	"strings"
 )
 
 // DbCompoundTable holds a given table name with the database reference, providing access methods below.
@@ -27,6 +26,7 @@ type DbCompoundTable struct {
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
+	pk          string
 }
 
 // Type conformance checks
@@ -40,8 +40,15 @@ func NewDbCompoundTable(name string, d *sqlgen2.Database) DbCompoundTable {
 	if name == "" {
 		name = "compounds"
 	}
-	table := DbCompoundTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
-	return table
+	var constraints constraint.Constraints
+	return DbCompoundTable{
+		name:        sqlgen2.TableName{"", name},
+		database:    d,
+		db:          d.DB(),
+		constraints: constraints,
+		ctx:         context.Background(),
+		pk:          "",
+	}
 }
 
 // CopyTableAsDbCompoundTable copies a table instance, retaining the name etc but
@@ -56,6 +63,7 @@ func CopyTableAsDbCompoundTable(origin sqlgen2.Table) DbCompoundTable {
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         context.Background(),
+		pk:          "",
 	}
 }
 
@@ -95,6 +103,11 @@ func (tbl DbCompoundTable) WithConstraint(cc ...constraint.Constraint) DbCompoun
 // Constraints returns the table's constraints.
 func (tbl DbCompoundTable) Constraints() constraint.Constraints {
 	return tbl.constraints
+}
+
+// Ctx gets the current request context.
+func (tbl DbCompoundTable) Ctx() context.Context {
+	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -165,11 +178,6 @@ func (tbl DbCompoundTable) logError(err error) error {
 
 func (tbl DbCompoundTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
-}
-
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl DbCompoundTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 
 //--------------------------------------------------------------------------------

@@ -20,6 +20,7 @@ type {{.Prefix}}{{.Type}}{{.Thing}} struct {
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
 	ctx			context.Context
+	pk          string
 }
 
 // Type conformance checks
@@ -33,12 +34,18 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d *sqlgen2.Database) {{.Pref
 	if name == "" {
 		name = "{{.DbName}}"
 	}
-	table := {{.Prefix}}{{.Type}}{{.Thing}}{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
+	var constraints constraint.Constraints
 	{{- range .Constraints}}
-	table.constraints = append(table.constraints,
-		{{.GoString}})
+	constraints = append(constraints, {{.GoString}})
 	{{end}}
-	return table
+	return {{.Prefix}}{{.Type}}{{.Thing}}{
+		name:        sqlgen2.TableName{"", name},
+		database:    d,
+		db:          d.DB(),
+		constraints: constraints,
+		ctx:         context.Background(),
+		pk:          "{{.Table.SafePrimary.SqlName}}",
+	}
 }
 
 // CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}} copies a table instance, retaining the name etc but
@@ -53,9 +60,19 @@ func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin sqlgen2.Table)
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         context.Background(),
+		pk:          "{{.Table.SafePrimary.SqlName}}",
 	}
 }
 
+{{if .Table.HasPrimaryKey}}
+// SetPkColumn sets the name of the primary key column. It defaults to "{{.Table.Primary.SqlName}}".
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SetPkColumn(pk string) {{.Prefix}}{{.Type}}{{.Thing}} {
+	tbl.pk = pk
+	return tbl
+}
+
+{{end}}
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithPrefix(pfx string) {{.Prefix}}{{.Type}}{{.Thing}} {
@@ -94,6 +111,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
+// Ctx gets the current request context.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Ctx() context.Context {
+	return tbl.ctx
+}
+
 // Dialect gets the database dialect.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Dialect() schema.Dialect {
 	return tbl.database.Dialect()
@@ -104,6 +126,13 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Name() sqlgen2.TableName {
 	return tbl.name
 }
 
+{{if .Table.HasPrimaryKey}}
+// PkColumn gets the column name used as a primary key.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) PkColumn() string {
+	return tbl.pk
+}
+
+{{end}}
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DB() *sql.DB {
@@ -162,11 +191,6 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logError(err error) error {
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
-}
-
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
 }
 
 `

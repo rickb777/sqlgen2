@@ -13,7 +13,6 @@ import (
 	"github.com/rickb777/sqlgen2/support"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
-	"strings"
 )
 
 // SUserTable holds a given table name with the database reference, providing access methods below.
@@ -25,6 +24,7 @@ type SUserTable struct {
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
 	ctx			context.Context
+	pk          string
 }
 
 // Type conformance checks
@@ -38,11 +38,17 @@ func NewSUserTable(name string, d *sqlgen2.Database) SUserTable {
 	if name == "" {
 		name = "users"
 	}
-	table := SUserTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
-	table.constraints = append(table.constraints,
-		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
+	var constraints constraint.Constraints
+	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	
-	return table
+	return SUserTable{
+		name:        sqlgen2.TableName{"", name},
+		database:    d,
+		db:          d.DB(),
+		constraints: constraints,
+		ctx:         context.Background(),
+		pk:          "uid",
+	}
 }
 
 // CopyTableAsSUserTable copies a table instance, retaining the name etc but
@@ -57,8 +63,18 @@ func CopyTableAsSUserTable(origin sqlgen2.Table) SUserTable {
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         context.Background(),
+		pk:          "uid",
 	}
 }
+
+
+// SetPkColumn sets the name of the primary key column. It defaults to "uid".
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl SUserTable) SetPkColumn(pk string) SUserTable {
+	tbl.pk = pk
+	return tbl
+}
+
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -98,6 +114,11 @@ func (tbl SUserTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
+// Ctx gets the current request context.
+func (tbl SUserTable) Ctx() context.Context {
+	return tbl.ctx
+}
+
 // Dialect gets the database dialect.
 func (tbl SUserTable) Dialect() schema.Dialect {
 	return tbl.database.Dialect()
@@ -107,6 +128,13 @@ func (tbl SUserTable) Dialect() schema.Dialect {
 func (tbl SUserTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
+
+
+// PkColumn gets the column name used as a primary key.
+func (tbl SUserTable) PkColumn() string {
+	return tbl.pk
+}
+
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -168,11 +196,6 @@ func (tbl SUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl SUserTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
-
 
 //--------------------------------------------------------------------------------
 
@@ -183,8 +206,6 @@ const NumSUserDataColumns = 21
 const SUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 const SUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
-
-const SUserPk = "uid"
 
 //--------------------------------------------------------------------------------
 
@@ -241,13 +262,6 @@ func (tbl SUserTable) QueryOneNullFloat64(req require.Requirement, query string,
 }
 
 //--------------------------------------------------------------------------------
-
-// SliceUid gets the Uid column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64list(req, "uid", wh, qc)
-}
 
 // SliceName gets the Name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.

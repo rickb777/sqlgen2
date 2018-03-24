@@ -6,6 +6,7 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
+	"context"
 )
 
 // Table provides the generic features of each generated table handler.
@@ -29,6 +30,12 @@ type Table interface {
 
 	// IsTx tests whether this is within a transaction.
 	IsTx() bool
+
+	// Constraints returns the table's constraints.
+	//Constraints() constraint.Constraints
+
+	// Ctx gets the current request context.
+	Ctx() context.Context
 
 	// Dialect gets the database dialect.
 	Dialect() schema.Dialect
@@ -62,9 +69,6 @@ type Table interface {
 
 	// WithConstraint returns a modified Table with added data consistency constraints.
 	//WithConstraint(cc ...sqlgen2.Constraint) SomeTypeTable {
-
-	// Constraints gets the constraints.
-	//Constraints() constraint.Constraints
 	//---------------------------------------------------------------------------------------------
 
 	// Query is the low-level request method for this table. The query is logged using whatever logger is
@@ -121,9 +125,6 @@ type TableWithCrud interface {
 	// such like. If the query selected many rows, only the first is returned; the rest are discarded.
 	// If not found, the result will be invalid.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
-
-	// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-	ReplaceTableName(query string) string
 
 	// Exec executes a query.
 	//

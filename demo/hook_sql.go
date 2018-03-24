@@ -15,7 +15,6 @@ import (
 	"github.com/rickb777/sqlgen2/where"
 	"io"
 	"log"
-	"strings"
 )
 
 // HookTable holds a given table name with the database reference, providing access methods below.
@@ -27,6 +26,7 @@ type HookTable struct {
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
 	ctx			context.Context
+	pk          string
 }
 
 // Type conformance checks
@@ -40,8 +40,15 @@ func NewHookTable(name string, d *sqlgen2.Database) HookTable {
 	if name == "" {
 		name = "hooks"
 	}
-	table := HookTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
-	return table
+	var constraints constraint.Constraints
+	return HookTable{
+		name:        sqlgen2.TableName{"", name},
+		database:    d,
+		db:          d.DB(),
+		constraints: constraints,
+		ctx:         context.Background(),
+		pk:          "id",
+	}
 }
 
 // CopyTableAsHookTable copies a table instance, retaining the name etc but
@@ -56,8 +63,18 @@ func CopyTableAsHookTable(origin sqlgen2.Table) HookTable {
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         context.Background(),
+		pk:          "id",
 	}
 }
+
+
+// SetPkColumn sets the name of the primary key column. It defaults to "id".
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl HookTable) SetPkColumn(pk string) HookTable {
+	tbl.pk = pk
+	return tbl
+}
+
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -97,6 +114,11 @@ func (tbl HookTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
+// Ctx gets the current request context.
+func (tbl HookTable) Ctx() context.Context {
+	return tbl.ctx
+}
+
 // Dialect gets the database dialect.
 func (tbl HookTable) Dialect() schema.Dialect {
 	return tbl.database.Dialect()
@@ -106,6 +128,13 @@ func (tbl HookTable) Dialect() schema.Dialect {
 func (tbl HookTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
+
+
+// PkColumn gets the column name used as a primary key.
+func (tbl HookTable) PkColumn() string {
+	return tbl.pk
+}
+
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -167,11 +196,6 @@ func (tbl HookTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl HookTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
-
 
 //--------------------------------------------------------------------------------
 
@@ -182,8 +206,6 @@ const NumHookDataColumns = 16
 const HookColumnNames = "id,sha,after,before,category,created,deleted,forced,commit_id,message,timestamp,head_commit_author_name,head_commit_author_email,head_commit_author_username,head_commit_committer_name,head_commit_committer_email,head_commit_committer_username"
 
 const HookDataColumnNames = "sha,after,before,category,created,deleted,forced,commit_id,message,timestamp,head_commit_author_name,head_commit_author_email,head_commit_author_username,head_commit_committer_name,head_commit_committer_email,head_commit_committer_username"
-
-const HookPk = "id"
 
 //--------------------------------------------------------------------------------
 
@@ -498,7 +520,7 @@ func (tbl HookTable) GetHooksById(req require.Requirement, id ...uint64) (list H
 			args[i] = v
 		}
 
-		list, err = tbl.getHooks(req, "id", args...)
+		list, err = tbl.getHooks(req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -507,7 +529,7 @@ func (tbl HookTable) GetHooksById(req require.Requirement, id ...uint64) (list H
 // GetHookById gets the record with a given primary key value.
 // If not found, *Hook will be nil.
 func (tbl HookTable) GetHookById(req require.Requirement, id uint64) (*Hook, error) {
-	return tbl.getHook(req, "id", id)
+	return tbl.getHook(req, tbl.pk, id)
 }
 
 func (tbl HookTable) getHook(req require.Requirement, column string, arg interface{}) (*Hook, error) {
@@ -637,13 +659,6 @@ func (tbl HookTable) Count(wh where.Expression) (count int64, err error) {
 }
 
 //--------------------------------------------------------------------------------
-
-// SliceId gets the Id column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
-	return tbl.getuint64list(req, "id", wh, qc)
-}
 
 // SliceSha gets the Sha column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
@@ -1082,7 +1097,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
 	returning := ""
 	if tbl.Dialect().InsertHasReturningPhrase() {
-		returning = fmt.Sprintf(" returning %q", HookPk)
+		returning = fmt.Sprintf(" returning %q", tbl.pk)
 	}
 
 	for _, v := range vv {
@@ -1197,7 +1212,7 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 		}
 
 		io.WriteString(b, " WHERE ")
-		dialect.QuoteWithPlaceholder(b, "id", k)
+		dialect.QuoteWithPlaceholder(b, tbl.pk, k)
 
 		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
@@ -1229,7 +1244,7 @@ func (tbl HookTable) DeleteHooks(req require.Requirement, id ...uint64) (int64, 
 		max = len(id)
 	}
 	dialect := tbl.Dialect()
-	col := dialect.Quote("id")
+	col := dialect.Quote(tbl.pk)
 	args := make([]interface{}, max)
 
 	if len(id) > batch {

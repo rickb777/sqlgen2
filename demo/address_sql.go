@@ -16,7 +16,6 @@ import (
 	"github.com/rickb777/sqlgen2/where"
 	"io"
 	"log"
-	"strings"
 )
 
 // AddressTable holds a given table name with the database reference, providing access methods below.
@@ -28,6 +27,7 @@ type AddressTable struct {
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
 	ctx			context.Context
+	pk          string
 }
 
 // Type conformance checks
@@ -41,8 +41,15 @@ func NewAddressTable(name string, d *sqlgen2.Database) AddressTable {
 	if name == "" {
 		name = "addresses"
 	}
-	table := AddressTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
-	return table
+	var constraints constraint.Constraints
+	return AddressTable{
+		name:        sqlgen2.TableName{"", name},
+		database:    d,
+		db:          d.DB(),
+		constraints: constraints,
+		ctx:         context.Background(),
+		pk:          "id",
+	}
 }
 
 // CopyTableAsAddressTable copies a table instance, retaining the name etc but
@@ -57,8 +64,18 @@ func CopyTableAsAddressTable(origin sqlgen2.Table) AddressTable {
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         context.Background(),
+		pk:          "id",
 	}
 }
+
+
+// SetPkColumn sets the name of the primary key column. It defaults to "id".
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl AddressTable) SetPkColumn(pk string) AddressTable {
+	tbl.pk = pk
+	return tbl
+}
+
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -98,6 +115,11 @@ func (tbl AddressTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
+// Ctx gets the current request context.
+func (tbl AddressTable) Ctx() context.Context {
+	return tbl.ctx
+}
+
 // Dialect gets the database dialect.
 func (tbl AddressTable) Dialect() schema.Dialect {
 	return tbl.database.Dialect()
@@ -107,6 +129,13 @@ func (tbl AddressTable) Dialect() schema.Dialect {
 func (tbl AddressTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
+
+
+// PkColumn gets the column name used as a primary key.
+func (tbl AddressTable) PkColumn() string {
+	return tbl.pk
+}
+
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -168,11 +197,6 @@ func (tbl AddressTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl AddressTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
-
 
 //--------------------------------------------------------------------------------
 
@@ -183,8 +207,6 @@ const NumAddressDataColumns = 3
 const AddressColumnNames = "id,lines,town,postcode"
 
 const AddressDataColumnNames = "lines,town,postcode"
-
-const AddressPk = "id"
 
 //--------------------------------------------------------------------------------
 
@@ -551,7 +573,7 @@ func (tbl AddressTable) GetAddressesById(req require.Requirement, id ...int64) (
 			args[i] = v
 		}
 
-		list, err = tbl.getAddresses(req, "id", args...)
+		list, err = tbl.getAddresses(req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -560,7 +582,7 @@ func (tbl AddressTable) GetAddressesById(req require.Requirement, id ...int64) (
 // GetAddressById gets the record with a given primary key value.
 // If not found, *Address will be nil.
 func (tbl AddressTable) GetAddressById(req require.Requirement, id int64) (*Address, error) {
-	return tbl.getAddress(req, "id", id)
+	return tbl.getAddress(req, tbl.pk, id)
 }
 
 // GetAddressesByPostcode gets the records with a given [postcode] value.
@@ -702,13 +724,6 @@ func (tbl AddressTable) Count(wh where.Expression) (count int64, err error) {
 }
 
 //--------------------------------------------------------------------------------
-
-// SliceId gets the Id column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AddressTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64list(req, "id", wh, qc)
-}
 
 // SliceTown gets the Town column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
@@ -899,7 +914,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
 	returning := ""
 	if tbl.Dialect().InsertHasReturningPhrase() {
-		returning = fmt.Sprintf(" returning %q", AddressPk)
+		returning = fmt.Sprintf(" returning %q", tbl.pk)
 	}
 
 	for _, v := range vv {
@@ -1010,7 +1025,7 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 		}
 
 		io.WriteString(b, " WHERE ")
-		dialect.QuoteWithPlaceholder(b, "id", k)
+		dialect.QuoteWithPlaceholder(b, tbl.pk, k)
 
 		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
@@ -1042,7 +1057,7 @@ func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (i
 		max = len(id)
 	}
 	dialect := tbl.Dialect()
-	col := dialect.Quote("id")
+	col := dialect.Quote(tbl.pk)
 	args := make([]interface{}, max)
 
 	if len(id) > batch {

@@ -15,7 +15,6 @@ import (
 	"github.com/rickb777/sqlgen2/support"
 	"io"
 	"log"
-	"strings"
 )
 
 // CUserTable holds a given table name with the database reference, providing access methods below.
@@ -27,6 +26,7 @@ type CUserTable struct {
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
 	ctx			context.Context
+	pk          string
 }
 
 // Type conformance checks
@@ -40,11 +40,17 @@ func NewCUserTable(name string, d *sqlgen2.Database) CUserTable {
 	if name == "" {
 		name = "users"
 	}
-	table := CUserTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
-	table.constraints = append(table.constraints,
-		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
+	var constraints constraint.Constraints
+	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	
-	return table
+	return CUserTable{
+		name:        sqlgen2.TableName{"", name},
+		database:    d,
+		db:          d.DB(),
+		constraints: constraints,
+		ctx:         context.Background(),
+		pk:          "uid",
+	}
 }
 
 // CopyTableAsCUserTable copies a table instance, retaining the name etc but
@@ -59,8 +65,18 @@ func CopyTableAsCUserTable(origin sqlgen2.Table) CUserTable {
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         context.Background(),
+		pk:          "uid",
 	}
 }
+
+
+// SetPkColumn sets the name of the primary key column. It defaults to "uid".
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl CUserTable) SetPkColumn(pk string) CUserTable {
+	tbl.pk = pk
+	return tbl
+}
+
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -100,6 +116,11 @@ func (tbl CUserTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
+// Ctx gets the current request context.
+func (tbl CUserTable) Ctx() context.Context {
+	return tbl.ctx
+}
+
 // Dialect gets the database dialect.
 func (tbl CUserTable) Dialect() schema.Dialect {
 	return tbl.database.Dialect()
@@ -109,6 +130,13 @@ func (tbl CUserTable) Dialect() schema.Dialect {
 func (tbl CUserTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
+
+
+// PkColumn gets the column name used as a primary key.
+func (tbl CUserTable) PkColumn() string {
+	return tbl.pk
+}
+
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -170,11 +198,6 @@ func (tbl CUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl CUserTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
-
 
 //--------------------------------------------------------------------------------
 
@@ -185,8 +208,6 @@ const NumCUserDataColumns = 21
 const CUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 const CUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
-
-const CUserPk = "uid"
 
 //--------------------------------------------------------------------------------
 
@@ -375,7 +396,7 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
 	returning := ""
 	if tbl.Dialect().InsertHasReturningPhrase() {
-		returning = fmt.Sprintf(" returning %q", CUserPk)
+		returning = fmt.Sprintf(" returning %q", tbl.pk)
 	}
 
 	for _, v := range vv {

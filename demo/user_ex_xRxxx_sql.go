@@ -14,7 +14,6 @@ import (
 	"github.com/rickb777/sqlgen2/support"
 	"github.com/rickb777/sqlgen2/where"
 	"log"
-	"strings"
 )
 
 // RUserTable holds a given table name with the database reference, providing access methods below.
@@ -26,6 +25,7 @@ type RUserTable struct {
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
 	ctx			context.Context
+	pk          string
 }
 
 // Type conformance checks
@@ -39,11 +39,17 @@ func NewRUserTable(name string, d *sqlgen2.Database) RUserTable {
 	if name == "" {
 		name = "users"
 	}
-	table := RUserTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
-	table.constraints = append(table.constraints,
-		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
+	var constraints constraint.Constraints
+	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	
-	return table
+	return RUserTable{
+		name:        sqlgen2.TableName{"", name},
+		database:    d,
+		db:          d.DB(),
+		constraints: constraints,
+		ctx:         context.Background(),
+		pk:          "uid",
+	}
 }
 
 // CopyTableAsRUserTable copies a table instance, retaining the name etc but
@@ -58,8 +64,18 @@ func CopyTableAsRUserTable(origin sqlgen2.Table) RUserTable {
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         context.Background(),
+		pk:          "uid",
 	}
 }
+
+
+// SetPkColumn sets the name of the primary key column. It defaults to "uid".
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl RUserTable) SetPkColumn(pk string) RUserTable {
+	tbl.pk = pk
+	return tbl
+}
+
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -99,6 +115,11 @@ func (tbl RUserTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
+// Ctx gets the current request context.
+func (tbl RUserTable) Ctx() context.Context {
+	return tbl.ctx
+}
+
 // Dialect gets the database dialect.
 func (tbl RUserTable) Dialect() schema.Dialect {
 	return tbl.database.Dialect()
@@ -108,6 +129,13 @@ func (tbl RUserTable) Dialect() schema.Dialect {
 func (tbl RUserTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
+
+
+// PkColumn gets the column name used as a primary key.
+func (tbl RUserTable) PkColumn() string {
+	return tbl.pk
+}
+
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -169,11 +197,6 @@ func (tbl RUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl RUserTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
-
 
 //--------------------------------------------------------------------------------
 
@@ -184,8 +207,6 @@ const NumRUserDataColumns = 21
 const RUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 const RUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
-
-const RUserPk = "uid"
 
 //--------------------------------------------------------------------------------
 
@@ -383,7 +404,7 @@ func (tbl RUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list 
 			args[i] = v
 		}
 
-		list, err = tbl.getUsers(req, "uid", args...)
+		list, err = tbl.getUsers(req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -392,7 +413,7 @@ func (tbl RUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list 
 // GetUserByUid gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl RUserTable) GetUserByUid(req require.Requirement, id int64) (*User, error) {
-	return tbl.getUser(req, "uid", id)
+	return tbl.getUser(req, tbl.pk, id)
 }
 
 // GetUserByEmailAddress gets the record with a given [emailaddress] value.

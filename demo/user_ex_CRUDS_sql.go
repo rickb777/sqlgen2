@@ -16,7 +16,6 @@ import (
 	"github.com/rickb777/sqlgen2/where"
 	"io"
 	"log"
-	"strings"
 )
 
 // AUserTable holds a given table name with the database reference, providing access methods below.
@@ -28,6 +27,7 @@ type AUserTable struct {
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
 	ctx			context.Context
+	pk          string
 }
 
 // Type conformance checks
@@ -41,11 +41,17 @@ func NewAUserTable(name string, d *sqlgen2.Database) AUserTable {
 	if name == "" {
 		name = "users"
 	}
-	table := AUserTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
-	table.constraints = append(table.constraints,
-		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
+	var constraints constraint.Constraints
+	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	
-	return table
+	return AUserTable{
+		name:        sqlgen2.TableName{"", name},
+		database:    d,
+		db:          d.DB(),
+		constraints: constraints,
+		ctx:         context.Background(),
+		pk:          "uid",
+	}
 }
 
 // CopyTableAsAUserTable copies a table instance, retaining the name etc but
@@ -60,8 +66,18 @@ func CopyTableAsAUserTable(origin sqlgen2.Table) AUserTable {
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         context.Background(),
+		pk:          "uid",
 	}
 }
+
+
+// SetPkColumn sets the name of the primary key column. It defaults to "uid".
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl AUserTable) SetPkColumn(pk string) AUserTable {
+	tbl.pk = pk
+	return tbl
+}
+
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -101,6 +117,11 @@ func (tbl AUserTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
+// Ctx gets the current request context.
+func (tbl AUserTable) Ctx() context.Context {
+	return tbl.ctx
+}
+
 // Dialect gets the database dialect.
 func (tbl AUserTable) Dialect() schema.Dialect {
 	return tbl.database.Dialect()
@@ -110,6 +131,13 @@ func (tbl AUserTable) Dialect() schema.Dialect {
 func (tbl AUserTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
+
+
+// PkColumn gets the column name used as a primary key.
+func (tbl AUserTable) PkColumn() string {
+	return tbl.pk
+}
+
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -171,11 +199,6 @@ func (tbl AUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl AUserTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
-
 
 //--------------------------------------------------------------------------------
 
@@ -186,8 +209,6 @@ const NumAUserDataColumns = 21
 const AUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 const AUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
-
-const AUserPk = "uid"
 
 //--------------------------------------------------------------------------------
 
@@ -672,7 +693,7 @@ func (tbl AUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list 
 			args[i] = v
 		}
 
-		list, err = tbl.getUsers(req, "uid", args...)
+		list, err = tbl.getUsers(req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -681,7 +702,7 @@ func (tbl AUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list 
 // GetUserByUid gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl AUserTable) GetUserByUid(req require.Requirement, id int64) (*User, error) {
-	return tbl.getUser(req, "uid", id)
+	return tbl.getUser(req, tbl.pk, id)
 }
 
 // GetUserByEmailAddress gets the record with a given [emailaddress] value.
@@ -823,13 +844,6 @@ func (tbl AUserTable) Count(wh where.Expression) (count int64, err error) {
 }
 
 //--------------------------------------------------------------------------------
-
-// SliceUid gets the Uid column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64list(req, "uid", wh, qc)
-}
 
 // SliceName gets the Name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
@@ -1616,7 +1630,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
 	returning := ""
 	if tbl.Dialect().InsertHasReturningPhrase() {
-		returning = fmt.Sprintf(" returning %q", AUserPk)
+		returning = fmt.Sprintf(" returning %q", tbl.pk)
 	}
 
 	for _, v := range vv {
@@ -1727,7 +1741,7 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 		}
 
 		io.WriteString(b, " WHERE ")
-		dialect.QuoteWithPlaceholder(b, "uid", k)
+		dialect.QuoteWithPlaceholder(b, tbl.pk, k)
 
 		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
@@ -1759,7 +1773,7 @@ func (tbl AUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 		max = len(id)
 	}
 	dialect := tbl.Dialect()
-	col := dialect.Quote("uid")
+	col := dialect.Quote(tbl.pk)
 	args := make([]interface{}, max)
 
 	if len(id) > batch {

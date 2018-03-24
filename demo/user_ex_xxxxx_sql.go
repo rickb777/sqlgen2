@@ -11,7 +11,6 @@ import (
 	"github.com/rickb777/sqlgen2/schema"
 	"github.com/rickb777/sqlgen2/support"
 	"log"
-	"strings"
 )
 
 // XUserTable holds a given table name with the database reference, providing access methods below.
@@ -23,6 +22,7 @@ type XUserTable struct {
 	db          sqlgen2.Execer
 	constraints constraint.Constraints
 	ctx			context.Context
+	pk          string
 }
 
 // Type conformance checks
@@ -36,11 +36,17 @@ func NewXUserTable(name string, d *sqlgen2.Database) XUserTable {
 	if name == "" {
 		name = "users"
 	}
-	table := XUserTable{sqlgen2.TableName{"", name}, d, d.DB(), nil, context.Background()}
-	table.constraints = append(table.constraints,
-		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
+	var constraints constraint.Constraints
+	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	
-	return table
+	return XUserTable{
+		name:        sqlgen2.TableName{"", name},
+		database:    d,
+		db:          d.DB(),
+		constraints: constraints,
+		ctx:         context.Background(),
+		pk:          "uid",
+	}
 }
 
 // CopyTableAsXUserTable copies a table instance, retaining the name etc but
@@ -55,8 +61,18 @@ func CopyTableAsXUserTable(origin sqlgen2.Table) XUserTable {
 		db:          origin.DB(),
 		constraints: nil,
 		ctx:         context.Background(),
+		pk:          "uid",
 	}
 }
+
+
+// SetPkColumn sets the name of the primary key column. It defaults to "uid".
+// The result is a modified copy of the table; the original is unchanged.
+func (tbl XUserTable) SetPkColumn(pk string) XUserTable {
+	tbl.pk = pk
+	return tbl
+}
+
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -96,6 +112,11 @@ func (tbl XUserTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
+// Ctx gets the current request context.
+func (tbl XUserTable) Ctx() context.Context {
+	return tbl.ctx
+}
+
 // Dialect gets the database dialect.
 func (tbl XUserTable) Dialect() schema.Dialect {
 	return tbl.database.Dialect()
@@ -105,6 +126,13 @@ func (tbl XUserTable) Dialect() schema.Dialect {
 func (tbl XUserTable) Name() sqlgen2.TableName {
 	return tbl.name
 }
+
+
+// PkColumn gets the column name used as a primary key.
+func (tbl XUserTable) PkColumn() string {
+	return tbl.pk
+}
+
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -166,11 +194,6 @@ func (tbl XUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-// ReplaceTableName replaces all occurrences of "{TABLE}" with the table's name.
-func (tbl XUserTable) ReplaceTableName(query string) string {
-	return strings.Replace(query, "{TABLE}", tbl.name.String(), -1)
-}
-
 
 //--------------------------------------------------------------------------------
 
@@ -181,8 +204,6 @@ const NumXUserDataColumns = 21
 const XUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 const XUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
-
-const XUserPk = "uid"
 
 //--------------------------------------------------------------------------------
 

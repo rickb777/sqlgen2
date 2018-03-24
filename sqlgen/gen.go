@@ -198,7 +198,6 @@ func packagesToImport(flags funcFlags, hasPrimaryKey bool) util.StringSet {
 		"context",
 		"database/sql",
 		"log",
-		"strings",
 		"github.com/rickb777/sqlgen2",
 		"github.com/rickb777/sqlgen2/constraint",
 		"github.com/rickb777/sqlgen2/require",
