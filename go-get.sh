@@ -15,7 +15,8 @@ function getBinary
   fi
 }
 
-getBinary dep       github.com/golang/dep/cmd/dep
-getBinary goveralls github.com/mattn/goveralls
+getBinary dep         github.com/golang/dep/cmd/dep
+getBinary runtemplate github.com/rickb777/runtemplate
+getBinary goveralls   github.com/mattn/goveralls
 
 dep ensure

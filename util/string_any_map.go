@@ -113,9 +113,16 @@ func (mm *StringAnyMap) Clear() {
 	*mm = make(map[string]interface{})
 }
 
-// Remove allows the removal of a single item from the map.
+// Remove a single item from the map.
 func (mm StringAnyMap) Remove(k string) {
 	delete(mm, k)
+}
+
+// Pop removes a single item from the map, returning the value present until removal.
+func (mm StringAnyMap) Pop(k string) (interface{}, bool) {
+	v, found := mm[k]
+	delete(mm, k)
+	return v, found
 }
 
 // Size returns how minterface{} items are currently in the map. This is a synonym for Len.
@@ -131,6 +138,27 @@ func (mm StringAnyMap) IsEmpty() bool {
 // NonEmpty returns true if the map is not empty.
 func (mm StringAnyMap) NonEmpty() bool {
 	return mm.Size() > 0
+}
+
+// DropWhere applies a predicate function to every element in the map. If the function returns true,
+// the element is dropped from the map.
+func (mm StringAnyMap) DropWhere(fn func(string, interface{}) bool) StringAnyTuples {
+	removed := make(StringAnyTuples, 0)
+	for k, v := range mm {
+		if fn(k, v) {
+			removed = append(removed, StringAnyTuple{k, v})
+			delete(mm, k)
+		}
+	}
+	return removed
+}
+
+// Foreach applies a function to every element in the map.
+// The function can safely alter the values via side-effects.
+func (mm StringAnyMap) Foreach(fn func(string, interface{})) {
+	for k, v := range mm {
+		fn(k, v)
+	}
 }
 
 // Forall applies a predicate function to every element in the map. If the function returns false,
@@ -158,6 +186,19 @@ func (mm StringAnyMap) Exists(fn func(string, interface{}) bool) bool {
 		}
 	}
 	return false
+}
+
+// Find returns the first interface{} that returns true for some function.
+// False is returned if none match.
+// The original map is not modified
+func (mm StringAnyMap) Find(fn func(string, interface{}) bool) (StringAnyTuple, bool) {
+	for k, v := range mm {
+		if fn(k, v) {
+			return StringAnyTuple{k, v}, true
+		}
+	}
+
+	return StringAnyTuple{}, false
 }
 
 // Filter applies a predicate function to every element in the map and returns a copied map containing
