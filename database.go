@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+	"github.com/rickb777/sqlgen2/require"
 )
 
 // Database wraps a *sql.DB with a dialect and (optionally) a logger.
@@ -186,6 +187,230 @@ func (database *Database) LogError(err error) error {
 		database.logger.Printf("Error: %s\n", err)
 	}
 	return err
+}
+
+//-------------------------------------------------------------------------------------------------
+
+
+// ScanStringList processes result rows to extract a list of strings.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanStringList(req require.Requirement, rows *sql.Rows) ([]string, error) {
+	var v string
+	list := make([]string, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+// ScanIntList processes result rows to extract a list of ints.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanIntList(req require.Requirement, rows *sql.Rows) ([]int, error) {
+	var v int
+	list := make([]int, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+// ScanUintList processes result rows to extract a list of uints.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanUintList(req require.Requirement, rows *sql.Rows) ([]uint, error) {
+	var v uint
+	list := make([]uint, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+// ScanInt64List processes result rows to extract a list of int64s.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanInt64List(req require.Requirement, rows *sql.Rows) ([]int64, error) {
+	var v int64
+	list := make([]int64, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+// ScanUint64List processes result rows to extract a list of uint64s.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanUint64List(req require.Requirement, rows *sql.Rows) ([]uint64, error) {
+	var v uint64
+	list := make([]uint64, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+// ScanInt32List processes result rows to extract a list of int32s.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanInt32List(req require.Requirement, rows *sql.Rows) ([]int32, error) {
+	var v int32
+	list := make([]int32, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+// ScanUint32List processes result rows to extract a list of uint32s.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanUint32List(req require.Requirement, rows *sql.Rows) ([]uint32, error) {
+	var v uint32
+	list := make([]uint32, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+// ScanInt16List processes result rows to extract a list of int32s.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanInt16List(req require.Requirement, rows *sql.Rows) ([]int16, error) {
+	var v int16
+	list := make([]int16, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+// ScanUint16List processes result rows to extract a list of uint16s.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanUint16List(req require.Requirement, rows *sql.Rows) ([]uint16, error) {
+	var v uint16
+	list := make([]uint16, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+// ScanInt8List processes result rows to extract a list of int8s.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanInt8List(req require.Requirement, rows *sql.Rows) ([]int8, error) {
+	var v int8
+	list := make([]int8, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+// ScanUint8List processes result rows to extract a list of uint8s.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanUint8List(req require.Requirement, rows *sql.Rows) ([]uint8, error) {
+	var v uint8
+	list := make([]uint8, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+// ScanFloat32List processes result rows to extract a list of float32s.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanFloat32List(req require.Requirement, rows *sql.Rows) ([]float32, error) {
+	var v float32
+	list := make([]float32, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+// ScanFloat64List processes result rows to extract a list of float64s.
+// The result set should have been produced via a SELECT statement on just one column.
+func (database *Database) ScanFloat64List(req require.Requirement, rows *sql.Rows) ([]float64, error) {
+	var v float64
+	list := make([]float64, 0, 10)
+
+	for rows.Next() {
+		err := rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 //-------------------------------------------------------------------------------------------------

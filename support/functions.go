@@ -45,32 +45,155 @@ func QueryOneNullThing(tbl sqlgen2.Table, req require.Requirement, holder interf
 
 //-------------------------------------------------------------------------------------------------
 
-func GetInt64List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	dialect := tbl.Dialect()
-	database := tbl.Database()
-
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.Name(), whs, orderBy)
-
+// SliceStringList requests a columnar slice of strings from a specified column.
+func SliceStringList(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
 	rows, err := tbl.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+	return tbl.Database().ScanStringList(req, rows)
+}
 
-	var v int64
-	list := make([]int64, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, database.LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
+// SliceIntList requests a columnar slice of ints from a specified column.
+func SliceIntList(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
 	}
-	return list, database.LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	defer rows.Close()
+	return tbl.Database().ScanIntList(req, rows)
+}
+
+// SliceUintList requests a columnar slice of uints from a specified column.
+func SliceUintList(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return tbl.Database().ScanUintList(req, rows)
+}
+
+// SliceInt64List requests a columnar slice of int64s from a specified column.
+func SliceInt64List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return tbl.Database().ScanInt64List(req, rows)
+}
+
+// SliceUint64List requests a columnar slice of uint64s from a specified column.
+func SliceUint64List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return tbl.Database().ScanUint64List(req, rows)
+}
+
+// SliceInt32List requests a columnar slice of int32s from a specified column.
+func SliceInt32List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return tbl.Database().ScanInt32List(req, rows)
+}
+
+// SliceUint32List requests a columnar slice of uint32s from a specified column.
+func SliceUint32List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return tbl.Database().ScanUint32List(req, rows)
+}
+
+// SliceInt16List requests a columnar slice of int16s from a specified column.
+func SliceInt16List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return tbl.Database().ScanInt16List(req, rows)
+}
+
+// SliceUint16List requests a columnar slice of uint16s from a specified column.
+func SliceUint16List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return tbl.Database().ScanUint16List(req, rows)
+}
+
+// SliceInt8List requests a columnar slice of int8s from a specified column.
+func SliceInt8List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return tbl.Database().ScanInt8List(req, rows)
+}
+
+// SliceUint8List requests a columnar slice of uint8 from a specified column.
+func SliceUint8List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return tbl.Database().ScanUint8List(req, rows)
+}
+
+// SliceFloat32List requests a columnar slice of float32s from a specified column.
+func SliceFloat32List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return tbl.Database().ScanFloat32List(req, rows)
+}
+
+// SliceFloat64List requests a columnar slice of float64s from a specified column.
+func SliceFloat64List(tbl sqlgen2.Table, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+	query, args := sliceSql(tbl, sqlname, wh, qc)
+	rows, err := tbl.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return tbl.Database().ScanFloat64List(req, rows)
+}
+
+
+func sliceSql(tbl sqlgen2.Table, sqlname string, wh where.Expression, qc where.QueryConstraint) (string, []interface{}) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	return fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.Name(), whs, orderBy), args
 }
 
 //-------------------------------------------------------------------------------------------------

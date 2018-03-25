@@ -664,122 +664,101 @@ func (tbl HookTable) Count(wh where.Expression) (count int64, err error) {
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
-	return tbl.getuint64list(req, tbl.pk, wh, qc)
+	return tbl.sliceUint64List(req, tbl.pk, wh, qc)
 }
 
 // SliceSha gets the sha column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceSha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist(req, "sha", wh, qc)
+	return tbl.sliceStringList(req, "sha", wh, qc)
 }
 
 // SliceAfter gets the after column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceAfter(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist(req, "after", wh, qc)
+	return tbl.sliceStringList(req, "after", wh, qc)
 }
 
 // SliceBefore gets the before column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceBefore(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist(req, "before", wh, qc)
+	return tbl.sliceStringList(req, "before", wh, qc)
 }
 
 // SliceCategory gets the category column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return tbl.getCategorylist(req, "category", wh, qc)
-}
-
-// SliceCreated gets the created column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceCreated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
-	return tbl.getboollist(req, "created", wh, qc)
-}
-
-// SliceDeleted gets the deleted column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceDeleted(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
-	return tbl.getboollist(req, "deleted", wh, qc)
-}
-
-// SliceForced gets the forced column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceForced(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
-	return tbl.getboollist(req, "forced", wh, qc)
+	return tbl.sliceCategoryList(req, "category", wh, qc)
 }
 
 // SliceCommitId gets the commit_id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceCommitId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist(req, "commit_id", wh, qc)
+	return tbl.sliceStringList(req, "commit_id", wh, qc)
 }
 
 // SliceMessage gets the message column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceMessage(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist(req, "message", wh, qc)
+	return tbl.sliceStringList(req, "message", wh, qc)
 }
 
 // SliceTimestamp gets the timestamp column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceTimestamp(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist(req, "timestamp", wh, qc)
+	return tbl.sliceStringList(req, "timestamp", wh, qc)
 }
 
 // SliceHeadCommitAuthorName gets the head_commit_author_name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitAuthorName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist(req, "head_commit_author_name", wh, qc)
+	return tbl.sliceStringList(req, "head_commit_author_name", wh, qc)
 }
 
 // SliceHeadCommitAuthorEmail gets the head_commit_author_email column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitAuthorEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
-	return tbl.getEmaillist(req, "head_commit_author_email", wh, qc)
+	return tbl.sliceEmailList(req, "head_commit_author_email", wh, qc)
 }
 
 // SliceHeadCommitAuthorUsername gets the head_commit_author_username column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitAuthorUsername(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist(req, "head_commit_author_username", wh, qc)
+	return tbl.sliceStringList(req, "head_commit_author_username", wh, qc)
 }
 
 // SliceHeadCommitCommitterName gets the head_commit_committer_name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitCommitterName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist(req, "head_commit_committer_name", wh, qc)
+	return tbl.sliceStringList(req, "head_commit_committer_name", wh, qc)
 }
 
 // SliceHeadCommitCommitterEmail gets the head_commit_committer_email column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitCommitterEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
-	return tbl.getEmaillist(req, "head_commit_committer_email", wh, qc)
+	return tbl.sliceEmailList(req, "head_commit_committer_email", wh, qc)
 }
 
 // SliceHeadCommitCommitterUsername gets the head_commit_committer_username column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitCommitterUsername(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.getstringlist(req, "head_commit_committer_username", wh, qc)
+	return tbl.sliceStringList(req, "head_commit_committer_username", wh, qc)
 }
 
-func (tbl HookTable) getCategorylist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+func (tbl HookTable) sliceCategoryList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	dialect := tbl.Dialect()
 	whs, args := where.BuildExpression(wh, dialect)
 	orderBy := where.BuildQueryConstraint(qc, dialect)
@@ -805,7 +784,7 @@ func (tbl HookTable) getCategorylist(req require.Requirement, sqlname string, wh
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl HookTable) getEmaillist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+func (tbl HookTable) sliceEmailList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
 	dialect := tbl.Dialect()
 	whs, args := where.BuildExpression(wh, dialect)
 	orderBy := where.BuildQueryConstraint(qc, dialect)
@@ -831,33 +810,7 @@ func (tbl HookTable) getEmaillist(req require.Requirement, sqlname string, wh wh
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl HookTable) getboollist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v bool
-	list := make([]bool, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl HookTable) getstringlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl HookTable) sliceStringList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	dialect := tbl.Dialect()
 	whs, args := where.BuildExpression(wh, dialect)
 	orderBy := where.BuildQueryConstraint(qc, dialect)
@@ -883,7 +836,7 @@ func (tbl HookTable) getstringlist(req require.Requirement, sqlname string, wh w
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl HookTable) getuint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+func (tbl HookTable) sliceUint64List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
 	dialect := tbl.Dialect()
 	whs, args := where.BuildExpression(wh, dialect)
 	orderBy := where.BuildQueryConstraint(qc, dialect)

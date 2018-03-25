@@ -283,7 +283,7 @@ const sSliceItem = `
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Slice{{camel .Table.Primary.SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Table.Primary.Type.Type}}, error) {
-	return tbl.get{{.Table.Primary.Type.Tag}}list(req, tbl.pk, wh, qc)
+	return tbl.slice{{camel .Table.Primary.Type.Tag}}List(req, tbl.pk, wh, qc)
 }
 {{end -}}
 {{range .Table.SimpleFields.NoSkipOrPrimary}}
@@ -291,11 +291,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Slice{{camel .Table.Primary.SqlName}}(
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error) {
-	return tbl.get{{.Type.Tag}}list(req, "{{.SqlName}}", wh, qc)
+	return tbl.slice{{camel .Type.Tag}}List(req, "{{.SqlName}}", wh, qc)
 }
 {{end -}}
 {{range .Table.SimpleFields.NoSkips.DistinctTypes}}
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) get{{.Tag}}list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) slice{{camel .Tag}}List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
 	dialect := tbl.Dialect()
 	whs, args := where.BuildExpression(wh, dialect)
 	orderBy := where.BuildQueryConstraint(qc, dialect)

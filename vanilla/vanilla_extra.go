@@ -3,101 +3,97 @@ package vanilla
 import (
 	"github.com/rickb777/sqlgen2/require"
 	"github.com/rickb777/sqlgen2/where"
-	"fmt"
-	"database/sql"
+	"github.com/rickb777/sqlgen2/support"
 )
+
+// SliceStringColumn gets a string column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl RecordTable) SliceStringColumn(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, column, wh, qc)
+}
+
+// SliceIntColumn gets an int column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl RecordTable) SliceIntColumn(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]int, error) {
+	return support.SliceIntList(tbl, req, column, wh, qc)
+}
+
+// SliceUintColumn gets a uint column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl RecordTable) SliceUintColumn(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]uint, error) {
+	return support.SliceUintList(tbl, req, column, wh, qc)
+}
 
 // SliceInt64Column gets an int64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl RecordTable) SliceInt64Column(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64list(req, column, wh, qc)
+	return support.SliceInt64List(tbl, req, column, wh, qc)
+}
+
+// SliceUint64Column gets a uint64 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl RecordTable) SliceUint64Column(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+	return support.SliceUint64List(tbl, req, column, wh, qc)
 }
 
 // SliceInt32Column gets an int32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl RecordTable) SliceInt32Column(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v int32
-	list := make([]int32, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+func (tbl RecordTable) SliceInt32Column(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
+	return support.SliceInt32List(tbl, req, column, wh, qc)
 }
 
 // SliceUint32Column gets a uint32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl RecordTable) SliceUint32Column(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v uint32
-	list := make([]uint32, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+func (tbl RecordTable) SliceUint32Column(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
+	return support.SliceUint32List(tbl, req, column, wh, qc)
 }
 
-// SliceStringColumn gets a string column for all rows that match the 'where' condition.
+// SliceInt16Column gets an int16 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl RecordTable) SliceStringColumn(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
+func (tbl RecordTable) SliceInt16Column(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
+	return support.SliceInt16List(tbl, req, column, wh, qc)
+}
 
-	var v string
-	list := make([]string, 0, 10)
+// SliceUint16Column gets a uint16 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl RecordTable) SliceUint16Column(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
+	return support.SliceUint16List(tbl, req, column, wh, qc)
+}
 
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+// SliceInt8Column gets an int8 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl RecordTable) SliceInt8Column(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
+	return support.SliceInt8List(tbl, req, column, wh, qc)
+}
+
+// SliceUint8Column gets a uint8 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl RecordTable) SliceUint8Column(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
+	return support.SliceUint8List(tbl, req, column, wh, qc)
+}
+
+// SliceFloat32Column gets a float32 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl RecordTable) SliceFloat32Column(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+	return support.SliceFloat32List(tbl, req, column, wh, qc)
+}
+
+// SliceFloat64Column gets a float64 column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl RecordTable) SliceFloat64Column(req require.Requirement, column string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+	return support.SliceFloat64List(tbl, req, column, wh, qc)
 }
 

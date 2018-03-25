@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	. "github.com/rickb777/sqlgen2/sqlgen/parse"
 	"strings"
 	"sort"
 	"fmt"
@@ -44,7 +44,7 @@ type Field struct {
 	Node
 	SqlName string
 	Encode  SqlEncode
-	Tags    parse.Tag
+	Tags    Tag
 }
 
 type Index struct {
@@ -90,7 +90,13 @@ func (t *TableDescription) SimpleFields() FieldList {
 	list := make(FieldList, 0, len(t.Fields))
 	for _, f := range t.Fields {
 		if f.Encode == ENCNONE && f.IsExported() {
-			list = append(list, f)
+			switch f.Type.Base {
+			case String, // Bool is not provided
+				Int, Int8, Int16, Int32, Int64,
+				Uint, Uint8, Uint16, Uint32, Uint64,
+				Float32, Float64:
+				list = append(list, f)
+			}
 		}
 	}
 	return list
@@ -198,7 +204,7 @@ func (list FieldList) SqlNames() Identifiers {
 	return ids
 }
 
-func (list FieldList) FilterNot(predicate func (*Field) bool) FieldList {
+func (list FieldList) FilterNot(predicate func(*Field) bool) FieldList {
 	filtered := make(FieldList, 0, len(list))
 	for _, field := range list {
 		if predicate(field) {
@@ -208,20 +214,26 @@ func (list FieldList) FilterNot(predicate func (*Field) bool) FieldList {
 	return filtered
 }
 
+func (list FieldList) Pointers() FieldList {
+	return list.FilterNot(func(field *Field) bool {
+		return !field.Type.IsPtr
+	})
+}
+
 func (list FieldList) NoSkips() FieldList {
-	return list.FilterNot(func (field *Field) bool {
+	return list.FilterNot(func(field *Field) bool {
 		return !field.Tags.Skip
 	})
 }
 
 func (list FieldList) NoSkipOrPrimary() FieldList {
-	return list.FilterNot(func (field *Field) bool {
+	return list.FilterNot(func(field *Field) bool {
 		return !field.Tags.Skip && !field.Tags.Primary
 	})
 }
 
 func (list FieldList) NonAuto() FieldList {
-	return list.FilterNot(func (field *Field) bool {
+	return list.FilterNot(func(field *Field) bool {
 		return !field.Tags.Auto
 	})
 }
