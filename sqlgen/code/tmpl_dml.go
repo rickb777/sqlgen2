@@ -120,15 +120,15 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(
 {{end -}}
 {{range .Table.Index -}}
 {{if .Unique -}}
-// Get{{$.Type}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames}} value{{if not .Single}}s{{end}}.
+// Get{{$.Type}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
 // If not found, *{{$.Type}} will be nil.
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.Type}}, error) {
 	return tbl.SelectOne(req, where.And({{.Fields.WhereClauses.MkString ", "}}), nil)
 }
 
 {{ else -}}
-// Get{{$.Types}}By{{.JoinedNames "And"}} gets the records with{{if .Single}} a{{end}} given {{.Fields.SqlNames}} value{{if not .Single}}s{{end}}.
-// If not found, {{$.List}} will be empty (nil).
+// Get{{$.Types}}By{{.JoinedNames "And"}} gets the records with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
+// If not found, the resulting slice will be empty (nil).
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error) {
 	return tbl.Select(req, where.And({{.Fields.WhereClauses.MkString ", "}}), nil)
 }
@@ -278,14 +278,22 @@ var tCountRows = template.Must(template.New("CountRows").Funcs(funcMap).Parse(sC
 
 const sSliceItem = `
 //--------------------------------------------------------------------------------
+{{if .Table.HasPrimaryKey}}
+// Slice{{camel .Table.Primary.SqlName}} gets the {{.Table.Primary.SqlName}} column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Slice{{camel .Table.Primary.SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Table.Primary.Type.Type}}, error) {
+	return tbl.get{{.Table.Primary.Type.Tag}}list(req, tbl.pk, wh, qc)
+}
+{{end -}}
 {{range .Table.SimpleFields.NoSkipOrPrimary}}
-// Slice{{.Name}} gets the {{.Name}} column for all rows that match the 'where' condition.
+// Slice{{camel .SqlName}} gets the {{.SqlName}} column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error) {
 	return tbl.get{{.Type.Tag}}list(req, "{{.SqlName}}", wh, qc)
 }
-{{end}}
+{{end -}}
 {{range .Table.SimpleFields.NoSkips.DistinctTypes}}
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) get{{.Tag}}list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
 	dialect := tbl.Dialect()

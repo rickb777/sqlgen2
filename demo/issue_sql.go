@@ -557,8 +557,8 @@ func (tbl IssueTable) GetIssueById(req require.Requirement, id int64) (*Issue, e
 	return tbl.getIssue(req, tbl.pk, id)
 }
 
-// GetIssuesByAssignee gets the records with a given [assignee] value.
-// If not found, []*Issue will be empty (nil).
+// GetIssuesByAssignee gets the records with a given assignee value.
+// If not found, the resulting slice will be empty (nil).
 func (tbl IssueTable) GetIssuesByAssignee(req require.Requirement, assignee string) ([]*Issue, error) {
 	return tbl.Select(req, where.And(where.Eq("assignee", assignee)), nil)
 }
@@ -691,48 +691,54 @@ func (tbl IssueTable) Count(wh where.Expression) (count int64, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SliceNumber gets the Number column for all rows that match the 'where' condition.
+// SliceId gets the id column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl IssueTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64list(req, tbl.pk, wh, qc)
+}
+
+// SliceNumber gets the number column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl IssueTable) SliceNumber(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int, error) {
 	return tbl.getintlist(req, "number", wh, qc)
 }
 
-// SliceDate gets the Date column for all rows that match the 'where' condition.
+// SliceDate gets the date column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl IssueTable) SliceDate(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Date, error) {
 	return tbl.getDatelist(req, "date", wh, qc)
 }
 
-// SliceTitle gets the Title column for all rows that match the 'where' condition.
+// SliceTitle gets the title column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl IssueTable) SliceTitle(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist(req, "title", wh, qc)
 }
 
-// SliceBody gets the Body column for all rows that match the 'where' condition.
+// SliceBigbody gets the bigbody column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl IssueTable) SliceBigbody(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist(req, "bigbody", wh, qc)
 }
 
-// SliceAssignee gets the Assignee column for all rows that match the 'where' condition.
+// SliceAssignee gets the assignee column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl IssueTable) SliceAssignee(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist(req, "assignee", wh, qc)
 }
 
-// SliceState gets the State column for all rows that match the 'where' condition.
+// SliceState gets the state column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl IssueTable) SliceState(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist(req, "state", wh, qc)
 }
-
 
 func (tbl IssueTable) getDatelist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Date, error) {
 	dialect := tbl.Dialect()

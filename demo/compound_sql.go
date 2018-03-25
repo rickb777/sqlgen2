@@ -473,7 +473,7 @@ var allDbCompoundQuotedColumnNames = []string{
 	schema.Postgres.SplitAndQuote(DbCompoundColumnNames),
 }
 
-// GetCompoundByAlphaAndBeta gets the record with given [alpha beta] values.
+// GetCompoundByAlphaAndBeta gets the record with given alpha+beta values.
 // If not found, *Compound will be nil.
 func (tbl DbCompoundTable) GetCompoundByAlphaAndBeta(req require.Requirement, alpha string, beta string) (*Compound, error) {
 	return tbl.SelectOne(req, where.And(where.Eq("alpha", alpha), where.Eq("beta", beta)), nil)
@@ -607,21 +607,21 @@ func (tbl DbCompoundTable) Count(wh where.Expression) (count int64, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SliceAlpha gets the Alpha column for all rows that match the 'where' condition.
+// SliceAlpha gets the alpha column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbCompoundTable) SliceAlpha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist(req, "alpha", wh, qc)
 }
 
-// SliceBeta gets the Beta column for all rows that match the 'where' condition.
+// SliceBeta gets the beta column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbCompoundTable) SliceBeta(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist(req, "beta", wh, qc)
 }
 
-// SliceCategory gets the Category column for all rows that match the 'where' condition.
+// SliceCategory gets the category column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbCompoundTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {

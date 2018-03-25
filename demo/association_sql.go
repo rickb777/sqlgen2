@@ -609,41 +609,47 @@ func (tbl AssociationTable) Count(wh where.Expression) (count int64, err error) 
 
 //--------------------------------------------------------------------------------
 
-// SliceName gets the Name column for all rows that match the 'where' condition.
+// SliceId gets the id column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl AssociationTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64list(req, tbl.pk, wh, qc)
+}
+
+// SliceName gets the name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringPtrlist(req, "name", wh, qc)
 }
 
-// SliceQuality gets the Quality column for all rows that match the 'where' condition.
+// SliceQuality gets the quality column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringPtrlist(req, "quality", wh, qc)
 }
 
-// SliceRef1 gets the Ref1 column for all rows that match the 'where' condition.
+// SliceRef1 gets the ref1 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceRef1(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64Ptrlist(req, "ref1", wh, qc)
 }
 
-// SliceRef2 gets the Ref2 column for all rows that match the 'where' condition.
+// SliceRef2 gets the ref2 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceRef2(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64Ptrlist(req, "ref2", wh, qc)
 }
 
-// SliceCategory gets the Category column for all rows that match the 'where' condition.
+// SliceCategory gets the category column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	return tbl.getCategoryPtrlist(req, "category", wh, qc)
 }
-
 
 func (tbl AssociationTable) getCategoryPtrlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	dialect := tbl.Dialect()

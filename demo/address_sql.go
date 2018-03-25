@@ -585,14 +585,14 @@ func (tbl AddressTable) GetAddressById(req require.Requirement, id int64) (*Addr
 	return tbl.getAddress(req, tbl.pk, id)
 }
 
-// GetAddressesByPostcode gets the records with a given [postcode] value.
-// If not found, []*Address will be empty (nil).
+// GetAddressesByPostcode gets the records with a given postcode value.
+// If not found, the resulting slice will be empty (nil).
 func (tbl AddressTable) GetAddressesByPostcode(req require.Requirement, postcode string) ([]*Address, error) {
 	return tbl.Select(req, where.And(where.Eq("postcode", postcode)), nil)
 }
 
-// GetAddressesByTown gets the records with a given [town] value.
-// If not found, []*Address will be empty (nil).
+// GetAddressesByTown gets the records with a given town value.
+// If not found, the resulting slice will be empty (nil).
 func (tbl AddressTable) GetAddressesByTown(req require.Requirement, town string) ([]*Address, error) {
 	return tbl.Select(req, where.And(where.Eq("town", town)), nil)
 }
@@ -725,20 +725,26 @@ func (tbl AddressTable) Count(wh where.Expression) (count int64, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SliceTown gets the Town column for all rows that match the 'where' condition.
+// SliceId gets the id column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl AddressTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64list(req, tbl.pk, wh, qc)
+}
+
+// SliceTown gets the town column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AddressTable) SliceTown(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringPtrlist(req, "town", wh, qc)
 }
 
-// SlicePostcode gets the Postcode column for all rows that match the 'where' condition.
+// SlicePostcode gets the postcode column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AddressTable) SlicePostcode(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist(req, "postcode", wh, qc)
 }
-
 
 func (tbl AddressTable) getint64list(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	dialect := tbl.Dialect()

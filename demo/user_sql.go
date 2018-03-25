@@ -701,13 +701,13 @@ func (tbl DbUserTable) GetUserByUid(req require.Requirement, id int64) (*User, e
 	return tbl.getUser(req, tbl.pk, id)
 }
 
-// GetUserByEmailAddress gets the record with a given [emailaddress] value.
+// GetUserByEmailAddress gets the record with a given emailaddress value.
 // If not found, *User will be nil.
 func (tbl DbUserTable) GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error) {
 	return tbl.SelectOne(req, where.And(where.Eq("emailaddress", emailaddress)), nil)
 }
 
-// GetUserByName gets the record with a given [name] value.
+// GetUserByName gets the record with a given name value.
 // If not found, *User will be nil.
 func (tbl DbUserTable) GetUserByName(req require.Requirement, name string) (*User, error) {
 	return tbl.SelectOne(req, where.And(where.Eq("name", name)), nil)
@@ -841,126 +841,133 @@ func (tbl DbUserTable) Count(wh where.Expression) (count int64, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SliceName gets the Name column for all rows that match the 'where' condition.
+// SliceUid gets the uid column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbUserTable) SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return tbl.getint64list(req, tbl.pk, wh, qc)
+}
+
+// SliceName gets the name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist(req, "name", wh, qc)
 }
 
-// SliceEmailAddress gets the EmailAddress column for all rows that match the 'where' condition.
+// SliceEmailaddress gets the emailaddress column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist(req, "emailaddress", wh, qc)
 }
 
-// SliceAddressId gets the AddressId column for all rows that match the 'where' condition.
+// SliceAddressid gets the addressid column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64Ptrlist(req, "addressid", wh, qc)
 }
 
-// SliceAvatar gets the Avatar column for all rows that match the 'where' condition.
+// SliceAvatar gets the avatar column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceAvatar(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringPtrlist(req, "avatar", wh, qc)
 }
 
-// SliceRole gets the Role column for all rows that match the 'where' condition.
+// SliceRole gets the role column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
 	return tbl.getRolePtrlist(req, "role", wh, qc)
 }
 
-// SliceActive gets the Active column for all rows that match the 'where' condition.
+// SliceActive gets the active column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceActive(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	return tbl.getboollist(req, "active", wh, qc)
 }
 
-// SliceAdmin gets the Admin column for all rows that match the 'where' condition.
+// SliceAdmin gets the admin column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceAdmin(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]bool, error) {
 	return tbl.getboollist(req, "admin", wh, qc)
 }
 
-// SliceLastUpdated gets the LastUpdated column for all rows that match the 'where' condition.
+// SliceLastupdated gets the lastupdated column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceLastupdated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list(req, "lastupdated", wh, qc)
 }
 
-// SliceI8 gets the I8 column for all rows that match the 'where' condition.
+// SliceI8 gets the i8 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
 	return tbl.getint8list(req, "i8", wh, qc)
 }
 
-// SliceU8 gets the U8 column for all rows that match the 'where' condition.
+// SliceU8 gets the u8 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
 	return tbl.getuint8list(req, "u8", wh, qc)
 }
 
-// SliceI16 gets the I16 column for all rows that match the 'where' condition.
+// SliceI16 gets the i16 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
 	return tbl.getint16list(req, "i16", wh, qc)
 }
 
-// SliceU16 gets the U16 column for all rows that match the 'where' condition.
+// SliceU16 gets the u16 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
 	return tbl.getuint16list(req, "u16", wh, qc)
 }
 
-// SliceI32 gets the I32 column for all rows that match the 'where' condition.
+// SliceI32 gets the i32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
 	return tbl.getint32list(req, "i32", wh, qc)
 }
 
-// SliceU32 gets the U32 column for all rows that match the 'where' condition.
+// SliceU32 gets the u32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
 	return tbl.getuint32list(req, "u32", wh, qc)
 }
 
-// SliceI64 gets the I64 column for all rows that match the 'where' condition.
+// SliceI64 gets the i64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return tbl.getint64list(req, "i64", wh, qc)
 }
 
-// SliceU64 gets the U64 column for all rows that match the 'where' condition.
+// SliceU64 gets the u64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
 	return tbl.getuint64list(req, "u64", wh, qc)
 }
 
-// SliceF32 gets the F32 column for all rows that match the 'where' condition.
+// SliceF32 gets the f32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
 	return tbl.getfloat32list(req, "f32", wh, qc)
 }
 
-// SliceF64 gets the F64 column for all rows that match the 'where' condition.
+// SliceF64 gets the f64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {

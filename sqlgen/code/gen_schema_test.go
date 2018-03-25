@@ -27,8 +27,6 @@ const NumXExampleDataColumns = 16
 const XExampleColumnNames = "id,cat,username,mobile,qual,diff,age,bmi,active,labels,fave,avatar,foo1,foo2,foo3,bar1,updated"
 
 const XExampleDataColumnNames = "cat,username,mobile,qual,diff,age,bmi,active,labels,fave,avatar,foo1,foo2,foo3,bar1,updated"
-
-const XExamplePk = "id"
 `, "¬", "`", -1)
 
 	if code != expected {

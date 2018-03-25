@@ -32,6 +32,7 @@ fi
 ./version.sh
 cd sqlgen
 go install .
+go test ./...
 
 for d in code output parse; do
   announce sqlgen/$d
@@ -48,6 +49,7 @@ sqlgen -type vanilla.PrimaryKey -o vanilla/vanilla_sql.go -read -delete -slice -
 ### Build Phase 3 ###
 
 go install ./...
+go test ./constraint ./require ./schema ./sqlgen ./where
 
 for d in constraint require schema sqlgen where; do
   announce ./$d

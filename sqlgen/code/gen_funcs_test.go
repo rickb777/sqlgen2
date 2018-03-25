@@ -64,8 +64,10 @@ func TestWriteQueryRows(t *testing.T) {
 // The args are for any placeholder parameters in the query.
 //
 // The caller must call rows.Close() on the result.
+//
+// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
 func (tbl XExampleTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return support.Query(tbl.ctx, tbl, query, args...)
+	return support.Query(tbl, query, args...)
 }
 `, "¬", "`", -1)
 	if code != expected {
@@ -175,7 +177,7 @@ func (tbl XExampleTable) GetExamplesById(req require.Requirement, id ...int64) (
 			args[i] = v
 		}
 
-		list, err = tbl.getExamples(req, "id", args...)
+		list, err = tbl.getExamples(req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -184,19 +186,19 @@ func (tbl XExampleTable) GetExamplesById(req require.Requirement, id ...int64) (
 // GetExampleById gets the record with a given primary key value.
 // If not found, *Example will be nil.
 func (tbl XExampleTable) GetExampleById(req require.Requirement, id int64) (*Example, error) {
-	return tbl.getExample(req, "id", id)
+	return tbl.getExample(req, tbl.pk, id)
 }
 
 // GetExamplesByCat gets the records with a given cat value.
-// If not found, *Example will be nil.
-func (tbl XExampleTable) GetExamplesByCat(req require.Requirement, value Category) ([]*Example, error) {
-	return tbl.getExamples(req, "cat", value)
+// If not found, the resulting slice will be empty (nil).
+func (tbl XExampleTable) GetExamplesByCat(req require.Requirement, cat Category) ([]*Example, error) {
+	return tbl.Select(req, where.And(where.Eq("cat", cat)), nil)
 }
 
 // GetExampleByName gets the record with a given username value.
 // If not found, *Example will be nil.
-func (tbl XExampleTable) GetExampleByName(req require.Requirement, value string) (*Example, error) {
-	return tbl.getExample(req, "username", value)
+func (tbl XExampleTable) GetExampleByName(req require.Requirement, name string) (*Example, error) {
+	return tbl.SelectOne(req, where.And(where.Eq("username", name)), nil)
 }
 
 func (tbl XExampleTable) getExample(req require.Requirement, column string, arg interface{}) (*Example, error) {
@@ -269,27 +271,26 @@ func TestWriteSelectItem(t *testing.T) {
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
-// SliceId gets the Id column for all rows that match the 'where' condition.
+// SliceId gets the id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl XExampleTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.getint64list(req, "id", wh, qc)
+	return tbl.getint64list(req, tbl.pk, wh, qc)
 }
 
-// SliceName gets the Name column for all rows that match the 'where' condition.
+// SliceName gets the name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl XExampleTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return tbl.getstringlist(req, "name", wh, qc)
 }
 
-// SliceAge gets the Age column for all rows that match the 'where' condition.
+// SliceAge gets the age column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl XExampleTable) SliceAge(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int, error) {
 	return tbl.getintlist(req, "age", wh, qc)
 }
-
 
 func (tbl XExampleTable) getintlist(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int, error) {
 	dialect := tbl.Dialect()
@@ -607,7 +608,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
 	returning := ""
 	if tbl.Dialect().InsertHasReturningPhrase() {
-		returning = fmt.Sprintf(" returning %q", XExamplePk)
+		returning = fmt.Sprintf(" returning %q", tbl.pk)
 	}
 
 	for _, v := range vv {
@@ -689,7 +690,7 @@ func TestWriteUpdateFunc_noPK(t *testing.T) {
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl.ctx, tbl, req, wh, fields...)
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 `, "¬", "`", -1)
 	if code != expected {
@@ -715,7 +716,7 @@ func TestWriteUpdateFunc_withPK(t *testing.T) {
 //
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl.ctx, tbl, req, wh, fields...)
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
@@ -765,7 +766,7 @@ func (tbl XExampleTable) Update(req require.Requirement, vv ...*Example) (int64,
 		}
 
 		io.WriteString(b, " WHERE ")
-		dialect.QuoteWithPlaceholder(b, "id", k)
+		dialect.QuoteWithPlaceholder(b, tbl.pk, k)
 
 		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
@@ -816,7 +817,7 @@ func (tbl XExampleTable) DeleteExamples(req require.Requirement, id ...int64) (i
 		max = len(id)
 	}
 	dialect := tbl.Dialect()
-	col := dialect.Quote("id")
+	col := dialect.Quote(tbl.pk)
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
@@ -894,7 +895,7 @@ func TestWriteExecFunc(t *testing.T) {
 //
 // The args are for any placeholder parameters in the query.
 func (tbl XExampleTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl.ctx, tbl, req, query, args...)
+	return support.Exec(tbl, req, query, args...)
 }
 `, "¬", "`", -1)
 	if code != expected {
