@@ -44,7 +44,7 @@ done
 ### Build Phase 2 ###
 
 cd ..
-sqlgen -type vanilla.PrimaryKey -o vanilla/vanilla_sql.go -read -delete -slice -v vanilla/vanilla.go
+sqlgen -type vanilla.Record -o vanilla/vanilla_sql.go -read -delete -slice -v vanilla/vanilla.go
 
 ### Build Phase 3 ###
 
