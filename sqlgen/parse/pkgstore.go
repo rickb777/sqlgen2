@@ -137,7 +137,7 @@ func findTypeDecl(files []*ast.File, name LType) (*ast.TypeSpec, string) {
 		}
 	}
 
-	exit.Fail(5, "Cannot find '%s' in the source code. Should you add more source files to be parsed?\n", name)
+	exit.Fail(5, "cannot find '%s' in the source code. Should you add more source files to be parsed?\n", name)
 	return nil, ""
 }
 

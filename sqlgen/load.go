@@ -195,7 +195,7 @@ func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, par
 		var ok bool
 		nm, ok = leaf.Type().(*types.Named)
 		if !ok {
-			exit.Fail(5, "Unable to find %s\n", lt)
+			exit.Fail(5, "unable to find %s\n", lt)
 		}
 		nmPkg := nm.Obj().Pkg()
 		path = nmPkg.Path()

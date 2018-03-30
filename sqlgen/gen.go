@@ -103,13 +103,17 @@ func main() {
 
 	tags, err := parse.ReadTagsFile(tagsFile)
 	if err != nil && err != os.ErrNotExist {
-		exit.Fail(1, "Tags file %s failed: %s.\n", tagsFile, err)
+		exit.Fail(1, "tags file %s failed: %s.\n", tagsFile, err)
 	}
 
 	// load the Tree into a schema Object
 	table, err := load(pkgStore, parse.LType{pkg, name}, mainPkg, tags)
 	if parse.Debug {
 		utter.Dump(table)
+	}
+
+	if len(table.Fields) < 1 {
+		exit.Fail(1, "no fields found. Check earlier parser warnings.\n")
 	}
 
 	view := NewView(name, prefix, tableName, list)

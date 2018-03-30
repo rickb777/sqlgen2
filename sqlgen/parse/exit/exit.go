@@ -7,7 +7,7 @@ import (
 
 // seam for testing
 var Fail = func(code int, message string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, message, args...)
+	fmt.Fprintf(os.Stderr, "Error: " + message, args...)
 	os.Exit(code)
 }
 
