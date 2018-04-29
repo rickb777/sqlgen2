@@ -21,7 +21,7 @@ type Dialect interface {
 	Quote(string) string
 	QuoteW(w io.Writer, identifier string)
 	QuoteWithPlaceholder(w io.Writer, identifier string, j int)
-	ReplacePlaceholders(sql string) string
+	ReplacePlaceholders(sql string, args []interface{}) string
 	Placeholder(name string, j int) string
 	Placeholders(n int) string
 }

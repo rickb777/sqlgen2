@@ -17,14 +17,16 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 		wh          Expression
 		expMysql    string
 		expPostgres string
+		expString   string
 		args        []interface{}
 	}{
-		{NoOp(), "", "", nil},
+		{NoOp(), "", "", "", nil},
 
 		{
 			Condition{"name"," not nil", nil},
 			"WHERE `name` not nil",
 			`WHERE "name" not nil`,
+			`WHERE name not nil`,
 			nil,
 		},
 
@@ -32,6 +34,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Condition{"p.name"," not nil", nil},
 			"WHERE `p`.`name` not nil",
 			`WHERE "p"."name" not nil`,
+			`WHERE p.name not nil`,
 			nil,
 		},
 
@@ -39,6 +42,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Null("name"),
 			"WHERE `name` IS NULL",
 			`WHERE "name" IS NULL`,
+			`WHERE name IS NULL`,
 			nil,
 		},
 
@@ -46,6 +50,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			NotNull("name"),
 			"WHERE `name` IS NOT NULL",
 			`WHERE "name" IS NOT NULL`,
+			`WHERE name IS NOT NULL`,
 			nil,
 		},
 
@@ -53,6 +58,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Condition{"name"," <>?", []interface{}{"Boo"}},
 			"WHERE `name` <>?",
 			`WHERE "name" <>$1`,
+			`WHERE name <>'Boo'`,
 			[]interface{}{"Boo"},
 		},
 
@@ -60,6 +66,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			nameEqFred,
 			"WHERE `name`=?",
 			`WHERE "name"=$1`,
+			`WHERE name='Fred'`,
 			[]interface{}{"Fred"},
 		},
 
@@ -67,6 +74,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Like("name", "F%"),
 			"WHERE `name` LIKE ?",
 			`WHERE "name" LIKE $1`,
+			`WHERE name LIKE 'F%'`,
 			[]interface{}{"F%"},
 		},
 
@@ -74,6 +82,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			NoOp().And(nameEqFred),
 			"WHERE (`name`=?)",
 			`WHERE ("name"=$1)`,
+			`WHERE (name='Fred')`,
 			[]interface{}{"Fred"},
 		},
 
@@ -81,6 +90,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			nameEqFred.And(Gt("age", 10)),
 			"WHERE (`name`=?) AND (`age`>?)",
 			`WHERE ("name"=$1) AND ("age">$2)`,
+			`WHERE (name='Fred') AND (age>10)`,
 			[]interface{}{"Fred", 10},
 		},
 
@@ -88,6 +98,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			nameEqFred.Or(Gt("age", 10)),
 			"WHERE (`name`=?) OR (`age`>?)",
 			`WHERE ("name"=$1) OR ("age">$2)`,
+			`WHERE (name='Fred') OR (age>10)`,
 			[]interface{}{"Fred", 10},
 		},
 
@@ -95,6 +106,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			nameEqFred.And(ageGt5).And(Gt("weight", 15)),
 			"WHERE (`name`=?) AND (`age`>?) AND (`weight`>?)",
 			`WHERE ("name"=$1) AND ("age">$2) AND ("weight">$3)`,
+			`WHERE (name='Fred') AND (age>5) AND (weight>15)`,
 			[]interface{}{"Fred", 5, 15},
 		},
 
@@ -102,6 +114,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			nameEqFred.Or(ageGt5).Or(Gt("weight", 15)),
 			"WHERE (`name`=?) OR (`age`>?) OR (`weight`>?)",
 			`WHERE ("name"=$1) OR ("age">$2) OR ("weight">$3)`,
+			`WHERE (name='Fred') OR (age>5) OR (weight>15)`,
 			[]interface{}{"Fred", 5, 15},
 		},
 
@@ -109,6 +122,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Between("age", 12, 18).Or(Gt("weight", 45)),
 			"WHERE (`age` BETWEEN ? AND ?) OR (`weight`>?)",
 			`WHERE ("age" BETWEEN $1 AND $2) OR ("weight">$3)`,
+			`WHERE (age BETWEEN 12 AND 18) OR (weight>45)`,
 			[]interface{}{12, 18, 45},
 		},
 
@@ -116,6 +130,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			GtEq("age", 10),
 			"WHERE `age`>=?",
 			`WHERE "age">=$1`,
+			`WHERE age>=10`,
 			[]interface{}{10},
 		},
 
@@ -123,6 +138,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			LtEq("age", 10),
 			"WHERE `age`<=?",
 			`WHERE "age"<=$1`,
+			`WHERE age<=10`,
 			[]interface{}{10},
 		},
 
@@ -130,6 +146,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			NotEq("age", 10),
 			"WHERE `age`<>?",
 			`WHERE "age"<>$1`,
+			`WHERE age<>10`,
 			[]interface{}{10},
 		},
 
@@ -137,6 +154,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			In("age", 10, 12, 14),
 			"WHERE `age` IN (?,?,?)",
 			`WHERE "age" IN ($1,$2,$3)`,
+			"WHERE age IN (10,12,14)",
 			[]interface{}{10, 12, 14},
 		},
 
@@ -144,6 +162,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			In("age", []int{10, 12, 14}),
 			"WHERE `age` IN (?,?,?)",
 			`WHERE "age" IN ($1,$2,$3)`,
+			"WHERE age IN (10,12,14)",
 			[]interface{}{10, 12, 14},
 		},
 
@@ -151,6 +170,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Not(nameEqFred),
 			"WHERE NOT (`name`=?)",
 			`WHERE NOT ("name"=$1)`,
+			`WHERE NOT (name='Fred')`,
 			[]interface{}{"Fred"},
 		},
 
@@ -158,6 +178,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Not(nameEqFred.And(ageLt10)),
 			"WHERE NOT ((`name`=?) AND (`age`<?))",
 			`WHERE NOT (("name"=$1) AND ("age"<$2))`,
+			`WHERE NOT ((name='Fred') AND (age<10))`,
 			[]interface{}{"Fred", 10},
 		},
 
@@ -165,6 +186,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Not(nameEqFred.Or(ageLt10)),
 			"WHERE NOT ((`name`=?) OR (`age`<?))",
 			`WHERE NOT (("name"=$1) OR ("age"<$2))`,
+			`WHERE NOT ((name='Fred') OR (age<10))`,
 			[]interface{}{"Fred", 10},
 		},
 
@@ -172,6 +194,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Not(nameEqFred).And(ageLt10),
 			"WHERE (NOT (`name`=?)) AND (`age`<?)",
 			`WHERE (NOT ("name"=$1)) AND ("age"<$2)`,
+			`WHERE (NOT (name='Fred')) AND (age<10)`,
 			[]interface{}{"Fred", 10},
 		},
 
@@ -179,6 +202,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Not(nameEqFred).Or(ageLt10),
 			"WHERE (NOT (`name`=?)) OR (`age`<?)",
 			`WHERE (NOT ("name"=$1)) OR ("age"<$2)`,
+			`WHERE (NOT (name='Fred')) OR (age<10)`,
 			[]interface{}{"Fred", 10},
 		},
 
@@ -186,6 +210,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			And(nameEqFred, ageLt10),
 			"WHERE (`name`=?) AND (`age`<?)",
 			`WHERE ("name"=$1) AND ("age"<$2)`,
+			`WHERE (name='Fred') AND (age<10)`,
 			[]interface{}{"Fred", 10},
 		},
 
@@ -193,6 +218,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			And(nameEqFred).And(And(ageLt10)),
 			"WHERE (`name`=?) AND (`age`<?)",
 			`WHERE ("name"=$1) AND ("age"<$2)`,
+			`WHERE (name='Fred') AND (age<10)`,
 			[]interface{}{"Fred", 10},
 		},
 
@@ -200,6 +226,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Or(nameEqFred, ageLt10),
 			"WHERE (`name`=?) OR (`age`<?)",
 			`WHERE ("name"=$1) OR ("age"<$2)`,
+			`WHERE (name='Fred') OR (age<10)`,
 			[]interface{}{"Fred", 10},
 		},
 
@@ -207,6 +234,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			And(nameEqFred.Or(nameEqJohn), ageLt10),
 			"WHERE ((`name`=?) OR (`name`=?)) AND (`age`<?)",
 			`WHERE (("name"=$1) OR ("name"=$2)) AND ("age"<$3)`,
+			`WHERE ((name='Fred') OR (name='John')) AND (age<10)`,
 			[]interface{}{"Fred", "John", 10},
 		},
 
@@ -214,6 +242,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Or(nameEqFred, ageLt10.And(ageGt5)),
 			"WHERE (`name`=?) OR ((`age`<?) AND (`age`>?))",
 			`WHERE ("name"=$1) OR (("age"<$2) AND ("age">$3))`,
+			`WHERE (name='Fred') OR ((age<10) AND (age>5))`,
 			[]interface{}{"Fred", 10, 5},
 		},
 
@@ -221,6 +250,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Or(nameEqFred, nameEqJohn).And(ageGt5),
 			"WHERE ((`name`=?) OR (`name`=?)) AND (`age`>?)",
 			`WHERE (("name"=$1) OR ("name"=$2)) AND ("age">$3)`,
+			`WHERE ((name='Fred') OR (name='John')) AND (age>5)`,
 			[]interface{}{"Fred", "John", 5},
 		},
 
@@ -228,6 +258,7 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Or(nameEqFred, nameEqJohn, And(ageGt5)),
 			"WHERE (`name`=?) OR (`name`=?) OR ((`age`>?))",
 			`WHERE ("name"=$1) OR ("name"=$2) OR (("age">$3))`,
+			`WHERE (name='Fred') OR (name='John') OR ((age>5))`,
 			[]interface{}{"Fred", "John", 5},
 		},
 
@@ -235,11 +266,13 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 			Or().Or(NoOp()).And(NoOp()),
 			"",
 			"",
+			"",
 			nil,
 		},
 
 		{
 			And(Or(NoOp())),
+			"",
 			"",
 			"",
 			nil,
@@ -265,6 +298,12 @@ func TestBuildWhereClause_happyCases(t *testing.T) {
 
 		if !reflect.DeepEqual(args, c.args) {
 			t.Errorf("%d Postgres: Wanted %v\nGot %v", i, c.args, args)
+		}
+
+		s := c.wh.String()
+
+		if s != c.expString {
+			t.Errorf("%d String: Wanted %s\nGot %s", i, c.expString, s)
 		}
 	}
 }

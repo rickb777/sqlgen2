@@ -200,7 +200,7 @@ const postgresPlaceholders = "$1,$2,$3,$4,$5,$6,$7,$8,$9"
 
 // ReplacePlaceholders converts a string containing '?' placeholders to
 // the form used by PostgreSQL.
-func (dialect postgres) ReplacePlaceholders(sql string) string {
+func (dialect postgres) ReplacePlaceholders(sql string, _ []interface{}) string {
 	buf := &bytes.Buffer{}
 	idx := 1
 	for _, r := range sql {

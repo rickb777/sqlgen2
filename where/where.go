@@ -3,6 +3,8 @@ package where
 import (
 	"reflect"
 	"strings"
+	"fmt"
+	"bytes"
 )
 
 const where = "WHERE "
@@ -10,12 +12,13 @@ const where = "WHERE "
 // Dialect provides a method to convert named argument placeholders to the dialect needed
 // for the database in use.
 type Dialect interface {
-	ReplacePlaceholders(sql string) string
+	ReplacePlaceholders(sql string, args []interface{}) string
 	Quote(column string) string
 }
 
 // Expression is an element in a WHERE clause. Expressions may be nested in various ways.
 type Expression interface {
+	fmt.Stringer
 	And(Expression) Clause
 	Or(Expression) Clause
 	Build(dialect Dialect) (string, []interface{})
@@ -56,8 +59,13 @@ func (not not) build(args []interface{}, dialect Dialect) (string, []interface{}
 
 func (not not) Build(dialect Dialect) (string, []interface{}) {
 	sql, args := not.build(nil, dialect)
-	sql = dialect.ReplacePlaceholders(sql)
+	sql = dialect.ReplacePlaceholders(sql, args)
 	return where + sql, args
+}
+
+func (not not) String() string {
+	sql, _ := not.Build(neutralDialect{})
+	return sql
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -81,8 +89,13 @@ func (cl Condition) build(args []interface{}, dialect Dialect) (string, []interf
 
 func (cl Condition) Build(dialect Dialect) (string, []interface{}) {
 	sql, args := cl.build(nil, dialect)
-	sql = dialect.ReplacePlaceholders(sql)
+	sql = dialect.ReplacePlaceholders(sql, args)
 	return where + sql, args
+}
+
+func (cl Condition) String() string {
+	sql, _ := cl.Build(neutralDialect{})
+	return sql
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -106,6 +119,53 @@ func (wh Clause) Build(dialect Dialect) (string, []interface{}) {
 	}
 
 	sql, args := wh.build(nil, dialect)
-	sql = dialect.ReplacePlaceholders(sql)
+	sql = dialect.ReplacePlaceholders(sql, args)
 	return where + sql, args
+}
+
+func (wh Clause) String() string {
+	sql, _ := wh.Build(neutralDialect{})
+	return sql
+}
+
+//-------------------------------------------------------------------------------------------------
+
+type neutralDialect struct{}
+
+func (d neutralDialect) ReplacePlaceholders(sql string, args []interface{}) string {
+	buf := &bytes.Buffer{}
+	idx := 0
+	for _, r := range sql {
+		if r == '?' && idx < len(args) {
+			v := args[idx]
+			t := reflect.TypeOf(v)
+			switch t.Kind() {
+			case reflect.Bool,
+				reflect.Int,
+				reflect.Int8,
+				reflect.Int16,
+				reflect.Int32,
+				reflect.Int64,
+				reflect.Uint,
+				reflect.Uint8,
+				reflect.Uint16,
+				reflect.Uint32,
+				reflect.Uint64,
+				reflect.Uintptr,
+				reflect.Float32,
+				reflect.Float64:
+				buf.WriteString(fmt.Sprintf(`%v`, v))
+			default:
+				buf.WriteString(fmt.Sprintf(`'%v'`, v))
+			}
+			idx++
+		} else {
+			buf.WriteRune(r)
+		}
+	}
+	return buf.String()
+}
+
+func (d neutralDialect) Quote(column string) string {
+	return column
 }

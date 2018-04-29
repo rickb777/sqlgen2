@@ -143,7 +143,7 @@ func (dialect mysql) Placeholders(n int) string {
 
 // ReplacePlaceholders converts a string containing '?' placeholders to
 // the form used by MySQL and SQLite - i.e. unchanged.
-func (dialect mysql) ReplacePlaceholders(sql string) string {
+func (dialect mysql) ReplacePlaceholders(sql string, _ []interface{}) string {
 	return sql
 }
 
