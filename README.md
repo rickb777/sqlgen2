@@ -27,7 +27,7 @@ Currently, support is included for **MySQL**, **PostgreSQL** and **SQLite**. Oth
 Install or upgrade with this command:
 
 ```
-go get -u github.com/rickb777/sqlgen2
+go get -u github.com/rickb777/sqlgen2/sqlgen
 ```
 
 This will fetch the source code, compile it, and leave a `sqlgen` binary in your bin folder ready to use.
