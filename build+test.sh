@@ -9,7 +9,7 @@ function announce
 
 PATH=$HOME/gopath/bin:$GOPATH/bin:$PATH
 
-. go-get.sh
+[ -n "$OFFLINE" ] || . go-get.sh
 
 # delete artefacts from previous build (if any)
 mkdir -p reports

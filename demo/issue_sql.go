@@ -211,33 +211,33 @@ const IssueDataColumnNames = "number,date,title,bigbody,assignee,state,labels"
 //--------------------------------------------------------------------------------
 
 const sqlIssueTableCreateColumnsSqlite = "\n"+
-" `id`       integer primary key autoincrement,\n"+
-" `number`   bigint,\n"+
-" `date`     blob,\n"+
-" `title`    text,\n"+
-" `bigbody`  text,\n"+
-" `assignee` text,\n"+
-" `state`    text,\n"+
+" `id`       integer not null primary key autoincrement,\n"+
+" `number`   bigint not null,\n"+
+" `date`     blob not null,\n"+
+" `title`    text not null,\n"+
+" `bigbody`  text not null,\n"+
+" `assignee` text not null,\n"+
+" `state`    text not null,\n"+
 " `labels`   text"
 
 const sqlIssueTableCreateColumnsMysql = "\n"+
-" `id`       bigint primary key auto_increment,\n"+
-" `number`   bigint,\n"+
-" `date`     mediumblob,\n"+
-" `title`    varchar(512),\n"+
-" `bigbody`  varchar(2048),\n"+
-" `assignee` varchar(255),\n"+
-" `state`    varchar(50),\n"+
+" `id`       bigint not null primary key auto_increment,\n"+
+" `number`   bigint not null,\n"+
+" `date`     mediumblob not null,\n"+
+" `title`    varchar(512) not null,\n"+
+" `bigbody`  varchar(2048) not null,\n"+
+" `assignee` varchar(255) not null,\n"+
+" `state`    varchar(50) not null,\n"+
 " `labels`   json"
 
 const sqlIssueTableCreateColumnsPostgres = `
- "id"       bigserial primary key,
- "number"   bigint,
- "date"     bytea,
- "title"    varchar(512),
- "bigbody"  varchar(2048),
- "assignee" varchar(255),
- "state"    varchar(50),
+ "id"       bigserial not null primary key,
+ "number"   bigint not null,
+ "date"     bytea not null,
+ "title"    varchar(512) not null,
+ "bigbody"  varchar(2048) not null,
+ "assignee" varchar(255) not null,
+ "state"    varchar(50) not null,
  "labels"   json`
 
 const sqlConstrainIssueTable = `

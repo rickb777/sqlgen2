@@ -18,6 +18,7 @@ const TagKey = "sql"
 type Tag struct {
 	Name       string `yaml:"name"`
 	Type       string `yaml:"type"`
+	Default    string `yaml:"default"`
 	Prefixed   bool   `yaml:"prefixed"`
 	Primary    bool   `yaml:"pk"`
 	Natural    bool   `yaml:"nk"`

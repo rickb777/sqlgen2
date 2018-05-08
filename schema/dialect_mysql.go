@@ -33,6 +33,7 @@ func (dialect mysql) FieldAsColumn(field *Field) string {
 	}
 
 	column := "mediumblob"
+	dflt := field.Tags.Default
 
 	switch field.Type.Base {
 	case parse.Int, parse.Int64:
@@ -59,18 +60,13 @@ func (dialect mysql) FieldAsColumn(field *Field) string {
 		column = "tinyint(1)"
 	case parse.String:
 		column = varchar(field.Tags.Size)
+		dflt = fmt.Sprintf("'%s'", field.Tags.Default)
 	}
 
-	if field.Tags.Primary {
-		column += " primary key"
-	}
+	column = fieldTags(field, column, dflt)
 
 	if field.Tags.Auto {
 		column += " auto_increment"
-	}
-
-	if field.Type.IsPtr {
-		column += " default null"
 	}
 
 	return column

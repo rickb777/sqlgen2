@@ -211,22 +211,22 @@ const AddressDataColumnNames = "lines,town,postcode"
 //--------------------------------------------------------------------------------
 
 const sqlAddressTableCreateColumnsSqlite = "\n"+
-" `id`       integer primary key autoincrement,\n"+
+" `id`       integer not null primary key autoincrement,\n"+
 " `lines`    text,\n"+
 " `town`     text default null,\n"+
-" `postcode` text"
+" `postcode` text not null"
 
 const sqlAddressTableCreateColumnsMysql = "\n"+
-" `id`       bigint primary key auto_increment,\n"+
+" `id`       bigint not null primary key auto_increment,\n"+
 " `lines`    json,\n"+
 " `town`     varchar(80) default null,\n"+
-" `postcode` varchar(20)"
+" `postcode` varchar(20) not null"
 
 const sqlAddressTableCreateColumnsPostgres = `
- "id"       bigserial primary key,
+ "id"       bigserial not null primary key,
  "lines"    json,
  "town"     varchar(80) default null,
- "postcode" varchar(20)`
+ "postcode" varchar(20) not null`
 
 const sqlConstrainAddressTable = `
 `

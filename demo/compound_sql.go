@@ -191,19 +191,19 @@ const DbCompoundColumnNames = "alpha,beta,category"
 //--------------------------------------------------------------------------------
 
 const sqlDbCompoundTableCreateColumnsSqlite = "\n" +
-	" `alpha`    text,\n" +
-	" `beta`     text,\n" +
-	" `category` tinyint unsigned"
+	" `alpha`    text not null,\n" +
+	" `beta`     text not null,\n" +
+	" `category` tinyint unsigned not null"
 
 const sqlDbCompoundTableCreateColumnsMysql = "\n" +
-	" `alpha`    varchar(255),\n" +
-	" `beta`     varchar(255),\n" +
-	" `category` tinyint unsigned"
+	" `alpha`    varchar(255) not null,\n" +
+	" `beta`     varchar(255) not null,\n" +
+	" `category` tinyint unsigned not null"
 
 const sqlDbCompoundTableCreateColumnsPostgres = `
- "alpha"    varchar(255),
- "beta"     varchar(255),
- "category" smallint`
+ "alpha"    varchar(255) not null,
+ "beta"     varchar(255) not null,
+ "category" smallint not null`
 
 const sqlConstrainDbCompoundTable = `
 `

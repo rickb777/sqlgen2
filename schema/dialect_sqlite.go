@@ -33,7 +33,7 @@ func (dialect sqlite) FieldAsColumn(field *Field) string {
 	if field.Tags.Auto {
 		// In sqlite, "autoincrement" is less efficient than built-in "rowid"
 		// and the datatype must be "integer" (https://sqlite.org/autoinc.html).
-		return "integer primary key autoincrement"
+		return "integer not null primary key autoincrement"
 	}
 
 	switch field.Encode {
@@ -44,10 +44,12 @@ func (dialect sqlite) FieldAsColumn(field *Field) string {
 	}
 
 	column := "blob"
+	dflt := field.Tags.Default
 
 	switch field.Type.Base {
 	case parse.Int, parse.Int64:
 		column = "bigint"
+		dflt = field.Tags.Default
 	case parse.Int8:
 		column = "tinyint"
 	case parse.Int16:
@@ -70,14 +72,26 @@ func (dialect sqlite) FieldAsColumn(field *Field) string {
 		column = "boolean"
 	case parse.String:
 		column = "text"
+		dflt = fmt.Sprintf("'%s'", field.Tags.Default)
+	}
+
+	return fieldTags(field, column, dflt)
+}
+
+func fieldTags(field *Field, column, dflt string) string {
+	if field.Type.IsPtr {
+		column += " default null"
+	} else {
+		column += " not null"
+
+		if field.Tags.Default != "" {
+			column += " default " + dflt
+		}
+
 	}
 
 	if field.Tags.Primary {
 		column += " primary key"
-	}
-
-	if field.Type.IsPtr {
-		column += " default null"
 	}
 
 	return column

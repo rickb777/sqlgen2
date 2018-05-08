@@ -210,61 +210,61 @@ const HookDataColumnNames = "sha,after,before,category,created,deleted,forced,co
 //--------------------------------------------------------------------------------
 
 const sqlHookTableCreateColumnsSqlite = "\n"+
-" `id`                             integer primary key autoincrement,\n"+
-" `sha`                            text,\n"+
-" `after`                          text,\n"+
-" `before`                         text,\n"+
-" `category`                       tinyint unsigned,\n"+
-" `created`                        boolean,\n"+
-" `deleted`                        boolean,\n"+
-" `forced`                         boolean,\n"+
-" `commit_id`                      text,\n"+
-" `message`                        text,\n"+
-" `timestamp`                      text,\n"+
-" `head_commit_author_name`        text,\n"+
-" `head_commit_author_email`       text,\n"+
-" `head_commit_author_username`    text,\n"+
-" `head_commit_committer_name`     text,\n"+
-" `head_commit_committer_email`    text,\n"+
-" `head_commit_committer_username` text"
+" `id`                             integer not null primary key autoincrement,\n"+
+" `sha`                            text not null,\n"+
+" `after`                          text not null,\n"+
+" `before`                         text not null,\n"+
+" `category`                       tinyint unsigned not null,\n"+
+" `created`                        boolean not null,\n"+
+" `deleted`                        boolean not null,\n"+
+" `forced`                         boolean not null,\n"+
+" `commit_id`                      text not null,\n"+
+" `message`                        text not null,\n"+
+" `timestamp`                      text not null,\n"+
+" `head_commit_author_name`        text not null,\n"+
+" `head_commit_author_email`       text not null,\n"+
+" `head_commit_author_username`    text not null,\n"+
+" `head_commit_committer_name`     text not null,\n"+
+" `head_commit_committer_email`    text not null,\n"+
+" `head_commit_committer_username` text not null"
 
 const sqlHookTableCreateColumnsMysql = "\n"+
-" `id`                             bigint unsigned primary key auto_increment,\n"+
-" `sha`                            varchar(255),\n"+
-" `after`                          varchar(20),\n"+
-" `before`                         varchar(20),\n"+
-" `category`                       tinyint unsigned,\n"+
-" `created`                        tinyint(1),\n"+
-" `deleted`                        tinyint(1),\n"+
-" `forced`                         tinyint(1),\n"+
-" `commit_id`                      varchar(255),\n"+
-" `message`                        varchar(255),\n"+
-" `timestamp`                      varchar(255),\n"+
-" `head_commit_author_name`        varchar(255),\n"+
-" `head_commit_author_email`       varchar(255),\n"+
-" `head_commit_author_username`    varchar(255),\n"+
-" `head_commit_committer_name`     varchar(255),\n"+
-" `head_commit_committer_email`    varchar(255),\n"+
-" `head_commit_committer_username` varchar(255)"
+" `id`                             bigint unsigned not null primary key auto_increment,\n"+
+" `sha`                            varchar(255) not null,\n"+
+" `after`                          varchar(20) not null,\n"+
+" `before`                         varchar(20) not null,\n"+
+" `category`                       tinyint unsigned not null,\n"+
+" `created`                        tinyint(1) not null,\n"+
+" `deleted`                        tinyint(1) not null,\n"+
+" `forced`                         tinyint(1) not null,\n"+
+" `commit_id`                      varchar(255) not null,\n"+
+" `message`                        varchar(255) not null,\n"+
+" `timestamp`                      varchar(255) not null,\n"+
+" `head_commit_author_name`        varchar(255) not null,\n"+
+" `head_commit_author_email`       varchar(255) not null,\n"+
+" `head_commit_author_username`    varchar(255) not null,\n"+
+" `head_commit_committer_name`     varchar(255) not null,\n"+
+" `head_commit_committer_email`    varchar(255) not null,\n"+
+" `head_commit_committer_username` varchar(255) not null"
 
 const sqlHookTableCreateColumnsPostgres = `
- "id"                             bigserial primary key,
- "sha"                            varchar(255),
- "after"                          varchar(20),
- "before"                         varchar(20),
- "category"                       smallint,
- "created"                        boolean,
- "deleted"                        boolean,
- "forced"                         boolean,
- "commit_id"                      varchar(255),
- "message"                        varchar(255),
- "timestamp"                      varchar(255),
- "head_commit_author_name"        varchar(255),
- "head_commit_author_email"       varchar(255),
- "head_commit_author_username"    varchar(255),
- "head_commit_committer_name"     varchar(255),
- "head_commit_committer_email"    varchar(255),
- "head_commit_committer_username" varchar(255)`
+ "id"                             bigserial not null primary key,
+ "sha"                            varchar(255) not null,
+ "after"                          varchar(20) not null,
+ "before"                         varchar(20) not null,
+ "category"                       smallint not null,
+ "created"                        boolean not null,
+ "deleted"                        boolean not null,
+ "forced"                         boolean not null,
+ "commit_id"                      varchar(255) not null,
+ "message"                        varchar(255) not null,
+ "timestamp"                      varchar(255) not null,
+ "head_commit_author_name"        varchar(255) not null,
+ "head_commit_author_email"       varchar(255) not null,
+ "head_commit_author_username"    varchar(255) not null,
+ "head_commit_committer_name"     varchar(255) not null,
+ "head_commit_committer_email"    varchar(255) not null,
+ "head_commit_committer_username" varchar(255) not null`
 
 const sqlConstrainHookTable = `
 `

@@ -210,7 +210,7 @@ const AssociationDataColumnNames = "name,quality,ref1,ref2,category"
 //--------------------------------------------------------------------------------
 
 const sqlAssociationTableCreateColumnsSqlite = "\n"+
-" `id`       integer primary key autoincrement,\n"+
+" `id`       integer not null primary key autoincrement,\n"+
 " `name`     text default null,\n"+
 " `quality`  text default null,\n"+
 " `ref1`     bigint default null,\n"+
@@ -218,7 +218,7 @@ const sqlAssociationTableCreateColumnsSqlite = "\n"+
 " `category` tinyint unsigned default null"
 
 const sqlAssociationTableCreateColumnsMysql = "\n"+
-" `id`       bigint primary key auto_increment,\n"+
+" `id`       bigint not null primary key auto_increment,\n"+
 " `name`     varchar(255) default null,\n"+
 " `quality`  varchar(255) default null,\n"+
 " `ref1`     bigint default null,\n"+
@@ -226,7 +226,7 @@ const sqlAssociationTableCreateColumnsMysql = "\n"+
 " `category` tinyint unsigned default null"
 
 const sqlAssociationTableCreateColumnsPostgres = `
- "id"       bigserial primary key,
+ "id"       bigserial not null primary key,
  "name"     varchar(255) default null,
  "quality"  varchar(255) default null,
  "ref1"     bigint default null,

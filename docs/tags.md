@@ -25,6 +25,7 @@ The double-quoted string is actually treated as a snippet of YAML, so it needs s
 | prefixed | true or false | the column name is made unique using a computed prefix            |
 | name     | string        | the column name (default is the field's name)                     |
 | type     | string        | overrides the column type explicitly                              |
+| default  | string        | sets a default value in the DDL (only for non-nullable columns)   |
 | size     | integer       | sets the storage size for the column                              |
 | encode   | string        | encodes as "json", "text" or using the "driver"                   |
 | index    | string        | the column has an index                                           |

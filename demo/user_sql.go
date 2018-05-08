@@ -209,76 +209,76 @@ const DbUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,ad
 //--------------------------------------------------------------------------------
 
 const sqlDbUserTableCreateColumnsSqlite = "\n" +
-	" `uid`          integer primary key autoincrement,\n" +
-	" `name`         text,\n" +
-	" `emailaddress` text,\n" +
+	" `uid`          integer not null primary key autoincrement,\n" +
+	" `name`         text not null,\n" +
+	" `emailaddress` text not null,\n" +
 	" `addressid`    bigint default null,\n" +
 	" `avatar`       text default null,\n" +
 	" `role`         text default null,\n" +
-	" `active`       boolean,\n" +
-	" `admin`        boolean,\n" +
+	" `active`       boolean not null,\n" +
+	" `admin`        boolean not null,\n" +
 	" `fave`         text,\n" +
-	" `lastupdated`  bigint,\n" +
-	" `i8`           tinyint,\n" +
-	" `u8`           tinyint unsigned,\n" +
-	" `i16`          smallint,\n" +
-	" `u16`          smallint unsigned,\n" +
-	" `i32`          int,\n" +
-	" `u32`          int unsigned,\n" +
-	" `i64`          bigint,\n" +
-	" `u64`          bigint unsigned,\n" +
-	" `f32`          float,\n" +
-	" `f64`          double,\n" +
-	" `token`        text,\n" +
-	" `secret`       text"
+	" `lastupdated`  bigint not null,\n" +
+	" `i8`           tinyint not null default -8,\n" +
+	" `u8`           tinyint unsigned not null default 8,\n" +
+	" `i16`          smallint not null default -16,\n" +
+	" `u16`          smallint unsigned not null default 16,\n" +
+	" `i32`          int not null default -32,\n" +
+	" `u32`          int unsigned not null default 32,\n" +
+	" `i64`          bigint not null default -64,\n" +
+	" `u64`          bigint unsigned not null default 64,\n" +
+	" `f32`          float not null default 3.2,\n" +
+	" `f64`          double not null default 6.4,\n" +
+	" `token`        text not null,\n" +
+	" `secret`       text not null"
 
 const sqlDbUserTableCreateColumnsMysql = "\n" +
-	" `uid`          bigint primary key auto_increment,\n" +
-	" `name`         varchar(255),\n" +
-	" `emailaddress` varchar(255),\n" +
+	" `uid`          bigint not null primary key auto_increment,\n" +
+	" `name`         varchar(255) not null,\n" +
+	" `emailaddress` varchar(255) not null,\n" +
 	" `addressid`    bigint default null,\n" +
 	" `avatar`       varchar(255) default null,\n" +
 	" `role`         varchar(20) default null,\n" +
-	" `active`       tinyint(1),\n" +
-	" `admin`        tinyint(1),\n" +
+	" `active`       tinyint(1) not null,\n" +
+	" `admin`        tinyint(1) not null,\n" +
 	" `fave`         json,\n" +
-	" `lastupdated`  bigint,\n" +
-	" `i8`           tinyint,\n" +
-	" `u8`           tinyint unsigned,\n" +
-	" `i16`          smallint,\n" +
-	" `u16`          smallint unsigned,\n" +
-	" `i32`          int,\n" +
-	" `u32`          int unsigned,\n" +
-	" `i64`          bigint,\n" +
-	" `u64`          bigint unsigned,\n" +
-	" `f32`          float,\n" +
-	" `f64`          double,\n" +
-	" `token`        varchar(255),\n" +
-	" `secret`       varchar(255)"
+	" `lastupdated`  bigint not null,\n" +
+	" `i8`           tinyint not null default -8,\n" +
+	" `u8`           tinyint unsigned not null default 8,\n" +
+	" `i16`          smallint not null default -16,\n" +
+	" `u16`          smallint unsigned not null default 16,\n" +
+	" `i32`          int not null default -32,\n" +
+	" `u32`          int unsigned not null default 32,\n" +
+	" `i64`          bigint not null default -64,\n" +
+	" `u64`          bigint unsigned not null default 64,\n" +
+	" `f32`          float not null default 3.2,\n" +
+	" `f64`          double not null default 6.4,\n" +
+	" `token`        varchar(255) not null,\n" +
+	" `secret`       varchar(255) not null"
 
 const sqlDbUserTableCreateColumnsPostgres = `
- "uid"          bigserial primary key,
- "name"         varchar(255),
- "emailaddress" varchar(255),
+ "uid"          bigserial not null primary key,
+ "name"         varchar(255) not null,
+ "emailaddress" varchar(255) not null,
  "addressid"    bigint default null,
  "avatar"       varchar(255) default null,
  "role"         varchar(20) default null,
- "active"       boolean,
- "admin"        boolean,
+ "active"       boolean not null,
+ "admin"        boolean not null,
  "fave"         json,
- "lastupdated"  bigint,
- "i8"           int8,
- "u8"           smallint,
- "i16"          smallint,
- "u16"          integer,
- "i32"          integer,
- "u32"          bigint,
- "i64"          bigint,
- "u64"          bigint,
- "f32"          real,
- "f64"          double precision,
- "token"        varchar(255),
- "secret"       varchar(255)`
+ "lastupdated"  bigint not null,
+ "i8"           int8 not null default -8,
+ "u8"           smallint not null default 8,
+ "i16"          smallint not null default -16,
+ "u16"          integer not null default 16,
+ "i32"          integer not null default -32,
+ "u32"          bigint not null default 32,
+ "i64"          bigint not null default -64,
+ "u64"          bigint not null default 64,
+ "f32"          real not null default 3.2,
+ "f64"          double precision not null default 6.4,
+ "token"        varchar(255) not null,
+ "secret"       varchar(255) not null`
 
 const sqlConstrainDbUserTable = `
  CONSTRAINT DbUserc3 foreign key (addressid) references %saddresses (id) on update restrict on delete restrict

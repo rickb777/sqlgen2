@@ -35,16 +35,16 @@ type User struct {
 }
 
 type Numbers struct {
-	I8  int8
-	U8  uint8
-	I16 int16
-	U16 uint16
-	I32 int32
-	U32 uint32
-	I64 int64
-	U64 uint64
-	F32 float32
-	F64 float64
+	I8  int8    `sql:"default: -8"`
+	U8  uint8   `sql:"default: 8"`
+	I16 int16   `sql:"default: -16"`
+	U16 uint16  `sql:"default: 16"`
+	I32 int32   `sql:"default: -32"`
+	U32 uint32  `sql:"default: 32"`
+	I64 int64   `sql:"default: -64"`
+	U64 uint64  `sql:"default: 64"`
+	F32 float32 `sql:"default: 3.2"`
+	F64 float64 `sql:"default: 6.4"`
 }
 
 // These hooks are just used here for testing, but you could put whatever you like in them.

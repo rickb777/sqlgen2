@@ -29,7 +29,7 @@ var nums = &Node{Name: "Numbers", Type: Type{PkgName: "pkg1", Name: "Numbers", B
 
 var id = &Field{Node{"Id", i64, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
 var category = &Field{Node{"Cat", cat, nil}, "cat", ENCNONE, Tag{Index: "catIdx"}}
-var name = &Field{Node{"Name", str, nil}, "username", ENCNONE, Tag{Size: 2048, Name: "username", Unique: "nameIdx"}}
+var name = &Field{Node{"Name", str, nil}, "username", ENCNONE, Tag{Size: 2048, Name: "username", Default: "anon", Unique: "nameIdx"}}
 var mobile = &Field{Node{"Mobile", phn, nil}, "mobile", ENCNONE, Tag{}}
 var active = &Field{Node{"Active", boo, nil}, "active", ENCNONE, Tag{}}
 var qual = &Field{Node{"Qual", spt, nil}, "qual", ENCNONE, Tag{}}

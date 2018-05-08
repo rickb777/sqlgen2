@@ -3,7 +3,7 @@ cd $(dirname $0)
 
 PATH=$HOME/gopath/bin:$GOPATH/bin:$PATH
 
-. ../go-get.sh
+[ -n "$OFFLINE" ] || . ../go-get.sh
 
 rm -f *_sql.go
 

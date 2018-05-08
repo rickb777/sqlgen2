@@ -37,6 +37,7 @@ func (dialect postgres) FieldAsColumn(field *Field) string {
 	}
 
 	column := "bytea"
+	dflt := field.Tags.Default
 
 	switch field.Type.Base {
 	case parse.Int, parse.Int64:
@@ -68,6 +69,7 @@ func (dialect postgres) FieldAsColumn(field *Field) string {
 		column = "boolean"
 	case parse.String:
 		column = varchar(field.Tags.Size)
+		dflt = fmt.Sprintf("'%s'", field.Tags.Default)
 	}
 
 	// postgres uses a special column type
@@ -81,15 +83,7 @@ func (dialect postgres) FieldAsColumn(field *Field) string {
 		}
 	}
 
-	if field.Tags.Primary {
-		column += " primary key"
-	}
-
-	if field.Type.IsPtr {
-		column += " default null"
-	}
-
-	return column
+	return fieldTags(field, column, dflt)
 }
 
 func (dialect postgres) TableDDL(table *TableDescription) string {

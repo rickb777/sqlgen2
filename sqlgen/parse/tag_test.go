@@ -43,6 +43,10 @@ func TestParseTag(t *testing.T) {
 			&Tag{Size: 2048},
 		},
 		{
+			TagKey + `:"default: abc123"`,
+			&Tag{Default: "abc123"},
+		},
+		{
 			TagKey + `:"index: fake_index"`,
 			&Tag{Index: "fake_index"},
 		},
