@@ -164,7 +164,7 @@ Foo:
 
 	tags, err := ReadTagsFile(file)
 	Ω(err).Should(BeNil())
-	Ω(len(tags)).Should(Equal(2))
+	Ω(tags).Should(HaveLen(2))
 
 	id := tags["Id"]
 	Ω(id).Should(Equal(Tag{Primary: true, Auto: true}))

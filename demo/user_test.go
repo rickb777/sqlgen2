@@ -395,13 +395,13 @@ func count_known_user_should_return_1(t *testing.T, tbl DbUserTable) {
 func select_unknown_user_should_return_empty_list(t *testing.T, tbl DbUserTable) {
 	list, err := tbl.Select(require.None, where.Eq("name", "unknown"), nil)
 	Ω(err).Should(BeNil())
-	Ω(len(list)).Should(Equal(0))
+	Ω(list).Should(HaveLen(0))
 }
 
 func select_unknown_user_requiring_one_should_return_error(t *testing.T, tbl DbUserTable) {
 	list, err := tbl.Select(require.None, where.Eq("name", "unknown"), nil)
 	Ω(err).Should(BeNil())
-	Ω(len(list)).Should(Equal(0))
+	Ω(list).Should(HaveLen(0))
 
 	_, err = tbl.Select(require.One, where.Eq("name", "unknown"), nil)
 	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
@@ -436,7 +436,7 @@ func query_one_nullstring_for_unknown_should_return_invalid(t *testing.T, tbl Db
 func select_known_user_requiring_one_should_return_user(t *testing.T, tbl DbUserTable) *User {
 	list, err := tbl.Select(require.One, where.Eq("name", "user1"), nil)
 	Ω(err).Should(BeNil())
-	Ω(len(list)).Should(Equal(1))
+	Ω(list).Should(HaveLen(1))
 	return list[0]
 }
 
@@ -451,7 +451,7 @@ func update_user_should_call_PreUpdate(t *testing.T, tbl DbUserTable, user *User
 
 	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("uid", user.Uid), nil)
 	Ω(err).Should(BeNil())
-	Ω(len(ss)).Should(Equal(1))
+	Ω(ss).Should(HaveLen(1))
 	Ω(ss[0]).Should(Equal("bah0@zzz.com"))
 }
 
@@ -472,7 +472,7 @@ func update_users_in_tx(t *testing.T, tbl DbUserTable, user *User) {
 
 	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("uid", user.Uid), nil)
 	Ω(err).Should(BeNil())
-	Ω(len(ss)).Should(Equal(1))
+	Ω(ss).Should(HaveLen(1))
 	Ω(ss[0]).Should(Equal("dude@zzz.com"))
 }
 
@@ -527,7 +527,7 @@ func TestMultiSelect_using_database(t *testing.T) {
 
 	list, err := tbl.Select(nil, where.NotEq("name", "nobody"), where.OrderBy("name").Desc())
 	Ω(err).Should(BeNil())
-	Ω(len(list)).Should(Equal(n + 1))
+	Ω(list).Should(HaveLen(n + 1))
 	for i := 0; i <= n; i++ {
 		users[n-i].hash = "PostGet"
 		Ω(list[i]).Should(Equal(users[n-i]))
@@ -567,7 +567,7 @@ func TestGetters_using_database(t *testing.T) {
 
 	names, err := tbl.SliceName(require.Exactly(n), where.NoOp(), where.OrderBy("name"))
 	Ω(err).Should(BeNil())
-	Ω(len(names)).Should(Equal(n))
+	Ω(names).Should(HaveLen(n))
 
 	for i := 0; i < n; i++ {
 		exp := Sprintf("user%02d", i)
@@ -617,9 +617,9 @@ func TestRowsAsMaps_using_database(t *testing.T) {
 		m, err := ram.ScanToMap()
 		Ω(err).Should(BeNil())
 
-		Ω(len(m.Columns)).Should(Equal(22))
-		Ω(len(m.ColumnTypes)).Should(Equal(22))
-		Ω(len(m.Data)).Should(Equal(22))
+		Ω(m.Columns).Should(HaveLen(22))
+		Ω(m.ColumnTypes).Should(HaveLen(22))
+		Ω(m.Data).Should(HaveLen(22))
 
 		Ω(m.Data["name"]).Should(BeEquivalentTo(Sprintf("user%02d", i)), Sprintf("%d %+v %#v", i, m.ColumnTypes[1], m.Data["name"]))
 		Ω(cast.ToBool(m.Data["admin"])).Should(Equal(false), Sprintf("%d %+v %#v", i, m.ColumnTypes[7], m.Data["admin"]))

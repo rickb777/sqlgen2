@@ -77,14 +77,14 @@ func TestIdsUsedAsForeignKeys(t *testing.T) {
 	m1, err := fkc.RelationshipWith(persons.Name()).IdsUsedAsForeignKeys(persons)
 
 	Ω(err).Should(BeNil())
-	Ω(len(m1)).Should(BeEquivalentTo(2))
+	Ω(m1).Should(HaveLen(2))
 	Ω(m1.Contains(aid1)).Should(BeTrue())
 	Ω(m1.Contains(aid2)).Should(BeTrue())
 
 	m2, err := fkc.RelationshipWith(persons.Name()).IdsUnusedAsForeignKeys(persons)
 
 	Ω(err).Should(BeNil())
-	Ω(len(m2)).Should(BeEquivalentTo(2))
+	Ω(m2).Should(HaveLen(2))
 	Ω(m2.Contains(aid3)).Should(BeTrue())
 	Ω(m2.Contains(aid4)).Should(BeTrue())
 }

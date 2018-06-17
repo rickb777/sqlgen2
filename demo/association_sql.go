@@ -405,7 +405,7 @@ func scanAssociations(rows *sql.Rows, firstOnly bool) (vv []*Association, n int6
 			v.Name = &a
 		}
 		if v2.Valid {
-			a := v2.String
+			a := QualName(v2.String)
 			v.Quality = &a
 		}
 		if v3.Valid {
@@ -626,8 +626,8 @@ func (tbl AssociationTable) SliceName(req require.Requirement, wh where.Expressi
 // SliceQuality gets the quality column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.sliceStringPtrList(req, "quality", wh, qc)
+func (tbl AssociationTable) SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
+	return tbl.sliceQualNamePtrList(req, "quality", wh, qc)
 }
 
 // SliceRef1 gets the ref1 column for all rows that match the 'where' condition.
@@ -665,6 +665,32 @@ func (tbl AssociationTable) sliceCategoryPtrList(req require.Requirement, sqlnam
 
 	var v Category
 	list := make([]Category, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+}
+
+func (tbl AssociationTable) sliceQualNamePtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
+	dialect := tbl.Dialect()
+	whs, args := where.BuildExpression(wh, dialect)
+	orderBy := where.BuildQueryConstraint(qc, dialect)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
+	tbl.logQuery(query, args...)
+	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
+	if err != nil {
+		return nil, tbl.logError(err)
+	}
+	defer rows.Close()
+
+	var v QualName
+	list := make([]QualName, 0, 10)
 
 	for rows.Next() {
 		err = rows.Scan(&v)
