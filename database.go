@@ -8,27 +8,33 @@ import (
 	"database/sql"
 	"strings"
 	"github.com/rickb777/sqlgen2/require"
+	"sync/atomic"
 )
 
 // Database wraps a *sql.DB with a dialect and (optionally) a logger.
 // It's safe for concurrent use by multiple goroutines.
 type Database struct {
-	db      Execer
-	dialect schema.Dialect
-	logger  *log.Logger
-	wrapper interface{}
+	db         Execer
+	dialect    schema.Dialect
+	logger     *log.Logger
+	lgrEnabled int32
+	wrapper    interface{}
 }
 
 // NewDatabase creates a new database handler, which wraps the core *sql.DB along with
 // the appropriate dialect.
 //
-// You can supply the logger you need, or else nil. All queries will be logged; all database
-// will be logged.
+// You can supply the logger you need, or else nil. If not nil, all queries will be logged
+// and all database errors will be logged.
 //
 // The wrapper holds some associated data your application needs for this database, if any.
 // Otherwise this should be nil.
 func NewDatabase(db Execer, dialect schema.Dialect, logger *log.Logger, wrapper interface{}) *Database {
-	return &Database{db, dialect, logger, wrapper}
+	var enabled int32 = 0
+	if logger != nil {
+		enabled = 1
+	}
+	return &Database{db, dialect, logger, enabled, wrapper}
 }
 
 // DB gets the Execer, which is a *sql.DB (except during testing using mocks).
@@ -159,23 +165,74 @@ func (database *Database) Stats() sql.DBStats {
 
 //-------------------------------------------------------------------------------------------------
 
+// TraceLogging turns query trace logging on or off. This has no effect unless the Database was
+// created with a non-nil logger.
+func (database *Database) TraceLogging(on bool) {
+	if on && database.logger != nil {
+		atomic.StoreInt32(&database.lgrEnabled, 1)
+	} else {
+		atomic.StoreInt32(&database.lgrEnabled, 0)
+	}
+}
+
+func (database *Database) loggingEnabled() bool {
+	return atomic.LoadInt32(&database.lgrEnabled) != 0
+}
+
 // LogQuery writes query info to the logger, if it is not nil.
 func (database *Database) LogQuery(query string, args ...interface{}) {
-	//support.LogQuery(database.logger, query, args)
-	if database.logger != nil {
+	if database.loggingEnabled() {
 		query = strings.TrimSpace(query)
 		if len(args) > 0 {
-			database.logger.Printf(query+" %v\n", args)
+			ss := make([]interface{}, len(args))
+			for i, v := range args {
+				ss[i] = derefArg(v)
+			}
+			database.logger.Printf(query+" %v\n", ss)
 		} else {
 			database.logger.Println(query)
 		}
 	}
 }
 
+func derefArg(arg interface{}) interface{} {
+	switch v := arg.(type) {
+	case *int:
+		return *v
+	case *int8:
+		return *v
+	case *int16:
+		return *v
+	case *int32:
+		return *v
+	case *int64:
+		return *v
+	case *uint:
+		return *v
+	case *uint8:
+		return *v
+	case *uint16:
+		return *v
+	case *uint32:
+		return *v
+	case *uint64:
+		return *v
+	case *float32:
+		return *v
+	case *float64:
+		return *v
+	case *bool:
+		return *v
+	case *string:
+		return *v
+	}
+	return arg
+}
+
 // LogIfError writes error info to the logger, if both the logger and the error are non-nil.
 // It returns the error.
 func (database *Database) LogIfError(err error) error {
-	if database.logger != nil && err != nil {
+	if database.loggingEnabled() && err != nil {
 		database.logger.Printf("Error: %s\n", err)
 	}
 	return err
@@ -183,14 +240,13 @@ func (database *Database) LogIfError(err error) error {
 
 // LogError writes error info to the logger, if the logger is not nil. It returns the error.
 func (database *Database) LogError(err error) error {
-	if database.logger != nil {
+	if database.loggingEnabled() {
 		database.logger.Printf("Error: %s\n", err)
 	}
 	return err
 }
 
 //-------------------------------------------------------------------------------------------------
-
 
 // ScanStringList processes result rows to extract a list of strings.
 // The result set should have been produced via a SELECT statement on just one column.

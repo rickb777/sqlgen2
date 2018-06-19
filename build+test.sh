@@ -49,7 +49,7 @@ sqlgen -type vanilla.Record -o vanilla/vanilla_sql.go -read -delete -slice -v va
 ### Build Phase 3 ###
 
 go install ./...
-go test ./constraint ./require ./schema ./sqlgen ./where
+go test . ./constraint ./require ./schema ./sqlgen ./where
 
 for d in constraint require schema sqlgen where; do
   announce ./$d
