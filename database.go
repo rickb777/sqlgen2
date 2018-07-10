@@ -25,10 +25,12 @@ type Database struct {
 // the appropriate dialect.
 //
 // You can supply the logger you need, or else nil. If not nil, all queries will be logged
-// and all database errors will be logged.
+// and all database errors will be logged. Once constructed, the logger itself cannot be
+// changed, but its output writer can (via the SetOutput method on Logger). Logging can
+// be enabled and disabled as needed by using the TraceLogging method.
 //
 // The wrapper holds some associated data your application needs for this database, if any.
-// Otherwise this should be nil.
+// Otherwise this should be nil. As with the logger, it cannot be changed after construction.
 func NewDatabase(db Execer, dialect schema.Dialect, logger *log.Logger, wrapper interface{}) *Database {
 	var enabled int32 = 0
 	if logger != nil {
@@ -63,13 +65,14 @@ func (database *Database) Begin() (*sql.Tx, error) {
 	return database.BeginTx(context.Background(), nil)
 }
 
-// Wrapper gets whatever structure is present, as needed.
+// Dialect gets the current SQL dialect. This choice is determined when the Database is
+// constructed and doesn't subsequently change.
 func (database *Database) Dialect() schema.Dialect {
 	return database.dialect
 }
 
-// Logger gets the trace logger. Note that you can use this to rotate the output writer,
-// or even disable it completely (via ioutil.Discard).
+// Logger gets the trace logger. Note that you can use this to rotate the output writer
+// via its SetOutput method. Also, it can even disable it completely (via ioutil.Discard).
 func (database *Database) Logger() *log.Logger {
 	return database.logger
 }
