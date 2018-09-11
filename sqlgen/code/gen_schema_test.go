@@ -1,10 +1,10 @@
 package code
 
 import (
-	"testing"
-	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"bytes"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"strings"
+	"testing"
 )
 
 func TestWritePrimaryDeclarations(t *testing.T) {

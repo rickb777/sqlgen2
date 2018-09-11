@@ -11,12 +11,12 @@ import (
 //go:generate sqlgen -type demo.User -table the_users -o user_sql.go -gofmt -v -prefix Db -all -setters=all user.go role.go
 
 type User struct {
-	Uid          int64    `sql:"pk: true, auto: true"`
-	Name         string   `sql:"unique: user_login"`
-	EmailAddress string   `sql:"nk: true"`
-	AddressId    *int64   `sql:"fk: addresses.id, onupdate: restrict, ondelete: restrict"`
+	Uid          int64  `sql:"pk: true, auto: true"`
+	Name         string `sql:"unique: user_login"`
+	EmailAddress string `sql:"nk: true"`
+	AddressId    *int64 `sql:"fk: addresses.id, onupdate: restrict, ondelete: restrict"`
 	Avatar       *string
-	Role         *Role    `sql:"type: text, size: 20"`
+	Role         *Role `sql:"type: text, size: 20"`
 	Active       bool
 	Admin        bool
 	Fave         *big.Int `sql:"encode: json"`

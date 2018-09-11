@@ -1,9 +1,9 @@
 package code
 
 import (
-	"io"
-	"github.com/rickb777/sqlgen2/sqlgen/output"
 	"fmt"
+	"github.com/rickb777/sqlgen2/sqlgen/output"
+	"io"
 )
 
 func WriteType(w io.Writer, view View) {

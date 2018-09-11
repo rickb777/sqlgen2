@@ -1,13 +1,13 @@
 package exit
 
 import (
-	"os"
 	"fmt"
+	"os"
 )
 
 // seam for testing
 var Fail = func(code int, message string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "Error: " + message, args...)
+	fmt.Fprintf(os.Stderr, "Error: "+message, args...)
 	os.Exit(code)
 }
 

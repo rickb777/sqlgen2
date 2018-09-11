@@ -416,8 +416,8 @@ type Author struct {
 	}
 
 	fileTags := map[string]Tag{
-		"Aaa":  Tag{Name: "xxx", Size: 10},
-		"Name": Tag{Name: "writer"},
+		"Aaa":  {Name: "xxx", Size: 10},
+		"Name": {Name: "writer"},
 	}
 
 	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", fileTags)

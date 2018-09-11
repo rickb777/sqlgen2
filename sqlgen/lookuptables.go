@@ -47,7 +47,7 @@ var mapStringToSqlType = map[string]types.Kind{
 
 func allowedSqlTypeStrings() string {
 	var s []string
-	for k, _ := range mapStringToSqlType {
+	for k := range mapStringToSqlType {
 		s = append(s, k)
 	}
 	sort.Strings(s)

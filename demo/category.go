@@ -10,4 +10,3 @@ const (
 	Gamma
 	Delta
 )
-

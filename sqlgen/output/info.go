@@ -2,8 +2,8 @@ package output
 
 import (
 	"fmt"
-	"os"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
+	"os"
 )
 
 var Verbose = false

@@ -4,7 +4,6 @@ package demo
 //   * JSON encoding for a slice of strings
 //   * the use of pointers for optional items
 
-
 //go:generate sqlgen -type demo.Address -o address_sql.go -all -v address.go
 
 type Address struct {

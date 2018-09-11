@@ -1,9 +1,9 @@
 package code
 
 import (
-	"testing"
-	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"bytes"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
+	"testing"
 )
 
 func TestWriteSetters_all(t *testing.T) {
