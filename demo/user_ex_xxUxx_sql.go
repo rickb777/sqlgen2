@@ -7,12 +7,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"github.com/rickb777/sqlgen2"
-	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/require"
-	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/support"
-	"github.com/rickb777/sqlgen2/where"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/support"
+	"github.com/rickb777/sqlapi/where"
 	"io"
 	"log"
 )
@@ -21,30 +21,30 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type UUserTable struct {
-	name        sqlgen2.TableName
-	database    *sqlgen2.Database
-	db          sqlgen2.Execer
+	name        sqlapi.TableName
+	database    *sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
 // Type conformance checks
-var _ sqlgen2.Table = &UUserTable{}
-var _ sqlgen2.Table = &UUserTable{}
+var _ sqlapi.Table = &UUserTable{}
+var _ sqlapi.Table = &UUserTable{}
 
 // NewUUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewUUserTable(name string, d *sqlgen2.Database) UUserTable {
+func NewUUserTable(name string, d *sqlapi.Database) UUserTable {
 	if name == "" {
 		name = "users"
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return UUserTable{
-		name:        sqlgen2.TableName{"", name},
+		name:        sqlapi.TableName{"", name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -58,7 +58,7 @@ func NewUUserTable(name string, d *sqlgen2.Database) UUserTable {
 //
 // It serves to provide methods appropriate for 'User'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsUUserTable(origin sqlgen2.Table) UUserTable {
+func CopyTableAsUUserTable(origin sqlapi.Table) UUserTable {
 	return UUserTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -69,14 +69,12 @@ func CopyTableAsUUserTable(origin sqlgen2.Table) UUserTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl UUserTable) SetPkColumn(pk string) UUserTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -96,7 +94,7 @@ func (tbl UUserTable) WithContext(ctx context.Context) UUserTable {
 }
 
 // Database gets the shared database information.
-func (tbl UUserTable) Database() *sqlgen2.Database {
+func (tbl UUserTable) Database() *sqlapi.Database {
 	return tbl.database
 }
 
@@ -127,16 +125,14 @@ func (tbl UUserTable) Dialect() schema.Dialect {
 }
 
 // Name gets the table name.
-func (tbl UUserTable) Name() sqlgen2.TableName {
+func (tbl UUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
-
 
 // PkColumn gets the column name used as a primary key.
 func (tbl UUserTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -145,7 +141,7 @@ func (tbl UUserTable) DB() *sql.DB {
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl UUserTable) Execer() sqlgen2.Execer {
+func (tbl UUserTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
@@ -174,7 +170,7 @@ func (tbl UUserTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl UUserTable) BeginTx(opts *sql.TxOptions) (UUserTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -197,7 +193,6 @@ func (tbl UUserTable) logError(err error) error {
 func (tbl UUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
-
 
 //--------------------------------------------------------------------------------
 
@@ -230,7 +225,7 @@ func (tbl UUserTable) Exec(req require.Requirement, query string, args ...interf
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
+// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl UUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl, query, args...)
 }
@@ -283,12 +278,12 @@ func constructUUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 	dialect.QuoteWithPlaceholder(w, "name", j)
 	s = append(s, v.Name)
 	comma = ", "
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "emailaddress", j)
 	s = append(s, v.EmailAddress)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	if v.AddressId != nil {
@@ -323,16 +318,16 @@ func constructUUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "active", j)
 	s = append(s, v.Active)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "admin", j)
 	s = append(s, v.Admin)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "fave", j)
-		j++
+	j++
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
@@ -342,67 +337,67 @@ func constructUUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "lastupdated", j)
 	s = append(s, v.LastUpdated)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i8", j)
 	s = append(s, v.Numbers.I8)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u8", j)
 	s = append(s, v.Numbers.U8)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i16", j)
 	s = append(s, v.Numbers.I16)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u16", j)
 	s = append(s, v.Numbers.U16)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i32", j)
 	s = append(s, v.Numbers.I32)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u32", j)
 	s = append(s, v.Numbers.U32)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i64", j)
 	s = append(s, v.Numbers.I64)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u64", j)
 	s = append(s, v.Numbers.U64)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "f32", j)
 	s = append(s, v.Numbers.F32)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "f64", j)
 	s = append(s, v.Numbers.F64)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "token", j)
 	s = append(s, v.token)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "secret", j)
 	s = append(s, v.secret)
-		j++
+	j++
 
 	return s, nil
 }
@@ -441,7 +436,7 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
+		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
 				return count, tbl.logError(err)

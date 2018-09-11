@@ -15,9 +15,9 @@ const sTable = `
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type {{.Prefix}}{{.Type}}{{.Thing}} struct {
-	name        sqlgen2.TableName
-	database    *sqlgen2.Database
-	db          sqlgen2.Execer
+	name        sqlapi.TableName
+	database    *sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx			context.Context
 	pk          string
@@ -30,7 +30,7 @@ var _ {{.Interface2}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
 // New{{.Prefix}}{{.Type}}{{.Thing}} returns a new table instance.
 // If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.
 // The request context is initialised with the background.
-func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d *sqlgen2.Database) {{.Prefix}}{{.Type}}{{.Thing}} {
+func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d *sqlapi.Database) {{.Prefix}}{{.Type}}{{.Thing}} {
 	if name == "" {
 		name = "{{.DbName}}"
 	}
@@ -39,7 +39,7 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d *sqlgen2.Database) {{.Pref
 	constraints = append(constraints, {{.GoString}})
 	{{end}}
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
-		name:        sqlgen2.TableName{"", name},
+		name:        sqlapi.TableName{"", name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -53,7 +53,7 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d *sqlgen2.Database) {{.Pref
 //
 // It serves to provide methods appropriate for '{{.Type}}'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin sqlgen2.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
+func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin sqlapi.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -91,7 +91,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithContext(ctx context.Context) {{.Pr
 }
 
 // Database gets the shared database information.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Database() *sqlgen2.Database {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Database() *sqlapi.Database {
 	return tbl.database
 }
 
@@ -122,7 +122,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Dialect() schema.Dialect {
 }
 
 // Name gets the table name.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Name() sqlgen2.TableName {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Name() sqlapi.TableName {
 	return tbl.name
 }
 
@@ -140,7 +140,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DB() *sql.DB {
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Execer() sqlgen2.Execer {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
@@ -169,7 +169,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) BeginTx(opts *sql.TxOptions) ({{.Prefix}}{{.Type}}{{.Thing}}, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -218,7 +218,7 @@ func scan{{.Prefix}}{{.Types}}(rows *sql.Rows, firstOnly bool) (vv {{.List}}, n 
 		v := &{{.Type}}{}
 {{range .Body3}}{{.}}{{end}}
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, err
@@ -334,6 +334,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) dropTableSql(ifExists bool) string {
 	return query
 }
 `
+
 var tCreateTableFunc = template.Must(template.New("CreateTable").Funcs(funcMap).Parse(sCreateTableFunc))
 
 // function template to create DDL for indexes

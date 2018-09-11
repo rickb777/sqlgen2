@@ -1,9 +1,9 @@
 package code
 
 import (
-	"io"
 	"fmt"
-	"github.com/rickb777/sqlgen2/schema"
+	"github.com/rickb777/sqlapi/schema"
+	"io"
 )
 
 type SetterView struct {
@@ -56,7 +56,7 @@ func isExported(name string) bool {
 type setterOption int
 
 const (
-	none     setterOption = iota
+	none setterOption = iota
 	optional
 	exported
 	all

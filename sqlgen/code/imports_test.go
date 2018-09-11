@@ -3,10 +3,10 @@ package code
 //import (
 //	"bytes"
 //	"testing"
-//	"github.com/rickb777/sqlgen2/schema"
+//	"github.com/rickb777/sqlapi/schema"
 //	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 //	"strings"
-//	"github.com/rickb777/sqlgen2/sqlgen/parse"
+//	"github.com/rickb777/sqlapi/sqlgen/parse"
 //)
 //
 //func TestWriteImports_withoutAny(t *testing.T) {

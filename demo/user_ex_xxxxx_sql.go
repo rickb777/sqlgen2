@@ -5,11 +5,11 @@ package demo
 import (
 	"context"
 	"database/sql"
-	"github.com/rickb777/sqlgen2"
-	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/require"
-	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/support"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/support"
 	"log"
 )
 
@@ -17,30 +17,30 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type XUserTable struct {
-	name        sqlgen2.TableName
-	database    *sqlgen2.Database
-	db          sqlgen2.Execer
+	name        sqlapi.TableName
+	database    *sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
 // Type conformance checks
-var _ sqlgen2.Table = &XUserTable{}
-var _ sqlgen2.Table = &XUserTable{}
+var _ sqlapi.Table = &XUserTable{}
+var _ sqlapi.Table = &XUserTable{}
 
 // NewXUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewXUserTable(name string, d *sqlgen2.Database) XUserTable {
+func NewXUserTable(name string, d *sqlapi.Database) XUserTable {
 	if name == "" {
 		name = "users"
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return XUserTable{
-		name:        sqlgen2.TableName{"", name},
+		name:        sqlapi.TableName{"", name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -54,7 +54,7 @@ func NewXUserTable(name string, d *sqlgen2.Database) XUserTable {
 //
 // It serves to provide methods appropriate for 'User'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsXUserTable(origin sqlgen2.Table) XUserTable {
+func CopyTableAsXUserTable(origin sqlapi.Table) XUserTable {
 	return XUserTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -65,14 +65,12 @@ func CopyTableAsXUserTable(origin sqlgen2.Table) XUserTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl XUserTable) SetPkColumn(pk string) XUserTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -92,7 +90,7 @@ func (tbl XUserTable) WithContext(ctx context.Context) XUserTable {
 }
 
 // Database gets the shared database information.
-func (tbl XUserTable) Database() *sqlgen2.Database {
+func (tbl XUserTable) Database() *sqlapi.Database {
 	return tbl.database
 }
 
@@ -123,16 +121,14 @@ func (tbl XUserTable) Dialect() schema.Dialect {
 }
 
 // Name gets the table name.
-func (tbl XUserTable) Name() sqlgen2.TableName {
+func (tbl XUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
-
 
 // PkColumn gets the column name used as a primary key.
 func (tbl XUserTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -141,7 +137,7 @@ func (tbl XUserTable) DB() *sql.DB {
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl XUserTable) Execer() sqlgen2.Execer {
+func (tbl XUserTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
@@ -170,7 +166,7 @@ func (tbl XUserTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl XUserTable) BeginTx(opts *sql.TxOptions) (XUserTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -194,7 +190,6 @@ func (tbl XUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
 const NumXUserColumns = 22
@@ -216,7 +211,7 @@ const XUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,adm
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
+// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl XUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl, query, args...)
 }

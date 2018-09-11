@@ -1,8 +1,8 @@
 package main
 
 import (
-	. "github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	. "github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/types"
 	"sort"
 	"strings"
 )
@@ -14,35 +14,35 @@ var mapTagToEncoding = map[string]SqlEncode{
 	"driver": ENCDRIVER,
 }
 
-var mapStringToSqlType = map[string]parse.Kind{
+var mapStringToSqlType = map[string]types.Kind{
 	// Go-flavour names
-	"bool":    parse.Bool,
-	"int":     parse.Int,
-	"int8":    parse.Int8,
-	"int16":   parse.Int16,
-	"int32":   parse.Int32,
-	"int64":   parse.Int64,
-	"uint":    parse.Uint,
-	"uint8":   parse.Uint8,
-	"uint16":  parse.Uint16,
-	"uint32":  parse.Uint32,
-	"uint64":  parse.Uint64,
-	"float32": parse.Float32,
-	"float64": parse.Float64,
-	"string":  parse.String,
+	"bool":    types.Bool,
+	"int":     types.Int,
+	"int8":    types.Int8,
+	"int16":   types.Int16,
+	"int32":   types.Int32,
+	"int64":   types.Int64,
+	"uint":    types.Uint,
+	"uint8":   types.Uint8,
+	"uint16":  types.Uint16,
+	"uint32":  types.Uint32,
+	"uint64":  types.Uint64,
+	"float32": types.Float32,
+	"float64": types.Float64,
+	"string":  types.String,
 
 	// SQL-flavour names
-	"text":     parse.String,
-	"json":     parse.String,
-	"varchar":  parse.String,
-	"varchar2": parse.String,
-	"number":   parse.Int,
-	"tinyint":  parse.Int8,
-	"smallint": parse.Int16,
-	"integer":  parse.Int,
-	"bigint":   parse.Int64,
-	"blob":     parse.Struct,
-	"bytea":    parse.Struct,
+	"text":     types.String,
+	"json":     types.String,
+	"varchar":  types.String,
+	"varchar2": types.String,
+	"number":   types.Int,
+	"tinyint":  types.Int8,
+	"smallint": types.Int16,
+	"integer":  types.Int,
+	"bigint":   types.Int64,
+	"blob":     types.Struct,
+	"bytea":    types.Struct,
 }
 
 func allowedSqlTypeStrings() string {

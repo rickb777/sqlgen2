@@ -3,19 +3,20 @@ package main
 import (
 	"bytes"
 	"flag"
+	"fmt"
+	"github.com/kortschak/utter"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/types"
+	"github.com/rickb777/sqlapi/util"
+	. "github.com/rickb777/sqlgen2/sqlgen/code"
+	. "github.com/rickb777/sqlgen2/sqlgen/output"
+	"github.com/rickb777/sqlgen2/sqlgen/parse"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-	"github.com/kortschak/utter"
-	"github.com/rickb777/sqlgen2/schema"
-	. "github.com/rickb777/sqlgen2/sqlgen/code"
-	. "github.com/rickb777/sqlgen2/sqlgen/output"
-	"github.com/rickb777/sqlgen2/sqlgen/parse"
-	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
-	"github.com/rickb777/sqlgen2/util"
-	"fmt"
 )
 
 func main() {
@@ -25,16 +26,16 @@ func main() {
 	var flags = funcFlags{}
 	var all, sselect, insert, gofmt bool
 
-	flag.StringVar(&oFile, "o", "", "Output file name; optional. Use '-' for stdout.\n" +
+	flag.StringVar(&oFile, "o", "", "Output file name; optional. Use '-' for stdout.\n"+
 		"\tIf omitted, the first input filename is used with '_sql.go' suffix.")
-	flag.StringVar(&typeName, "type", "", "The type to analyse; required.\n" +
+	flag.StringVar(&typeName, "type", "", "The type to analyse; required.\n"+
 		"\tThis is expressed in the form 'pkg.Name'")
-	flag.StringVar(&prefix, "prefix", "", "Prefix for names of generated types; optional.\n" +
+	flag.StringVar(&prefix, "prefix", "", "Prefix for names of generated types; optional.\n"+
 		"\tUse this if you need to avoid name collisions.")
 	flag.StringVar(&list, "list", "", "List type for slice of model objects; optional.")
 	flag.StringVar(&kind, "kind", "Table", "Kind of model: you could use 'Table', 'View', 'Join' etc as required.")
 	flag.StringVar(&tableName, "table", "", "The name for the database table; default is based on the struct name as a plural.")
-	flag.StringVar(&tagsFile, "tags", "", "A YAML file containing tags that augment and override any in the Go struct(s); optional.\n" +
+	flag.StringVar(&tagsFile, "tags", "", "A YAML file containing tags that augment and override any in the Go struct(s); optional.\n"+
 		"\tTags control the SQL type, size, column name, indexes etc.")
 	flag.BoolVar(&Verbose, "v", false, "Show progress messages.")
 	flag.BoolVar(&parse.Debug, "z", false, "Show debug messages.")
@@ -42,7 +43,7 @@ func main() {
 	flag.BoolVar(&gofmt, "gofmt", false, "Format and simplify the generated code nicely.")
 
 	// filters for what gets generated
-	flag.BoolVar(&all, "all", false, "Shorthand for '-schema -create -read -update -delete -slice'; recommended.\n" +
+	flag.BoolVar(&all, "all", false, "Shorthand for '-schema -create -read -update -delete -slice'; recommended.\n"+
 		"\tThis does not affect -setters.")
 	flag.BoolVar(&sselect, "select", false, "Alias for -read")
 	flag.BoolVar(&insert, "insert", false, "Alias for -create")
@@ -53,7 +54,7 @@ func main() {
 	flag.BoolVar(&flags.update, "update", false, "Generate SQL update methods.")
 	flag.BoolVar(&flags.delete, "delete", false, "Generate SQL delete methods.")
 	flag.BoolVar(&flags.slice, "slice", false, "Generate SQL slice (column select) methods.")
-	flag.StringVar(&genSetters, "setters", "none", "Generate setters for fields of your type (see -type): none, optional, exported, all.\n" +
+	flag.StringVar(&genSetters, "setters", "none", "Generate setters for fields of your type (see -type): none, optional, exported, all.\n"+
 		"\tFields that are pointers are assumed to be optional.")
 
 	flag.Parse()
@@ -101,7 +102,7 @@ func main() {
 
 	o := NewOutput(oFile)
 
-	tags, err := parse.ReadTagsFile(tagsFile)
+	tags, err := types.ReadTagsFile(tagsFile)
 	if err != nil && err != os.ErrNotExist {
 		exit.Fail(1, "tags file %s failed: %s.\n", tagsFile, err)
 	}
@@ -202,11 +203,11 @@ func packagesToImport(flags funcFlags, hasPrimaryKey bool) util.StringSet {
 		"context",
 		"database/sql",
 		"log",
-		"github.com/rickb777/sqlgen2",
-		"github.com/rickb777/sqlgen2/constraint",
-		"github.com/rickb777/sqlgen2/require",
-		"github.com/rickb777/sqlgen2/schema",
-		"github.com/rickb777/sqlgen2/support",
+		"github.com/rickb777/sqlapi",
+		"github.com/rickb777/sqlapi/constraint",
+		"github.com/rickb777/sqlapi/require",
+		"github.com/rickb777/sqlapi/schema",
+		"github.com/rickb777/sqlapi/support",
 	)
 
 	if flags.insert || flags.update || flags.schema {
@@ -219,7 +220,7 @@ func packagesToImport(flags funcFlags, hasPrimaryKey bool) util.StringSet {
 		imports.Add("fmt")
 	}
 	if flags.sselect || flags.slice || flags.update || flags.delete {
-		imports.Add("github.com/rickb777/sqlgen2/where")
+		imports.Add("github.com/rickb777/sqlapi/where")
 	}
 	return imports
 }
@@ -236,19 +237,19 @@ func lastDirName(full string) string {
 
 func primaryInterface(table *schema.TableDescription, genSchema bool) string {
 	if !genSchema {
-		return "sqlgen2.Table"
+		return "sqlapi.Table"
 	}
 	if len(table.Index) == 0 {
-		return "sqlgen2.TableCreator"
+		return "sqlapi.TableCreator"
 	}
-	return "sqlgen2.TableWithIndexes"
+	return "sqlapi.TableWithIndexes"
 }
 
 func secondaryInterface(flags funcFlags) string {
 	if flags.exec && flags.sselect && flags.insert && flags.update && flags.delete && flags.slice {
-		return "sqlgen2.TableWithCrud"
+		return "sqlapi.TableWithCrud"
 	}
-	return "sqlgen2.Table"
+	return "sqlapi.Table"
 }
 
 //-------------------------------------------------------------------------------------------------

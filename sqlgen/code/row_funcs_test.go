@@ -3,12 +3,12 @@ package code
 import (
 	"bytes"
 	"fmt"
+	. "github.com/rickb777/sqlapi/schema"
+	. "github.com/rickb777/sqlapi/types"
+	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"os"
 	"strings"
 	"testing"
-	. "github.com/rickb777/sqlgen2/schema"
-	. "github.com/rickb777/sqlgen2/sqlgen/parse"
-	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 )
 
 func TestWriteRowsFunc1(t *testing.T) {
@@ -68,7 +68,7 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 		v.Commit.Message = v3
 
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, err
@@ -207,7 +207,7 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 		}
 
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, err

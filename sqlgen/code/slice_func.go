@@ -2,8 +2,8 @@ package code
 
 import (
 	"fmt"
+	"github.com/rickb777/sqlapi/schema"
 	"io"
-	"github.com/rickb777/sqlgen2/schema"
 )
 
 func WriteConstructInsert(w io.Writer, view View) {

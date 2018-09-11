@@ -8,12 +8,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/rickb777/sqlgen2"
-	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/require"
-	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/support"
-	"github.com/rickb777/sqlgen2/where"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/support"
+	"github.com/rickb777/sqlapi/where"
 	"io"
 	"log"
 )
@@ -22,30 +22,30 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type AUserTable struct {
-	name        sqlgen2.TableName
-	database    *sqlgen2.Database
-	db          sqlgen2.Execer
+	name        sqlapi.TableName
+	database    *sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
 // Type conformance checks
-var _ sqlgen2.TableWithIndexes = &AUserTable{}
-var _ sqlgen2.TableWithCrud = &AUserTable{}
+var _ sqlapi.TableWithIndexes = &AUserTable{}
+var _ sqlapi.TableWithCrud = &AUserTable{}
 
 // NewAUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewAUserTable(name string, d *sqlgen2.Database) AUserTable {
+func NewAUserTable(name string, d *sqlapi.Database) AUserTable {
 	if name == "" {
 		name = "users"
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return AUserTable{
-		name:        sqlgen2.TableName{"", name},
+		name:        sqlapi.TableName{"", name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -59,7 +59,7 @@ func NewAUserTable(name string, d *sqlgen2.Database) AUserTable {
 //
 // It serves to provide methods appropriate for 'User'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsAUserTable(origin sqlgen2.Table) AUserTable {
+func CopyTableAsAUserTable(origin sqlapi.Table) AUserTable {
 	return AUserTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -70,14 +70,12 @@ func CopyTableAsAUserTable(origin sqlgen2.Table) AUserTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AUserTable) SetPkColumn(pk string) AUserTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -97,7 +95,7 @@ func (tbl AUserTable) WithContext(ctx context.Context) AUserTable {
 }
 
 // Database gets the shared database information.
-func (tbl AUserTable) Database() *sqlgen2.Database {
+func (tbl AUserTable) Database() *sqlapi.Database {
 	return tbl.database
 }
 
@@ -128,16 +126,14 @@ func (tbl AUserTable) Dialect() schema.Dialect {
 }
 
 // Name gets the table name.
-func (tbl AUserTable) Name() sqlgen2.TableName {
+func (tbl AUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
-
 
 // PkColumn gets the column name used as a primary key.
 func (tbl AUserTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -146,7 +142,7 @@ func (tbl AUserTable) DB() *sql.DB {
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl AUserTable) Execer() sqlgen2.Execer {
+func (tbl AUserTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
@@ -175,7 +171,7 @@ func (tbl AUserTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl AUserTable) BeginTx(opts *sql.TxOptions) (AUserTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -199,7 +195,6 @@ func (tbl AUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
 const NumAUserColumns = 22
@@ -212,53 +207,53 @@ const AUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,adm
 
 //--------------------------------------------------------------------------------
 
-const sqlAUserTableCreateColumnsSqlite = "\n"+
-" `uid`          integer not null primary key autoincrement,\n"+
-" `name`         text not null,\n"+
-" `emailaddress` text not null,\n"+
-" `addressid`    bigint default null,\n"+
-" `avatar`       text default null,\n"+
-" `role`         text default null,\n"+
-" `active`       boolean not null,\n"+
-" `admin`        boolean not null,\n"+
-" `fave`         text,\n"+
-" `lastupdated`  bigint not null,\n"+
-" `i8`           tinyint not null default -8,\n"+
-" `u8`           tinyint unsigned not null default 8,\n"+
-" `i16`          smallint not null default -16,\n"+
-" `u16`          smallint unsigned not null default 16,\n"+
-" `i32`          int not null default -32,\n"+
-" `u32`          int unsigned not null default 32,\n"+
-" `i64`          bigint not null default -64,\n"+
-" `u64`          bigint unsigned not null default 64,\n"+
-" `f32`          float not null default 3.2,\n"+
-" `f64`          double not null default 6.4,\n"+
-" `token`        text not null,\n"+
-" `secret`       text not null"
+const sqlAUserTableCreateColumnsSqlite = "\n" +
+	" `uid`          integer not null primary key autoincrement,\n" +
+	" `name`         text not null,\n" +
+	" `emailaddress` text not null,\n" +
+	" `addressid`    bigint default null,\n" +
+	" `avatar`       text default null,\n" +
+	" `role`         text default null,\n" +
+	" `active`       boolean not null,\n" +
+	" `admin`        boolean not null,\n" +
+	" `fave`         text,\n" +
+	" `lastupdated`  bigint not null,\n" +
+	" `i8`           tinyint not null default -8,\n" +
+	" `u8`           tinyint unsigned not null default 8,\n" +
+	" `i16`          smallint not null default -16,\n" +
+	" `u16`          smallint unsigned not null default 16,\n" +
+	" `i32`          int not null default -32,\n" +
+	" `u32`          int unsigned not null default 32,\n" +
+	" `i64`          bigint not null default -64,\n" +
+	" `u64`          bigint unsigned not null default 64,\n" +
+	" `f32`          float not null default 3.2,\n" +
+	" `f64`          double not null default 6.4,\n" +
+	" `token`        text not null,\n" +
+	" `secret`       text not null"
 
-const sqlAUserTableCreateColumnsMysql = "\n"+
-" `uid`          bigint not null primary key auto_increment,\n"+
-" `name`         varchar(255) not null,\n"+
-" `emailaddress` varchar(255) not null,\n"+
-" `addressid`    bigint default null,\n"+
-" `avatar`       varchar(255) default null,\n"+
-" `role`         varchar(20) default null,\n"+
-" `active`       tinyint(1) not null,\n"+
-" `admin`        tinyint(1) not null,\n"+
-" `fave`         json,\n"+
-" `lastupdated`  bigint not null,\n"+
-" `i8`           tinyint not null default -8,\n"+
-" `u8`           tinyint unsigned not null default 8,\n"+
-" `i16`          smallint not null default -16,\n"+
-" `u16`          smallint unsigned not null default 16,\n"+
-" `i32`          int not null default -32,\n"+
-" `u32`          int unsigned not null default 32,\n"+
-" `i64`          bigint not null default -64,\n"+
-" `u64`          bigint unsigned not null default 64,\n"+
-" `f32`          float not null default 3.2,\n"+
-" `f64`          double not null default 6.4,\n"+
-" `token`        varchar(255) not null,\n"+
-" `secret`       varchar(255) not null"
+const sqlAUserTableCreateColumnsMysql = "\n" +
+	" `uid`          bigint not null primary key auto_increment,\n" +
+	" `name`         varchar(255) not null,\n" +
+	" `emailaddress` varchar(255) not null,\n" +
+	" `addressid`    bigint default null,\n" +
+	" `avatar`       varchar(255) default null,\n" +
+	" `role`         varchar(20) default null,\n" +
+	" `active`       tinyint(1) not null,\n" +
+	" `admin`        tinyint(1) not null,\n" +
+	" `fave`         json,\n" +
+	" `lastupdated`  bigint not null,\n" +
+	" `i8`           tinyint not null default -8,\n" +
+	" `u8`           tinyint unsigned not null default 8,\n" +
+	" `i16`          smallint not null default -16,\n" +
+	" `u16`          smallint unsigned not null default 16,\n" +
+	" `i32`          int not null default -32,\n" +
+	" `u32`          int unsigned not null default 32,\n" +
+	" `i64`          bigint not null default -64,\n" +
+	" `u64`          bigint unsigned not null default 64,\n" +
+	" `f32`          float not null default 3.2,\n" +
+	" `f64`          double not null default 6.4,\n" +
+	" `token`        varchar(255) not null,\n" +
+	" `secret`       varchar(255) not null"
 
 const sqlAUserTableCreateColumnsPostgres = `
  "uid"          bigserial not null primary key,
@@ -308,13 +303,13 @@ func (tbl AUserTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlAUserTableCreateColumnsSqlite
 		settings = ""
-    case schema.Mysql:
+	case schema.Mysql:
 		columns = sqlAUserTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-    case schema.Postgres:
+	case schema.Postgres:
 		columns = sqlAUserTableCreateColumnsPostgres
 		settings = ""
-    }
+	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -508,7 +503,7 @@ func (tbl AUserTable) Exec(req require.Requirement, query string, args ...interf
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
+// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl AUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl, query, args...)
 }
@@ -646,7 +641,7 @@ func scanAUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 		v.secret = v21
 
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, err
@@ -782,7 +777,7 @@ func (tbl AUserTable) SelectOneWhere(req require.Requirement, where, orderBy str
 	return v, err
 }
 
-// SelectOne allows a single User to be obtained from the sqlgen2.
+// SelectOne allows a single User to be obtained from the database.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -1328,7 +1323,6 @@ func (tbl AUserTable) sliceUint8List(req require.Requirement, sqlname string, wh
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-
 func constructAUserInsert(w io.Writer, v *User, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
 	s = make([]interface{}, 0, 22)
 
@@ -1450,12 +1444,12 @@ func constructAUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 	dialect.QuoteWithPlaceholder(w, "name", j)
 	s = append(s, v.Name)
 	comma = ", "
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "emailaddress", j)
 	s = append(s, v.EmailAddress)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	if v.AddressId != nil {
@@ -1490,16 +1484,16 @@ func constructAUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "active", j)
 	s = append(s, v.Active)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "admin", j)
 	s = append(s, v.Admin)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "fave", j)
-		j++
+	j++
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
@@ -1509,67 +1503,67 @@ func constructAUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "lastupdated", j)
 	s = append(s, v.LastUpdated)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i8", j)
 	s = append(s, v.Numbers.I8)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u8", j)
 	s = append(s, v.Numbers.U8)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i16", j)
 	s = append(s, v.Numbers.I16)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u16", j)
 	s = append(s, v.Numbers.U16)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i32", j)
 	s = append(s, v.Numbers.I32)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u32", j)
 	s = append(s, v.Numbers.U32)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i64", j)
 	s = append(s, v.Numbers.I64)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u64", j)
 	s = append(s, v.Numbers.U64)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "f32", j)
 	s = append(s, v.Numbers.F32)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "f64", j)
 	s = append(s, v.Numbers.F64)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "token", j)
 	s = append(s, v.token)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "secret", j)
 	s = append(s, v.secret)
-		j++
+	j++
 
 	return s, nil
 }
@@ -1601,7 +1595,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
+		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
 				return tbl.logError(err)
@@ -1640,7 +1634,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 
@@ -1687,7 +1681,7 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
+		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
 				return count, tbl.logError(err)

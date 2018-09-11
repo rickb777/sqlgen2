@@ -8,12 +8,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/rickb777/sqlgen2"
-	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/require"
-	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/support"
-	"github.com/rickb777/sqlgen2/where"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/support"
+	"github.com/rickb777/sqlapi/where"
 	"io"
 	"log"
 )
@@ -22,28 +22,28 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type IssueTable struct {
-	name        sqlgen2.TableName
-	database    *sqlgen2.Database
-	db          sqlgen2.Execer
+	name        sqlapi.TableName
+	database    *sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
 // Type conformance checks
-var _ sqlgen2.TableWithIndexes = &IssueTable{}
-var _ sqlgen2.TableWithCrud = &IssueTable{}
+var _ sqlapi.TableWithIndexes = &IssueTable{}
+var _ sqlapi.TableWithCrud = &IssueTable{}
 
 // NewIssueTable returns a new table instance.
 // If a blank table name is supplied, the default name "issues" will be used instead.
 // The request context is initialised with the background.
-func NewIssueTable(name string, d *sqlgen2.Database) IssueTable {
+func NewIssueTable(name string, d *sqlapi.Database) IssueTable {
 	if name == "" {
 		name = "issues"
 	}
 	var constraints constraint.Constraints
 	return IssueTable{
-		name:        sqlgen2.TableName{"", name},
+		name:        sqlapi.TableName{"", name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -57,7 +57,7 @@ func NewIssueTable(name string, d *sqlgen2.Database) IssueTable {
 //
 // It serves to provide methods appropriate for 'Issue'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsIssueTable(origin sqlgen2.Table) IssueTable {
+func CopyTableAsIssueTable(origin sqlapi.Table) IssueTable {
 	return IssueTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -68,14 +68,12 @@ func CopyTableAsIssueTable(origin sqlgen2.Table) IssueTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl IssueTable) SetPkColumn(pk string) IssueTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -95,7 +93,7 @@ func (tbl IssueTable) WithContext(ctx context.Context) IssueTable {
 }
 
 // Database gets the shared database information.
-func (tbl IssueTable) Database() *sqlgen2.Database {
+func (tbl IssueTable) Database() *sqlapi.Database {
 	return tbl.database
 }
 
@@ -126,16 +124,14 @@ func (tbl IssueTable) Dialect() schema.Dialect {
 }
 
 // Name gets the table name.
-func (tbl IssueTable) Name() sqlgen2.TableName {
+func (tbl IssueTable) Name() sqlapi.TableName {
 	return tbl.name
 }
-
 
 // PkColumn gets the column name used as a primary key.
 func (tbl IssueTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -144,7 +140,7 @@ func (tbl IssueTable) DB() *sql.DB {
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl IssueTable) Execer() sqlgen2.Execer {
+func (tbl IssueTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
@@ -173,7 +169,7 @@ func (tbl IssueTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl IssueTable) BeginTx(opts *sql.TxOptions) (IssueTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -197,7 +193,6 @@ func (tbl IssueTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
 const NumIssueColumns = 8
@@ -210,25 +205,25 @@ const IssueDataColumnNames = "number,date,title,bigbody,assignee,state,labels"
 
 //--------------------------------------------------------------------------------
 
-const sqlIssueTableCreateColumnsSqlite = "\n"+
-" `id`       integer not null primary key autoincrement,\n"+
-" `number`   bigint not null,\n"+
-" `date`     blob not null,\n"+
-" `title`    text not null,\n"+
-" `bigbody`  text not null,\n"+
-" `assignee` text not null,\n"+
-" `state`    text not null,\n"+
-" `labels`   text"
+const sqlIssueTableCreateColumnsSqlite = "\n" +
+	" `id`       integer not null primary key autoincrement,\n" +
+	" `number`   bigint not null,\n" +
+	" `date`     blob not null,\n" +
+	" `title`    text not null,\n" +
+	" `bigbody`  text not null,\n" +
+	" `assignee` text not null,\n" +
+	" `state`    text not null,\n" +
+	" `labels`   text"
 
-const sqlIssueTableCreateColumnsMysql = "\n"+
-" `id`       bigint not null primary key auto_increment,\n"+
-" `number`   bigint not null,\n"+
-" `date`     mediumblob not null,\n"+
-" `title`    varchar(512) not null,\n"+
-" `bigbody`  varchar(2048) not null,\n"+
-" `assignee` varchar(255) not null,\n"+
-" `state`    varchar(50) not null,\n"+
-" `labels`   json"
+const sqlIssueTableCreateColumnsMysql = "\n" +
+	" `id`       bigint not null primary key auto_increment,\n" +
+	" `number`   bigint not null,\n" +
+	" `date`     mediumblob not null,\n" +
+	" `title`    varchar(512) not null,\n" +
+	" `bigbody`  varchar(2048) not null,\n" +
+	" `assignee` varchar(255) not null,\n" +
+	" `state`    varchar(50) not null,\n" +
+	" `labels`   json"
 
 const sqlIssueTableCreateColumnsPostgres = `
  "id"       bigserial not null primary key,
@@ -261,13 +256,13 @@ func (tbl IssueTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlIssueTableCreateColumnsSqlite
 		settings = ""
-    case schema.Mysql:
+	case schema.Mysql:
 		columns = sqlIssueTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-    case schema.Postgres:
+	case schema.Postgres:
 		columns = sqlIssueTableCreateColumnsPostgres
 		settings = ""
-    }
+	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -414,7 +409,7 @@ func (tbl IssueTable) Exec(req require.Requirement, query string, args ...interf
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
+// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl IssueTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl, query, args...)
 }
@@ -498,7 +493,7 @@ func scanIssues(rows *sql.Rows, firstOnly bool) (vv []*Issue, n int64, err error
 		}
 
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, err
@@ -628,7 +623,7 @@ func (tbl IssueTable) SelectOneWhere(req require.Requirement, where, orderBy str
 	return v, err
 }
 
-// SelectOne allows a single Issue to be obtained from the sqlgen2.
+// SelectOne allows a single Issue to be obtained from the database.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -811,7 +806,6 @@ func (tbl IssueTable) sliceStringList(req require.Requirement, sqlname string, w
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-
 func constructIssueInsert(w io.Writer, v *Issue, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
 	s = make([]interface{}, 0, 8)
 
@@ -871,36 +865,36 @@ func constructIssueUpdate(w io.Writer, v *Issue, dialect schema.Dialect) (s []in
 	dialect.QuoteWithPlaceholder(w, "number", j)
 	s = append(s, v.Number)
 	comma = ", "
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "date", j)
 	s = append(s, v.Date)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "title", j)
 	s = append(s, v.Title)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "bigbody", j)
 	s = append(s, v.Body)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "assignee", j)
 	s = append(s, v.Assignee)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "state", j)
 	s = append(s, v.State)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "labels", j)
-		j++
+	j++
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
@@ -937,7 +931,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
+		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
 				return tbl.logError(err)
@@ -976,7 +970,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 
@@ -1023,7 +1017,7 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
+		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
 				return count, tbl.logError(err)

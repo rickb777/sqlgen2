@@ -2,11 +2,11 @@ package code
 
 import (
 	"bytes"
-	"testing"
+	. "github.com/rickb777/sqlapi/schema"
+	. "github.com/rickb777/sqlapi/types"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
-	. "github.com/rickb777/sqlgen2/schema"
-	. "github.com/rickb777/sqlgen2/sqlgen/parse"
 	"strings"
+	"testing"
 )
 
 func simpleFixtureTable() *TableDescription {
@@ -65,7 +65,7 @@ func TestWriteQueryRows(t *testing.T) {
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
+// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl XExampleTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl, query, args...)
 }
@@ -384,7 +384,6 @@ func TestWriteSelectRow(t *testing.T) {
 	view := NewView("Example", "X", "", "")
 	view.Table = simpleFixtureTable()
 
-
 	buf := &bytes.Buffer{}
 
 	WriteSelectRowsFuncs(buf, view)
@@ -409,7 +408,7 @@ func (tbl XExampleTable) SelectOneWhere(req require.Requirement, where, orderBy 
 	return v, err
 }
 
-// SelectOne allows a single Example to be obtained from the sqlgen2.
+// SelectOne allows a single Example to be obtained from the database.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -514,7 +513,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	returning := ""
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
+		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
 				return tbl.logError(err)
@@ -613,7 +612,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
+		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
 				return tbl.logError(err)
@@ -746,7 +745,7 @@ func (tbl XExampleTable) Update(req require.Requirement, vv ...*Example) (int64,
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
+		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
 				return count, tbl.logError(err)

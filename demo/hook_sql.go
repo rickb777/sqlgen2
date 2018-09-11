@@ -7,12 +7,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen2"
-	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/require"
-	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/support"
-	"github.com/rickb777/sqlgen2/where"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/support"
+	"github.com/rickb777/sqlapi/where"
 	"io"
 	"log"
 )
@@ -21,28 +21,28 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type HookTable struct {
-	name        sqlgen2.TableName
-	database    *sqlgen2.Database
-	db          sqlgen2.Execer
+	name        sqlapi.TableName
+	database    *sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
 // Type conformance checks
-var _ sqlgen2.TableCreator = &HookTable{}
-var _ sqlgen2.TableWithCrud = &HookTable{}
+var _ sqlapi.TableCreator = &HookTable{}
+var _ sqlapi.TableWithCrud = &HookTable{}
 
 // NewHookTable returns a new table instance.
 // If a blank table name is supplied, the default name "hooks" will be used instead.
 // The request context is initialised with the background.
-func NewHookTable(name string, d *sqlgen2.Database) HookTable {
+func NewHookTable(name string, d *sqlapi.Database) HookTable {
 	if name == "" {
 		name = "hooks"
 	}
 	var constraints constraint.Constraints
 	return HookTable{
-		name:        sqlgen2.TableName{"", name},
+		name:        sqlapi.TableName{"", name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -56,7 +56,7 @@ func NewHookTable(name string, d *sqlgen2.Database) HookTable {
 //
 // It serves to provide methods appropriate for 'Hook'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsHookTable(origin sqlgen2.Table) HookTable {
+func CopyTableAsHookTable(origin sqlapi.Table) HookTable {
 	return HookTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -67,14 +67,12 @@ func CopyTableAsHookTable(origin sqlgen2.Table) HookTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl HookTable) SetPkColumn(pk string) HookTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -94,7 +92,7 @@ func (tbl HookTable) WithContext(ctx context.Context) HookTable {
 }
 
 // Database gets the shared database information.
-func (tbl HookTable) Database() *sqlgen2.Database {
+func (tbl HookTable) Database() *sqlapi.Database {
 	return tbl.database
 }
 
@@ -125,16 +123,14 @@ func (tbl HookTable) Dialect() schema.Dialect {
 }
 
 // Name gets the table name.
-func (tbl HookTable) Name() sqlgen2.TableName {
+func (tbl HookTable) Name() sqlapi.TableName {
 	return tbl.name
 }
-
 
 // PkColumn gets the column name used as a primary key.
 func (tbl HookTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -143,7 +139,7 @@ func (tbl HookTable) DB() *sql.DB {
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl HookTable) Execer() sqlgen2.Execer {
+func (tbl HookTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
@@ -172,7 +168,7 @@ func (tbl HookTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl HookTable) BeginTx(opts *sql.TxOptions) (HookTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -196,7 +192,6 @@ func (tbl HookTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
 const NumHookColumns = 17
@@ -209,43 +204,43 @@ const HookDataColumnNames = "sha,after,before,category,created,deleted,forced,co
 
 //--------------------------------------------------------------------------------
 
-const sqlHookTableCreateColumnsSqlite = "\n"+
-" `id`                             integer not null primary key autoincrement,\n"+
-" `sha`                            text not null,\n"+
-" `after`                          text not null,\n"+
-" `before`                         text not null,\n"+
-" `category`                       tinyint unsigned not null,\n"+
-" `created`                        boolean not null,\n"+
-" `deleted`                        boolean not null,\n"+
-" `forced`                         boolean not null,\n"+
-" `commit_id`                      text not null,\n"+
-" `message`                        text not null,\n"+
-" `timestamp`                      text not null,\n"+
-" `head_commit_author_name`        text not null,\n"+
-" `head_commit_author_email`       text not null,\n"+
-" `head_commit_author_username`    text not null,\n"+
-" `head_commit_committer_name`     text not null,\n"+
-" `head_commit_committer_email`    text not null,\n"+
-" `head_commit_committer_username` text not null"
+const sqlHookTableCreateColumnsSqlite = "\n" +
+	" `id`                             integer not null primary key autoincrement,\n" +
+	" `sha`                            text not null,\n" +
+	" `after`                          text not null,\n" +
+	" `before`                         text not null,\n" +
+	" `category`                       tinyint unsigned not null,\n" +
+	" `created`                        boolean not null,\n" +
+	" `deleted`                        boolean not null,\n" +
+	" `forced`                         boolean not null,\n" +
+	" `commit_id`                      text not null,\n" +
+	" `message`                        text not null,\n" +
+	" `timestamp`                      text not null,\n" +
+	" `head_commit_author_name`        text not null,\n" +
+	" `head_commit_author_email`       text not null,\n" +
+	" `head_commit_author_username`    text not null,\n" +
+	" `head_commit_committer_name`     text not null,\n" +
+	" `head_commit_committer_email`    text not null,\n" +
+	" `head_commit_committer_username` text not null"
 
-const sqlHookTableCreateColumnsMysql = "\n"+
-" `id`                             bigint unsigned not null primary key auto_increment,\n"+
-" `sha`                            varchar(255) not null,\n"+
-" `after`                          varchar(20) not null,\n"+
-" `before`                         varchar(20) not null,\n"+
-" `category`                       tinyint unsigned not null,\n"+
-" `created`                        tinyint(1) not null,\n"+
-" `deleted`                        tinyint(1) not null,\n"+
-" `forced`                         tinyint(1) not null,\n"+
-" `commit_id`                      varchar(255) not null,\n"+
-" `message`                        varchar(255) not null,\n"+
-" `timestamp`                      varchar(255) not null,\n"+
-" `head_commit_author_name`        varchar(255) not null,\n"+
-" `head_commit_author_email`       varchar(255) not null,\n"+
-" `head_commit_author_username`    varchar(255) not null,\n"+
-" `head_commit_committer_name`     varchar(255) not null,\n"+
-" `head_commit_committer_email`    varchar(255) not null,\n"+
-" `head_commit_committer_username` varchar(255) not null"
+const sqlHookTableCreateColumnsMysql = "\n" +
+	" `id`                             bigint unsigned not null primary key auto_increment,\n" +
+	" `sha`                            varchar(255) not null,\n" +
+	" `after`                          varchar(20) not null,\n" +
+	" `before`                         varchar(20) not null,\n" +
+	" `category`                       tinyint unsigned not null,\n" +
+	" `created`                        tinyint(1) not null,\n" +
+	" `deleted`                        tinyint(1) not null,\n" +
+	" `forced`                         tinyint(1) not null,\n" +
+	" `commit_id`                      varchar(255) not null,\n" +
+	" `message`                        varchar(255) not null,\n" +
+	" `timestamp`                      varchar(255) not null,\n" +
+	" `head_commit_author_name`        varchar(255) not null,\n" +
+	" `head_commit_author_email`       varchar(255) not null,\n" +
+	" `head_commit_author_username`    varchar(255) not null,\n" +
+	" `head_commit_committer_name`     varchar(255) not null,\n" +
+	" `head_commit_committer_email`    varchar(255) not null,\n" +
+	" `head_commit_committer_username` varchar(255) not null"
 
 const sqlHookTableCreateColumnsPostgres = `
  "id"                             bigserial not null primary key,
@@ -283,13 +278,13 @@ func (tbl HookTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlHookTableCreateColumnsSqlite
 		settings = ""
-    case schema.Mysql:
+	case schema.Mysql:
 		columns = sqlHookTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-    case schema.Postgres:
+	case schema.Postgres:
 		columns = sqlHookTableCreateColumnsPostgres
 		settings = ""
-    }
+	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -365,7 +360,7 @@ func (tbl HookTable) Exec(req require.Requirement, query string, args ...interfa
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
+// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl HookTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl, query, args...)
 }
@@ -473,7 +468,7 @@ func scanHooks(rows *sql.Rows, firstOnly bool) (vv HookList, n int64, err error)
 		v.HeadCommit.Committer.Username = v16
 
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, err
@@ -597,7 +592,7 @@ func (tbl HookTable) SelectOneWhere(req require.Requirement, where, orderBy stri
 	return v, err
 }
 
-// SelectOne allows a single Hook to be obtained from the sqlgen2.
+// SelectOne allows a single Hook to be obtained from the database.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -862,7 +857,6 @@ func (tbl HookTable) sliceUint64List(req require.Requirement, sqlname string, wh
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-
 func constructHookInsert(w io.Writer, v *Hook, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
 	s = make([]interface{}, 0, 17)
 
@@ -954,82 +948,82 @@ func constructHookUpdate(w io.Writer, v *Hook, dialect schema.Dialect) (s []inte
 	dialect.QuoteWithPlaceholder(w, "sha", j)
 	s = append(s, v.Sha)
 	comma = ", "
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "after", j)
 	s = append(s, v.Dates.After)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "before", j)
 	s = append(s, v.Dates.Before)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "category", j)
 	s = append(s, v.Category)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "created", j)
 	s = append(s, v.Created)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "deleted", j)
 	s = append(s, v.Deleted)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "forced", j)
 	s = append(s, v.Forced)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "commit_id", j)
 	s = append(s, v.HeadCommit.ID)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "message", j)
 	s = append(s, v.HeadCommit.Message)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "timestamp", j)
 	s = append(s, v.HeadCommit.Timestamp)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "head_commit_author_name", j)
 	s = append(s, v.HeadCommit.Author.Name)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "head_commit_author_email", j)
 	s = append(s, v.HeadCommit.Author.Email)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "head_commit_author_username", j)
 	s = append(s, v.HeadCommit.Author.Username)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "head_commit_committer_name", j)
 	s = append(s, v.HeadCommit.Committer.Name)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "head_commit_committer_email", j)
 	s = append(s, v.HeadCommit.Committer.Email)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "head_commit_committer_username", j)
 	s = append(s, v.HeadCommit.Committer.Username)
-		j++
+	j++
 
 	return s, nil
 }
@@ -1061,7 +1055,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
+		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
 				return tbl.logError(err)
@@ -1100,11 +1094,11 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 
 			i64, e2 := res.LastInsertId()
 			v.Id = uint64(i64)
-			
+
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 
@@ -1151,7 +1145,7 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
+		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
 				return count, tbl.logError(err)

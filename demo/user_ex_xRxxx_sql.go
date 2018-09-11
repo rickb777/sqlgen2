@@ -7,12 +7,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/rickb777/sqlgen2"
-	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/require"
-	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/support"
-	"github.com/rickb777/sqlgen2/where"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/support"
+	"github.com/rickb777/sqlapi/where"
 	"log"
 )
 
@@ -20,30 +20,30 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type RUserTable struct {
-	name        sqlgen2.TableName
-	database    *sqlgen2.Database
-	db          sqlgen2.Execer
+	name        sqlapi.TableName
+	database    *sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
 // Type conformance checks
-var _ sqlgen2.Table = &RUserTable{}
-var _ sqlgen2.Table = &RUserTable{}
+var _ sqlapi.Table = &RUserTable{}
+var _ sqlapi.Table = &RUserTable{}
 
 // NewRUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewRUserTable(name string, d *sqlgen2.Database) RUserTable {
+func NewRUserTable(name string, d *sqlapi.Database) RUserTable {
 	if name == "" {
 		name = "users"
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return RUserTable{
-		name:        sqlgen2.TableName{"", name},
+		name:        sqlapi.TableName{"", name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -57,7 +57,7 @@ func NewRUserTable(name string, d *sqlgen2.Database) RUserTable {
 //
 // It serves to provide methods appropriate for 'User'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsRUserTable(origin sqlgen2.Table) RUserTable {
+func CopyTableAsRUserTable(origin sqlapi.Table) RUserTable {
 	return RUserTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -68,14 +68,12 @@ func CopyTableAsRUserTable(origin sqlgen2.Table) RUserTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl RUserTable) SetPkColumn(pk string) RUserTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -95,7 +93,7 @@ func (tbl RUserTable) WithContext(ctx context.Context) RUserTable {
 }
 
 // Database gets the shared database information.
-func (tbl RUserTable) Database() *sqlgen2.Database {
+func (tbl RUserTable) Database() *sqlapi.Database {
 	return tbl.database
 }
 
@@ -126,16 +124,14 @@ func (tbl RUserTable) Dialect() schema.Dialect {
 }
 
 // Name gets the table name.
-func (tbl RUserTable) Name() sqlgen2.TableName {
+func (tbl RUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
-
 
 // PkColumn gets the column name used as a primary key.
 func (tbl RUserTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -144,7 +140,7 @@ func (tbl RUserTable) DB() *sql.DB {
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl RUserTable) Execer() sqlgen2.Execer {
+func (tbl RUserTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
@@ -173,7 +169,7 @@ func (tbl RUserTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl RUserTable) BeginTx(opts *sql.TxOptions) (RUserTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -197,7 +193,6 @@ func (tbl RUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
 const NumRUserColumns = 22
@@ -219,7 +214,7 @@ const RUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,adm
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
+// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl RUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl, query, args...)
 }
@@ -357,7 +352,7 @@ func scanRUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error)
 		v.secret = v21
 
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, err
@@ -493,7 +488,7 @@ func (tbl RUserTable) SelectOneWhere(req require.Requirement, where, orderBy str
 	return v, err
 }
 
-// SelectOne allows a single User to be obtained from the sqlgen2.
+// SelectOne allows a single User to be obtained from the database.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.

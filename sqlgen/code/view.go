@@ -5,10 +5,10 @@ import (
 	. "strings"
 	"text/template"
 
-	. "github.com/acsellers/inflections"
-	"github.com/rickb777/sqlgen2/schema"
 	"bitbucket.org/pkg/inflect"
-	"github.com/rickb777/sqlgen2/constraint"
+	. "github.com/acsellers/inflections"
+	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/schema"
 )
 
 type View struct {
@@ -44,8 +44,8 @@ func NewView(name, prefix, tableName, list string) View {
 		Types:      pl,
 		DbName:     tn,
 		Thing:      "Table",
-		Interface1: "sqlgen2.Table",
-		Interface2: "sqlgen2.Table",
+		Interface1: "sqlapi.Table",
+		Interface2: "sqlapi.Table",
 		List:       list,
 		Dialects:   schema.AllDialects,
 	}

@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/kortschak/utter"
-	. "github.com/rickb777/sqlgen2/schema"
-	. "github.com/rickb777/sqlgen2/sqlgen/parse"
+	. "github.com/rickb777/sqlapi/schema"
+	. "github.com/rickb777/sqlapi/types"
+	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
 	"go/token"
 	"os"
@@ -18,7 +19,7 @@ const demoPath = "github.com/rickb777/sqlgen2/demo"
 
 func TestParseAndLoad_types_with_all_fields_unexported_but_not_ScannerValuer(t *testing.T) {
 	exit.TestableExit()
-	Debug = true
+	parse.Debug = true
 
 	template := `package pkg1
 
@@ -61,14 +62,14 @@ type Date struct {
 
 	for i, c := range cases {
 		code := fmt.Sprintf(template, c.tag)
-		source := Source{"issue.go", bytes.NewBufferString(code)}
+		source := parse.Source{"issue.go", bytes.NewBufferString(code)}
 
-		pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+		pkgStore, err := parse.ParseGroups(token.NewFileSet(), parse.Group{"pkg1", []parse.Source{source}})
 		if err != nil {
 			t.Fatalf("Error parsing: %s", err)
 		}
 
-		table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
+		table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 		if err != nil {
 			t.Fatalf("Error loading: %s", err)
 		}
@@ -93,7 +94,7 @@ type Date struct {
 
 func TestParseAndLoad_types_with_all_fields_unexported_and_is_ScannerValuer(t *testing.T) {
 	exit.TestableExit()
-	Debug = true
+	parse.Debug = true
 
 	template := `package pkg1
 
@@ -141,14 +142,14 @@ func (d Date) Value() (driver.Value, error) {
 
 	for i, c := range cases {
 		code := fmt.Sprintf(template, c.tag)
-		source := Source{"issue.go", bytes.NewBufferString(code)}
+		source := parse.Source{"issue.go", bytes.NewBufferString(code)}
 
-		pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+		pkgStore, err := parse.ParseGroups(token.NewFileSet(), parse.Group{"pkg1", []parse.Source{source}})
 		if err != nil {
 			t.Fatalf("Error parsing: %s", err)
 		}
 
-		table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
+		table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 		if err != nil {
 			t.Fatalf("Error loading: %s", err)
 		}
@@ -173,7 +174,7 @@ func (d Date) Value() (driver.Value, error) {
 
 func TestParseAndLoad_simple_named_type_which_is_ScannerValuer(t *testing.T) {
 	exit.TestableExit()
-	Debug = true
+	parse.Debug = true
 
 	template := `package pkg1
 
@@ -211,14 +212,14 @@ func (d Date) Value() (driver.Value, error) {
 
 	for i, c := range cases {
 		code := fmt.Sprintf(template, c.tag)
-		source := Source{"issue.go", bytes.NewBufferString(code)}
+		source := parse.Source{"issue.go", bytes.NewBufferString(code)}
 
-		pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+		pkgStore, err := parse.ParseGroups(token.NewFileSet(), parse.Group{"pkg1", []parse.Source{source}})
 		if err != nil {
 			t.Fatalf("Error parsing: %s", err)
 		}
 
-		table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
+		table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 		if err != nil {
 			t.Fatalf("Error loading: %s", err)
 		}
@@ -243,7 +244,7 @@ func (d Date) Value() (driver.Value, error) {
 
 func TestParseAndLoad_nesting_with_pointers(t *testing.T) {
 	exit.TestableExit()
-	Debug = true
+	parse.Debug = true
 	code := strings.Replace(`package pkg1
 
 type Example struct {
@@ -263,14 +264,14 @@ type PhoneNumber string
 
 `, "|", "`", -1)
 
-	source := Source{"issue.go", bytes.NewBufferString(code)}
+	source := parse.Source{"issue.go", bytes.NewBufferString(code)}
 
-	pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+	pkgStore, err := parse.ParseGroups(token.NewFileSet(), parse.Group{"pkg1", []parse.Source{source}})
 	if err != nil {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
+	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -300,7 +301,7 @@ type PhoneNumber string
 
 func TestParseAndLoad_slices(t *testing.T) {
 	exit.TestableExit()
-	Debug = true
+	parse.Debug = true
 	code := strings.Replace(`package pkg1
 
 type Example struct {
@@ -311,14 +312,14 @@ type Example struct {
 type Category int32
 `, "|", "`", -1)
 
-	source := Source{"issue.go", bytes.NewBufferString(code)}
+	source := parse.Source{"issue.go", bytes.NewBufferString(code)}
 
-	pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+	pkgStore, err := parse.ParseGroups(token.NewFileSet(), parse.Group{"pkg1", []parse.Source{source}})
 	if err != nil {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
+	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -346,7 +347,7 @@ type Category int32
 
 func TestParseAndLoad_multiple_names_with_tags(t *testing.T) {
 	exit.TestableExit()
-	Debug = true
+	parse.Debug = true
 	code := strings.Replace(`package pkg1
 
 type Example struct {
@@ -354,14 +355,14 @@ type Example struct {
 }
 `, "|", "`", -1)
 
-	source := Source{"issue.go", bytes.NewBufferString(code)}
+	source := parse.Source{"issue.go", bytes.NewBufferString(code)}
 
-	pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+	pkgStore, err := parse.ParseGroups(token.NewFileSet(), parse.Group{"pkg1", []parse.Source{source}})
 	if err != nil {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
+	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -394,7 +395,7 @@ type Example struct {
 
 func TestParseAndLoad_overridden_tags(t *testing.T) {
 	exit.TestableExit()
-	Debug = true
+	parse.Debug = true
 	code := strings.Replace(`package pkg1
 
 type Example struct {
@@ -407,9 +408,9 @@ type Author struct {
 }
 `, "|", "`", -1)
 
-	source := Source{"issue.go", bytes.NewBufferString(code)}
+	source := parse.Source{"issue.go", bytes.NewBufferString(code)}
 
-	pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+	pkgStore, err := parse.ParseGroups(token.NewFileSet(), parse.Group{"pkg1", []parse.Source{source}})
 	if err != nil {
 		t.Fatalf("Error parsing: %s", err)
 	}
@@ -419,7 +420,7 @@ type Author struct {
 		"Name": Tag{Name: "writer"},
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", fileTags)
+	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", fileTags)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -451,7 +452,7 @@ type Author struct {
 
 func TestParseAndLoad_embedded_types(t *testing.T) {
 	exit.TestableExit()
-	Debug = true
+	parse.Debug = true
 	code := strings.Replace(`package pkg1
 
 import "go/token"
@@ -476,14 +477,14 @@ type Author struct {
 
 `, "|", "`", -1)
 
-	source := Source{"issue.go", bytes.NewBufferString(code)}
+	source := parse.Source{"issue.go", bytes.NewBufferString(code)}
 
-	pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+	pkgStore, err := parse.ParseGroups(token.NewFileSet(), parse.Group{"pkg1", []parse.Source{source}})
 	if err != nil {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
+	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -527,7 +528,7 @@ type Author struct {
 
 func TestParseAndLoad_embedded_types_in_different_packages(t *testing.T) {
 	exit.TestableExit()
-	Debug = true
+	parse.Debug = true
 	code := strings.Replace(`package pkg1
 
 import "github.com/rickb777/sqlgen2/demo"
@@ -540,16 +541,16 @@ type Example struct {
 }
 `, "|", "`", -1)
 
-	source := Source{"issue1.go", bytes.NewBufferString(code)}
+	source := parse.Source{"issue1.go", bytes.NewBufferString(code)}
 
-	pkgStore, err := ParseGroups(token.NewFileSet(),
-		Group{"pkg1", []Source{source}},
+	pkgStore, err := parse.ParseGroups(token.NewFileSet(),
+		parse.Group{"pkg1", []parse.Source{source}},
 	)
 	if err != nil {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
+	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -585,7 +586,7 @@ type Example struct {
 
 func TestParseAndLoad_multiple_packages_with_primary_and_indexes(t *testing.T) {
 	exit.TestableExit()
-	Debug = true
+	parse.Debug = true
 	code := strings.Replace(`package pkg1
 
 import (
@@ -618,14 +619,14 @@ type Commit struct {
 
 `, "|", "`", -1)
 
-	source := Source{"issue1.go", bytes.NewBufferString(code)}
+	source := parse.Source{"issue1.go", bytes.NewBufferString(code)}
 
-	pkgStore, err := ParseGroups(token.NewFileSet(), Group{"pkg1", []Source{source}})
+	pkgStore, err := parse.ParseGroups(token.NewFileSet(), parse.Group{"pkg1", []parse.Source{source}})
 	if err != nil {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, LType{"pkg1", "Example"}, "pkg1", nil)
+	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}

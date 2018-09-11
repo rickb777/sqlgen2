@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"go/types"
-	"strings"
-	. "github.com/acsellers/inflections"
-	. "github.com/rickb777/sqlgen2/schema"
+	"github.com/acsellers/inflections"
+	"github.com/kortschak/utter"
+	. "github.com/rickb777/sqlapi/schema"
+	. "github.com/rickb777/sqlapi/types"
+	"github.com/rickb777/sqlgen2/sqlgen/output"
 	"github.com/rickb777/sqlgen2/sqlgen/parse"
 	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
-	"github.com/rickb777/sqlgen2/sqlgen/output"
+	"go/types"
 	"sort"
-	"github.com/kortschak/utter"
+	"strings"
 )
 
 type context struct {
@@ -18,17 +19,17 @@ type context struct {
 	indices  map[string]*Index
 	table    *TableDescription
 	mainPkg  string
-	fileTags parse.Tags
+	fileTags Tags
 }
 
-func load(pkgStore parse.PackageStore, name parse.LType, mainPkg string, fileTags parse.Tags) (*TableDescription, error) {
+func load(pkgStore parse.PackageStore, name parse.LType, mainPkg string, fileTags Tags) (*TableDescription, error) {
 	table := new(TableDescription)
 
 	// local map of indexes, used for quick lookups and de-duping.
 	indices := map[string]*Index{}
 
 	table.Type = name.Name
-	table.Name = Pluralize(Underscore(table.Type))
+	table.Name = inflections.Pluralize(inflections.Underscore(table.Type))
 
 	nm := pkgStore.FindNamed(name)
 	tags := pkgStore.FindTags(name)
@@ -49,8 +50,8 @@ func load(pkgStore parse.PackageStore, name parse.LType, mainPkg string, fileTag
 	return table, nil
 }
 
-func mergeTags(structTags, fileTags parse.Tags) parse.Tags {
-	merged := make(parse.Tags)
+func mergeTags(structTags, fileTags Tags) Tags {
+	merged := make(Tags)
 	for n, t := range structTags {
 		merged[n] = t
 	}
@@ -128,7 +129,7 @@ func recogniseScannerValuer(nm *types.Named) (isScanner, isValuer bool) {
 
 //-------------------------------------------------------------------------------------------------
 
-func (ctx *context) examineStruct(nm *types.Named, name parse.LType, tags parse.Tags, parent *Node) (addStructAsField bool) {
+func (ctx *context) examineStruct(nm *types.Named, name parse.LType, tags Tags, parent *Node) (addStructAsField bool) {
 	merged := mergeTags(tags, ctx.fileTags)
 	parse.DevInfo("examineStruct %s %+v\n -- tags\n%v\n", name, nm, merged)
 	if nm == nil {
@@ -183,7 +184,7 @@ func (ctx *context) examineStruct(nm *types.Named, name parse.LType, tags parse.
 //-------------------------------------------------------------------------------------------------
 
 func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, parent *Node) {
-	var tags parse.Tags
+	var tags Tags
 
 	name := leaf.Name()
 	parse.DevInfo("convertEmbeddedNodeToFields %s %s\n", pkg, name)
@@ -201,7 +202,7 @@ func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, par
 		path = nmPkg.Path()
 		pkg = nmPkg.Name()
 		str2 := nm.Underlying().(*types.Struct)
-		tags = make(parse.Tags)
+		tags = make(Tags)
 		addStructTags(tags, str2)
 		parse.DevInfo(" - found in other package %v %v\n", leaf.Type(), str2)
 	} else {
@@ -210,13 +211,13 @@ func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, par
 		tags = ctx.pkgStore.FindTags(lt)
 	}
 
-	node := &Node{Name: name, Type: Type{PkgPath: path, PkgName: pkg, Name: name, Base: parse.Struct}, Parent: parent}
+	node := &Node{Name: name, Type: Type{PkgPath: path, PkgName: pkg, Name: name, Base: Struct}, Parent: parent}
 	ctx.examineStruct(nm, lt, tags, node)
 }
 
 //-------------------------------------------------------------------------------------------------
 
-func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags parse.Tags, parent *Node) {
+func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags Tags, parent *Node) {
 	tag := tags[leaf.Name()]
 	field := &Field{}
 	field.Tags = tag
@@ -231,12 +232,12 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags par
 
 	switch leaf.Type().Underlying().(type) {
 	case *types.Slice:
-		field.Type.Base = parse.Slice
+		field.Type.Base = Slice
 	}
 
 	prefix := ""
 	if tag.Prefixed {
-		prefix = Underscore(field.JoinParts(1, "_")) + "_"
+		prefix = inflections.Underscore(field.JoinParts(1, "_")) + "_"
 	}
 
 	if tag.Name != "" {
@@ -294,7 +295,7 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags par
 
 //-------------------------------------------------------------------------------------------------
 
-func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags parse.Tags, parent *Node, canRecurse bool) (Node, bool) {
+func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags Tags, parent *Node, canRecurse bool) (Node, bool) {
 	node := Node{Name: leaf.Name(), Parent: parent}
 	tp := Type{}
 
@@ -309,7 +310,7 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags pars
 	switch nm := lt.(type) {
 	case *types.Basic:
 		tp.Name = nm.Name()
-		tp.Base = parse.Kind(nm.Kind())
+		tp.Base = Kind(nm.Kind())
 
 	case *types.Named:
 		tObj := nm.Obj()
@@ -320,13 +321,13 @@ func (ctx *context) convertLeafNodeToNode(leaf *types.Var, pkg string, tags pars
 
 		switch u := nm.Underlying().(type) {
 		case *types.Basic:
-			tp.Base = parse.Kind(u.Kind())
+			tp.Base = Kind(u.Kind())
 
 		case *types.Slice:
-			tp.Base = parse.Slice
+			tp.Base = Slice
 
 		case *types.Struct:
-			tp.Base = parse.Struct
+			tp.Base = Struct
 			if canRecurse && !tp.IsScanner && !tp.IsValuer {
 				addStructTags(tags, u)
 				ok := ctx.examineStruct(nm, parse.LType{pkg, leaf.Name()}, tags, &node)
@@ -372,10 +373,10 @@ func setTypeName(tp *Type, tn *types.TypeName, pkg, mainPkg string) {
 	}
 }
 
-func addStructTags(tags parse.Tags, str *types.Struct) {
+func addStructTags(tags Tags, str *types.Struct) {
 	for i := 0; i < str.NumFields(); i++ {
 		ts := str.Tag(i)
-		tag, err := parse.ParseTag(ts)
+		tag, err := ParseTag(ts)
 		if err != nil {
 			exit.Fail(2, "%s contains unparseable tag %q (%s)", str.String(), ts, err)
 		}

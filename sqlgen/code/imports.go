@@ -2,10 +2,10 @@ package code
 
 import (
 	"fmt"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/util"
 	"io"
 	"sort"
-	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/util"
 )
 
 func ImportsForFields(table *schema.TableDescription, packages util.StringSet) {

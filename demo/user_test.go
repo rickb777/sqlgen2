@@ -1,26 +1,26 @@
 package demo
 
 import (
-	. "fmt"
 	"context"
-	"testing"
 	"database/sql"
 	"database/sql/driver"
+	. "fmt"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/kortschak/utter"
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
+	. "github.com/onsi/gomega"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/where"
+	"github.com/spf13/cast"
 	"log"
 	"math/big"
 	"os"
 	"strings"
-	. "github.com/onsi/gomega"
-	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
-	"github.com/spf13/cast"
-	"github.com/rickb777/sqlgen2"
-	"github.com/rickb777/sqlgen2/where"
-	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/require"
-	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/kortschak/utter"
+	"testing"
 )
 
 var db *sql.DB
@@ -86,7 +86,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
 		expected string
 	}{
 		{schema.Sqlite,
-`CREATE TABLE IF NOT EXISTS prefix_users (
+			`CREATE TABLE IF NOT EXISTS prefix_users (
  ¬uid¬          integer not null primary key autoincrement,
  ¬name¬         text not null,
  ¬emailaddress¬ text not null,
@@ -113,7 +113,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
  CONSTRAINT prefix_users_c2 CHECK (role < 3)
 )`},
 		{schema.Mysql,
-`CREATE TABLE IF NOT EXISTS prefix_users (
+			`CREATE TABLE IF NOT EXISTS prefix_users (
  ¬uid¬          bigint not null primary key auto_increment,
  ¬name¬         varchar(255) not null,
  ¬emailaddress¬ varchar(255) not null,
@@ -140,7 +140,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
  CONSTRAINT prefix_users_c2 CHECK (role < 3)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8`},
 		{schema.Postgres,
-`CREATE TABLE IF NOT EXISTS prefix_users (
+			`CREATE TABLE IF NOT EXISTS prefix_users (
  "uid"          bigserial not null primary key,
  "name"         varchar(255) not null,
  "emailaddress" varchar(255) not null,
@@ -169,11 +169,11 @@ func TestCreateTable_sql_syntax(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		d := sqlgen2.NewDatabase(nil, c.dialect, nil, nil)
+		d := sqlapi.NewDatabase(nil, c.dialect, nil, nil)
 		tbl := NewDbUserTable("users", d).
 			WithPrefix("prefix_").
 			WithConstraint(
-			constraint.CheckConstraint{"role < 3"})
+				constraint.CheckConstraint{"role < 3"})
 		s := tbl.createTableSql(true)
 		expected := strings.Replace(c.expected, "¬", "`", -1)
 		if s != expected {
@@ -199,7 +199,7 @@ func outputDiff(a, name string) {
 func TestCreateIndexSql(t *testing.T) {
 	RegisterTestingT(t)
 
-	d := sqlgen2.NewDatabase(nil, schema.Postgres, nil, nil)
+	d := sqlapi.NewDatabase(nil, schema.Postgres, nil, nil)
 	tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
 	s := tbl.createDbEmailaddressIdxIndexSql("IF NOT EXISTS ")
 	expected := `CREATE UNIQUE INDEX IF NOT EXISTS prefix_emailaddress_idx ON prefix_users (emailaddress)`
@@ -219,7 +219,7 @@ func TestDropIndexSql(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		d := sqlgen2.NewDatabase(nil, c.d, nil, nil)
+		d := sqlapi.NewDatabase(nil, c.d, nil, nil)
 		tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
 		s := tbl.dropDbEmailaddressIdxIndexSql(true)
 		Ω(s).Should(Equal(c.expected))
@@ -231,12 +231,12 @@ func TestUpdateFields_ok_using_mock(t *testing.T) {
 
 	mockDb := mockExecer{RowsAffected: 1}
 
-	d := sqlgen2.NewDatabase(mockDb, schema.Mysql, nil, nil)
+	d := sqlapi.NewDatabase(mockDb, schema.Mysql, nil, nil)
 	tbl := NewDbUserTable("users", d)
 
 	n, err := tbl.UpdateFields(require.One, where.NoOp(),
-		sqlgen2.Named("EmailAddress", "foo@x.com"),
-		sqlgen2.Named("Hash", "abc123"))
+		sqlapi.Named("EmailAddress", "foo@x.com"),
+		sqlapi.Named("Hash", "abc123"))
 
 	Ω(err).Should(BeNil())
 	Ω(n).Should(Equal(int64(1)))
@@ -248,12 +248,12 @@ func TestUpdateFields_error_using_mock(t *testing.T) {
 	exp := Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
-	d := sqlgen2.NewDatabase(mockDb, schema.Mysql, nil, nil)
+	d := sqlapi.NewDatabase(mockDb, schema.Mysql, nil, nil)
 	tbl := NewDbUserTable("users", d)
 
 	_, err := tbl.UpdateFields(nil, where.NoOp(),
-		sqlgen2.Named("EmailAddress", "foo@x.com"),
-		sqlgen2.Named("Hash", "abc123"))
+		sqlapi.Named("EmailAddress", "foo@x.com"),
+		sqlapi.Named("Hash", "abc123"))
 
 	Ω(err).Should(Equal(exp))
 }
@@ -263,7 +263,7 @@ func TestUpdate_ok_using_mock(t *testing.T) {
 
 	mockDb := mockExecer{RowsAffected: 1}
 
-	d := sqlgen2.NewDatabase(mockDb, schema.Mysql, nil, nil)
+	d := sqlapi.NewDatabase(mockDb, schema.Mysql, nil, nil)
 	tbl := NewDbUserTable("users", d)
 
 	n, err := tbl.Update(require.One, &User{})
@@ -278,7 +278,7 @@ func TestUpdate_error_using_mock(t *testing.T) {
 	exp := Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
-	d := sqlgen2.NewDatabase(mockDb, schema.Mysql, nil, nil)
+	d := sqlapi.NewDatabase(mockDb, schema.Mysql, nil, nil)
 	tbl := NewDbUserTable("users", d)
 
 	_, err := tbl.Update(nil, &User{})
@@ -296,10 +296,10 @@ func TestCrud_using_database(t *testing.T) {
 	}
 	defer cleanup()
 
-	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
+	d := sqlapi.NewDatabase(db, dialect, nil, nil)
 	if testing.Verbose() {
 		lgr := log.New(os.Stderr, "", log.LstdFlags)
-		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
+		d = sqlapi.NewDatabase(db, dialect, lgr, nil)
 	}
 	addresses := NewAddressTable("addresses", d)
 
@@ -492,10 +492,10 @@ func TestMultiSelect_using_database(t *testing.T) {
 	}
 	defer cleanup()
 
-	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
+	d := sqlapi.NewDatabase(db, dialect, nil, nil)
 	if testing.Verbose() {
 		lgr := log.New(os.Stderr, "", log.LstdFlags)
-		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
+		d = sqlapi.NewDatabase(db, dialect, lgr, nil)
 	}
 	tbl := NewDbUserTable("users", d)
 
@@ -542,10 +542,10 @@ func TestGetters_using_database(t *testing.T) {
 	}
 	defer cleanup()
 
-	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
+	d := sqlapi.NewDatabase(db, dialect, nil, nil)
 	if testing.Verbose() {
 		lgr := log.New(os.Stderr, "", log.LstdFlags)
-		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
+		d = sqlapi.NewDatabase(db, dialect, lgr, nil)
 	}
 	tbl := NewDbUserTable("users", d)
 
@@ -583,10 +583,10 @@ func TestRowsAsMaps_using_database(t *testing.T) {
 	}
 	defer cleanup()
 
-	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
+	d := sqlapi.NewDatabase(db, dialect, nil, nil)
 	if testing.Verbose() {
 		lgr := log.New(os.Stderr, "", log.LstdFlags)
-		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
+		d = sqlapi.NewDatabase(db, dialect, lgr, nil)
 	}
 	tbl := NewDbUserTable("users", d)
 
@@ -609,7 +609,7 @@ func TestRowsAsMaps_using_database(t *testing.T) {
 	rows, err := tbl.Query("SELECT * from users")
 	Ω(err).Should(BeNil())
 
-	ram, err := sqlgen2.WrapRows(rows)
+	ram, err := sqlapi.WrapRows(rows)
 	Ω(err).Should(BeNil())
 
 	i := 0
@@ -651,10 +651,10 @@ func TestBulk_delete_using_database(t *testing.T) {
 	}
 	defer cleanup()
 
-	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
+	d := sqlapi.NewDatabase(db, dialect, nil, nil)
 	if testing.Verbose() {
 		lgr := log.New(os.Stderr, "", log.LstdFlags)
-		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
+		d = sqlapi.NewDatabase(db, dialect, lgr, nil)
 	}
 	tbl := NewDbUserTable("users", d)
 
@@ -694,10 +694,10 @@ func TestNumericRanges_using_database(t *testing.T) {
 	}
 	defer cleanup()
 
-	d := sqlgen2.NewDatabase(db, dialect, nil, nil)
+	d := sqlapi.NewDatabase(db, dialect, nil, nil)
 	if testing.Verbose() {
 		lgr := log.New(os.Stderr, "", log.LstdFlags)
-		d = sqlgen2.NewDatabase(db, dialect, lgr, nil)
+		d = sqlapi.NewDatabase(db, dialect, lgr, nil)
 	}
 	tbl := NewDbUserTable("users", d)
 

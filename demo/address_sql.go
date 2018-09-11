@@ -8,12 +8,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/rickb777/sqlgen2"
-	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/require"
-	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/support"
-	"github.com/rickb777/sqlgen2/where"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/support"
+	"github.com/rickb777/sqlapi/where"
 	"io"
 	"log"
 )
@@ -22,28 +22,28 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type AddressTable struct {
-	name        sqlgen2.TableName
-	database    *sqlgen2.Database
-	db          sqlgen2.Execer
+	name        sqlapi.TableName
+	database    *sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
 // Type conformance checks
-var _ sqlgen2.TableWithIndexes = &AddressTable{}
-var _ sqlgen2.TableWithCrud = &AddressTable{}
+var _ sqlapi.TableWithIndexes = &AddressTable{}
+var _ sqlapi.TableWithCrud = &AddressTable{}
 
 // NewAddressTable returns a new table instance.
 // If a blank table name is supplied, the default name "addresses" will be used instead.
 // The request context is initialised with the background.
-func NewAddressTable(name string, d *sqlgen2.Database) AddressTable {
+func NewAddressTable(name string, d *sqlapi.Database) AddressTable {
 	if name == "" {
 		name = "addresses"
 	}
 	var constraints constraint.Constraints
 	return AddressTable{
-		name:        sqlgen2.TableName{"", name},
+		name:        sqlapi.TableName{"", name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -57,7 +57,7 @@ func NewAddressTable(name string, d *sqlgen2.Database) AddressTable {
 //
 // It serves to provide methods appropriate for 'Address'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsAddressTable(origin sqlgen2.Table) AddressTable {
+func CopyTableAsAddressTable(origin sqlapi.Table) AddressTable {
 	return AddressTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -68,14 +68,12 @@ func CopyTableAsAddressTable(origin sqlgen2.Table) AddressTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AddressTable) SetPkColumn(pk string) AddressTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -95,7 +93,7 @@ func (tbl AddressTable) WithContext(ctx context.Context) AddressTable {
 }
 
 // Database gets the shared database information.
-func (tbl AddressTable) Database() *sqlgen2.Database {
+func (tbl AddressTable) Database() *sqlapi.Database {
 	return tbl.database
 }
 
@@ -126,16 +124,14 @@ func (tbl AddressTable) Dialect() schema.Dialect {
 }
 
 // Name gets the table name.
-func (tbl AddressTable) Name() sqlgen2.TableName {
+func (tbl AddressTable) Name() sqlapi.TableName {
 	return tbl.name
 }
-
 
 // PkColumn gets the column name used as a primary key.
 func (tbl AddressTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -144,7 +140,7 @@ func (tbl AddressTable) DB() *sql.DB {
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl AddressTable) Execer() sqlgen2.Execer {
+func (tbl AddressTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
@@ -173,7 +169,7 @@ func (tbl AddressTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl AddressTable) BeginTx(opts *sql.TxOptions) (AddressTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -197,7 +193,6 @@ func (tbl AddressTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
 const NumAddressColumns = 4
@@ -210,17 +205,17 @@ const AddressDataColumnNames = "lines,town,postcode"
 
 //--------------------------------------------------------------------------------
 
-const sqlAddressTableCreateColumnsSqlite = "\n"+
-" `id`       integer not null primary key autoincrement,\n"+
-" `lines`    text,\n"+
-" `town`     text default null,\n"+
-" `postcode` text not null"
+const sqlAddressTableCreateColumnsSqlite = "\n" +
+	" `id`       integer not null primary key autoincrement,\n" +
+	" `lines`    text,\n" +
+	" `town`     text default null,\n" +
+	" `postcode` text not null"
 
-const sqlAddressTableCreateColumnsMysql = "\n"+
-" `id`       bigint not null primary key auto_increment,\n"+
-" `lines`    json,\n"+
-" `town`     varchar(80) default null,\n"+
-" `postcode` varchar(20) not null"
+const sqlAddressTableCreateColumnsMysql = "\n" +
+	" `id`       bigint not null primary key auto_increment,\n" +
+	" `lines`    json,\n" +
+	" `town`     varchar(80) default null,\n" +
+	" `postcode` varchar(20) not null"
 
 const sqlAddressTableCreateColumnsPostgres = `
  "id"       bigserial not null primary key,
@@ -251,13 +246,13 @@ func (tbl AddressTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlAddressTableCreateColumnsSqlite
 		settings = ""
-    case schema.Mysql:
+	case schema.Mysql:
 		columns = sqlAddressTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-    case schema.Postgres:
+	case schema.Postgres:
 		columns = sqlAddressTableCreateColumnsPostgres
 		settings = ""
-    }
+	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -451,7 +446,7 @@ func (tbl AddressTable) Exec(req require.Requirement, query string, args ...inte
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
+// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl AddressTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl, query, args...)
 }
@@ -526,7 +521,7 @@ func scanAddresses(rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err 
 		v.Postcode = v3
 
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, err
@@ -662,7 +657,7 @@ func (tbl AddressTable) SelectOneWhere(req require.Requirement, where, orderBy s
 	return v, err
 }
 
-// SelectOne allows a single Address to be obtained from the sqlgen2.
+// SelectOne allows a single Address to be obtained from the database.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -824,7 +819,6 @@ func (tbl AddressTable) sliceStringPtrList(req require.Requirement, sqlname stri
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-
 func constructAddressInsert(w io.Writer, v *Address, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
 	s = make([]interface{}, 0, 4)
 
@@ -871,7 +865,7 @@ func constructAddressUpdate(w io.Writer, v *Address, dialect schema.Dialect) (s 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "lines", j)
 	comma = ", "
-		j++
+	j++
 	x, err := json.Marshal(&v.Lines)
 	if err != nil {
 		return nil, err
@@ -893,7 +887,7 @@ func constructAddressUpdate(w io.Writer, v *Address, dialect schema.Dialect) (s 
 	dialect.QuoteWithPlaceholder(w, "postcode", j)
 	s = append(s, v.Postcode)
 	comma = ", "
-		j++
+	j++
 
 	return s, nil
 }
@@ -925,7 +919,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
+		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
 				return tbl.logError(err)
@@ -964,7 +958,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 
@@ -1011,7 +1005,7 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreUpdate); ok {
+		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
 				return count, tbl.logError(err)

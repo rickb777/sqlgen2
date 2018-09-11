@@ -8,11 +8,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/rickb777/sqlgen2"
-	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/require"
-	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/support"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/support"
 	"io"
 	"log"
 )
@@ -21,30 +21,30 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type CUserTable struct {
-	name        sqlgen2.TableName
-	database    *sqlgen2.Database
-	db          sqlgen2.Execer
+	name        sqlapi.TableName
+	database    *sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
 // Type conformance checks
-var _ sqlgen2.Table = &CUserTable{}
-var _ sqlgen2.Table = &CUserTable{}
+var _ sqlapi.Table = &CUserTable{}
+var _ sqlapi.Table = &CUserTable{}
 
 // NewCUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewCUserTable(name string, d *sqlgen2.Database) CUserTable {
+func NewCUserTable(name string, d *sqlapi.Database) CUserTable {
 	if name == "" {
 		name = "users"
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return CUserTable{
-		name:        sqlgen2.TableName{"", name},
+		name:        sqlapi.TableName{"", name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -58,7 +58,7 @@ func NewCUserTable(name string, d *sqlgen2.Database) CUserTable {
 //
 // It serves to provide methods appropriate for 'User'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsCUserTable(origin sqlgen2.Table) CUserTable {
+func CopyTableAsCUserTable(origin sqlapi.Table) CUserTable {
 	return CUserTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -69,14 +69,12 @@ func CopyTableAsCUserTable(origin sqlgen2.Table) CUserTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl CUserTable) SetPkColumn(pk string) CUserTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -96,7 +94,7 @@ func (tbl CUserTable) WithContext(ctx context.Context) CUserTable {
 }
 
 // Database gets the shared database information.
-func (tbl CUserTable) Database() *sqlgen2.Database {
+func (tbl CUserTable) Database() *sqlapi.Database {
 	return tbl.database
 }
 
@@ -127,16 +125,14 @@ func (tbl CUserTable) Dialect() schema.Dialect {
 }
 
 // Name gets the table name.
-func (tbl CUserTable) Name() sqlgen2.TableName {
+func (tbl CUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
-
 
 // PkColumn gets the column name used as a primary key.
 func (tbl CUserTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -145,7 +141,7 @@ func (tbl CUserTable) DB() *sql.DB {
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl CUserTable) Execer() sqlgen2.Execer {
+func (tbl CUserTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
@@ -174,7 +170,7 @@ func (tbl CUserTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl CUserTable) BeginTx(opts *sql.TxOptions) (CUserTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -198,7 +194,6 @@ func (tbl CUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
 const NumCUserColumns = 22
@@ -220,7 +215,7 @@ const CUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,adm
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
+// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl CUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl, query, args...)
 }
@@ -401,7 +396,7 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
+		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
 				return tbl.logError(err)
@@ -440,7 +435,7 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 

@@ -7,12 +7,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/rickb777/sqlgen2"
-	"github.com/rickb777/sqlgen2/constraint"
-	"github.com/rickb777/sqlgen2/require"
-	"github.com/rickb777/sqlgen2/schema"
-	"github.com/rickb777/sqlgen2/support"
-	"github.com/rickb777/sqlgen2/where"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/support"
+	"github.com/rickb777/sqlapi/where"
 	"io"
 	"log"
 )
@@ -21,28 +21,28 @@ import (
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DbCompoundTable struct {
-	name        sqlgen2.TableName
-	database    *sqlgen2.Database
-	db          sqlgen2.Execer
+	name        sqlapi.TableName
+	database    *sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
 	pk          string
 }
 
 // Type conformance checks
-var _ sqlgen2.TableWithIndexes = &DbCompoundTable{}
-var _ sqlgen2.TableWithCrud = &DbCompoundTable{}
+var _ sqlapi.TableWithIndexes = &DbCompoundTable{}
+var _ sqlapi.TableWithCrud = &DbCompoundTable{}
 
 // NewDbCompoundTable returns a new table instance.
 // If a blank table name is supplied, the default name "compounds" will be used instead.
 // The request context is initialised with the background.
-func NewDbCompoundTable(name string, d *sqlgen2.Database) DbCompoundTable {
+func NewDbCompoundTable(name string, d *sqlapi.Database) DbCompoundTable {
 	if name == "" {
 		name = "compounds"
 	}
 	var constraints constraint.Constraints
 	return DbCompoundTable{
-		name:        sqlgen2.TableName{"", name},
+		name:        sqlapi.TableName{"", name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -56,7 +56,7 @@ func NewDbCompoundTable(name string, d *sqlgen2.Database) DbCompoundTable {
 //
 // It serves to provide methods appropriate for 'Compound'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsDbCompoundTable(origin sqlgen2.Table) DbCompoundTable {
+func CopyTableAsDbCompoundTable(origin sqlapi.Table) DbCompoundTable {
 	return DbCompoundTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -85,7 +85,7 @@ func (tbl DbCompoundTable) WithContext(ctx context.Context) DbCompoundTable {
 }
 
 // Database gets the shared database information.
-func (tbl DbCompoundTable) Database() *sqlgen2.Database {
+func (tbl DbCompoundTable) Database() *sqlapi.Database {
 	return tbl.database
 }
 
@@ -116,7 +116,7 @@ func (tbl DbCompoundTable) Dialect() schema.Dialect {
 }
 
 // Name gets the table name.
-func (tbl DbCompoundTable) Name() sqlgen2.TableName {
+func (tbl DbCompoundTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
@@ -127,7 +127,7 @@ func (tbl DbCompoundTable) DB() *sql.DB {
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl DbCompoundTable) Execer() sqlgen2.Execer {
+func (tbl DbCompoundTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
@@ -156,7 +156,7 @@ func (tbl DbCompoundTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl DbCompoundTable) BeginTx(opts *sql.TxOptions) (DbCompoundTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlgen2.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
@@ -379,7 +379,7 @@ func (tbl DbCompoundTable) Exec(req require.Requirement, query string, args ...i
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlgen2.Rows if you need to access its data as a map.
+// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl DbCompoundTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return support.Query(tbl, query, args...)
 }
@@ -445,7 +445,7 @@ func scanDbCompounds(rows *sql.Rows, firstOnly bool) (vv []*Compound, n int64, e
 		v.Category = v2
 
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPostGet); ok {
+		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, err
@@ -544,7 +544,7 @@ func (tbl DbCompoundTable) SelectOneWhere(req require.Requirement, where, orderB
 	return v, err
 }
 
-// SelectOne allows a single Compound to be obtained from the sqlgen2.
+// SelectOne allows a single Compound to be obtained from the database.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -751,7 +751,7 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 	returning := ""
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlgen2.CanPreInsert); ok {
+		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
 				return tbl.logError(err)

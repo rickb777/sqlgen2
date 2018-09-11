@@ -1,5 +1,6 @@
 #!/bin/sh -e
 
+mkdir -p util
 VFILE=util/version.go
 
 echo "// Updated automatically" > $VFILE
