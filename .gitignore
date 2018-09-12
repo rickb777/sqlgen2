@@ -3,5 +3,6 @@
 *.txt
 _docs
 .idea/workspace.xml
+dist/
 reports/
 vendor/
