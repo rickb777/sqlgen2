@@ -8,6 +8,7 @@ function announce
 }
 
 PATH=$HOME/go/bin:$PATH
+unset GOPATH
 
 go mod download
 
@@ -18,9 +19,10 @@ rm -f reports/*.out reports/*.html */*.txt demo/*_sql.go
 ### Build Phase 1 ###
 
 ./version.sh
-cd sqlgen
-go install .
-go test ./...
+go test . ./code ./parse
+go build -o sqlgen *.go
+
+[ -d $HOME/go/bin ] && cp -v sqlgen $HOME/go.bin
 
 for d in code output parse; do
   announce sqlgen/$d
@@ -31,7 +33,6 @@ done
 
 ### Build Phase 2 ###
 
-cd ..
 #sqlgen -type vanilla.Record -o vanilla/vanilla_sql.go -read -delete -slice -v vanilla/vanilla.go
 
 ### Demo ###

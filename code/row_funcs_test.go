@@ -5,7 +5,7 @@ import (
 	"fmt"
 	. "github.com/rickb777/sqlapi/schema"
 	. "github.com/rickb777/sqlapi/types"
-	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
+	"github.com/rickb777/sqlgen2/parse/exit"
 	"os"
 	"strings"
 	"testing"

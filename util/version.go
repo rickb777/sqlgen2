@@ -1,7 +1,7 @@
 // Updated automatically
 package util
 
-const Version = "(unavailable)"
-const GitBranch = "(unavailable)"
-const GitOrigin = "git@github.com:rickb777/sqlgen2.git"
-const BuildDate = "(unavailable)"
+const Version    = "v0.37.0-dirty"
+const GitBranch  = "master"
+const GitOrigin  = "https://github.com/rickb777/sqlgen2"
+const BuildDate  = "2018-09-12T13:40:01"

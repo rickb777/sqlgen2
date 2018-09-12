@@ -2,7 +2,7 @@ package code
 
 import (
 	"bytes"
-	"github.com/rickb777/sqlgen2/sqlgen/parse/exit"
+	"github.com/rickb777/sqlgen2/parse/exit"
 	"testing"
 )
 

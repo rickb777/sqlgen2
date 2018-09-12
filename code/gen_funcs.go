@@ -2,7 +2,7 @@ package code
 
 import (
 	"fmt"
-	"github.com/rickb777/sqlgen2/sqlgen/output"
+	"github.com/rickb777/sqlgen2/output"
 	"io"
 )
 
