@@ -1,4 +1,4 @@
-package main
+package load
 
 import (
 	"bytes"
@@ -69,7 +69,7 @@ type Date struct {
 			t.Fatalf("Error parsing: %s", err)
 		}
 
-		table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
+		table, err := Load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 		if err != nil {
 			t.Fatalf("Error loading: %s", err)
 		}
@@ -149,7 +149,7 @@ func (d Date) Value() (driver.Value, error) {
 			t.Fatalf("Error parsing: %s", err)
 		}
 
-		table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
+		table, err := Load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 		if err != nil {
 			t.Fatalf("Error loading: %s", err)
 		}
@@ -219,7 +219,7 @@ func (d Date) Value() (driver.Value, error) {
 			t.Fatalf("Error parsing: %s", err)
 		}
 
-		table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
+		table, err := Load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 		if err != nil {
 			t.Fatalf("Error loading: %s", err)
 		}
@@ -271,7 +271,7 @@ type PhoneNumber string
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
+	table, err := Load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -319,7 +319,7 @@ type Category int32
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
+	table, err := Load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -362,7 +362,7 @@ type Example struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
+	table, err := Load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -420,7 +420,7 @@ type Author struct {
 		"Name": {Name: "writer"},
 	}
 
-	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", fileTags)
+	table, err := Load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", fileTags)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -484,7 +484,7 @@ type Author struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
+	table, err := Load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -550,7 +550,7 @@ type Example struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
+	table, err := Load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}
@@ -626,7 +626,7 @@ type Commit struct {
 		t.Fatalf("Error parsing: %s", err)
 	}
 
-	table, err := load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
+	table, err := Load(pkgStore, parse.LType{"pkg1", "Example"}, "pkg1", nil)
 	if err != nil {
 		t.Fatalf("Error loading: %s", err)
 	}

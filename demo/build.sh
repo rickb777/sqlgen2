@@ -1,7 +1,7 @@
 #!/bin/bash -e
 cd $(dirname $0)
 
-PATH=$HOME/go/bin:$PATH
+PATH=$PWD/..:$HOME/go/bin:$PATH
 
 rm -f *_sql.go
 

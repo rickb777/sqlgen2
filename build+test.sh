@@ -26,9 +26,9 @@ go build -o sqlgen *.go
 
 for d in code output parse; do
   announce sqlgen/$d
-  go test ./$1 -covermode=count -coverprofile=../reports/sqlgen-$d.out ./$d
-  go tool cover -html=../reports/sqlgen-$d.out -o ../reports/sqlgen-$d.html
-  [ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=../reports/sqlgen-$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+  go test ./$1 -covermode=count -coverprofile=reports/sqlgen-$d.out ./$d
+  go tool cover -html=reports/sqlgen-$d.out -o reports/sqlgen-$d.html
+  [ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=reports/sqlgen-$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN
 done
 
 ### Build Phase 2 ###
