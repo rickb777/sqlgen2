@@ -1,4 +1,4 @@
-#sqlgen2
+# sqlgen2
 
 [![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg?style=flat-square)](https://godoc.org/github.com/rickb777/sqlgen2)
 [![Build Status](https://travis-ci.org/rickb777/sqlgen2.svg?branch=master)](https://travis-ci.org/rickb777/sqlgen2)
