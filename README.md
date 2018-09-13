@@ -1,5 +1,12 @@
+#sqlgen2
+
+[![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg?style=flat-square)](https://godoc.org/github.com/rickb777/sqlgen2)
+[![Build Status](https://travis-ci.org/rickb777/sqlgen2.svg?branch=master)](https://travis-ci.org/rickb777/sqlgen2)
+[![Code Coverage](https://img.shields.io/coveralls/rickb777/sqlgen2.svg)](https://coveralls.io/r/rickb777/sqlgen2)
+[![Issues](https://img.shields.io/github/issues/rickb777/sqlgen2.svg)](https://github.com/rickb777/sqlgen2/issues)
+
 **sqlgen** generates SQL statements from your Go structs, used along with
-[database helper functions](https://github.com/rickb777/sqlapi). It takes the
+[**sqlapi** database helper functions](https://github.com/rickb777/sqlapi). It takes the
 place of a simple ORM or hand-written SQL.
 
 See the [demo](https://github.com/rickb777/sqlgen2/tree/master/demo) directory for examples. Look in the
@@ -16,7 +23,7 @@ generated files `*_sql.go` and the hand-crafted files (`hook.go`, `issue.go`, `u
 * Helps you develop code for joins and views.
 * Supports JSON-encoded columns, allowing a more no-SQL model when needed.
 * Provides a builder-style API for constructing where-clauses and query constraints.
-* Allows declarative requirements on the expected result of each query, enhancing error checking. 
+* Allows declarative requirements on the expected result of each query, enhancing error checking.
 * Very flexible configuration.
 * Fast and easy to use.
 
