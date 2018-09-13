@@ -1,12 +1,11 @@
 language: go
 
 go:
-  - 1.11
+  - "1.11"
 
 install:
-  - go get -t -v ./...
-  - go get github.com/mattn/goveralls
+  - unset GOPATH
+  - go mod download
 
 script:
-  - ./build+test.sh -v
-
+  - ./build+test.sh
