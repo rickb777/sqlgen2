@@ -9,13 +9,19 @@ import (
 	"time"
 	"github.com/kortschak/utter"
 	stypes "github.com/rickb777/sqlapi/types"
-	"github.com/rickb777/sqlapi/util"
 	. "github.com/rickb777/sqlgen2/code"
 	"github.com/rickb777/sqlgen2/output"
 	"github.com/rickb777/sqlgen2/parse"
 	"github.com/rickb777/sqlgen2/parse/exit"
 	. "github.com/rickb777/sqlgen2/load"
 	"fmt"
+)
+
+// These are set using linker flags (https://goreleaser.com/environment/)
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
 )
 
 func main() {
@@ -62,7 +68,7 @@ func main() {
 		"  version   - prints the current version then exits.\n")
 
 	if flag.Args()[0] == "version" {
-		fmt.Printf("sqlgen %s\n       branch %s built on %s\n       origin %s\n", util.Version, util.GitBranch, util.BuildDate, util.GitOrigin)
+		fmt.Printf("sqlgen %s (commit %s) built on %s\n", version, commit, date)
 		os.Exit(0)
 	}
 

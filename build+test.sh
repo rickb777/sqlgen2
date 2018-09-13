@@ -18,7 +18,6 @@ rm -f reports/*.out reports/*.html */*.txt demo/*_sql.go
 
 ### Build Phase 1 ###
 
-./version.sh
 go test . ./code ./parse
 go build -o sqlgen *.go
 
@@ -45,5 +44,3 @@ cd ..
 echo
 echo go vet -shadow=true -composites=false ./...
 go vet -shadow=true -composites=false ./...
-
-git checkout util/version.go
