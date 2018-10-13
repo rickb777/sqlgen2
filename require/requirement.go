@@ -8,7 +8,7 @@ import "fmt"
 
 // Requirement set an expectation on the outcome of a query.
 type Requirement interface {
-	errorIfNotSatisfiedBy(uint, string, string) error
+	errorIfNotSatisfiedBy(int64, string, string) error
 	String() string
 }
 
@@ -28,7 +28,7 @@ func ErrorIfQueryNotSatisfiedBy(r Requirement, actual int64) error {
 	if r == nil {
 		return nil
 	}
-	return r.errorIfNotSatisfiedBy(uint(actual), "fetch", "got")
+	return r.errorIfNotSatisfiedBy(actual, "fetch", "got")
 }
 
 // ChainErrorIfExecNotSatisfiedBy matches a requirement against the actual result size for
@@ -47,16 +47,16 @@ func ErrorIfExecNotSatisfiedBy(r Requirement, actual int64) error {
 	if r == nil {
 		return nil
 	}
-	return r.errorIfNotSatisfiedBy(uint(actual), "change", "changed")
+	return r.errorIfNotSatisfiedBy(actual, "change", "changed")
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // Exactly is a requirement that is met by a number matching exactly.
-type Exactly uint
+type Exactly int64
 
-func (n Exactly) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart string) error {
-	if actual == uint(n) {
+func (n Exactly) errorIfNotSatisfiedBy(actual int64, infinitive, pastpart string) error {
+	if actual == int64(n) {
 		return nil
 	}
 	return ErrWrongSize(actual, "expected to %s %d but %s %d", infinitive, n, pastpart, actual)
@@ -69,10 +69,10 @@ func (n Exactly) String() string {
 //-------------------------------------------------------------------------------------------------
 
 // NoMoreThan is a requirement that is met by the actual results being no more than a specified value.
-type NoMoreThan uint
+type NoMoreThan int64
 
-func (n NoMoreThan) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart string) error {
-	if actual <= uint(n) {
+func (n NoMoreThan) errorIfNotSatisfiedBy(actual int64, infinitive, pastpart string) error {
+	if actual <= int64(n) {
 		return nil
 	}
 	return ErrWrongSize(actual, "expected to %s no more than %d but %s %d", infinitive, n, pastpart, actual)
@@ -88,10 +88,10 @@ var NoMoreThanOne = NoMoreThan(1)
 //-------------------------------------------------------------------------------------------------
 
 // AtLeast is a requirement that is met by the actual results being at least a specified value.
-type AtLeast uint
+type AtLeast int64
 
-func (n AtLeast) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart string) error {
-	if actual >= uint(n) {
+func (n AtLeast) errorIfNotSatisfiedBy(actual int64, infinitive, pastpart string) error {
+	if actual >= int64(n) {
 		return nil
 	}
 	return ErrWrongSize(actual, "expected to %s at least %d but %s %d", infinitive, n, pastpart, actual)
@@ -108,7 +108,7 @@ var AtLeastOne = AtLeast(1)
 
 // Quantifier is a requirement that is met by imprecise zero, singular or plural results. The
 // value All will be automatically updated to match exactly some number known at call time.
-type Quantifier uint
+type Quantifier int64
 
 const (
 	None Quantifier = iota
@@ -127,8 +127,8 @@ func (q Quantifier) String() string {
 	}
 }
 
-func (q Quantifier) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart string) error {
-	if actual == uint(q) {
+func (q Quantifier) errorIfNotSatisfiedBy(actual int64, infinitive, pastpart string) error {
+	if actual == int64(q) {
 		return nil
 	}
 	if actual > 1 && q == Many {
@@ -140,13 +140,13 @@ func (q Quantifier) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart stri
 //-------------------------------------------------------------------------------------------------
 
 // LateBound is a requirement that is updated to match exactly some number known at call time.
-type LateBound uint
+type LateBound int64
 
 const (
 	All LateBound = iota
 )
 
-func (v LateBound) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart string) error {
+func (v LateBound) errorIfNotSatisfiedBy(actual int64, infinitive, pastpart string) error {
 	panic("Late-bound requirement used in an inappropriate context.")
 }
 
