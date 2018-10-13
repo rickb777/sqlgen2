@@ -1,5 +1,7 @@
 // Package require provides simple constraints to assist with detecting errors in database queries
 // that arise from the wrong number of result (for example no result or too many results).
+//
+// The errors arising when requirements are not met are Sizer values.
 package require
 
 import "fmt"
@@ -7,6 +9,7 @@ import "fmt"
 // Requirement set an expectation on the outcome of a query.
 type Requirement interface {
 	errorIfNotSatisfiedBy(uint, string, string) error
+	String() string
 }
 
 // ChainErrorIfQueryNotSatisfiedBy matches a requirement against the actual result size for
@@ -56,7 +59,11 @@ func (n Exactly) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart string)
 	if actual == uint(n) {
 		return nil
 	}
-	return fmt.Errorf("expected to %s %d but %s %d", infinitive, n, pastpart, actual)
+	return wrongSize(actual, "expected to %s %d but %s %d", infinitive, n, pastpart, actual)
+}
+
+func (n Exactly) String() string {
+	return fmt.Sprintf("exactly %d", n)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -68,7 +75,11 @@ func (n NoMoreThan) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart stri
 	if actual <= uint(n) {
 		return nil
 	}
-	return fmt.Errorf("expected to %s no more than %d but %s %d", infinitive, n, pastpart, actual)
+	return wrongSize(actual, "expected to %s no more than %d but %s %d", infinitive, n, pastpart, actual)
+}
+
+func (n NoMoreThan) String() string {
+	return fmt.Sprintf("no more than %d", n)
 }
 
 // NoMoreThanOne is a requirement that is met by the actual results being no more than one.
@@ -83,7 +94,11 @@ func (n AtLeast) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart string)
 	if actual >= uint(n) {
 		return nil
 	}
-	return fmt.Errorf("expected to %s at least %d but %s %d", infinitive, n, pastpart, actual)
+	return wrongSize(actual, "expected to %s at least %d but %s %d", infinitive, n, pastpart, actual)
+}
+
+func (n AtLeast) String() string {
+	return fmt.Sprintf("at least %d", n)
 }
 
 // AtLeastOne is a requirement that is met by the actual results being at least one, i.e. not empty.
@@ -119,7 +134,7 @@ func (q Quantifier) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart stri
 	if actual > 1 && q == Many {
 		return nil
 	}
-	return fmt.Errorf("expected to %s %s but %s %d", infinitive, q, pastpart, actual)
+	return wrongSize(actual, "expected to %s %s but %s %d", infinitive, q, pastpart, actual)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -135,3 +150,6 @@ func (v LateBound) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart strin
 	panic("Late-bound requirement used in an inappropriate context.")
 }
 
+func (v LateBound) String() string {
+	return "all"
+}
