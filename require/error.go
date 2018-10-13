@@ -13,9 +13,12 @@ type wrongResultSize struct {
 	message string
 }
 
-func wrongSize(size uint, format string, args ...interface{}) error {
+// ErrWrongSize returns an error based on the actual size received and a message
+// describing the unsatisfied requirement. The returned value is both an error
+// and a Sizer.
+func ErrWrongSize(actualSize uint, format string, args ...interface{}) error {
 	return wrongResultSize{
-		size: size,
+		size:    actualSize,
 		message: fmt.Sprintf(format, args...),
 	}
 }
@@ -24,6 +27,7 @@ func (e wrongResultSize) Error() string {
 	return e.message
 }
 
+// Size gets the actual size. Typically this is the number of records received.
 func (e wrongResultSize) Size() uint {
 	return e.size
 }

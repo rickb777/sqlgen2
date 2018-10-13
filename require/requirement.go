@@ -59,7 +59,7 @@ func (n Exactly) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart string)
 	if actual == uint(n) {
 		return nil
 	}
-	return wrongSize(actual, "expected to %s %d but %s %d", infinitive, n, pastpart, actual)
+	return ErrWrongSize(actual, "expected to %s %d but %s %d", infinitive, n, pastpart, actual)
 }
 
 func (n Exactly) String() string {
@@ -75,7 +75,7 @@ func (n NoMoreThan) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart stri
 	if actual <= uint(n) {
 		return nil
 	}
-	return wrongSize(actual, "expected to %s no more than %d but %s %d", infinitive, n, pastpart, actual)
+	return ErrWrongSize(actual, "expected to %s no more than %d but %s %d", infinitive, n, pastpart, actual)
 }
 
 func (n NoMoreThan) String() string {
@@ -94,7 +94,7 @@ func (n AtLeast) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart string)
 	if actual >= uint(n) {
 		return nil
 	}
-	return wrongSize(actual, "expected to %s at least %d but %s %d", infinitive, n, pastpart, actual)
+	return ErrWrongSize(actual, "expected to %s at least %d but %s %d", infinitive, n, pastpart, actual)
 }
 
 func (n AtLeast) String() string {
@@ -134,7 +134,7 @@ func (q Quantifier) errorIfNotSatisfiedBy(actual uint, infinitive, pastpart stri
 	if actual > 1 && q == Many {
 		return nil
 	}
-	return wrongSize(actual, "expected to %s %s but %s %d", infinitive, q, pastpart, actual)
+	return ErrWrongSize(actual, "expected to %s %s but %s %d", infinitive, q, pastpart, actual)
 }
 
 //-------------------------------------------------------------------------------------------------
