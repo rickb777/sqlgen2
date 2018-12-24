@@ -21,7 +21,7 @@ rm -f reports/*.out reports/*.html */*.txt demo/*_sql.go
 go test . ./code ./parse
 go build -o sqlgen *.go
 
-[ -d $HOME/go/bin ] && cp -v sqlgen $HOME/go.bin
+[ -d $HOME/go/bin ] && cp -v sqlgen $HOME/go/bin
 
 for d in code output parse; do
   announce sqlgen/$d
