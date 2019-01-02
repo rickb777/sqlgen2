@@ -17,19 +17,12 @@ import (
 	"time"
 )
 
-// These are set using linker flags (https://goreleaser.com/environment/)
-var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
-)
-
 func main() {
 	start := time.Now()
 
 	var oFile, typeName, prefix, list, kind, tableName, tagsFile, genSetters string
 	var flags = FuncFlags{}
-	var all, sselect, insert, gofmt bool
+	var all, sselect, insert, gofmt, showVersion bool
 
 	flag.StringVar(&oFile, "o", "", "Output file name; optional. Use '-' for stdout.\n"+
 		"\tIf omitted, the first input filename is used with '_sql.go' suffix.")
@@ -42,10 +35,6 @@ func main() {
 	flag.StringVar(&tableName, "table", "", "The name for the database table; default is based on the struct name as a plural.")
 	flag.StringVar(&tagsFile, "tags", "", "A YAML file containing tags that augment and override any in the Go struct(s); optional.\n"+
 		"\tTags control the SQL type, size, column name, indexes etc.")
-	flag.BoolVar(&output.Verbose, "v", false, "Show progress messages.")
-	flag.BoolVar(&parse.Debug, "z", false, "Show debug messages.")
-	flag.BoolVar(&parse.PrintAST, "ast", false, "Trace the whole astract syntax tree (very verbose).")
-	flag.BoolVar(&gofmt, "gofmt", false, "Format and simplify the generated code nicely.")
 
 	// filters for what gets generated
 	flag.BoolVar(&all, "all", false, "Shorthand for '-schema -create -read -update -delete -slice'; recommended.\n"+
@@ -62,15 +51,20 @@ func main() {
 	flag.StringVar(&genSetters, "setters", "none", "Generate setters for fields of your type (see -type): none, optional, exported, all.\n"+
 		"\tFields that are pointers are assumed to be optional.")
 
+	flag.BoolVar(&output.Verbose, "v", false, "Show progress messages.")
+	flag.BoolVar(&parse.Debug, "z", false, "Show debug messages.")
+	flag.BoolVar(&parse.PrintAST, "ast", false, "Trace the whole astract syntax tree (very verbose).")
+	flag.BoolVar(&gofmt, "gofmt", false, "Format and simplify the generated code nicely.")
+	flag.BoolVar(&showVersion, "version", false, "Show the version.")
+
 	flag.Parse()
 
-	output.Require(flag.NArg() > 0, "At least one input file (or path) is required; put this after the other arguments.\n"+
-		"  version   - prints the current version then exits.\n")
-
-	if flag.Args()[0] == "version" {
-		fmt.Printf("sqlgen %s (commit %s) built on %s\n", version, commit, date)
+	if showVersion {
+		fmt.Println(appVersion)
 		os.Exit(0)
 	}
+
+	output.Require(flag.NArg() > 0, "At least one input file (or path) is required; put this after the other arguments.\n")
 
 	if sselect {
 		flags.Select = true

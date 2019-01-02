@@ -7,4 +7,3 @@ dist/
 reports/
 vendor/
 sqlgen
-demo/*_sql.go
