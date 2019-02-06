@@ -26,7 +26,7 @@ type AddressTable struct {
 	database    *sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
@@ -68,14 +68,12 @@ func CopyTableAsAddressTable(origin sqlapi.Table) AddressTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AddressTable) SetPkColumn(pk string) AddressTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -130,12 +128,10 @@ func (tbl AddressTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
-
 // PkColumn gets the column name used as a primary key.
 func (tbl AddressTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -197,32 +193,41 @@ func (tbl AddressTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
+// NumAddressColumns is the total number of columns in Address.
 const NumAddressColumns = 4
 
+// NumAddressDataColumns is the number of columns in Address not including the auto-increment key.
 const NumAddressDataColumns = 3
 
+// AddressColumnNames is the list of columns in Address.
 const AddressColumnNames = "id,lines,town,postcode"
 
+// AddressDataColumnNames is the list of data columns in Address.
 const AddressDataColumnNames = "lines,town,postcode"
 
 //--------------------------------------------------------------------------------
 
-const sqlAddressTableCreateColumnsSqlite = "\n"+
-" `id`       integer not null primary key autoincrement,\n"+
-" `lines`    text,\n"+
-" `town`     text default null,\n"+
-" `postcode` text not null"
+const sqlAddressTableCreateColumnsSqlite = "\n" +
+	" `id`       integer not null primary key autoincrement,\n" +
+	" `lines`    text,\n" +
+	" `town`     text default null,\n" +
+	" `postcode` text not null"
 
-const sqlAddressTableCreateColumnsMysql = "\n"+
-" `id`       bigint not null primary key auto_increment,\n"+
-" `lines`    json,\n"+
-" `town`     varchar(80) default null,\n"+
-" `postcode` varchar(20) not null"
+const sqlAddressTableCreateColumnsMysql = "\n" +
+	" `id`       bigint not null primary key auto_increment,\n" +
+	" `lines`    json,\n" +
+	" `town`     varchar(80) default null,\n" +
+	" `postcode` varchar(20) not null"
 
 const sqlAddressTableCreateColumnsPostgres = `
+ "id"       bigserial not null primary key,
+ "lines"    json,
+ "town"     varchar(80) default null,
+ "postcode" varchar(20) not null`
+
+const sqlAddressTableCreateColumnsPgx = `
  "id"       bigserial not null primary key,
  "lines"    json,
  "town"     varchar(80) default null,
@@ -251,13 +256,16 @@ func (tbl AddressTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlAddressTableCreateColumnsSqlite
 		settings = ""
-    case schema.Mysql:
+	case schema.Mysql:
 		columns = sqlAddressTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-    case schema.Postgres:
+	case schema.Postgres:
 		columns = sqlAddressTableCreateColumnsPostgres
 		settings = ""
-    }
+	case schema.Pgx:
+		columns = sqlAddressTableCreateColumnsPgx
+		settings = ""
+	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -552,6 +560,7 @@ var allAddressQuotedColumnNames = []string{
 	schema.Sqlite.SplitAndQuote(AddressColumnNames),
 	schema.Mysql.SplitAndQuote(AddressColumnNames),
 	schema.Postgres.SplitAndQuote(AddressColumnNames),
+	schema.Pgx.SplitAndQuote(AddressColumnNames),
 }
 
 //--------------------------------------------------------------------------------
@@ -824,7 +833,6 @@ func (tbl AddressTable) sliceStringPtrList(req require.Requirement, sqlname stri
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-
 func constructAddressInsert(w io.Writer, v *Address, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
 	s = make([]interface{}, 0, 4)
 
@@ -871,7 +879,7 @@ func constructAddressUpdate(w io.Writer, v *Address, dialect schema.Dialect) (s 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "lines", j)
 	comma = ", "
-		j++
+	j++
 	x, err := json.Marshal(&v.Lines)
 	if err != nil {
 		return nil, err
@@ -893,7 +901,7 @@ func constructAddressUpdate(w io.Writer, v *Address, dialect schema.Dialect) (s 
 	dialect.QuoteWithPlaceholder(w, "postcode", j)
 	s = append(s, v.Postcode)
 	comma = ", "
-		j++
+	j++
 
 	return s, nil
 }
@@ -964,7 +972,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 
@@ -992,6 +1000,8 @@ var allAddressQuotedUpdates = []string{
 	// Mysql
 	"`lines`=?,`town`=?,`postcode`=? WHERE `id`=?",
 	// Postgres
+	`"lines"=$2,"town"=$3,"postcode"=$4 WHERE "id"=$1`,
+	// Pgx
 	`"lines"=$2,"town"=$3,"postcode"=$4 WHERE "id"=$1`,
 }
 

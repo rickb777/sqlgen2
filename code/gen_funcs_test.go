@@ -156,6 +156,7 @@ var allXExampleQuotedColumnNames = []string{
 	schema.Sqlite.SplitAndQuote(XExampleColumnNames),
 	schema.Mysql.SplitAndQuote(XExampleColumnNames),
 	schema.Postgres.SplitAndQuote(XExampleColumnNames),
+	schema.Pgx.SplitAndQuote(XExampleColumnNames),
 }
 
 //--------------------------------------------------------------------------------
@@ -726,6 +727,8 @@ var allXExampleQuotedUpdates = []string{
 	// Mysql
 	"¬name¬=?,¬age¬=? WHERE ¬id¬=?",
 	// Postgres
+	¬"name"=$2,"age"=$3 WHERE "id"=$1¬,
+	// Pgx
 	¬"name"=$2,"age"=$3 WHERE "id"=$1¬,
 }
 

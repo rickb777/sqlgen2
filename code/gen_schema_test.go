@@ -20,12 +20,16 @@ func TestWritePrimaryDeclarations(t *testing.T) {
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
+// NumXExampleColumns is the total number of columns in XExample.
 const NumXExampleColumns = 17
 
+// NumXExampleDataColumns is the number of columns in XExample not including the auto-increment key.
 const NumXExampleDataColumns = 16
 
+// XExampleColumnNames is the list of columns in XExample.
 const XExampleColumnNames = "id,cat,username,mobile,qual,diff,age,bmi,active,labels,fave,avatar,foo1,foo2,foo3,bar1,updated"
 
+// XExampleDataColumnNames is the list of data columns in XExample.
 const XExampleDataColumnNames = "cat,username,mobile,qual,diff,age,bmi,active,labels,fave,avatar,foo1,foo2,foo3,bar1,updated"
 `, "¬", "`", -1)
 
@@ -35,6 +39,7 @@ const XExampleDataColumnNames = "cat,username,mobile,qual,diff,age,bmi,active,la
 		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
 	}
 }
+
 func TestWriteSchemaDeclarations(t *testing.T) {
 	exit.TestableExit()
 
@@ -87,6 +92,25 @@ const sqlXExampleTableCreateColumnsMysql = "\n"+
 " ¬updated¬  varchar(100)"
 
 const sqlXExampleTableCreateColumnsPostgres = ¬
+ "id"       bigserial not null primary key,
+ "cat"      integer not null,
+ "username" varchar(2048) not null default 'anon',
+ "mobile"   varchar(255) default null,
+ "qual"     varchar(255) default null,
+ "diff"     integer default null,
+ "age"      bigint default null,
+ "bmi"      real default null,
+ "active"   boolean not null,
+ "labels"   json,
+ "fave"     json,
+ "avatar"   bytea not null,
+ "foo1"     varchar(255) not null,
+ "foo2"     varchar(255) default null,
+ "foo3"     integer default null,
+ "bar1"     varchar(255) not null,
+ "updated"  varchar(100)¬
+
+const sqlXExampleTableCreateColumnsPgx = ¬
  "id"       bigserial not null primary key,
  "cat"      integer not null,
  "username" varchar(2048) not null default 'anon',

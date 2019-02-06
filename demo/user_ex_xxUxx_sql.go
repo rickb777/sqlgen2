@@ -25,7 +25,7 @@ type UUserTable struct {
 	database    *sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
@@ -42,7 +42,7 @@ func NewUUserTable(name string, d *sqlapi.Database) UUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return UUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -69,14 +69,12 @@ func CopyTableAsUUserTable(origin sqlapi.Table) UUserTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl UUserTable) SetPkColumn(pk string) UUserTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -131,12 +129,10 @@ func (tbl UUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
-
 // PkColumn gets the column name used as a primary key.
 func (tbl UUserTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -198,15 +194,18 @@ func (tbl UUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
+// NumUUserColumns is the total number of columns in UUser.
 const NumUUserColumns = 22
 
+// NumUUserDataColumns is the number of columns in UUser not including the auto-increment key.
 const NumUUserDataColumns = 21
 
+// UUserColumnNames is the list of columns in UUser.
 const UUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
+// UUserDataColumnNames is the list of data columns in UUser.
 const UUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 //--------------------------------------------------------------------------------
@@ -283,12 +282,12 @@ func constructUUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 	dialect.QuoteWithPlaceholder(w, "name", j)
 	s = append(s, v.Name)
 	comma = ", "
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "emailaddress", j)
 	s = append(s, v.EmailAddress)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	if v.AddressId != nil {
@@ -323,16 +322,16 @@ func constructUUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "active", j)
 	s = append(s, v.Active)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "admin", j)
 	s = append(s, v.Admin)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "fave", j)
-		j++
+	j++
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
@@ -342,67 +341,67 @@ func constructUUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "lastupdated", j)
 	s = append(s, v.LastUpdated)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i8", j)
 	s = append(s, v.Numbers.I8)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u8", j)
 	s = append(s, v.Numbers.U8)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i16", j)
 	s = append(s, v.Numbers.I16)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u16", j)
 	s = append(s, v.Numbers.U16)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i32", j)
 	s = append(s, v.Numbers.I32)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u32", j)
 	s = append(s, v.Numbers.U32)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i64", j)
 	s = append(s, v.Numbers.I64)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u64", j)
 	s = append(s, v.Numbers.U64)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "f32", j)
 	s = append(s, v.Numbers.F32)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "f64", j)
 	s = append(s, v.Numbers.F64)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "token", j)
 	s = append(s, v.token)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "secret", j)
 	s = append(s, v.secret)
-		j++
+	j++
 
 	return s, nil
 }
@@ -422,6 +421,8 @@ var allUUserQuotedUpdates = []string{
 	// Mysql
 	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`i8`=?,`u8`=?,`i16`=?,`u16`=?,`i32`=?,`u32`=?,`i64`=?,`u64`=?,`f32`=?,`f64`=?,`token`=?,`secret`=? WHERE `uid`=?",
 	// Postgres
+	`"name"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"i8"=$11,"u8"=$12,"i16"=$13,"u16"=$14,"i32"=$15,"u32"=$16,"i64"=$17,"u64"=$18,"f32"=$19,"f64"=$20,"token"=$21,"secret"=$22 WHERE "uid"=$1`,
+	// Pgx
 	`"name"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"i8"=$11,"u8"=$12,"i16"=$13,"u16"=$14,"i32"=$15,"u32"=$16,"i64"=$17,"u64"=$18,"f32"=$19,"f64"=$20,"token"=$21,"secret"=$22 WHERE "uid"=$1`,
 }
 

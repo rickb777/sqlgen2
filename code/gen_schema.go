@@ -16,12 +16,9 @@ type ConstView struct {
 	Body interface{}
 }
 
-//const constString = "\nconst %s = %s\n"
-const constString = "\nconst %s ="
-const constStringD = "\nconst %s = %d\n"
-const constStringQ = "\nconst %s = %q\n"
-const constStringT = "\nconst %s = `%s`\n"
-const constStringWithTicks = "\nconst %s = `\n%s`\n"
+const constString = "const %s ="
+const constStringD = "const %s = %d\n"
+const constStringQ = "const %s = %q\n"
 
 func WritePackageHeader(w io.Writer, name string) {
 	fmt.Fprintf(w, sPackage, name)
@@ -32,11 +29,16 @@ func WritePrimaryDeclarations(w io.Writer, view View) {
 
 	fmt.Fprintln(w, sectionBreak)
 
+	fmt.Fprintln(w, "\n// Num"+tableName+"Columns is the total number of columns in "+tableName+".")
 	fmt.Fprintf(w, constStringD, "Num"+tableName+"Columns", view.Table.NumColumnNames(true))
+
+	fmt.Fprintln(w, "\n// Num"+tableName+"DataColumns is the number of columns in "+tableName+" not including the auto-increment key.")
 	fmt.Fprintf(w, constStringD, "Num"+tableName+"DataColumns", view.Table.NumColumnNames(false))
 
+	fmt.Fprintln(w, "\n// "+tableName+"ColumnNames is the list of columns in "+tableName+".")
 	fmt.Fprintf(w, constStringQ, tableName+"ColumnNames", view.Table.ColumnNames(true).MkString(","))
 	if view.Table.HasPrimaryKey() {
+		fmt.Fprintln(w, "\n// "+tableName+"DataColumnNames is the list of data columns in "+tableName+".")
 		fmt.Fprintf(w, constStringQ, tableName+"DataColumnNames", view.Table.ColumnNames(false).MkString(","))
 	}
 }
@@ -48,7 +50,7 @@ func WriteSchemaDeclarations(w io.Writer, view View) {
 
 	for _, d := range schema.AllDialects {
 		ds := d.String()
-		fmt.Fprintf(w, constString, "sql"+tableName+view.Thing+"CreateColumns"+ds)
+		fmt.Fprintf(w, "\n"+constString, "sql"+tableName+view.Thing+"CreateColumns"+ds)
 		fmt.Fprintln(w, d.TableDDL(view.Table))
 	}
 
@@ -72,7 +74,7 @@ func WriteSchemaDeclarations(w io.Writer, view View) {
 
 		for _, ix := range view.Table.Index {
 			cols := ix.Columns()
-			fmt.Fprintf(w, constStringQ, "sql"+view.Prefix+inflect.Camelize(ix.Name)+"IndexColumns", cols)
+			fmt.Fprintf(w, "\n"+constStringQ, "sql"+view.Prefix+inflect.Camelize(ix.Name)+"IndexColumns", cols)
 		}
 	}
 }

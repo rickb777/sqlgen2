@@ -24,7 +24,7 @@ type RUserTable struct {
 	database    *sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
@@ -41,7 +41,7 @@ func NewRUserTable(name string, d *sqlapi.Database) RUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return RUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -68,14 +68,12 @@ func CopyTableAsRUserTable(origin sqlapi.Table) RUserTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl RUserTable) SetPkColumn(pk string) RUserTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -130,12 +128,10 @@ func (tbl RUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
-
 // PkColumn gets the column name used as a primary key.
 func (tbl RUserTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -197,15 +193,18 @@ func (tbl RUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
+// NumRUserColumns is the total number of columns in RUser.
 const NumRUserColumns = 22
 
+// NumRUserDataColumns is the number of columns in RUser not including the auto-increment key.
 const NumRUserDataColumns = 21
 
+// RUserColumnNames is the list of columns in RUser.
 const RUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
+// RUserDataColumnNames is the list of data columns in RUser.
 const RUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 //--------------------------------------------------------------------------------
@@ -383,6 +382,7 @@ var allRUserQuotedColumnNames = []string{
 	schema.Sqlite.SplitAndQuote(RUserColumnNames),
 	schema.Mysql.SplitAndQuote(RUserColumnNames),
 	schema.Postgres.SplitAndQuote(RUserColumnNames),
+	schema.Pgx.SplitAndQuote(RUserColumnNames),
 }
 
 //--------------------------------------------------------------------------------

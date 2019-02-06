@@ -25,7 +25,7 @@ type HookTable struct {
 	database    *sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
@@ -67,14 +67,12 @@ func CopyTableAsHookTable(origin sqlapi.Table) HookTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl HookTable) SetPkColumn(pk string) HookTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -129,12 +127,10 @@ func (tbl HookTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
-
 // PkColumn gets the column name used as a primary key.
 func (tbl HookTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -196,58 +192,80 @@ func (tbl HookTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
+// NumHookColumns is the total number of columns in Hook.
 const NumHookColumns = 17
 
+// NumHookDataColumns is the number of columns in Hook not including the auto-increment key.
 const NumHookDataColumns = 16
 
+// HookColumnNames is the list of columns in Hook.
 const HookColumnNames = "id,sha,after,before,category,created,deleted,forced,commit_id,message,timestamp,head_commit_author_name,head_commit_author_email,head_commit_author_username,head_commit_committer_name,head_commit_committer_email,head_commit_committer_username"
 
+// HookDataColumnNames is the list of data columns in Hook.
 const HookDataColumnNames = "sha,after,before,category,created,deleted,forced,commit_id,message,timestamp,head_commit_author_name,head_commit_author_email,head_commit_author_username,head_commit_committer_name,head_commit_committer_email,head_commit_committer_username"
 
 //--------------------------------------------------------------------------------
 
-const sqlHookTableCreateColumnsSqlite = "\n"+
-" `id`                             integer not null primary key autoincrement,\n"+
-" `sha`                            text not null,\n"+
-" `after`                          text not null,\n"+
-" `before`                         text not null,\n"+
-" `category`                       tinyint unsigned not null,\n"+
-" `created`                        boolean not null,\n"+
-" `deleted`                        boolean not null,\n"+
-" `forced`                         boolean not null,\n"+
-" `commit_id`                      text not null,\n"+
-" `message`                        text not null,\n"+
-" `timestamp`                      text not null,\n"+
-" `head_commit_author_name`        text not null,\n"+
-" `head_commit_author_email`       text not null,\n"+
-" `head_commit_author_username`    text not null,\n"+
-" `head_commit_committer_name`     text not null,\n"+
-" `head_commit_committer_email`    text not null,\n"+
-" `head_commit_committer_username` text not null"
+const sqlHookTableCreateColumnsSqlite = "\n" +
+	" `id`                             integer not null primary key autoincrement,\n" +
+	" `sha`                            text not null,\n" +
+	" `after`                          text not null,\n" +
+	" `before`                         text not null,\n" +
+	" `category`                       tinyint unsigned not null,\n" +
+	" `created`                        boolean not null,\n" +
+	" `deleted`                        boolean not null,\n" +
+	" `forced`                         boolean not null,\n" +
+	" `commit_id`                      text not null,\n" +
+	" `message`                        text not null,\n" +
+	" `timestamp`                      text not null,\n" +
+	" `head_commit_author_name`        text not null,\n" +
+	" `head_commit_author_email`       text not null,\n" +
+	" `head_commit_author_username`    text not null,\n" +
+	" `head_commit_committer_name`     text not null,\n" +
+	" `head_commit_committer_email`    text not null,\n" +
+	" `head_commit_committer_username` text not null"
 
-const sqlHookTableCreateColumnsMysql = "\n"+
-" `id`                             bigint unsigned not null primary key auto_increment,\n"+
-" `sha`                            varchar(255) not null,\n"+
-" `after`                          varchar(20) not null,\n"+
-" `before`                         varchar(20) not null,\n"+
-" `category`                       tinyint unsigned not null,\n"+
-" `created`                        tinyint(1) not null,\n"+
-" `deleted`                        tinyint(1) not null,\n"+
-" `forced`                         tinyint(1) not null,\n"+
-" `commit_id`                      varchar(255) not null,\n"+
-" `message`                        varchar(255) not null,\n"+
-" `timestamp`                      varchar(255) not null,\n"+
-" `head_commit_author_name`        varchar(255) not null,\n"+
-" `head_commit_author_email`       varchar(255) not null,\n"+
-" `head_commit_author_username`    varchar(255) not null,\n"+
-" `head_commit_committer_name`     varchar(255) not null,\n"+
-" `head_commit_committer_email`    varchar(255) not null,\n"+
-" `head_commit_committer_username` varchar(255) not null"
+const sqlHookTableCreateColumnsMysql = "\n" +
+	" `id`                             bigint unsigned not null primary key auto_increment,\n" +
+	" `sha`                            varchar(255) not null,\n" +
+	" `after`                          varchar(20) not null,\n" +
+	" `before`                         varchar(20) not null,\n" +
+	" `category`                       tinyint unsigned not null,\n" +
+	" `created`                        tinyint(1) not null,\n" +
+	" `deleted`                        tinyint(1) not null,\n" +
+	" `forced`                         tinyint(1) not null,\n" +
+	" `commit_id`                      varchar(255) not null,\n" +
+	" `message`                        varchar(255) not null,\n" +
+	" `timestamp`                      varchar(255) not null,\n" +
+	" `head_commit_author_name`        varchar(255) not null,\n" +
+	" `head_commit_author_email`       varchar(255) not null,\n" +
+	" `head_commit_author_username`    varchar(255) not null,\n" +
+	" `head_commit_committer_name`     varchar(255) not null,\n" +
+	" `head_commit_committer_email`    varchar(255) not null,\n" +
+	" `head_commit_committer_username` varchar(255) not null"
 
 const sqlHookTableCreateColumnsPostgres = `
+ "id"                             bigserial not null primary key,
+ "sha"                            varchar(255) not null,
+ "after"                          varchar(20) not null,
+ "before"                         varchar(20) not null,
+ "category"                       smallint not null,
+ "created"                        boolean not null,
+ "deleted"                        boolean not null,
+ "forced"                         boolean not null,
+ "commit_id"                      varchar(255) not null,
+ "message"                        varchar(255) not null,
+ "timestamp"                      varchar(255) not null,
+ "head_commit_author_name"        varchar(255) not null,
+ "head_commit_author_email"       varchar(255) not null,
+ "head_commit_author_username"    varchar(255) not null,
+ "head_commit_committer_name"     varchar(255) not null,
+ "head_commit_committer_email"    varchar(255) not null,
+ "head_commit_committer_username" varchar(255) not null`
+
+const sqlHookTableCreateColumnsPgx = `
  "id"                             bigserial not null primary key,
  "sha"                            varchar(255) not null,
  "after"                          varchar(20) not null,
@@ -283,13 +301,16 @@ func (tbl HookTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlHookTableCreateColumnsSqlite
 		settings = ""
-    case schema.Mysql:
+	case schema.Mysql:
 		columns = sqlHookTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-    case schema.Postgres:
+	case schema.Postgres:
 		columns = sqlHookTableCreateColumnsPostgres
 		settings = ""
-    }
+	case schema.Pgx:
+		columns = sqlHookTableCreateColumnsPgx
+		settings = ""
+	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -499,6 +520,7 @@ var allHookQuotedColumnNames = []string{
 	schema.Sqlite.SplitAndQuote(HookColumnNames),
 	schema.Mysql.SplitAndQuote(HookColumnNames),
 	schema.Postgres.SplitAndQuote(HookColumnNames),
+	schema.Pgx.SplitAndQuote(HookColumnNames),
 }
 
 //--------------------------------------------------------------------------------
@@ -862,7 +884,6 @@ func (tbl HookTable) sliceUint64List(req require.Requirement, sqlname string, wh
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-
 func constructHookInsert(w io.Writer, v *Hook, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
 	s = make([]interface{}, 0, 17)
 
@@ -954,82 +975,82 @@ func constructHookUpdate(w io.Writer, v *Hook, dialect schema.Dialect) (s []inte
 	dialect.QuoteWithPlaceholder(w, "sha", j)
 	s = append(s, v.Sha)
 	comma = ", "
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "after", j)
 	s = append(s, v.Dates.After)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "before", j)
 	s = append(s, v.Dates.Before)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "category", j)
 	s = append(s, v.Category)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "created", j)
 	s = append(s, v.Created)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "deleted", j)
 	s = append(s, v.Deleted)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "forced", j)
 	s = append(s, v.Forced)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "commit_id", j)
 	s = append(s, v.HeadCommit.ID)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "message", j)
 	s = append(s, v.HeadCommit.Message)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "timestamp", j)
 	s = append(s, v.HeadCommit.Timestamp)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "head_commit_author_name", j)
 	s = append(s, v.HeadCommit.Author.Name)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "head_commit_author_email", j)
 	s = append(s, v.HeadCommit.Author.Email)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "head_commit_author_username", j)
 	s = append(s, v.HeadCommit.Author.Username)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "head_commit_committer_name", j)
 	s = append(s, v.HeadCommit.Committer.Name)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "head_commit_committer_email", j)
 	s = append(s, v.HeadCommit.Committer.Email)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "head_commit_committer_username", j)
 	s = append(s, v.HeadCommit.Committer.Username)
-		j++
+	j++
 
 	return s, nil
 }
@@ -1100,11 +1121,11 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 
 			i64, e2 := res.LastInsertId()
 			v.Id = uint64(i64)
-			
+
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 
@@ -1132,6 +1153,8 @@ var allHookQuotedUpdates = []string{
 	// Mysql
 	"`sha`=?,`after`=?,`before`=?,`category`=?,`created`=?,`deleted`=?,`forced`=?,`commit_id`=?,`message`=?,`timestamp`=?,`head_commit_author_name`=?,`head_commit_author_email`=?,`head_commit_author_username`=?,`head_commit_committer_name`=?,`head_commit_committer_email`=?,`head_commit_committer_username`=? WHERE `id`=?",
 	// Postgres
+	`"sha"=$2,"after"=$3,"before"=$4,"category"=$5,"created"=$6,"deleted"=$7,"forced"=$8,"commit_id"=$9,"message"=$10,"timestamp"=$11,"head_commit_author_name"=$12,"head_commit_author_email"=$13,"head_commit_author_username"=$14,"head_commit_committer_name"=$15,"head_commit_committer_email"=$16,"head_commit_committer_username"=$17 WHERE "id"=$1`,
+	// Pgx
 	`"sha"=$2,"after"=$3,"before"=$4,"category"=$5,"created"=$6,"deleted"=$7,"forced"=$8,"commit_id"=$9,"message"=$10,"timestamp"=$11,"head_commit_author_name"=$12,"head_commit_author_email"=$13,"head_commit_author_username"=$14,"head_commit_committer_name"=$15,"head_commit_committer_email"=$16,"head_commit_committer_username"=$17 WHERE "id"=$1`,
 }
 

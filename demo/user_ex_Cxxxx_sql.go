@@ -25,7 +25,7 @@ type CUserTable struct {
 	database    *sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
@@ -42,7 +42,7 @@ func NewCUserTable(name string, d *sqlapi.Database) CUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return CUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -69,14 +69,12 @@ func CopyTableAsCUserTable(origin sqlapi.Table) CUserTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl CUserTable) SetPkColumn(pk string) CUserTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -131,12 +129,10 @@ func (tbl CUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
-
 // PkColumn gets the column name used as a primary key.
 func (tbl CUserTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -198,15 +194,18 @@ func (tbl CUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
+// NumCUserColumns is the total number of columns in CUser.
 const NumCUserColumns = 22
 
+// NumCUserDataColumns is the number of columns in CUser not including the auto-increment key.
 const NumCUserDataColumns = 21
 
+// CUserColumnNames is the list of columns in CUser.
 const CUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
+// CUserDataColumnNames is the list of data columns in CUser.
 const CUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 //--------------------------------------------------------------------------------
@@ -440,7 +439,7 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 

@@ -9,6 +9,7 @@ import (
 
 type Output struct {
 	Dirs, Name string
+	Derived    bool // no stdout when true
 }
 
 func NewOutput(path string) Output {
@@ -16,14 +17,39 @@ func NewOutput(path string) Output {
 
 	if slash < 0 {
 		return Output{
-			Dirs: ".",
-			Name: path,
+			Dirs:    ".",
+			Name:    path,
+			Derived: false,
 		}
 	}
 
 	return Output{
-		Dirs: path[:slash],
-		Name: path[slash+1:],
+		Dirs:    path[:slash],
+		Name:    path[slash+1:],
+		Derived: false,
+	}
+}
+
+func (o Output) Derive(extn string) Output {
+	if o.Name == "" || o.Name == "-" {
+		d := o
+		d.Derived = true
+		return d
+	}
+
+	dot := strings.LastIndexByte(o.Name, '.')
+	if dot < 0 {
+		return Output{
+			Dirs:    o.Dirs,
+			Name:    o.Name + extn,
+			Derived: true,
+		}
+	}
+
+	return Output{
+		Dirs:    o.Dirs,
+		Name:    o.Name[:dot] + extn,
+		Derived: true,
 	}
 }
 
@@ -74,8 +100,8 @@ func (o Output) Write(content io.Reader, out io.Writer) {
 		file, err := o.create()
 		Require(err == nil, "%v\n", err)
 		defer file.Close()
-		out = file
+		io.Copy(file, content)
+	} else if !o.Derived {
+		io.Copy(out, content)
 	}
-
-	io.Copy(out, content)
 }

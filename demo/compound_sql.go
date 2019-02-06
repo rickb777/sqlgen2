@@ -182,10 +182,13 @@ func (tbl DbCompoundTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
+// NumDbCompoundColumns is the total number of columns in DbCompound.
 const NumDbCompoundColumns = 3
 
+// NumDbCompoundDataColumns is the number of columns in DbCompound not including the auto-increment key.
 const NumDbCompoundDataColumns = 3
 
+// DbCompoundColumnNames is the list of columns in DbCompound.
 const DbCompoundColumnNames = "alpha,beta,category"
 
 //--------------------------------------------------------------------------------
@@ -201,6 +204,11 @@ const sqlDbCompoundTableCreateColumnsMysql = "\n" +
 	" `category` tinyint unsigned not null"
 
 const sqlDbCompoundTableCreateColumnsPostgres = `
+ "alpha"    varchar(255) not null,
+ "beta"     varchar(255) not null,
+ "category" smallint not null`
+
+const sqlDbCompoundTableCreateColumnsPgx = `
  "alpha"    varchar(255) not null,
  "beta"     varchar(255) not null,
  "category" smallint not null`
@@ -231,6 +239,9 @@ func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
 	case schema.Postgres:
 		columns = sqlDbCompoundTableCreateColumnsPostgres
+		settings = ""
+	case schema.Pgx:
+		columns = sqlDbCompoundTableCreateColumnsPgx
 		settings = ""
 	}
 	buf := &bytes.Buffer{}
@@ -471,6 +482,7 @@ var allDbCompoundQuotedColumnNames = []string{
 	schema.Sqlite.SplitAndQuote(DbCompoundColumnNames),
 	schema.Mysql.SplitAndQuote(DbCompoundColumnNames),
 	schema.Postgres.SplitAndQuote(DbCompoundColumnNames),
+	schema.Pgx.SplitAndQuote(DbCompoundColumnNames),
 }
 
 // GetCompoundByAlphaAndBeta gets the record with given alpha+beta values.

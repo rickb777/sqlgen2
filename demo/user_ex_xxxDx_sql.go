@@ -23,7 +23,7 @@ type DUserTable struct {
 	database    *sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
@@ -40,7 +40,7 @@ func NewDUserTable(name string, d *sqlapi.Database) DUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return DUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -67,14 +67,12 @@ func CopyTableAsDUserTable(origin sqlapi.Table) DUserTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DUserTable) SetPkColumn(pk string) DUserTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -129,12 +127,10 @@ func (tbl DUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
-
 // PkColumn gets the column name used as a primary key.
 func (tbl DUserTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -196,15 +192,18 @@ func (tbl DUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
+// NumDUserColumns is the total number of columns in DUser.
 const NumDUserColumns = 22
 
+// NumDUserDataColumns is the number of columns in DUser not including the auto-increment key.
 const NumDUserDataColumns = 21
 
+// DUserColumnNames is the list of columns in DUser.
 const DUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
+// DUserDataColumnNames is the list of data columns in DUser.
 const DUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 //--------------------------------------------------------------------------------

@@ -26,7 +26,7 @@ type IssueTable struct {
 	database    *sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
@@ -68,14 +68,12 @@ func CopyTableAsIssueTable(origin sqlapi.Table) IssueTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl IssueTable) SetPkColumn(pk string) IssueTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -130,12 +128,10 @@ func (tbl IssueTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
-
 // PkColumn gets the column name used as a primary key.
 func (tbl IssueTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -197,40 +193,53 @@ func (tbl IssueTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
+// NumIssueColumns is the total number of columns in Issue.
 const NumIssueColumns = 8
 
+// NumIssueDataColumns is the number of columns in Issue not including the auto-increment key.
 const NumIssueDataColumns = 7
 
+// IssueColumnNames is the list of columns in Issue.
 const IssueColumnNames = "id,number,date,title,bigbody,assignee,state,labels"
 
+// IssueDataColumnNames is the list of data columns in Issue.
 const IssueDataColumnNames = "number,date,title,bigbody,assignee,state,labels"
 
 //--------------------------------------------------------------------------------
 
-const sqlIssueTableCreateColumnsSqlite = "\n"+
-" `id`       integer not null primary key autoincrement,\n"+
-" `number`   bigint not null,\n"+
-" `date`     blob not null,\n"+
-" `title`    text not null,\n"+
-" `bigbody`  text not null,\n"+
-" `assignee` text not null,\n"+
-" `state`    text not null,\n"+
-" `labels`   text"
+const sqlIssueTableCreateColumnsSqlite = "\n" +
+	" `id`       integer not null primary key autoincrement,\n" +
+	" `number`   bigint not null,\n" +
+	" `date`     blob not null,\n" +
+	" `title`    text not null,\n" +
+	" `bigbody`  text not null,\n" +
+	" `assignee` text not null,\n" +
+	" `state`    text not null,\n" +
+	" `labels`   text"
 
-const sqlIssueTableCreateColumnsMysql = "\n"+
-" `id`       bigint not null primary key auto_increment,\n"+
-" `number`   bigint not null,\n"+
-" `date`     mediumblob not null,\n"+
-" `title`    varchar(512) not null,\n"+
-" `bigbody`  varchar(2048) not null,\n"+
-" `assignee` varchar(255) not null,\n"+
-" `state`    varchar(50) not null,\n"+
-" `labels`   json"
+const sqlIssueTableCreateColumnsMysql = "\n" +
+	" `id`       bigint not null primary key auto_increment,\n" +
+	" `number`   bigint not null,\n" +
+	" `date`     mediumblob not null,\n" +
+	" `title`    varchar(512) not null,\n" +
+	" `bigbody`  varchar(2048) not null,\n" +
+	" `assignee` varchar(255) not null,\n" +
+	" `state`    varchar(50) not null,\n" +
+	" `labels`   json"
 
 const sqlIssueTableCreateColumnsPostgres = `
+ "id"       bigserial not null primary key,
+ "number"   bigint not null,
+ "date"     bytea not null,
+ "title"    varchar(512) not null,
+ "bigbody"  varchar(2048) not null,
+ "assignee" varchar(255) not null,
+ "state"    varchar(50) not null,
+ "labels"   json`
+
+const sqlIssueTableCreateColumnsPgx = `
  "id"       bigserial not null primary key,
  "number"   bigint not null,
  "date"     bytea not null,
@@ -261,13 +270,16 @@ func (tbl IssueTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlIssueTableCreateColumnsSqlite
 		settings = ""
-    case schema.Mysql:
+	case schema.Mysql:
 		columns = sqlIssueTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-    case schema.Postgres:
+	case schema.Postgres:
 		columns = sqlIssueTableCreateColumnsPostgres
 		settings = ""
-    }
+	case schema.Pgx:
+		columns = sqlIssueTableCreateColumnsPgx
+		settings = ""
+	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -524,6 +536,7 @@ var allIssueQuotedColumnNames = []string{
 	schema.Sqlite.SplitAndQuote(IssueColumnNames),
 	schema.Mysql.SplitAndQuote(IssueColumnNames),
 	schema.Postgres.SplitAndQuote(IssueColumnNames),
+	schema.Pgx.SplitAndQuote(IssueColumnNames),
 }
 
 //--------------------------------------------------------------------------------
@@ -811,7 +824,6 @@ func (tbl IssueTable) sliceStringList(req require.Requirement, sqlname string, w
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-
 func constructIssueInsert(w io.Writer, v *Issue, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
 	s = make([]interface{}, 0, 8)
 
@@ -871,36 +883,36 @@ func constructIssueUpdate(w io.Writer, v *Issue, dialect schema.Dialect) (s []in
 	dialect.QuoteWithPlaceholder(w, "number", j)
 	s = append(s, v.Number)
 	comma = ", "
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "date", j)
 	s = append(s, v.Date)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "title", j)
 	s = append(s, v.Title)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "bigbody", j)
 	s = append(s, v.Body)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "assignee", j)
 	s = append(s, v.Assignee)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "state", j)
 	s = append(s, v.State)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "labels", j)
-		j++
+	j++
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
@@ -976,7 +988,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 
@@ -1004,6 +1016,8 @@ var allIssueQuotedUpdates = []string{
 	// Mysql
 	"`number`=?,`date`=?,`title`=?,`bigbody`=?,`assignee`=?,`state`=?,`labels`=? WHERE `id`=?",
 	// Postgres
+	`"number"=$2,"date"=$3,"title"=$4,"bigbody"=$5,"assignee"=$6,"state"=$7,"labels"=$8 WHERE "id"=$1`,
+	// Pgx
 	`"number"=$2,"date"=$3,"title"=$4,"bigbody"=$5,"assignee"=$6,"state"=$7,"labels"=$8 WHERE "id"=$1`,
 }
 

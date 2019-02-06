@@ -10,6 +10,7 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/require"
@@ -255,7 +256,7 @@ func TestUpdateFields_error_using_mock(t *testing.T) {
 		sqlapi.Named("EmailAddress", "foo@x.com"),
 		sqlapi.Named("Hash", "abc123"))
 
-	Ω(err).Should(Equal(exp))
+	Ω(errors.Cause(err)).Should(Equal(exp))
 }
 
 func TestUpdate_ok_using_mock(t *testing.T) {
@@ -283,7 +284,7 @@ func TestUpdate_error_using_mock(t *testing.T) {
 
 	_, err := tbl.Update(nil, &User{})
 
-	Ω(err).Should(Equal(exp))
+	Ω(errors.Cause(err)).Should(Equal(exp))
 }
 
 //-------------------------------------------------------------------------------------------------

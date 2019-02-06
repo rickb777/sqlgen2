@@ -5,12 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"github.com/kortschak/utter"
+	"github.com/rickb777/sqlapi/schema"
 	"github.com/rickb777/sqlapi/types"
 	. "github.com/rickb777/sqlgen2/code"
 	. "github.com/rickb777/sqlgen2/load"
 	"github.com/rickb777/sqlgen2/output"
 	"github.com/rickb777/sqlgen2/parse"
 	"github.com/rickb777/sqlgen2/parse/exit"
+	"gopkg.in/yaml.v2"
 	"io"
 	"os"
 	"strings"
@@ -108,6 +110,10 @@ func main() {
 
 	// load the Tree into a schema Object
 	table, err := Load(pkgStore, parse.LType{pkg, name}, mainPkg, tags)
+	if err != nil {
+		exit.Fail(1, "Go parser failed: %v.\n", err)
+	}
+
 	if parse.Debug {
 		utter.Dump(table)
 	}
@@ -116,6 +122,23 @@ func main() {
 		exit.Fail(1, "no fields found. Check earlier parser warnings.\n")
 	}
 
+	writeTableYaml(o.Derive(".yml"), table)
+	writeSqlGo(o, name, prefix, tableName, kind, list, mainPkg, genSetters, table, flags, gofmt)
+
+	output.Info("%s took %v\n", o.Path(), time.Now().Sub(start))
+}
+
+func writeTableYaml(o output.Output, table *schema.TableDescription) {
+	buf := &bytes.Buffer{}
+	enc := yaml.NewEncoder(buf)
+	err := enc.Encode(table)
+	if err != nil {
+		exit.Fail(1, "YAML writer to %s failed: %v.\n", o.Path(), err)
+	}
+	o.Write(buf, os.Stdout)
+}
+
+func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, genSetters string, table *schema.TableDescription, flags FuncFlags, gofmt bool) {
 	view := NewView(name, prefix, tableName, list)
 	view.Table = table
 	view.Thing = kind
@@ -188,11 +211,10 @@ func main() {
 	// formats the generated file using gofmt
 	var pretty io.Reader = buf
 	if gofmt {
+		var err error
 		pretty, err = Format(buf)
 		output.Require(err == nil, "%s\n%v\n", string(buf.Bytes()), err)
 	}
 
 	o.Write(pretty, os.Stdout)
-
-	output.Info("%s took %v\n", o.Path(), time.Now().Sub(start))
 }

@@ -25,7 +25,7 @@ type AssociationTable struct {
 	database    *sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
@@ -67,14 +67,12 @@ func CopyTableAsAssociationTable(origin sqlapi.Table) AssociationTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AssociationTable) SetPkColumn(pk string) AssociationTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -129,12 +127,10 @@ func (tbl AssociationTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
-
 // PkColumn gets the column name used as a primary key.
 func (tbl AssociationTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -196,36 +192,47 @@ func (tbl AssociationTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
+// NumAssociationColumns is the total number of columns in Association.
 const NumAssociationColumns = 6
 
+// NumAssociationDataColumns is the number of columns in Association not including the auto-increment key.
 const NumAssociationDataColumns = 5
 
+// AssociationColumnNames is the list of columns in Association.
 const AssociationColumnNames = "id,name,quality,ref1,ref2,category"
 
+// AssociationDataColumnNames is the list of data columns in Association.
 const AssociationDataColumnNames = "name,quality,ref1,ref2,category"
 
 //--------------------------------------------------------------------------------
 
-const sqlAssociationTableCreateColumnsSqlite = "\n"+
-" `id`       integer not null primary key autoincrement,\n"+
-" `name`     text default null,\n"+
-" `quality`  text default null,\n"+
-" `ref1`     bigint default null,\n"+
-" `ref2`     bigint default null,\n"+
-" `category` tinyint unsigned default null"
+const sqlAssociationTableCreateColumnsSqlite = "\n" +
+	" `id`       integer not null primary key autoincrement,\n" +
+	" `name`     text default null,\n" +
+	" `quality`  text default null,\n" +
+	" `ref1`     bigint default null,\n" +
+	" `ref2`     bigint default null,\n" +
+	" `category` tinyint unsigned default null"
 
-const sqlAssociationTableCreateColumnsMysql = "\n"+
-" `id`       bigint not null primary key auto_increment,\n"+
-" `name`     varchar(255) default null,\n"+
-" `quality`  varchar(255) default null,\n"+
-" `ref1`     bigint default null,\n"+
-" `ref2`     bigint default null,\n"+
-" `category` tinyint unsigned default null"
+const sqlAssociationTableCreateColumnsMysql = "\n" +
+	" `id`       bigint not null primary key auto_increment,\n" +
+	" `name`     varchar(255) default null,\n" +
+	" `quality`  varchar(255) default null,\n" +
+	" `ref1`     bigint default null,\n" +
+	" `ref2`     bigint default null,\n" +
+	" `category` tinyint unsigned default null"
 
 const sqlAssociationTableCreateColumnsPostgres = `
+ "id"       bigserial not null primary key,
+ "name"     varchar(255) default null,
+ "quality"  varchar(255) default null,
+ "ref1"     bigint default null,
+ "ref2"     bigint default null,
+ "category" smallint default null`
+
+const sqlAssociationTableCreateColumnsPgx = `
  "id"       bigserial not null primary key,
  "name"     varchar(255) default null,
  "quality"  varchar(255) default null,
@@ -250,13 +257,16 @@ func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlAssociationTableCreateColumnsSqlite
 		settings = ""
-    case schema.Mysql:
+	case schema.Mysql:
 		columns = sqlAssociationTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-    case schema.Postgres:
+	case schema.Postgres:
 		columns = sqlAssociationTableCreateColumnsPostgres
 		settings = ""
-    }
+	case schema.Pgx:
+		columns = sqlAssociationTableCreateColumnsPgx
+		settings = ""
+	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -448,6 +458,7 @@ var allAssociationQuotedColumnNames = []string{
 	schema.Sqlite.SplitAndQuote(AssociationColumnNames),
 	schema.Mysql.SplitAndQuote(AssociationColumnNames),
 	schema.Postgres.SplitAndQuote(AssociationColumnNames),
+	schema.Pgx.SplitAndQuote(AssociationColumnNames),
 }
 
 //--------------------------------------------------------------------------------
@@ -781,7 +792,6 @@ func (tbl AssociationTable) sliceStringPtrList(req require.Requirement, sqlname 
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-
 func constructAssociationInsert(w io.Writer, v *Association, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
 	s = make([]interface{}, 0, 6)
 
@@ -963,7 +973,7 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 
@@ -991,6 +1001,8 @@ var allAssociationQuotedUpdates = []string{
 	// Mysql
 	"`name`=?,`quality`=?,`ref1`=?,`ref2`=?,`category`=? WHERE `id`=?",
 	// Postgres
+	`"name"=$2,"quality"=$3,"ref1"=$4,"ref2"=$5,"category"=$6 WHERE "id"=$1`,
+	// Pgx
 	`"name"=$2,"quality"=$3,"ref1"=$4,"ref2"=$5,"category"=$6 WHERE "id"=$1`,
 }
 

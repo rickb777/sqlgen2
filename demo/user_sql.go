@@ -198,12 +198,16 @@ func (tbl DbUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
+// NumDbUserColumns is the total number of columns in DbUser.
 const NumDbUserColumns = 22
 
+// NumDbUserDataColumns is the number of columns in DbUser not including the auto-increment key.
 const NumDbUserDataColumns = 21
 
+// DbUserColumnNames is the list of columns in DbUser.
 const DbUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
+// DbUserDataColumnNames is the list of data columns in DbUser.
 const DbUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 //--------------------------------------------------------------------------------
@@ -280,6 +284,30 @@ const sqlDbUserTableCreateColumnsPostgres = `
  "token"        varchar(255) not null,
  "secret"       varchar(255) not null`
 
+const sqlDbUserTableCreateColumnsPgx = `
+ "uid"          bigserial not null primary key,
+ "name"         varchar(255) not null,
+ "emailaddress" varchar(255) not null,
+ "addressid"    bigint default null,
+ "avatar"       varchar(255) default null,
+ "role"         varchar(20) default null,
+ "active"       boolean not null,
+ "admin"        boolean not null,
+ "fave"         json,
+ "lastupdated"  bigint not null,
+ "i8"           int8 not null default -8,
+ "u8"           smallint not null default 8,
+ "i16"          smallint not null default -16,
+ "u16"          integer not null default 16,
+ "i32"          integer not null default -32,
+ "u32"          bigint not null default 32,
+ "i64"          bigint not null default -64,
+ "u64"          bigint not null default 64,
+ "f32"          real not null default 3.2,
+ "f64"          double precision not null default 6.4,
+ "token"        varchar(255) not null,
+ "secret"       varchar(255) not null`
+
 const sqlConstrainDbUserTable = `
  CONSTRAINT DbUserc3 foreign key (addressid) references %saddresses (id) on update restrict on delete restrict
 `
@@ -309,6 +337,9 @@ func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
 	case schema.Postgres:
 		columns = sqlDbUserTableCreateColumnsPostgres
+		settings = ""
+	case schema.Pgx:
+		columns = sqlDbUserTableCreateColumnsPgx
 		settings = ""
 	}
 	buf := &bytes.Buffer{}
@@ -668,6 +699,7 @@ var allDbUserQuotedColumnNames = []string{
 	schema.Sqlite.SplitAndQuote(DbUserColumnNames),
 	schema.Mysql.SplitAndQuote(DbUserColumnNames),
 	schema.Postgres.SplitAndQuote(DbUserColumnNames),
+	schema.Pgx.SplitAndQuote(DbUserColumnNames),
 }
 
 //--------------------------------------------------------------------------------
@@ -1663,6 +1695,8 @@ var allDbUserQuotedUpdates = []string{
 	// Mysql
 	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`i8`=?,`u8`=?,`i16`=?,`u16`=?,`i32`=?,`u32`=?,`i64`=?,`u64`=?,`f32`=?,`f64`=?,`token`=?,`secret`=? WHERE `uid`=?",
 	// Postgres
+	`"name"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"i8"=$11,"u8"=$12,"i16"=$13,"u16"=$14,"i32"=$15,"u32"=$16,"i64"=$17,"u64"=$18,"f32"=$19,"f64"=$20,"token"=$21,"secret"=$22 WHERE "uid"=$1`,
+	// Pgx
 	`"name"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"i8"=$11,"u8"=$12,"i16"=$13,"u16"=$14,"i32"=$15,"u32"=$16,"i64"=$17,"u64"=$18,"f32"=$19,"f64"=$20,"token"=$21,"secret"=$22 WHERE "uid"=$1`,
 }
 

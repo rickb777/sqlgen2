@@ -2,32 +2,32 @@ package output
 
 import (
 	"bytes"
+	. "github.com/onsi/gomega"
 	"io"
 	"os"
 	"testing"
 )
 
 func TestNewOutput(t *testing.T) {
+	g := NewGomegaWithT(t)
+
 	cases := []struct {
-		input, dirs, name, pkg string
+		input, dirs, name, derived, pkg string
 	}{
-		{"", ".", "", ""},
-		{"-", ".", "-", ""},
-		{"foo.go", ".", "foo.go", ""},
-		{"bar/foo.go", "bar", "foo.go", "bar"},
-		{"zob/bar/foo.go", "zob/bar", "foo.go", "bar"},
+		{"", ".", "", "", ""},
+		{"-", ".", "-", "-", ""},
+		{"foo.go", ".", "foo.go", "foo.yml", ""},
+		{"bar/foo.go", "bar", "foo.go", "foo.yml", "bar"},
+		{"zob/bar/foo.go", "zob/bar", "foo.go", "foo.yml", "bar"},
 	}
-	for i, c := range cases {
+	for _, c := range cases {
 		o := NewOutput(c.input)
-		if o.Dirs != c.dirs {
-			t.Errorf("%d: Expected dirs %q, got %q", i, c.dirs, o.Dirs)
-		}
-		if o.Name != c.name {
-			t.Errorf("%d: Expected name %q, got %q", i, c.name, o.Name)
-		}
-		if o.Pkg() != c.pkg {
-			t.Errorf("%d: Expected pkg %q, got %q", i, c.pkg, o.Pkg())
-		}
+		g.Expect(o.Dirs).To(Equal(c.dirs))
+		g.Expect(o.Name).To(Equal(c.name))
+		g.Expect(o.Pkg()).To(Equal(c.pkg))
+
+		d := o.Derive(".yml")
+		g.Expect(d.Name).To(Equal(c.derived))
 	}
 }
 

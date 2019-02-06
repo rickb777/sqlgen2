@@ -38,7 +38,7 @@ done
 
 announce demo
 cd demo
-./build.sh sqlite mysql postgres
+./build.sh sqlite mysql postgres pgx
 
 cd ..
 echo

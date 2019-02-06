@@ -26,7 +26,7 @@ type AUserTable struct {
 	database    *sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
@@ -43,7 +43,7 @@ func NewAUserTable(name string, d *sqlapi.Database) AUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return AUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -70,14 +70,12 @@ func CopyTableAsAUserTable(origin sqlapi.Table) AUserTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AUserTable) SetPkColumn(pk string) AUserTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -132,12 +130,10 @@ func (tbl AUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
-
 // PkColumn gets the column name used as a primary key.
 func (tbl AUserTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -199,68 +195,95 @@ func (tbl AUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
+// NumAUserColumns is the total number of columns in AUser.
 const NumAUserColumns = 22
 
+// NumAUserDataColumns is the number of columns in AUser not including the auto-increment key.
 const NumAUserDataColumns = 21
 
+// AUserColumnNames is the list of columns in AUser.
 const AUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
+// AUserDataColumnNames is the list of data columns in AUser.
 const AUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 //--------------------------------------------------------------------------------
 
-const sqlAUserTableCreateColumnsSqlite = "\n"+
-" `uid`          integer not null primary key autoincrement,\n"+
-" `name`         text not null,\n"+
-" `emailaddress` text not null,\n"+
-" `addressid`    bigint default null,\n"+
-" `avatar`       text default null,\n"+
-" `role`         text default null,\n"+
-" `active`       boolean not null,\n"+
-" `admin`        boolean not null,\n"+
-" `fave`         text,\n"+
-" `lastupdated`  bigint not null,\n"+
-" `i8`           tinyint not null default -8,\n"+
-" `u8`           tinyint unsigned not null default 8,\n"+
-" `i16`          smallint not null default -16,\n"+
-" `u16`          smallint unsigned not null default 16,\n"+
-" `i32`          int not null default -32,\n"+
-" `u32`          int unsigned not null default 32,\n"+
-" `i64`          bigint not null default -64,\n"+
-" `u64`          bigint unsigned not null default 64,\n"+
-" `f32`          float not null default 3.2,\n"+
-" `f64`          double not null default 6.4,\n"+
-" `token`        text not null,\n"+
-" `secret`       text not null"
+const sqlAUserTableCreateColumnsSqlite = "\n" +
+	" `uid`          integer not null primary key autoincrement,\n" +
+	" `name`         text not null,\n" +
+	" `emailaddress` text not null,\n" +
+	" `addressid`    bigint default null,\n" +
+	" `avatar`       text default null,\n" +
+	" `role`         text default null,\n" +
+	" `active`       boolean not null,\n" +
+	" `admin`        boolean not null,\n" +
+	" `fave`         text,\n" +
+	" `lastupdated`  bigint not null,\n" +
+	" `i8`           tinyint not null default -8,\n" +
+	" `u8`           tinyint unsigned not null default 8,\n" +
+	" `i16`          smallint not null default -16,\n" +
+	" `u16`          smallint unsigned not null default 16,\n" +
+	" `i32`          int not null default -32,\n" +
+	" `u32`          int unsigned not null default 32,\n" +
+	" `i64`          bigint not null default -64,\n" +
+	" `u64`          bigint unsigned not null default 64,\n" +
+	" `f32`          float not null default 3.2,\n" +
+	" `f64`          double not null default 6.4,\n" +
+	" `token`        text not null,\n" +
+	" `secret`       text not null"
 
-const sqlAUserTableCreateColumnsMysql = "\n"+
-" `uid`          bigint not null primary key auto_increment,\n"+
-" `name`         varchar(255) not null,\n"+
-" `emailaddress` varchar(255) not null,\n"+
-" `addressid`    bigint default null,\n"+
-" `avatar`       varchar(255) default null,\n"+
-" `role`         varchar(20) default null,\n"+
-" `active`       tinyint(1) not null,\n"+
-" `admin`        tinyint(1) not null,\n"+
-" `fave`         json,\n"+
-" `lastupdated`  bigint not null,\n"+
-" `i8`           tinyint not null default -8,\n"+
-" `u8`           tinyint unsigned not null default 8,\n"+
-" `i16`          smallint not null default -16,\n"+
-" `u16`          smallint unsigned not null default 16,\n"+
-" `i32`          int not null default -32,\n"+
-" `u32`          int unsigned not null default 32,\n"+
-" `i64`          bigint not null default -64,\n"+
-" `u64`          bigint unsigned not null default 64,\n"+
-" `f32`          float not null default 3.2,\n"+
-" `f64`          double not null default 6.4,\n"+
-" `token`        varchar(255) not null,\n"+
-" `secret`       varchar(255) not null"
+const sqlAUserTableCreateColumnsMysql = "\n" +
+	" `uid`          bigint not null primary key auto_increment,\n" +
+	" `name`         varchar(255) not null,\n" +
+	" `emailaddress` varchar(255) not null,\n" +
+	" `addressid`    bigint default null,\n" +
+	" `avatar`       varchar(255) default null,\n" +
+	" `role`         varchar(20) default null,\n" +
+	" `active`       tinyint(1) not null,\n" +
+	" `admin`        tinyint(1) not null,\n" +
+	" `fave`         json,\n" +
+	" `lastupdated`  bigint not null,\n" +
+	" `i8`           tinyint not null default -8,\n" +
+	" `u8`           tinyint unsigned not null default 8,\n" +
+	" `i16`          smallint not null default -16,\n" +
+	" `u16`          smallint unsigned not null default 16,\n" +
+	" `i32`          int not null default -32,\n" +
+	" `u32`          int unsigned not null default 32,\n" +
+	" `i64`          bigint not null default -64,\n" +
+	" `u64`          bigint unsigned not null default 64,\n" +
+	" `f32`          float not null default 3.2,\n" +
+	" `f64`          double not null default 6.4,\n" +
+	" `token`        varchar(255) not null,\n" +
+	" `secret`       varchar(255) not null"
 
 const sqlAUserTableCreateColumnsPostgres = `
+ "uid"          bigserial not null primary key,
+ "name"         varchar(255) not null,
+ "emailaddress" varchar(255) not null,
+ "addressid"    bigint default null,
+ "avatar"       varchar(255) default null,
+ "role"         varchar(20) default null,
+ "active"       boolean not null,
+ "admin"        boolean not null,
+ "fave"         json,
+ "lastupdated"  bigint not null,
+ "i8"           int8 not null default -8,
+ "u8"           smallint not null default 8,
+ "i16"          smallint not null default -16,
+ "u16"          integer not null default 16,
+ "i32"          integer not null default -32,
+ "u32"          bigint not null default 32,
+ "i64"          bigint not null default -64,
+ "u64"          bigint not null default 64,
+ "f32"          real not null default 3.2,
+ "f64"          double precision not null default 6.4,
+ "token"        varchar(255) not null,
+ "secret"       varchar(255) not null`
+
+const sqlAUserTableCreateColumnsPgx = `
  "uid"          bigserial not null primary key,
  "name"         varchar(255) not null,
  "emailaddress" varchar(255) not null,
@@ -308,13 +331,16 @@ func (tbl AUserTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlAUserTableCreateColumnsSqlite
 		settings = ""
-    case schema.Mysql:
+	case schema.Mysql:
 		columns = sqlAUserTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-    case schema.Postgres:
+	case schema.Postgres:
 		columns = sqlAUserTableCreateColumnsPostgres
 		settings = ""
-    }
+	case schema.Pgx:
+		columns = sqlAUserTableCreateColumnsPgx
+		settings = ""
+	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -672,6 +698,7 @@ var allAUserQuotedColumnNames = []string{
 	schema.Sqlite.SplitAndQuote(AUserColumnNames),
 	schema.Mysql.SplitAndQuote(AUserColumnNames),
 	schema.Postgres.SplitAndQuote(AUserColumnNames),
+	schema.Pgx.SplitAndQuote(AUserColumnNames),
 }
 
 //--------------------------------------------------------------------------------
@@ -1328,7 +1355,6 @@ func (tbl AUserTable) sliceUint8List(req require.Requirement, sqlname string, wh
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-
 func constructAUserInsert(w io.Writer, v *User, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
 	s = make([]interface{}, 0, 22)
 
@@ -1450,12 +1476,12 @@ func constructAUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 	dialect.QuoteWithPlaceholder(w, "name", j)
 	s = append(s, v.Name)
 	comma = ", "
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "emailaddress", j)
 	s = append(s, v.EmailAddress)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	if v.AddressId != nil {
@@ -1490,16 +1516,16 @@ func constructAUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "active", j)
 	s = append(s, v.Active)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "admin", j)
 	s = append(s, v.Admin)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "fave", j)
-		j++
+	j++
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
@@ -1509,67 +1535,67 @@ func constructAUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "lastupdated", j)
 	s = append(s, v.LastUpdated)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i8", j)
 	s = append(s, v.Numbers.I8)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u8", j)
 	s = append(s, v.Numbers.U8)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i16", j)
 	s = append(s, v.Numbers.I16)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u16", j)
 	s = append(s, v.Numbers.U16)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i32", j)
 	s = append(s, v.Numbers.I32)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u32", j)
 	s = append(s, v.Numbers.U32)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "i64", j)
 	s = append(s, v.Numbers.I64)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "u64", j)
 	s = append(s, v.Numbers.U64)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "f32", j)
 	s = append(s, v.Numbers.F32)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "f64", j)
 	s = append(s, v.Numbers.F64)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "token", j)
 	s = append(s, v.token)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "secret", j)
 	s = append(s, v.secret)
-		j++
+	j++
 
 	return s, nil
 }
@@ -1640,7 +1666,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 
@@ -1668,6 +1694,8 @@ var allAUserQuotedUpdates = []string{
 	// Mysql
 	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`i8`=?,`u8`=?,`i16`=?,`u16`=?,`i32`=?,`u32`=?,`i64`=?,`u64`=?,`f32`=?,`f64`=?,`token`=?,`secret`=? WHERE `uid`=?",
 	// Postgres
+	`"name"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"i8"=$11,"u8"=$12,"i16"=$13,"u16"=$14,"i32"=$15,"u32"=$16,"i64"=$17,"u64"=$18,"f32"=$19,"f64"=$20,"token"=$21,"secret"=$22 WHERE "uid"=$1`,
+	// Pgx
 	`"name"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"i8"=$11,"u8"=$12,"i16"=$13,"u16"=$14,"i32"=$15,"u32"=$16,"i64"=$17,"u64"=$18,"f32"=$19,"f64"=$20,"token"=$21,"secret"=$22 WHERE "uid"=$1`,
 }
 

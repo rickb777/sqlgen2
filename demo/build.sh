@@ -40,6 +40,12 @@ for db in $@; do
       GO_DRIVER=postgres GO_DSN="postgres://testuser:TestPasswd9@/test" go test .
       ;;
 
+    pgx)
+      echo PGX....
+      echo go test .
+      GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd9@/test" go test .
+      ;;
+
     sqlite) # default - see above
       ;;
 

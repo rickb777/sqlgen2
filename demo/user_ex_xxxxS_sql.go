@@ -23,7 +23,7 @@ type SUserTable struct {
 	database    *sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
@@ -40,7 +40,7 @@ func NewSUserTable(name string, d *sqlapi.Database) SUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return SUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -67,14 +67,12 @@ func CopyTableAsSUserTable(origin sqlapi.Table) SUserTable {
 	}
 }
 
-
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl SUserTable) SetPkColumn(pk string) SUserTable {
 	tbl.pk = pk
 	return tbl
 }
-
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -129,12 +127,10 @@ func (tbl SUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
-
 // PkColumn gets the column name used as a primary key.
 func (tbl SUserTable) PkColumn() string {
 	return tbl.pk
 }
-
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
@@ -196,15 +192,18 @@ func (tbl SUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
+// NumSUserColumns is the total number of columns in SUser.
 const NumSUserColumns = 22
 
+// NumSUserDataColumns is the number of columns in SUser not including the auto-increment key.
 const NumSUserDataColumns = 21
 
+// SUserColumnNames is the list of columns in SUser.
 const SUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
+// SUserDataColumnNames is the list of data columns in SUser.
 const SUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 //--------------------------------------------------------------------------------
@@ -745,4 +744,3 @@ func (tbl SUserTable) sliceUint8List(req require.Requirement, sqlname string, wh
 	}
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
-
