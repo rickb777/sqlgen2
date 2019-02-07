@@ -4,6 +4,7 @@ import "text/template"
 
 // template to declare the package name.
 var sPackage = `// THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
+// sqlapi %s; sqlgen %s
 
 package %s
 `
@@ -19,7 +20,7 @@ type {{.Prefix}}{{.Type}}{{.Thing}} struct {
 	database    *sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx			context.Context
+	ctx         context.Context
 	pk          string
 }
 
@@ -63,16 +64,16 @@ func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin sqlapi.Table) 
 		pk:          "{{.Table.SafePrimary.SqlName}}",
 	}
 }
+{{- if .Table.HasPrimaryKey}}
 
-{{if .Table.HasPrimaryKey}}
 // SetPkColumn sets the name of the primary key column. It defaults to "{{.Table.Primary.SqlName}}".
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SetPkColumn(pk string) {{.Prefix}}{{.Type}}{{.Thing}} {
 	tbl.pk = pk
 	return tbl
 }
+{{- end}}
 
-{{end}}
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithPrefix(pfx string) {{.Prefix}}{{.Type}}{{.Thing}} {
@@ -125,14 +126,14 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Dialect() schema.Dialect {
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Name() sqlapi.TableName {
 	return tbl.name
 }
+{{- if .Table.HasPrimaryKey}}
 
-{{if .Table.HasPrimaryKey}}
 // PkColumn gets the column name used as a primary key.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) PkColumn() string {
 	return tbl.pk
 }
+{{- end}}
 
-{{end}}
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DB() *sql.DB {

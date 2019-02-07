@@ -2,11 +2,11 @@ package code
 
 import (
 	"fmt"
-	. "strings"
+	"strings"
 	"text/template"
 
 	"bitbucket.org/pkg/inflect"
-	. "github.com/acsellers/inflections"
+	"github.com/acsellers/inflections"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/schema"
 )
@@ -33,8 +33,8 @@ func NewView(name, prefix, tableName, list string) View {
 	if list == "" {
 		list = fmt.Sprintf("[]*%s", name)
 	}
-	pl := Pluralize(name)
-	tn := ToLower(pl)
+	pl := inflections.Pluralize(name)
+	tn := strings.ToLower(pl)
 	if tableName != "" {
 		tn = tableName
 	}
@@ -57,12 +57,8 @@ func (v View) CamelName() string {
 
 func (v View) Constraints() (list constraint.Constraints) {
 	for _, f := range v.Table.Fields {
-		if f.Tags.ForeignKey != "" {
-			slice := Split(f.Tags.ForeignKey, ".")
-			c := constraint.FkConstraintOn(f.SqlName).
-				RefersTo(slice[0], slice[1]).
-				OnUpdate(constraint.Consequence(f.Tags.OnUpdate)).
-				OnDelete(constraint.Consequence(f.Tags.OnDelete))
+		c := constraint.FkConstraintOfField(f)
+		if c.Parent.TableName != "" {
 			list = append(list, c)
 		}
 	}
@@ -80,9 +76,9 @@ var funcMap = template.FuncMap{
 		return fmt.Sprintf("`\n%s\n`", s)
 	},
 	"lc": func(s interface{}) string {
-		return ToLower(fmt.Sprintf("%s", s))
+		return strings.ToLower(fmt.Sprintf("%s", s))
 	},
 	"title": func(s interface{}) string {
-		return Title(fmt.Sprintf("%s", s))
+		return strings.Title(fmt.Sprintf("%s", s))
 	},
 }

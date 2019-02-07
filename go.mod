@@ -10,9 +10,10 @@ require (
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/onsi/gomega v1.4.3
 	github.com/pkg/errors v0.8.1
-	github.com/rickb777/sqlapi v0.11.0
+	github.com/rickb777/sqlapi v0.13.0
 	github.com/spf13/cast v1.3.0
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.3.0 // indirect
+	golang.org/x/net v0.0.0-20190206173232-65e2d4e15006 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 )

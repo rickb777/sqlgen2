@@ -18,6 +18,7 @@ rm -f reports/*.out reports/*.html */*.txt demo/*_sql.go
 
 ### Build Phase 1 ###
 
+./version.sh
 go test . ./code ./parse
 go build -o sqlgen *.go
 

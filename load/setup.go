@@ -3,19 +3,19 @@ package load
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
+	"github.com/acsellers/inflections"
 	"github.com/rickb777/sqlapi/schema"
 	stypes "github.com/rickb777/sqlapi/types"
 	"github.com/rickb777/sqlapi/util"
 	"github.com/rickb777/sqlgen2/output"
 	"github.com/rickb777/sqlgen2/parse"
 	"github.com/rickb777/sqlgen2/parse/exit"
-	"github.com/acsellers/inflections"
 	"go/types"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 )
 
 func PackagesToImport(flags FuncFlags, hasPrimaryKey bool) util.StringSet {
@@ -56,6 +56,10 @@ func LastDirName(full string) string {
 }
 
 func PrimaryInterface(table *schema.TableDescription, genSchema bool) string {
+	return primaryInterface(table, genSchema)
+}
+
+func primaryInterface(table *schema.TableDescription, genSchema bool) string {
 	if !genSchema {
 		return "sqlapi.Table"
 	}
@@ -66,6 +70,10 @@ func PrimaryInterface(table *schema.TableDescription, genSchema bool) string {
 }
 
 func SecondaryInterface(flags FuncFlags) string {
+	return secondaryInterface(flags)
+}
+
+func secondaryInterface(flags FuncFlags) string {
 	if flags.Exec && flags.Select && flags.Insert && flags.Update && flags.Delete && flags.Slice {
 		return "sqlapi.TableWithCrud"
 	}
@@ -159,8 +167,8 @@ func (ctx *context) examineStruct(nm *types.Named, name parse.LType, tags stypes
 	for j := 0; j < str.NumFields(); j++ {
 		tField := str.Field(j)
 		if !tField.Exported() {
-			tag := merged[tField.Name()]
-			if !tag.Skip {
+			tag, defined := merged[tField.Name()]
+			if !defined || !tag.Skip {
 				unexportedFields = append(unexportedFields, tField.Name())
 			}
 		}
@@ -180,8 +188,8 @@ func (ctx *context) examineStruct(nm *types.Named, name parse.LType, tags stypes
 		parse.DevInfo("    f%-2d: name:%-15s pkg:%-10s type:%-50s field:%v, exp:%v, anon:%v\n", j,
 			tField.Name(), tField.Pkg().Name(), tField.Type(), tField.IsField(), tField.Exported(), tField.Anonymous())
 
-		tag := merged[tField.Name()]
-		if !tag.Skip {
+		tag, defined := merged[tField.Name()]
+		if !defined || !tag.Skip {
 			if tField.Anonymous() {
 				ctx.convertEmbeddedNodeToFields(tField, name.PkgName, parent)
 
@@ -234,6 +242,9 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags sty
 	tag := tags[leaf.Name()]
 	field := &schema.Field{}
 	field.Tags = tag
+	if tag == nil {
+		tag = &stypes.Tag{}
+	}
 	field.Encode = mapTagToEncoding[tag.Encode]
 
 	// only recurse into the node's fields if the leaf isn't encoded
@@ -248,16 +259,7 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags sty
 		field.Type.Base = stypes.Slice
 	}
 
-	prefix := ""
-	if tag.Prefixed {
-		prefix = inflections.Underscore(field.JoinParts(1, "_")) + "_"
-	}
-
-	if tag.Name != "" {
-		field.SqlName = string(prefix + strings.ToLower(tag.Name))
-	} else {
-		field.SqlName = string(prefix + strings.ToLower(field.Name))
-	}
+	field.SqlName = chooseSqlName(tag, &(field.Node), field.Name)
 
 	if tag.Primary {
 		if ctx.table.Primary != nil {
@@ -304,6 +306,18 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags sty
 	}
 
 	ctx.table.Fields = append(ctx.table.Fields, field)
+}
+
+func chooseSqlName(tag *stypes.Tag, node *schema.Node, defaultName string) string {
+	prefix := ""
+	if tag.Prefixed {
+		prefix = inflections.Underscore(node.JoinParts(1, "_")) + "_"
+	}
+
+	if tag.Name != "" {
+		return string(prefix + strings.ToLower(tag.Name))
+	}
+	return string(prefix + strings.ToLower(defaultName))
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -393,7 +407,6 @@ func addStructTags(tags stypes.Tags, str *types.Struct) {
 		if err != nil {
 			exit.Fail(2, "%s contains unparseable tag %q (%s)", str.String(), ts, err)
 		}
-		tags[str.Field(i).Name()] = *tag
+		tags[str.Field(i).Name()] = tag
 	}
 }
-

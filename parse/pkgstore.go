@@ -63,7 +63,7 @@ func (st PackageStore) FindNamed(name LType) *types.Named {
 	return nil
 }
 
-func (st PackageStore) FindStruct(name LType) (*types.Struct, map[string]Tag) {
+func (st PackageStore) FindStruct(name LType) (*types.Struct, Tags) {
 	DevInfo("FindStruct %v\n", name)
 	t := st.FindNamed(name)
 	if t == nil {
@@ -142,7 +142,7 @@ func findTypeDecl(files []*ast.File, name LType) (*ast.TypeSpec, string) {
 	return nil, ""
 }
 
-func findStructTags(files []*ast.File, name LType, str *ast.StructType, tags map[string]Tag) error {
+func findStructTags(files []*ast.File, name LType, str *ast.StructType, tags Tags) error {
 	DevInfo("findStructTags(%s str %d)\n", name, len(tags))
 
 	for j, field := range str.Fields.List {
@@ -160,7 +160,7 @@ func findStructTags(files []*ast.File, name LType, str *ast.StructType, tags map
 					if err != nil {
 						return err
 					}
-					tags[n.Name] = *tag
+					tags[n.Name] = tag
 				}
 			}
 		}

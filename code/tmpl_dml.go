@@ -84,8 +84,8 @@ var all{{.CamelName}}QuotedColumnNames = []string{
 	schema.{{.String}}.SplitAndQuote({{$.CamelName}}ColumnNames),
 {{- end}}
 }
+{{- if .Table.Primary}}
 
-{{if .Table.Primary -}}
 //--------------------------------------------------------------------------------
 
 // Get{{.Types}}By{{.Table.Primary.Name}} gets records from the table according to a list of primary keys.
@@ -116,25 +116,25 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.Type}}, error) {
 	return tbl.get{{.Type}}(req, tbl.pk, id)
 }
+{{- end}}
+{{- range .Table.Index}}
+{{- if .Unique}}
 
-{{end -}}
-{{range .Table.Index -}}
-{{if .Unique -}}
 // Get{{$.Type}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
 // If not found, *{{$.Type}} will be nil.
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.Type}}, error) {
 	return tbl.SelectOne(req, where.And({{.Fields.WhereClauses.MkString ", "}}), nil)
 }
+{{- else }}
 
-{{ else -}}
 // Get{{$.Types}}By{{.JoinedNames "And"}} gets the records with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
 // If not found, the resulting slice will be empty (nil).
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error) {
 	return tbl.Select(req, where.And({{.Fields.WhereClauses.MkString ", "}}), nil)
 }
+{{- end}}
+{{- end}}
 
-{{end -}}
-{{end -}}
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Type}}(req require.Requirement, column string, arg interface{}) (*{{.Type}}, error) {
 	dialect := tbl.Dialect()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
@@ -278,23 +278,26 @@ var tCountRows = template.Must(template.New("CountRows").Funcs(funcMap).Parse(sC
 
 const sSliceItem = `
 //--------------------------------------------------------------------------------
-{{if .Table.HasPrimaryKey}}
+{{- if .Table.HasPrimaryKey}}
+
 // Slice{{camel .Table.Primary.SqlName}} gets the {{.Table.Primary.SqlName}} column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Slice{{camel .Table.Primary.SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Table.Primary.Type.Type}}, error) {
 	return tbl.slice{{camel .Table.Primary.Type.Tag}}List(req, tbl.pk, wh, qc)
 }
-{{end -}}
-{{range .Table.SimpleFields.NoSkipOrPrimary}}
+{{- end}}
+{{- range .Table.SimpleFields.NoSkips.NoPrimary}}
+
 // Slice{{camel .SqlName}} gets the {{.SqlName}} column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error) {
 	return tbl.slice{{camel .Type.Tag}}List(req, "{{.SqlName}}", wh, qc)
 }
-{{end -}}
-{{range .Table.SimpleFields.NoSkips.DistinctTypes}}
+{{- end}}
+{{- range .Table.SimpleFields.NoSkips.DistinctTypes}}
+
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) slice{{camel .Tag}}List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
 	dialect := tbl.Dialect()
 	whs, args := where.BuildExpression(wh, dialect)
@@ -320,7 +323,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) slice{{camel .Tag}}List(req require
 	}
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
-{{end}}
+{{- end}}
 `
 
 var tSliceItem = template.Must(template.New("SliceItem").Funcs(funcMap).Parse(sSliceItem))
@@ -363,14 +366,6 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 	}
 
 	var count int64
-	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
-	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	//if err != nil {
-	//	return err
-	//}
-	//defer st.Close()
-
 	insertHasReturningPhrase := {{if .Table.HasLastInsertId -}}tbl.Dialect().InsertHasReturningPhrase(){{else}}false{{end}}
 	returning := ""
 	{{if .Table.Primary -}}
@@ -459,7 +454,6 @@ var tInsert = template.Must(template.New("Insert").Funcs(funcMap).Parse(sInsert)
 // function template to update a single row.
 const sUpdateFields = `
 // UpdateFields updates one or more columns, given a 'where' clause.
-//
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
@@ -471,7 +465,8 @@ var tUpdateFields = template.Must(template.New("UpdateFields").Funcs(funcMap).Pa
 //-------------------------------------------------------------------------------------------------
 
 // function template to update rows.
-const sUpdate = `{{if .Table.Primary}}
+const sUpdate = `
+{{- if .Table.Primary}}
 //--------------------------------------------------------------------------------
 
 var all{{.CamelName}}QuotedUpdates = []string{
@@ -529,7 +524,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
-{{end -}}
+{{- end}}
 `
 
 var tUpdate = template.Must(template.New("Update").Funcs(funcMap).Parse(sUpdate))
@@ -537,7 +532,7 @@ var tUpdate = template.Must(template.New("Update").Funcs(funcMap).Parse(sUpdate)
 //-------------------------------------------------------------------------------------------------
 
 const sDelete = `
-{{if .Table.Primary -}}
+{{- if .Table.Primary}}
 // Delete{{.Types}} deletes rows from the table, given some primary keys.
 // The list of ids can be arbitrarily long.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requirement, id ...{{.Table.Primary.Type.Type}}) (int64, error) {
@@ -591,8 +586,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 
 	return count, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
+{{- end}}
 
-{{end -}}
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete(req require.Requirement, wh where.Expression) (int64, error) {

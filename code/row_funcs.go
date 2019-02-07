@@ -10,23 +10,21 @@ import (
 
 func WriteScanRows(w io.Writer, view View) {
 
-	for i, field := range view.Table.Fields {
-		if !field.Tags.Skip {
-			nullable := ""
-			if field.Type.IsPtr {
-				// non-pointer Scanner types should not have a NullString proxy
-				nullable = field.Type.NullableValue()
-			}
-
-			l1 := writeRowDecl(i, field, nullable)
-			view.Body1 = append(view.Body1, l1)
-
-			l2 := writeRowRef(i, field, nullable)
-			view.Body2 = append(view.Body2, l2)
-
-			l3 := writeRowAssignment(i, field, nullable)
-			view.Body3 = append(view.Body3, l3...)
+	for i, field := range view.Table.Fields.NoSkips() {
+		nullable := ""
+		if field.Type.IsPtr {
+			// non-pointer Scanner types should not have a NullString proxy
+			nullable = field.Type.NullableValue()
 		}
+
+		l1 := writeRowDecl(i, field, nullable)
+		view.Body1 = append(view.Body1, l1)
+
+		l2 := writeRowRef(i, field, nullable)
+		view.Body2 = append(view.Body2, l2)
+
+		l3 := writeRowAssignment(i, field, nullable)
+		view.Body3 = append(view.Body3, l3...)
 	}
 
 	must(tScanRows.Execute(w, view))

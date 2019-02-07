@@ -1,4 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
+// sqlapi v0.12.0; sqlgen v0.38.0-1-gfb97739
 
 package demo
 
@@ -384,14 +385,6 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 	}
 
 	var count int64
-	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
-	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	//if err != nil {
-	//	return err
-	//}
-	//defer st.Close()
-
 	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
 	returning := ""
 	if tbl.Dialect().InsertHasReturningPhrase() {

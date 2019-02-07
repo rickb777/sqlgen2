@@ -1,4 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
+// sqlapi v0.12.0; sqlgen v0.38.0-1-gfb97739
 
 package demo
 
@@ -1611,14 +1612,6 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 	}
 
 	var count int64
-	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
-	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	//if err != nil {
-	//	return err
-	//}
-	//defer st.Close()
-
 	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
 	returning := ""
 	if tbl.Dialect().InsertHasReturningPhrase() {
@@ -1680,7 +1673,6 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
-//
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl AUserTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)

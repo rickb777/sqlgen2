@@ -20,7 +20,7 @@ func (v View) FilterSetters(genSetters string) schema.FieldList {
 	var list schema.FieldList
 
 	for _, field := range v.Table.Fields {
-		if field.Tags.Skip && opt < all {
+		if field.GetTags().Skip && opt < all {
 			continue
 		} else if !isExported(field.Name) && opt < all {
 			continue

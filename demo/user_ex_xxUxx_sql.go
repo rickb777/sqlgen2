@@ -1,4 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
+// sqlapi v0.12.0; sqlgen v0.38.0-1-gfb97739
 
 package demo
 
@@ -407,7 +408,6 @@ func constructUUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []int
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
-//
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl UUserTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)

@@ -2,6 +2,7 @@ package code
 
 import (
 	"fmt"
+	"github.com/rickb777/sqlapi"
 	"io"
 	. "strings"
 
@@ -20,8 +21,8 @@ const constString = "const %s ="
 const constStringD = "const %s = %d\n"
 const constStringQ = "const %s = %q\n"
 
-func WritePackageHeader(w io.Writer, name string) {
-	fmt.Fprintf(w, sPackage, name)
+func WritePackageHeader(w io.Writer, name, version string) {
+	fmt.Fprintf(w, sPackage, sqlapi.Version, version, name)
 }
 
 func WritePrimaryDeclarations(w io.Writer, view View) {
@@ -56,7 +57,7 @@ func WriteSchemaDeclarations(w io.Writer, view View) {
 
 	fmt.Fprintf(w, "\nconst sqlConstrain%s%s = `", tableName, view.Thing)
 	for i, f := range view.Table.Fields {
-		if f.Tags.ForeignKey != "" {
+		if f.GetTags().ForeignKey != "" {
 			slice := Split(f.Tags.ForeignKey, ".")
 			fmt.Fprintf(w, "\n CONSTRAINT %sc%d foreign key (%s) references %%s%s (%s)", tableName, i, f.SqlName, slice[0], slice[1])
 			if f.Tags.OnUpdate != "" {

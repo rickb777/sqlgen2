@@ -152,12 +152,12 @@ func constructXExampleUpdate(w io.Writer, v *Example, dialect schema.Dialect) (s
 	dialect.QuoteWithPlaceholder(w, "cat", j)
 	s = append(s, v.Cat)
 	comma = ", "
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "username", j)
 	s = append(s, v.Name)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	if v.Mobile != nil {
@@ -212,11 +212,11 @@ func constructXExampleUpdate(w io.Writer, v *Example, dialect schema.Dialect) (s
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "active", j)
 	s = append(s, v.Active)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "labels", j)
-		j++
+	j++
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, err
@@ -225,7 +225,7 @@ func constructXExampleUpdate(w io.Writer, v *Example, dialect schema.Dialect) (s
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "fave", j)
-		j++
+	j++
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, err
@@ -235,12 +235,12 @@ func constructXExampleUpdate(w io.Writer, v *Example, dialect schema.Dialect) (s
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "avatar", j)
 	s = append(s, v.Avatar)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "foo1", j)
 	s = append(s, v.Foo1)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	if v.Foo2 != nil {
@@ -265,11 +265,11 @@ func constructXExampleUpdate(w io.Writer, v *Example, dialect schema.Dialect) (s
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "bar1", j)
 	s = append(s, v.Bar1)
-		j++
+	j++
 
 	io.WriteString(w, comma)
 	dialect.QuoteWithPlaceholder(w, "updated", j)
-		j++
+	j++
 	x, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
 		return nil, err

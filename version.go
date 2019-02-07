@@ -1,4 +1,5 @@
+// Updated automatically (altered manually just prior to each release)
+
 package main
 
-// appVersion is updated manually just prior to the next tag to be used.
-const appVersion = "v0.38.0"
+const appVersion = "v0.39.0"

@@ -19,7 +19,7 @@ func WriteConstructInsert(w io.Writer, view View) {
 	for _, field := range list {
 		joinedName := field.JoinParts(0, ".")
 
-		if field.Tags.Primary {
+		if field.GetTags().Primary {
 			view.Body2 = append(view.Body2, "\tif withPk {\n")
 			view.Body2 = append(view.Body2, fmt.Sprintf("\t\tdialect.QuoteW(w, %q)\n", field.SqlName))
 			view.Body2 = append(view.Body2, "\t\tcomma = \",\"\n")
@@ -81,7 +81,7 @@ func WriteConstructInsert(w io.Writer, view View) {
 func WriteConstructUpdate(w io.Writer, view View) {
 	commaNeeded := true
 
-	list := view.Table.Fields.NoSkipOrPrimary()
+	list := view.Table.Fields.NoPrimary().NoSkips()
 
 	view.Body1 = append(view.Body1, "\tj := 1\n")
 	view.Body1 = append(view.Body1, fmt.Sprintf("\ts = make([]interface{}, 0, %d)\n", len(list)))
@@ -98,7 +98,7 @@ func WriteConstructUpdate(w io.Writer, view View) {
 			if commaNeeded {
 				view.Body2 = append(view.Body2, "\tcomma = \", \"\n")
 			}
-			view.Body2 = append(view.Body2, "\t\tj++\n")
+			view.Body2 = append(view.Body2, "\tj++\n")
 
 			view.Body2 = append(view.Body2, fmt.Sprintf("\tx, err := json.Marshal(&v.%s)\n", joinedName))
 			view.Body2 = append(view.Body2, "\tif err != nil {\n\t\treturn nil, err\n\t}\n")
@@ -109,7 +109,7 @@ func WriteConstructUpdate(w io.Writer, view View) {
 			if commaNeeded {
 				view.Body2 = append(view.Body2, "\tcomma = \", \"\n")
 			}
-			view.Body2 = append(view.Body2, "\t\tj++\n")
+			view.Body2 = append(view.Body2, "\tj++\n")
 
 			view.Body2 = append(view.Body2, fmt.Sprintf("\tx, err := encoding.MarshalText(&v.%s)\n", joinedName))
 			view.Body2 = append(view.Body2, "\tif err != nil {\n\t\treturn nil, err\n\t}\n")
@@ -135,7 +135,7 @@ func WriteConstructUpdate(w io.Writer, view View) {
 				if commaNeeded {
 					view.Body2 = append(view.Body2, "\tcomma = \", \"\n")
 				}
-				view.Body2 = append(view.Body2, "\t\tj++\n")
+				view.Body2 = append(view.Body2, "\tj++\n")
 				commaNeeded = false
 			}
 		}

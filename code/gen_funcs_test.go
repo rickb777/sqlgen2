@@ -10,9 +10,9 @@ import (
 )
 
 func simpleFixtureTable() *TableDescription {
-	id := &Field{Node{"Id", Type{Name: "int64", Base: Int64}, nil}, "id", ENCNONE, Tag{Primary: true, Auto: true}}
-	name := &Field{Node{"Name", Type{Name: "string", Base: String}, nil}, "name", ENCNONE, Tag{}}
-	age := &Field{Node{"Age", Type{Name: "int", Base: Int}, nil}, "age", ENCNONE, Tag{}}
+	id := &Field{Node{"Id", Type{Name: "int64", Base: Int64}, nil}, "id", ENCNONE, &Tag{Primary: true, Auto: true}}
+	name := &Field{Node{"Name", Type{Name: "string", Base: String}, nil}, "name", ENCNONE, nil}
+	age := &Field{Node{"Age", Type{Name: "int", Base: Int}, nil}, "age", ENCNONE, nil}
 
 	return &TableDescription{
 		Type: "Example",
@@ -27,8 +27,8 @@ func simpleFixtureTable() *TableDescription {
 }
 
 func simpleNoPKTable() *TableDescription {
-	name := &Field{Node{"Name", Type{Name: "string", Base: String}, nil}, "name", ENCNONE, Tag{}}
-	age := &Field{Node{"Age", Type{Name: "int", Base: Int}, nil}, "age", ENCNONE, Tag{}}
+	name := &Field{Node{"Name", Type{Name: "string", Base: String}, nil}, "name", ENCNONE, nil}
+	age := &Field{Node{"Age", Type{Name: "int", Base: Int}, nil}, "age", ENCNONE, nil}
 
 	return &TableDescription{
 		Type: "Example",
@@ -370,7 +370,6 @@ func (tbl XExampleTable) sliceStringList(req require.Requirement, sqlname string
 	}
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
-
 `, "¬", "`", -1)
 	if code != expected {
 		outputDiff(expected, "expected.txt")
@@ -502,14 +501,6 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	}
 
 	var count int64
-	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
-	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	//if err != nil {
-	//	return err
-	//}
-	//defer st.Close()
-
 	insertHasReturningPhrase := false
 	returning := ""
 	for _, v := range vv {
@@ -597,14 +588,6 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 	}
 
 	var count int64
-	//columns := allXExampleQuotedInserts[tbl.Dialect().Index()]
-	//query := fmt.Sprintf("INSERT INTO %s %s", tbl.name, columns)
-	//st, err := tbl.db.PrepareContext(tbl.ctx, query)
-	//if err != nil {
-	//	return err
-	//}
-	//defer st.Close()
-
 	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
 	returning := ""
 	if tbl.Dialect().InsertHasReturningPhrase() {
@@ -687,7 +670,6 @@ func TestWriteUpdateFunc_noPK(t *testing.T) {
 	code := buf.String()
 	expected := strings.Replace(`
 // UpdateFields updates one or more columns, given a 'where' clause.
-//
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
@@ -713,7 +695,6 @@ func TestWriteUpdateFunc_withPK(t *testing.T) {
 	code := buf.String()
 	expected := strings.Replace(`
 // UpdateFields updates one or more columns, given a 'where' clause.
-//
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
