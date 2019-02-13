@@ -18,7 +18,7 @@ rm -f reports/*.out reports/*.html */*.txt demo/*_sql.go
 
 ### Build Phase 1 ###
 
-./version.sh
+./version.sh $1
 go test . ./code ./load ./output ./parse
 go build -o sqlgen *.go
 
@@ -26,7 +26,7 @@ go build -o sqlgen *.go
 
 for d in code output parse; do
   announce sqlgen/$d
-  go test ./$1 -covermode=count -coverprofile=reports/sqlgen-$d.out ./$d
+  go test -covermode=count -coverprofile=reports/sqlgen-$d.out ./$d
   go tool cover -html=reports/sqlgen-$d.out -o reports/sqlgen-$d.html
   [ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=reports/sqlgen-$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN
 done
