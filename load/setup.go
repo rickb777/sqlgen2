@@ -167,8 +167,8 @@ func (ctx *context) examineStruct(nm *types.Named, name parse.LType, tags stypes
 	for j := 0; j < str.NumFields(); j++ {
 		tField := str.Field(j)
 		if !tField.Exported() {
-			tag, defined := merged[tField.Name()]
-			if !defined || !tag.Skip {
+			tag := merged[tField.Name()]
+			if doNotSkip(tag) {
 				unexportedFields = append(unexportedFields, tField.Name())
 			}
 		}
@@ -188,8 +188,8 @@ func (ctx *context) examineStruct(nm *types.Named, name parse.LType, tags stypes
 		parse.DevInfo("    f%-2d: name:%-15s pkg:%-10s type:%-50s field:%v, exp:%v, anon:%v\n", j,
 			tField.Name(), tField.Pkg().Name(), tField.Type(), tField.IsField(), tField.Exported(), tField.Anonymous())
 
-		tag, defined := merged[tField.Name()]
-		if !defined || !tag.Skip {
+		tag := merged[tField.Name()]
+		if doNotSkip(tag) {
 			if tField.Anonymous() {
 				ctx.convertEmbeddedNodeToFields(tField, name.PkgName, parent)
 
@@ -199,6 +199,13 @@ func (ctx *context) examineStruct(nm *types.Named, name parse.LType, tags stypes
 		}
 	}
 
+	return false
+}
+
+func doNotSkip(t *stypes.Tag) bool {
+	if t == nil || !t.Skip {
+		return true
+	}
 	return false
 }
 
@@ -239,12 +246,16 @@ func (ctx *context) convertEmbeddedNodeToFields(leaf *types.Var, pkg string, par
 //-------------------------------------------------------------------------------------------------
 
 func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags stypes.Tags, parent *schema.Node) {
+	// tag may be nil
 	tag := tags[leaf.Name()]
 	field := &schema.Field{}
 	field.Tags = tag
+
+	// what follows needs default values
 	if tag == nil {
 		tag = &stypes.Tag{}
 	}
+
 	field.Encode = mapTagToEncoding[tag.Encode]
 
 	// only recurse into the node's fields if the leaf isn't encoded

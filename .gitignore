@@ -2,7 +2,9 @@
 *.sqlite
 *.txt
 _docs
+.idea/shelf/
 .idea/workspace.xml
+demo/*.json
 dist/
 reports/
 vendor/

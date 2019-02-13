@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.12.0; sqlgen v0.38.0-1-gfb97739
+// sqlapi v0.14.0; sqlgen v0.39.0-2-g326796a
 
 package demo
 
@@ -43,7 +43,7 @@ func NewCUserTable(name string, d *sqlapi.Database) CUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-
+	
 	return CUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -194,6 +194,7 @@ func (tbl CUserTable) logError(err error) error {
 func (tbl CUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
+
 
 //--------------------------------------------------------------------------------
 
@@ -432,7 +433,7 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-
+	
 			n, err = res.RowsAffected()
 		}
 

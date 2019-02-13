@@ -4,7 +4,7 @@ package demo
 //   * embedded structs
 //   * the use of pointers for optional items
 
-//go:generate sqlgen -yaml -type demo.Hook -o hook_sql.go -list HookList -all -v .
+//go:generate sqlgen -json -type demo.Hook -o hook_sql.go -list HookList -all -v .
 
 type Hook struct {
 	Id  uint64 `sql:"pk: true, auto: true"`

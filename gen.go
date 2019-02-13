@@ -24,7 +24,7 @@ func main() {
 
 	var oFile, typeName, prefix, list, kind, tableName, tagsFile, genSetters string
 	var flags = FuncFlags{}
-	var all, sselect, insert, gofmt, printYaml, showVersion bool
+	var all, sselect, insert, gofmt, printJson, showVersion bool
 
 	flag.StringVar(&oFile, "o", "", "Output file name; optional. Use '-' for stdout.\n"+
 		"\tIf omitted, the first input filename is used with '_sql.go' suffix.")
@@ -57,7 +57,7 @@ func main() {
 	flag.BoolVar(&parse.Debug, "z", false, "Show debug messages.")
 	flag.BoolVar(&parse.PrintAST, "ast", false, "Trace the whole astract syntax tree (very verbose).")
 	flag.BoolVar(&gofmt, "gofmt", false, "Format and simplify the generated code nicely.")
-	flag.BoolVar(&printYaml, "yaml", false, "Print the table description in YAML.")
+	flag.BoolVar(&printJson, "json", false, "Print the table description in JSON.")
 	flag.BoolVar(&showVersion, "version", false, "Show the version.")
 
 	flag.Parse()
@@ -123,8 +123,8 @@ func main() {
 		exit.Fail(1, "no fields found. Check earlier parser warnings.\n")
 	}
 
-	if printYaml {
-		writeTableYaml(o.Derive(".json"), table)
+	if printJson {
+		writeTableJson(o.Derive(".json"), table)
 	}
 
 	writeSqlGo(o, name, prefix, tableName, kind, list, mainPkg, genSetters, table, flags, gofmt)
@@ -132,7 +132,7 @@ func main() {
 	output.Info("%s took %v\n", o.Path(), time.Now().Sub(start))
 }
 
-func writeTableYaml(o output.Output, table *schema.TableDescription) {
+func writeTableJson(o output.Output, table *schema.TableDescription) {
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
 	enc.SetIndent("", "  ")

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.12.0; sqlgen v0.38.0-1-gfb97739
+// sqlapi v0.14.0; sqlgen v0.39.0-2-g326796a
 
 package demo
 
@@ -194,6 +194,7 @@ func (tbl AddressTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
+
 //--------------------------------------------------------------------------------
 
 // NumAddressColumns is the total number of columns in Address.
@@ -210,17 +211,17 @@ const AddressDataColumnNames = "lines,town,postcode"
 
 //--------------------------------------------------------------------------------
 
-const sqlAddressTableCreateColumnsSqlite = "\n" +
-	" `id`       integer not null primary key autoincrement,\n" +
-	" `lines`    text,\n" +
-	" `town`     text default null,\n" +
-	" `postcode` text not null"
+const sqlAddressTableCreateColumnsSqlite = "\n"+
+" `id`       integer not null primary key autoincrement,\n"+
+" `lines`    text,\n"+
+" `town`     text default null,\n"+
+" `postcode` text not null"
 
-const sqlAddressTableCreateColumnsMysql = "\n" +
-	" `id`       bigint not null primary key auto_increment,\n" +
-	" `lines`    json,\n" +
-	" `town`     varchar(80) default null,\n" +
-	" `postcode` varchar(20) not null"
+const sqlAddressTableCreateColumnsMysql = "\n"+
+" `id`       bigint not null primary key auto_increment,\n"+
+" `lines`    json,\n"+
+" `town`     varchar(80) default null,\n"+
+" `postcode` varchar(20) not null"
 
 const sqlAddressTableCreateColumnsPostgres = `
  "id"       bigserial not null primary key,
@@ -257,16 +258,16 @@ func (tbl AddressTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlAddressTableCreateColumnsSqlite
 		settings = ""
-	case schema.Mysql:
+    case schema.Mysql:
 		columns = sqlAddressTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-	case schema.Postgres:
+    case schema.Postgres:
 		columns = sqlAddressTableCreateColumnsPostgres
 		settings = ""
-	case schema.Pgx:
+    case schema.Pgx:
 		columns = sqlAddressTableCreateColumnsPgx
 		settings = ""
-	}
+    }
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -965,7 +966,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-
+	
 			n, err = res.RowsAffected()
 		}
 

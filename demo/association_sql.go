@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.12.0; sqlgen v0.38.0-1-gfb97739
+// sqlapi v0.14.0; sqlgen v0.39.0-2-g326796a
 
 package demo
 
@@ -193,6 +193,7 @@ func (tbl AssociationTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
+
 //--------------------------------------------------------------------------------
 
 // NumAssociationColumns is the total number of columns in Association.
@@ -209,21 +210,21 @@ const AssociationDataColumnNames = "name,quality,ref1,ref2,category"
 
 //--------------------------------------------------------------------------------
 
-const sqlAssociationTableCreateColumnsSqlite = "\n" +
-	" `id`       integer not null primary key autoincrement,\n" +
-	" `name`     text default null,\n" +
-	" `quality`  text default null,\n" +
-	" `ref1`     bigint default null,\n" +
-	" `ref2`     bigint default null,\n" +
-	" `category` tinyint unsigned default null"
+const sqlAssociationTableCreateColumnsSqlite = "\n"+
+" `id`       integer not null primary key autoincrement,\n"+
+" `name`     text default null,\n"+
+" `quality`  text default null,\n"+
+" `ref1`     bigint default null,\n"+
+" `ref2`     bigint default null,\n"+
+" `category` tinyint unsigned default null"
 
-const sqlAssociationTableCreateColumnsMysql = "\n" +
-	" `id`       bigint not null primary key auto_increment,\n" +
-	" `name`     varchar(255) default null,\n" +
-	" `quality`  varchar(255) default null,\n" +
-	" `ref1`     bigint default null,\n" +
-	" `ref2`     bigint default null,\n" +
-	" `category` tinyint unsigned default null"
+const sqlAssociationTableCreateColumnsMysql = "\n"+
+" `id`       bigint not null primary key auto_increment,\n"+
+" `name`     varchar(255) default null,\n"+
+" `quality`  varchar(255) default null,\n"+
+" `ref1`     bigint default null,\n"+
+" `ref2`     bigint default null,\n"+
+" `category` tinyint unsigned default null"
 
 const sqlAssociationTableCreateColumnsPostgres = `
  "id"       bigserial not null primary key,
@@ -258,16 +259,16 @@ func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlAssociationTableCreateColumnsSqlite
 		settings = ""
-	case schema.Mysql:
+    case schema.Mysql:
 		columns = sqlAssociationTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-	case schema.Postgres:
+    case schema.Postgres:
 		columns = sqlAssociationTableCreateColumnsPostgres
 		settings = ""
-	case schema.Pgx:
+    case schema.Pgx:
 		columns = sqlAssociationTableCreateColumnsPgx
 		settings = ""
-	}
+    }
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -966,7 +967,7 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-
+	
 			n, err = res.RowsAffected()
 		}
 
