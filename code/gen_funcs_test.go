@@ -541,11 +541,10 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 				return tbl.logError(e2)
 			}
 
-			
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 
@@ -635,7 +634,7 @@ func (tbl XExampleTable) Insert(req require.Requirement, vv ...*Example) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 

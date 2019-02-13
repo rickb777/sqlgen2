@@ -193,7 +193,6 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logError(err error) error {
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
-
 `
 
 var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
@@ -294,11 +293,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) createTableSql(ifNotExists bool) strin
 	var columns string
 	var settings string
 	switch tbl.Dialect() {
-	{{range .Dialects -}}
+	{{- range .Dialects}}
 	case schema.{{.String}}:
 		columns = sql{{$.Prefix}}{{$.Type}}{{$.Thing}}CreateColumns{{.}}
 		settings = "{{.CreateTableSettings}}"
-    {{end -}}
+    {{- end}}
 	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")

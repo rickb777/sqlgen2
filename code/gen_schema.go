@@ -2,11 +2,11 @@ package code
 
 import (
 	"fmt"
-	"github.com/rickb777/sqlapi"
 	"io"
 	. "strings"
 
 	"bitbucket.org/pkg/inflect"
+	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/schema"
 )
 

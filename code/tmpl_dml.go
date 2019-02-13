@@ -403,15 +403,15 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 		var n int64 = 1
 		if insertHasReturningPhrase {
 			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
-			{{if .Table.HasLastInsertId -}}
-			{{if eq .Table.Primary.Type.Name "int64" -}}
+			{{- if .Table.HasLastInsertId}}
+			{{- if eq .Table.Primary.Type.Name "int64"}}
 			err = row.Scan(&v.{{.Table.Primary.Name}})
-			{{- else -}}
+			{{- else}}
 			var i64 int64
 			err = row.Scan(&i64)
 			v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(i64)
 			{{- end}}
-			{{- else -}}
+			{{- else}}
 			var i64 int64
 			err = row.Scan(&i64)
 			{{- end}}
@@ -425,15 +425,15 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 			{{if .Table.HasLastInsertId -}}
 			{{if eq .Table.Primary.Type.Name "int64" -}}
 			v.{{.Table.Primary.Name}}, err = res.LastInsertId()
-			{{- else -}}
+			{{else -}}
 			i64, e2 := res.LastInsertId()
 			v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(i64)
-			{{end}}
-			{{- end}}
+			{{end -}}
+			{{end -}}
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 

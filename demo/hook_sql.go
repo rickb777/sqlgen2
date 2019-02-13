@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.40.0
+// sqlapi v0.14.0; sqlgen v0.40.0-1-gf21cd67
 
 package demo
 
@@ -1114,7 +1114,6 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 
 			i64, e2 := res.LastInsertId()
 			v.Id = uint64(i64)
-
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
