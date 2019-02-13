@@ -10,6 +10,7 @@ import (
 type Output struct {
 	Dirs, Name string
 	Derived    bool // no stdout when true
+	Fallback   io.Writer
 }
 
 func NewOutput(path string) Output {
@@ -17,16 +18,18 @@ func NewOutput(path string) Output {
 
 	if slash < 0 {
 		return Output{
-			Dirs:    ".",
-			Name:    path,
-			Derived: false,
+			Dirs:     ".",
+			Name:     path,
+			Derived:  false,
+			Fallback: os.Stdout,
 		}
 	}
 
 	return Output{
-		Dirs:    path[:slash],
-		Name:    path[slash+1:],
-		Derived: false,
+		Dirs:     path[:slash],
+		Name:     path[slash+1:],
+		Derived:  false,
+		Fallback: os.Stdout,
 	}
 }
 
@@ -91,17 +94,34 @@ func (o Output) create() (io.WriteCloser, error) {
 	return out, nil
 }
 
-func (o Output) Write(content io.Reader, out io.Writer) {
+func (o Output) Write(content io.Reader) (err error) {
 	if o.Name == "" {
-		return
+		return nil
 	}
 
 	if o.Name != "-" {
-		file, err := o.create()
-		Require(err == nil, "%v\n", err)
+		file, e2 := o.create()
+		Require(e2 == nil, "%v\n", e2)
 		defer file.Close()
-		io.Copy(file, content)
+		_, err = io.Copy(file, content)
 	} else if !o.Derived {
-		io.Copy(out, content)
+		_, err = io.Copy(o.Fallback, content)
 	}
+	return err
+}
+
+func (o Output) ReadTo(buf io.Writer) (err error) {
+	if o.Name == "" {
+		return nil
+	}
+
+	if o.Name != "-" {
+		in, e2 := Os.Open(o.Path())
+		if e2 != nil {
+			return e2
+		}
+		defer in.Close()
+		_, err = io.Copy(buf, in)
+	}
+	return err
 }

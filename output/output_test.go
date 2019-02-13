@@ -35,8 +35,9 @@ func TestWriteNoAction(t *testing.T) {
 	o := NewOutput("")
 	content := bytes.NewBufferString("some content")
 	result := &bytes.Buffer{}
+	o.Fallback = result
 
-	o.Write(content, result)
+	o.Write(content)
 
 	if result.String() != "" {
 		t.Errorf("Got %q", result.String())
@@ -47,8 +48,9 @@ func TestWriteStdout(t *testing.T) {
 	o := NewOutput("-")
 	content := bytes.NewBufferString("some content")
 	result := &bytes.Buffer{}
+	o.Fallback = result
 
-	o.Write(content, result)
+	o.Write(content)
 
 	if result.String() != "some content" {
 		t.Errorf("Got %q", result.String())
@@ -78,7 +80,7 @@ func TestWriteFile_simpleFileWrite(t *testing.T) {
 	o := NewOutput("foo.go")
 	content := bytes.NewBufferString("some content")
 
-	o.Write(content, nil)
+	o.Write(content)
 
 	if result.String() != "some content" {
 		t.Errorf("Got %q", result.String())
@@ -98,7 +100,7 @@ func TestWriteFile_createDirectoryAndFile(t *testing.T) {
 	o := NewOutput("bar/foo.go")
 	content := bytes.NewBufferString("some content")
 
-	o.Write(content, nil)
+	o.Write(content)
 
 	if result.String() != "some content" {
 		t.Errorf("Got %q", result.String())
@@ -125,6 +127,10 @@ type stubOs struct {
 func (s *stubOs) Create(name string) (io.WriteCloser, error) {
 	s.createName = name
 	return s.createFile, s.createErr
+}
+
+func (s *stubOs) Open(name string) (io.ReadCloser, error) {
+	return nil, nil
 }
 
 func (s *stubOs) MkdirAll(path string, perm os.FileMode) error {

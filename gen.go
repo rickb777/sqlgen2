@@ -57,7 +57,7 @@ func main() {
 	flag.BoolVar(&parse.Debug, "z", false, "Show debug messages.")
 	flag.BoolVar(&parse.PrintAST, "ast", false, "Trace the whole astract syntax tree (very verbose).")
 	flag.BoolVar(&gofmt, "gofmt", false, "Format and simplify the generated code nicely.")
-	flag.BoolVar(&printJson, "json", false, "Print the table description in JSON.")
+	flag.BoolVar(&printJson, "json", false, "Read/print the table description in JSON.")
 	flag.BoolVar(&showVersion, "version", false, "Show the version.")
 
 	flag.Parse()
@@ -104,23 +104,33 @@ func main() {
 
 	o := output.NewOutput(oFile)
 
-	tags, err := types.ReadTagsFile(tagsFile)
-	if err != nil && err != os.ErrNotExist {
-		exit.Fail(1, "tags file %s failed: %s.\n", tagsFile, err)
+	var table *schema.TableDescription
+	if printJson {
+		table = readTableYaml(o.Derive(".json"))
+		if table != nil {
+			printJson = false
+		}
 	}
 
-	// load the Tree into a schema Object
-	table, err := Load(pkgStore, parse.LType{PkgName: pkg, Name: name}, mainPkg, tags)
-	if err != nil {
-		exit.Fail(1, "Go parser failed: %v.\n", err)
-	}
+	if table == nil {
+		tags, err := types.ReadTagsFile(tagsFile)
+		if err != nil && !os.IsNotExist(err) {
+			exit.Fail(1, "tags file %s failed: %s.\n", tagsFile, err)
+		}
 
-	if parse.Debug {
-		utter.Dump(table)
-	}
+		// load the Tree into a schema Object
+		table, err = Load(pkgStore, parse.LType{PkgName: pkg, Name: name}, mainPkg, tags)
+		if err != nil {
+			exit.Fail(1, "Go parser failed: %v.\n", err)
+		}
 
-	if len(table.Fields) < 1 {
-		exit.Fail(1, "no fields found. Check earlier parser warnings.\n")
+		if parse.Debug {
+			utter.Dump(table)
+		}
+
+		if len(table.Fields) < 1 {
+			exit.Fail(1, "no fields found. Check earlier parser warnings.\n")
+		}
 	}
 
 	if printJson {
@@ -132,6 +142,25 @@ func main() {
 	output.Info("%s took %v\n", o.Path(), time.Now().Sub(start))
 }
 
+func readTableYaml(o output.Output) *schema.TableDescription {
+	buf := &bytes.Buffer{}
+	err := o.ReadTo(buf)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			exit.Fail(1, "YAML reader from %s failed: %v.\n", o.Path(), err)
+		}
+		return nil
+	}
+
+	dec := json.NewDecoder(buf)
+	table := schema.TableDescription{}
+	err = dec.Decode(&table)
+	if err != nil {
+		exit.Fail(1, "YAML reader from %s failed: %v.\n", o.Path(), err)
+	}
+	return &table
+}
+
 func writeTableJson(o output.Output, table *schema.TableDescription) {
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
@@ -140,7 +169,11 @@ func writeTableJson(o output.Output, table *schema.TableDescription) {
 	if err != nil {
 		exit.Fail(1, "YAML writer to %s failed: %v.\n", o.Path(), err)
 	}
-	o.Write(buf, os.Stdout)
+
+	err = o.Write(buf)
+	if err != nil {
+		exit.Fail(1, "YAML writer to %s failed: %v.\n", o.Path(), err)
+	}
 }
 
 func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, genSetters string, table *schema.TableDescription, flags FuncFlags, gofmt bool) {
@@ -221,5 +254,5 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, g
 		output.Require(err == nil, "%s\n%v\n", string(buf.Bytes()), err)
 	}
 
-	o.Write(pretty, os.Stdout)
+	o.Write(pretty)
 }
