@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.39.0-2-g326796a
+// sqlapi v0.14.0; sqlgen v0.39.0-1-g4470809
 
 package demo
 
@@ -41,7 +41,7 @@ func NewDUserTable(name string, d *sqlapi.Database) DUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return DUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -192,7 +192,6 @@ func (tbl DUserTable) logError(err error) error {
 func (tbl DUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
-
 
 //--------------------------------------------------------------------------------
 

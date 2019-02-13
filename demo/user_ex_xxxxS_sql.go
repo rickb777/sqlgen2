@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.39.0-2-g326796a
+// sqlapi v0.14.0; sqlgen v0.39.0-1-g4470809
 
 package demo
 
@@ -41,7 +41,7 @@ func NewSUserTable(name string, d *sqlapi.Database) SUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return SUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -192,7 +192,6 @@ func (tbl SUserTable) logError(err error) error {
 func (tbl SUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
-
 
 //--------------------------------------------------------------------------------
 

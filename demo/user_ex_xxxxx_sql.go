@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.39.0-2-g326796a
+// sqlapi v0.14.0; sqlgen v0.39.0-1-g4470809
 
 package demo
 
@@ -39,7 +39,7 @@ func NewXUserTable(name string, d *sqlapi.Database) XUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return XUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -190,7 +190,6 @@ func (tbl XUserTable) logError(err error) error {
 func (tbl XUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
-
 
 //--------------------------------------------------------------------------------
 

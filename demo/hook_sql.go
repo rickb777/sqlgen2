@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.39.0-2-g326796a
+// sqlapi v0.14.0; sqlgen v0.39.0-1-g4470809
 
 package demo
 
@@ -193,7 +193,6 @@ func (tbl HookTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
 // NumHookColumns is the total number of columns in Hook.
@@ -210,43 +209,43 @@ const HookDataColumnNames = "sha,after,before,category,created,deleted,forced,co
 
 //--------------------------------------------------------------------------------
 
-const sqlHookTableCreateColumnsSqlite = "\n"+
-" `id`                             integer not null primary key autoincrement,\n"+
-" `sha`                            text not null,\n"+
-" `after`                          text not null,\n"+
-" `before`                         text not null,\n"+
-" `category`                       tinyint unsigned not null,\n"+
-" `created`                        boolean not null,\n"+
-" `deleted`                        boolean not null,\n"+
-" `forced`                         boolean not null,\n"+
-" `commit_id`                      text not null,\n"+
-" `message`                        text not null,\n"+
-" `timestamp`                      text not null,\n"+
-" `head_commit_author_name`        text not null,\n"+
-" `head_commit_author_email`       text not null,\n"+
-" `head_commit_author_username`    text not null,\n"+
-" `head_commit_committer_name`     text not null,\n"+
-" `head_commit_committer_email`    text not null,\n"+
-" `head_commit_committer_username` text not null"
+const sqlHookTableCreateColumnsSqlite = "\n" +
+	" `id`                             integer not null primary key autoincrement,\n" +
+	" `sha`                            text not null,\n" +
+	" `after`                          text not null,\n" +
+	" `before`                         text not null,\n" +
+	" `category`                       tinyint unsigned not null,\n" +
+	" `created`                        boolean not null,\n" +
+	" `deleted`                        boolean not null,\n" +
+	" `forced`                         boolean not null,\n" +
+	" `commit_id`                      text not null,\n" +
+	" `message`                        text not null,\n" +
+	" `timestamp`                      text not null,\n" +
+	" `head_commit_author_name`        text not null,\n" +
+	" `head_commit_author_email`       text not null,\n" +
+	" `head_commit_author_username`    text not null,\n" +
+	" `head_commit_committer_name`     text not null,\n" +
+	" `head_commit_committer_email`    text not null,\n" +
+	" `head_commit_committer_username` text not null"
 
-const sqlHookTableCreateColumnsMysql = "\n"+
-" `id`                             bigint unsigned not null primary key auto_increment,\n"+
-" `sha`                            varchar(255) not null,\n"+
-" `after`                          varchar(20) not null,\n"+
-" `before`                         varchar(20) not null,\n"+
-" `category`                       tinyint unsigned not null,\n"+
-" `created`                        tinyint(1) not null,\n"+
-" `deleted`                        tinyint(1) not null,\n"+
-" `forced`                         tinyint(1) not null,\n"+
-" `commit_id`                      varchar(255) not null,\n"+
-" `message`                        varchar(255) not null,\n"+
-" `timestamp`                      varchar(255) not null,\n"+
-" `head_commit_author_name`        varchar(255) not null,\n"+
-" `head_commit_author_email`       varchar(255) not null,\n"+
-" `head_commit_author_username`    varchar(255) not null,\n"+
-" `head_commit_committer_name`     varchar(255) not null,\n"+
-" `head_commit_committer_email`    varchar(255) not null,\n"+
-" `head_commit_committer_username` varchar(255) not null"
+const sqlHookTableCreateColumnsMysql = "\n" +
+	" `id`                             bigint unsigned not null primary key auto_increment,\n" +
+	" `sha`                            varchar(255) not null,\n" +
+	" `after`                          varchar(20) not null,\n" +
+	" `before`                         varchar(20) not null,\n" +
+	" `category`                       tinyint unsigned not null,\n" +
+	" `created`                        tinyint(1) not null,\n" +
+	" `deleted`                        tinyint(1) not null,\n" +
+	" `forced`                         tinyint(1) not null,\n" +
+	" `commit_id`                      varchar(255) not null,\n" +
+	" `message`                        varchar(255) not null,\n" +
+	" `timestamp`                      varchar(255) not null,\n" +
+	" `head_commit_author_name`        varchar(255) not null,\n" +
+	" `head_commit_author_email`       varchar(255) not null,\n" +
+	" `head_commit_author_username`    varchar(255) not null,\n" +
+	" `head_commit_committer_name`     varchar(255) not null,\n" +
+	" `head_commit_committer_email`    varchar(255) not null,\n" +
+	" `head_commit_committer_username` varchar(255) not null"
 
 const sqlHookTableCreateColumnsPostgres = `
  "id"                             bigserial not null primary key,
@@ -303,16 +302,16 @@ func (tbl HookTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlHookTableCreateColumnsSqlite
 		settings = ""
-    case schema.Mysql:
+	case schema.Mysql:
 		columns = sqlHookTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-    case schema.Postgres:
+	case schema.Postgres:
 		columns = sqlHookTableCreateColumnsPostgres
 		settings = ""
-    case schema.Pgx:
+	case schema.Pgx:
 		columns = sqlHookTableCreateColumnsPgx
 		settings = ""
-    }
+	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -1115,11 +1114,11 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 
 			i64, e2 := res.LastInsertId()
 			v.Id = uint64(i64)
-			
+
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 

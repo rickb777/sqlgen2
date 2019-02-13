@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.39.0-2-g326796a
+// sqlapi v0.14.0; sqlgen v0.39.0-1-g4470809
 
 package demo
 
@@ -194,7 +194,6 @@ func (tbl IssueTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
 // NumIssueColumns is the total number of columns in Issue.
@@ -211,25 +210,25 @@ const IssueDataColumnNames = "number,date,title,bigbody,assignee,state,labels"
 
 //--------------------------------------------------------------------------------
 
-const sqlIssueTableCreateColumnsSqlite = "\n"+
-" `id`       integer not null primary key autoincrement,\n"+
-" `number`   bigint not null,\n"+
-" `date`     blob not null,\n"+
-" `title`    text not null,\n"+
-" `bigbody`  text not null,\n"+
-" `assignee` text not null,\n"+
-" `state`    text not null,\n"+
-" `labels`   text"
+const sqlIssueTableCreateColumnsSqlite = "\n" +
+	" `id`       integer not null primary key autoincrement,\n" +
+	" `number`   bigint not null,\n" +
+	" `date`     blob not null,\n" +
+	" `title`    text not null,\n" +
+	" `bigbody`  text not null,\n" +
+	" `assignee` text not null,\n" +
+	" `state`    text not null,\n" +
+	" `labels`   text"
 
-const sqlIssueTableCreateColumnsMysql = "\n"+
-" `id`       bigint not null primary key auto_increment,\n"+
-" `number`   bigint not null,\n"+
-" `date`     mediumblob not null,\n"+
-" `title`    varchar(512) not null,\n"+
-" `bigbody`  varchar(2048) not null,\n"+
-" `assignee` varchar(255) not null,\n"+
-" `state`    varchar(50) not null,\n"+
-" `labels`   json"
+const sqlIssueTableCreateColumnsMysql = "\n" +
+	" `id`       bigint not null primary key auto_increment,\n" +
+	" `number`   bigint not null,\n" +
+	" `date`     mediumblob not null,\n" +
+	" `title`    varchar(512) not null,\n" +
+	" `bigbody`  varchar(2048) not null,\n" +
+	" `assignee` varchar(255) not null,\n" +
+	" `state`    varchar(50) not null,\n" +
+	" `labels`   json"
 
 const sqlIssueTableCreateColumnsPostgres = `
  "id"       bigserial not null primary key,
@@ -272,16 +271,16 @@ func (tbl IssueTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlIssueTableCreateColumnsSqlite
 		settings = ""
-    case schema.Mysql:
+	case schema.Mysql:
 		columns = sqlIssueTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-    case schema.Postgres:
+	case schema.Postgres:
 		columns = sqlIssueTableCreateColumnsPostgres
 		settings = ""
-    case schema.Pgx:
+	case schema.Pgx:
 		columns = sqlIssueTableCreateColumnsPgx
 		settings = ""
-    }
+	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -982,7 +981,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.39.0-2-g326796a
+// sqlapi v0.14.0; sqlgen v0.39.0-1-g4470809
 
 package demo
 
@@ -44,7 +44,7 @@ func NewAUserTable(name string, d *sqlapi.Database) AUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-	
+
 	return AUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -196,7 +196,6 @@ func (tbl AUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-
 //--------------------------------------------------------------------------------
 
 // NumAUserColumns is the total number of columns in AUser.
@@ -213,53 +212,53 @@ const AUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,adm
 
 //--------------------------------------------------------------------------------
 
-const sqlAUserTableCreateColumnsSqlite = "\n"+
-" `uid`          integer not null primary key autoincrement,\n"+
-" `name`         text not null,\n"+
-" `emailaddress` text not null,\n"+
-" `addressid`    bigint default null,\n"+
-" `avatar`       text default null,\n"+
-" `role`         text default null,\n"+
-" `active`       boolean not null,\n"+
-" `admin`        boolean not null,\n"+
-" `fave`         text,\n"+
-" `lastupdated`  bigint not null,\n"+
-" `i8`           tinyint not null default -8,\n"+
-" `u8`           tinyint unsigned not null default 8,\n"+
-" `i16`          smallint not null default -16,\n"+
-" `u16`          smallint unsigned not null default 16,\n"+
-" `i32`          int not null default -32,\n"+
-" `u32`          int unsigned not null default 32,\n"+
-" `i64`          bigint not null default -64,\n"+
-" `u64`          bigint unsigned not null default 64,\n"+
-" `f32`          float not null default 3.2,\n"+
-" `f64`          double not null default 6.4,\n"+
-" `token`        text not null,\n"+
-" `secret`       text not null"
+const sqlAUserTableCreateColumnsSqlite = "\n" +
+	" `uid`          integer not null primary key autoincrement,\n" +
+	" `name`         text not null,\n" +
+	" `emailaddress` text not null,\n" +
+	" `addressid`    bigint default null,\n" +
+	" `avatar`       text default null,\n" +
+	" `role`         text default null,\n" +
+	" `active`       boolean not null,\n" +
+	" `admin`        boolean not null,\n" +
+	" `fave`         text,\n" +
+	" `lastupdated`  bigint not null,\n" +
+	" `i8`           tinyint not null default -8,\n" +
+	" `u8`           tinyint unsigned not null default 8,\n" +
+	" `i16`          smallint not null default -16,\n" +
+	" `u16`          smallint unsigned not null default 16,\n" +
+	" `i32`          int not null default -32,\n" +
+	" `u32`          int unsigned not null default 32,\n" +
+	" `i64`          bigint not null default -64,\n" +
+	" `u64`          bigint unsigned not null default 64,\n" +
+	" `f32`          float not null default 3.2,\n" +
+	" `f64`          double not null default 6.4,\n" +
+	" `token`        text not null,\n" +
+	" `secret`       text not null"
 
-const sqlAUserTableCreateColumnsMysql = "\n"+
-" `uid`          bigint not null primary key auto_increment,\n"+
-" `name`         varchar(255) not null,\n"+
-" `emailaddress` varchar(255) not null,\n"+
-" `addressid`    bigint default null,\n"+
-" `avatar`       varchar(255) default null,\n"+
-" `role`         varchar(20) default null,\n"+
-" `active`       tinyint(1) not null,\n"+
-" `admin`        tinyint(1) not null,\n"+
-" `fave`         json,\n"+
-" `lastupdated`  bigint not null,\n"+
-" `i8`           tinyint not null default -8,\n"+
-" `u8`           tinyint unsigned not null default 8,\n"+
-" `i16`          smallint not null default -16,\n"+
-" `u16`          smallint unsigned not null default 16,\n"+
-" `i32`          int not null default -32,\n"+
-" `u32`          int unsigned not null default 32,\n"+
-" `i64`          bigint not null default -64,\n"+
-" `u64`          bigint unsigned not null default 64,\n"+
-" `f32`          float not null default 3.2,\n"+
-" `f64`          double not null default 6.4,\n"+
-" `token`        varchar(255) not null,\n"+
-" `secret`       varchar(255) not null"
+const sqlAUserTableCreateColumnsMysql = "\n" +
+	" `uid`          bigint not null primary key auto_increment,\n" +
+	" `name`         varchar(255) not null,\n" +
+	" `emailaddress` varchar(255) not null,\n" +
+	" `addressid`    bigint default null,\n" +
+	" `avatar`       varchar(255) default null,\n" +
+	" `role`         varchar(20) default null,\n" +
+	" `active`       tinyint(1) not null,\n" +
+	" `admin`        tinyint(1) not null,\n" +
+	" `fave`         json,\n" +
+	" `lastupdated`  bigint not null,\n" +
+	" `i8`           tinyint not null default -8,\n" +
+	" `u8`           tinyint unsigned not null default 8,\n" +
+	" `i16`          smallint not null default -16,\n" +
+	" `u16`          smallint unsigned not null default 16,\n" +
+	" `i32`          int not null default -32,\n" +
+	" `u32`          int unsigned not null default 32,\n" +
+	" `i64`          bigint not null default -64,\n" +
+	" `u64`          bigint unsigned not null default 64,\n" +
+	" `f32`          float not null default 3.2,\n" +
+	" `f64`          double not null default 6.4,\n" +
+	" `token`        varchar(255) not null,\n" +
+	" `secret`       varchar(255) not null"
 
 const sqlAUserTableCreateColumnsPostgres = `
  "uid"          bigserial not null primary key,
@@ -333,16 +332,16 @@ func (tbl AUserTable) createTableSql(ifNotExists bool) string {
 	case schema.Sqlite:
 		columns = sqlAUserTableCreateColumnsSqlite
 		settings = ""
-    case schema.Mysql:
+	case schema.Mysql:
 		columns = sqlAUserTableCreateColumnsMysql
 		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-    case schema.Postgres:
+	case schema.Postgres:
 		columns = sqlAUserTableCreateColumnsPostgres
 		settings = ""
-    case schema.Pgx:
+	case schema.Pgx:
 		columns = sqlAUserTableCreateColumnsPgx
 		settings = ""
-    }
+	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -1660,7 +1659,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
-	
+
 			n, err = res.RowsAffected()
 		}
 
