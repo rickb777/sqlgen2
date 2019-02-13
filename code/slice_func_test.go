@@ -77,7 +77,7 @@ func constructXExampleInsert(w io.Writer, v *Example, dialect schema.Dialect, wi
 	dialect.QuoteW(w, "labels")
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 	io.WriteString(w, comma)
@@ -85,7 +85,7 @@ func constructXExampleInsert(w io.Writer, v *Example, dialect schema.Dialect, wi
 	dialect.QuoteW(w, "fave")
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 	io.WriteString(w, comma)
@@ -117,7 +117,7 @@ func constructXExampleInsert(w io.Writer, v *Example, dialect schema.Dialect, wi
 	dialect.QuoteW(w, "updated")
 	x, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 	io.WriteString(w, ")")
@@ -219,7 +219,7 @@ func constructXExampleUpdate(w io.Writer, v *Example, dialect schema.Dialect) (s
 	j++
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 
@@ -228,7 +228,7 @@ func constructXExampleUpdate(w io.Writer, v *Example, dialect schema.Dialect) (s
 	j++
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 
@@ -272,7 +272,7 @@ func constructXExampleUpdate(w io.Writer, v *Example, dialect schema.Dialect) (s
 	j++
 	x, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 

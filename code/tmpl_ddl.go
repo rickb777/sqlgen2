@@ -201,7 +201,7 @@ var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
 
 // function template to scan multiple rows.
 const sScanRows = `
-func scan{{.Prefix}}{{.Types}}(rows *sql.Rows, firstOnly bool) (vv {{.List}}, n int64, err error) {
+func scan{{.Prefix}}{{.Types}}(query string, rows *sql.Rows, firstOnly bool) (vv {{.List}}, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -212,7 +212,7 @@ func scan{{.Prefix}}{{.Types}}(rows *sql.Rows, firstOnly bool) (vv {{.List}}, n 
 {{- end}}
 		)
 		if err != nil {
-			return vv, n, err
+			return vv, n, errors.Wrap(err, query)
 		}
 
 		v := &{{.Type}}{}
@@ -221,7 +221,7 @@ func scan{{.Prefix}}{{.Types}}(rows *sql.Rows, firstOnly bool) (vv {{.List}}, n 
 		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, n, err
+				return vv, n, errors.Wrap(err, query)
 			}
 		}
 
@@ -231,11 +231,11 @@ func scan{{.Prefix}}{{.Types}}(rows *sql.Rows, firstOnly bool) (vv {{.List}}, n 
 			if rows.Next() {
 				n++
 			}
-			return vv, n, rows.Err()
+			return vv, n, errors.Wrap(rows.Err(), query)
 		}
 	}
 
-	return vv, n, rows.Err()
+	return vv, n, errors.Wrap(rows.Err(), query)
 }
 `
 

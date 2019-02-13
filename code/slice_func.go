@@ -36,7 +36,7 @@ func WriteConstructInsert(w io.Writer, view View) {
 				}
 
 				view.Body2 = append(view.Body2, fmt.Sprintf("\tx, err := json.Marshal(&v.%s)\n", joinedName))
-				view.Body2 = append(view.Body2, "\tif err != nil {\n\t\treturn nil, err\n\t}\n")
+				view.Body2 = append(view.Body2, "\tif err != nil {\n\t\treturn nil, errors.WithStack(err)\n\t}\n")
 				view.Body2 = append(view.Body2, "\ts = append(s, x)\n")
 
 			case schema.ENCTEXT:
@@ -47,7 +47,7 @@ func WriteConstructInsert(w io.Writer, view View) {
 				}
 
 				view.Body2 = append(view.Body2, fmt.Sprintf("\tx, err := encoding.MarshalText(&v.%s)\n", joinedName))
-				view.Body2 = append(view.Body2, "\tif err != nil {\n\t\treturn nil, err\n\t}\n")
+				view.Body2 = append(view.Body2, "\tif err != nil {\n\t\treturn nil, errors.WithStack(err)\n\t}\n")
 				view.Body2 = append(view.Body2, "\ts = append(s, x)\n")
 
 			default:
@@ -101,7 +101,7 @@ func WriteConstructUpdate(w io.Writer, view View) {
 			view.Body2 = append(view.Body2, "\tj++\n")
 
 			view.Body2 = append(view.Body2, fmt.Sprintf("\tx, err := json.Marshal(&v.%s)\n", joinedName))
-			view.Body2 = append(view.Body2, "\tif err != nil {\n\t\treturn nil, err\n\t}\n")
+			view.Body2 = append(view.Body2, "\tif err != nil {\n\t\treturn nil, errors.WithStack(err)\n\t}\n")
 			view.Body2 = append(view.Body2, "\ts = append(s, x)\n")
 
 		case schema.ENCTEXT:
@@ -112,7 +112,7 @@ func WriteConstructUpdate(w io.Writer, view View) {
 			view.Body2 = append(view.Body2, "\tj++\n")
 
 			view.Body2 = append(view.Body2, fmt.Sprintf("\tx, err := encoding.MarshalText(&v.%s)\n", joinedName))
-			view.Body2 = append(view.Body2, "\tif err != nil {\n\t\treturn nil, err\n\t}\n")
+			view.Body2 = append(view.Body2, "\tif err != nil {\n\t\treturn nil, errors.WithStack(err)\n\t}\n")
 			view.Body2 = append(view.Body2, "\ts = append(s, x)\n")
 
 		default:

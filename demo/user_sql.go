@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.40.0-2-gb501ca5
+// sqlapi v0.14.0; sqlgen v0.41.0
 
 package demo
 
@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/require"
@@ -579,7 +580,7 @@ func (tbl DbUserTable) QueryOneNullFloat64(req require.Requirement, query string
 	return result, err
 }
 
-func scanDbUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error) {
+func scanDbUsers(query string, rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -631,7 +632,7 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error
 			&v21,
 		)
 		if err != nil {
-			return vv, n, err
+			return vv, n, errors.Wrap(err, query)
 		}
 
 		v := &User{}
@@ -650,14 +651,14 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error
 			v.Role = new(Role)
 			err = v.Role.Scan(v5.String)
 			if err != nil {
-				return nil, n, err
+				return nil, n, errors.Wrap(err, query)
 			}
 		}
 		v.Active = v6
 		v.Admin = v7
 		err = json.Unmarshal(v8, &v.Fave)
 		if err != nil {
-			return nil, n, err
+			return nil, n, errors.Wrap(err, query)
 		}
 		v.LastUpdated = v9
 		v.Numbers.I8 = v10
@@ -677,7 +678,7 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error
 		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, n, err
+				return vv, n, errors.Wrap(err, query)
 			}
 		}
 
@@ -687,11 +688,11 @@ func scanDbUsers(rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error
 			if rows.Next() {
 				n++
 			}
-			return vv, n, rows.Err()
+			return vv, n, errors.Wrap(rows.Err(), query)
 		}
 	}
 
-	return vv, n, rows.Err()
+	return vv, n, errors.Wrap(rows.Err(), query)
 }
 
 //--------------------------------------------------------------------------------
@@ -783,7 +784,7 @@ func (tbl DbUserTable) doQuery(req require.Requirement, firstOnly bool, query st
 		return nil, err
 	}
 
-	vv, n, err := scanDbUsers(rows, firstOnly)
+	vv, n, err := scanDbUsers(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
@@ -1409,7 +1410,7 @@ func constructDbUserInsert(w io.Writer, v *User, dialect schema.Dialect, withPk 
 	dialect.QuoteW(w, "fave")
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 	io.WriteString(w, comma)
@@ -1530,7 +1531,7 @@ func constructDbUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []in
 	j++
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 

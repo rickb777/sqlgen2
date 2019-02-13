@@ -42,7 +42,7 @@ func TestWriteRowsFunc1(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err error) {
+func scanXExamples(query string, rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -58,7 +58,7 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 			&v3,
 		)
 		if err != nil {
-			return vv, n, err
+			return vv, n, errors.Wrap(err, query)
 		}
 
 		v := &Example{}
@@ -71,7 +71,7 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, n, err
+				return vv, n, errors.Wrap(err, query)
 			}
 		}
 
@@ -81,11 +81,11 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 			if rows.Next() {
 				n++
 			}
-			return vv, n, rows.Err()
+			return vv, n, errors.Wrap(rows.Err(), query)
 		}
 	}
 
-	return vv, n, rows.Err()
+	return vv, n, errors.Wrap(rows.Err(), query)
 }
 `
 	if code != expected {
@@ -106,7 +106,7 @@ func TestWriteRowFunc2(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err error) {
+func scanXExamples(query string, rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -148,7 +148,7 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 			&v16,
 		)
 		if err != nil {
-			return vv, n, err
+			return vv, n, errors.Wrap(err, query)
 		}
 
 		v := &Example{}
@@ -178,11 +178,11 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 		v.Active = v8
 		err = json.Unmarshal(v9, &v.Labels)
 		if err != nil {
-			return nil, n, err
+			return nil, n, errors.Wrap(err, query)
 		}
 		err = json.Unmarshal(v10, &v.Fave)
 		if err != nil {
-			return nil, n, err
+			return nil, n, errors.Wrap(err, query)
 		}
 		v.Avatar = v11
 		v.Foo1 = v12
@@ -190,27 +190,27 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 			v.Foo2 = new(Foo)
 			err = v.Foo2.Scan(v13.String)
 			if err != nil {
-				return nil, n, err
+				return nil, n, errors.Wrap(err, query)
 			}
 		}
 		if v14.Valid {
 			v.Foo3 = new(Foo)
 			err = v.Foo3.Scan(v14.Int64)
 			if err != nil {
-				return nil, n, err
+				return nil, n, errors.Wrap(err, query)
 			}
 		}
 		v.Bar1 = v15
 		err = encoding.UnmarshalText(v16, &v.Updated)
 		if err != nil {
-			return nil, n, err
+			return nil, n, errors.Wrap(err, query)
 		}
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, n, err
+				return vv, n, errors.Wrap(err, query)
 			}
 		}
 
@@ -220,11 +220,11 @@ func scanXExamples(rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err 
 			if rows.Next() {
 				n++
 			}
-			return vv, n, rows.Err()
+			return vv, n, errors.Wrap(rows.Err(), query)
 		}
 	}
 
-	return vv, n, rows.Err()
+	return vv, n, errors.Wrap(rows.Err(), query)
 }
 `
 	if code != expected {

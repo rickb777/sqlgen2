@@ -39,6 +39,9 @@ func PackagesToImport(flags FuncFlags, hasPrimaryKey bool) util.StringSet {
 	if flags.Insert || flags.Select || flags.Slice || flags.Delete {
 		imports.Add("fmt")
 	}
+	if flags.Insert || flags.Select || flags.Update {
+		imports.Add("github.com/pkg/errors")
+	}
 	if flags.Select || flags.Slice || flags.Update || flags.Delete {
 		imports.Add("github.com/rickb777/sqlapi/where")
 	}

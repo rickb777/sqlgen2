@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.40.0-2-gb501ca5
+// sqlapi v0.14.0; sqlgen v0.41.0
 
 package demo
 
@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/require"
@@ -315,7 +316,7 @@ func constructCUserInsert(w io.Writer, v *User, dialect schema.Dialect, withPk b
 	dialect.QuoteW(w, "fave")
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 	io.WriteString(w, comma)

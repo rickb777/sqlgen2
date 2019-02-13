@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.40.0-2-gb501ca5
+// sqlapi v0.14.0; sqlgen v0.41.0
 
 package demo
 
@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/require"
@@ -434,7 +435,7 @@ func (tbl DbCompoundTable) QueryOneNullFloat64(req require.Requirement, query st
 	return result, err
 }
 
-func scanDbCompounds(rows *sql.Rows, firstOnly bool) (vv []*Compound, n int64, err error) {
+func scanDbCompounds(query string, rows *sql.Rows, firstOnly bool) (vv []*Compound, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -448,7 +449,7 @@ func scanDbCompounds(rows *sql.Rows, firstOnly bool) (vv []*Compound, n int64, e
 			&v2,
 		)
 		if err != nil {
-			return vv, n, err
+			return vv, n, errors.Wrap(err, query)
 		}
 
 		v := &Compound{}
@@ -460,7 +461,7 @@ func scanDbCompounds(rows *sql.Rows, firstOnly bool) (vv []*Compound, n int64, e
 		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, n, err
+				return vv, n, errors.Wrap(err, query)
 			}
 		}
 
@@ -470,11 +471,11 @@ func scanDbCompounds(rows *sql.Rows, firstOnly bool) (vv []*Compound, n int64, e
 			if rows.Next() {
 				n++
 			}
-			return vv, n, rows.Err()
+			return vv, n, errors.Wrap(rows.Err(), query)
 		}
 	}
 
-	return vv, n, rows.Err()
+	return vv, n, errors.Wrap(rows.Err(), query)
 }
 
 //--------------------------------------------------------------------------------
@@ -529,7 +530,7 @@ func (tbl DbCompoundTable) doQuery(req require.Requirement, firstOnly bool, quer
 		return nil, err
 	}
 
-	vv, n, err := scanDbCompounds(rows, firstOnly)
+	vv, n, err := scanDbCompounds(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 

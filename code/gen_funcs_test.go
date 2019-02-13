@@ -239,7 +239,7 @@ func (tbl XExampleTable) doQuery(req require.Requirement, firstOnly bool, query 
 		return nil, err
 	}
 
-	vv, n, err := scanXExamples(rows, firstOnly)
+	vv, n, err := scanXExamples(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 

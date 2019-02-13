@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.40.0-2-gb501ca5
+// sqlapi v0.14.0; sqlgen v0.41.0
 
 package demo
 
@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/require"
@@ -470,7 +471,7 @@ func (tbl IssueTable) QueryOneNullFloat64(req require.Requirement, query string,
 	return result, err
 }
 
-func scanIssues(rows *sql.Rows, firstOnly bool) (vv []*Issue, n int64, err error) {
+func scanIssues(query string, rows *sql.Rows, firstOnly bool) (vv []*Issue, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -494,7 +495,7 @@ func scanIssues(rows *sql.Rows, firstOnly bool) (vv []*Issue, n int64, err error
 			&v7,
 		)
 		if err != nil {
-			return vv, n, err
+			return vv, n, errors.Wrap(err, query)
 		}
 
 		v := &Issue{}
@@ -507,14 +508,14 @@ func scanIssues(rows *sql.Rows, firstOnly bool) (vv []*Issue, n int64, err error
 		v.State = v6
 		err = json.Unmarshal(v7, &v.Labels)
 		if err != nil {
-			return nil, n, err
+			return nil, n, errors.Wrap(err, query)
 		}
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, n, err
+				return vv, n, errors.Wrap(err, query)
 			}
 		}
 
@@ -524,11 +525,11 @@ func scanIssues(rows *sql.Rows, firstOnly bool) (vv []*Issue, n int64, err error
 			if rows.Next() {
 				n++
 			}
-			return vv, n, rows.Err()
+			return vv, n, errors.Wrap(rows.Err(), query)
 		}
 	}
 
-	return vv, n, rows.Err()
+	return vv, n, errors.Wrap(rows.Err(), query)
 }
 
 //--------------------------------------------------------------------------------
@@ -614,7 +615,7 @@ func (tbl IssueTable) doQuery(req require.Requirement, firstOnly bool, query str
 		return nil, err
 	}
 
-	vv, n, err := scanIssues(rows, firstOnly)
+	vv, n, err := scanIssues(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
@@ -867,7 +868,7 @@ func constructIssueInsert(w io.Writer, v *Issue, dialect schema.Dialect, withPk 
 	dialect.QuoteW(w, "labels")
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 	io.WriteString(w, ")")
@@ -916,7 +917,7 @@ func constructIssueUpdate(w io.Writer, v *Issue, dialect schema.Dialect) (s []in
 	j++
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 

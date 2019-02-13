@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.40.0-2-gb501ca5
+// sqlapi v0.14.0; sqlgen v0.41.0
 
 package demo
 
@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/require"
@@ -386,7 +387,7 @@ func (tbl AssociationTable) QueryOneNullFloat64(req require.Requirement, query s
 	return result, err
 }
 
-func scanAssociations(rows *sql.Rows, firstOnly bool) (vv []*Association, n int64, err error) {
+func scanAssociations(query string, rows *sql.Rows, firstOnly bool) (vv []*Association, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -406,7 +407,7 @@ func scanAssociations(rows *sql.Rows, firstOnly bool) (vv []*Association, n int6
 			&v5,
 		)
 		if err != nil {
-			return vv, n, err
+			return vv, n, errors.Wrap(err, query)
 		}
 
 		v := &Association{}
@@ -436,7 +437,7 @@ func scanAssociations(rows *sql.Rows, firstOnly bool) (vv []*Association, n int6
 		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, n, err
+				return vv, n, errors.Wrap(err, query)
 			}
 		}
 
@@ -446,11 +447,11 @@ func scanAssociations(rows *sql.Rows, firstOnly bool) (vv []*Association, n int6
 			if rows.Next() {
 				n++
 			}
-			return vv, n, rows.Err()
+			return vv, n, errors.Wrap(rows.Err(), query)
 		}
 	}
 
-	return vv, n, rows.Err()
+	return vv, n, errors.Wrap(rows.Err(), query)
 }
 
 //--------------------------------------------------------------------------------
@@ -530,7 +531,7 @@ func (tbl AssociationTable) doQuery(req require.Requirement, firstOnly bool, que
 		return nil, err
 	}
 
-	vv, n, err := scanAssociations(rows, firstOnly)
+	vv, n, err := scanAssociations(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 

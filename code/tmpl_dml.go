@@ -172,7 +172,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQuery(req require.Requirement, first
 		return nil, err
 	}
 
-	vv, n, err := scan{{.Prefix}}{{.Types}}(rows, firstOnly)
+	vv, n, err := scan{{.Prefix}}{{.Types}}(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 

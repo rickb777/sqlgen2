@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.40.0-2-gb501ca5
+// sqlapi v0.14.0; sqlgen v0.41.0
 
 package demo
 
@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/require"
@@ -503,7 +504,7 @@ func (tbl AddressTable) QueryOneNullFloat64(req require.Requirement, query strin
 	return result, err
 }
 
-func scanAddresses(rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err error) {
+func scanAddresses(query string, rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -519,14 +520,14 @@ func scanAddresses(rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err 
 			&v3,
 		)
 		if err != nil {
-			return vv, n, err
+			return vv, n, errors.Wrap(err, query)
 		}
 
 		v := &Address{}
 		v.Id = v0
 		err = json.Unmarshal(v1, &v.Lines)
 		if err != nil {
-			return nil, n, err
+			return nil, n, errors.Wrap(err, query)
 		}
 		if v2.Valid {
 			a := v2.String
@@ -538,7 +539,7 @@ func scanAddresses(rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err 
 		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, n, err
+				return vv, n, errors.Wrap(err, query)
 			}
 		}
 
@@ -548,11 +549,11 @@ func scanAddresses(rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err 
 			if rows.Next() {
 				n++
 			}
-			return vv, n, rows.Err()
+			return vv, n, errors.Wrap(rows.Err(), query)
 		}
 	}
 
-	return vv, n, rows.Err()
+	return vv, n, errors.Wrap(rows.Err(), query)
 }
 
 //--------------------------------------------------------------------------------
@@ -644,7 +645,7 @@ func (tbl AddressTable) doQuery(req require.Requirement, firstOnly bool, query s
 		return nil, err
 	}
 
-	vv, n, err := scanAddresses(rows, firstOnly)
+	vv, n, err := scanAddresses(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
@@ -852,7 +853,7 @@ func constructAddressInsert(w io.Writer, v *Address, dialect schema.Dialect, wit
 	comma = ","
 	x, err := json.Marshal(&v.Lines)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 	if v.Town != nil {
@@ -883,7 +884,7 @@ func constructAddressUpdate(w io.Writer, v *Address, dialect schema.Dialect) (s 
 	j++
 	x, err := json.Marshal(&v.Lines)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s = append(s, x)
 

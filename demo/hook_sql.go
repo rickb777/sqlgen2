@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.14.0; sqlgen v0.40.0-2-gb501ca5
+// sqlapi v0.14.0; sqlgen v0.41.0
 
 package demo
 
@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/require"
@@ -430,7 +431,7 @@ func (tbl HookTable) QueryOneNullFloat64(req require.Requirement, query string, 
 	return result, err
 }
 
-func scanHooks(rows *sql.Rows, firstOnly bool) (vv HookList, n int64, err error) {
+func scanHooks(query string, rows *sql.Rows, firstOnly bool) (vv HookList, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -472,7 +473,7 @@ func scanHooks(rows *sql.Rows, firstOnly bool) (vv HookList, n int64, err error)
 			&v16,
 		)
 		if err != nil {
-			return vv, n, err
+			return vv, n, errors.Wrap(err, query)
 		}
 
 		v := &Hook{}
@@ -498,7 +499,7 @@ func scanHooks(rows *sql.Rows, firstOnly bool) (vv HookList, n int64, err error)
 		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
-				return vv, n, err
+				return vv, n, errors.Wrap(err, query)
 			}
 		}
 
@@ -508,11 +509,11 @@ func scanHooks(rows *sql.Rows, firstOnly bool) (vv HookList, n int64, err error)
 			if rows.Next() {
 				n++
 			}
-			return vv, n, rows.Err()
+			return vv, n, errors.Wrap(rows.Err(), query)
 		}
 	}
 
-	return vv, n, rows.Err()
+	return vv, n, errors.Wrap(rows.Err(), query)
 }
 
 //--------------------------------------------------------------------------------
@@ -592,7 +593,7 @@ func (tbl HookTable) doQuery(req require.Requirement, firstOnly bool, query stri
 		return nil, err
 	}
 
-	vv, n, err := scanHooks(rows, firstOnly)
+	vv, n, err := scanHooks(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
