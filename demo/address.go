@@ -3,6 +3,7 @@ package demo
 // This example demonstrates
 //   * JSON encoding for a slice of strings
 //   * the use of pointers for optional items
+//   * metadata is written to/read from JSON file
 
 //go:generate sqlgen -json -type demo.Address -o address_sql.go -all -v address.go
 

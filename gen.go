@@ -13,6 +13,7 @@ import (
 	"github.com/rickb777/sqlgen2/output"
 	"github.com/rickb777/sqlgen2/parse"
 	"github.com/rickb777/sqlgen2/parse/exit"
+	"gopkg.in/yaml.v2"
 	"io"
 	"os"
 	"strings"
@@ -24,7 +25,7 @@ func main() {
 
 	var oFile, typeName, prefix, list, kind, tableName, tagsFile, genSetters string
 	var flags = FuncFlags{}
-	var all, sselect, insert, gofmt, printJson, showVersion bool
+	var all, sselect, insert, gofmt, jsonFile, yamlFile, showVersion bool
 
 	flag.StringVar(&oFile, "o", "", "Output file name; optional. Use '-' for stdout.\n"+
 		"\tIf omitted, the first input filename is used with '_sql.go' suffix.")
@@ -57,7 +58,8 @@ func main() {
 	flag.BoolVar(&parse.Debug, "z", false, "Show debug messages.")
 	flag.BoolVar(&parse.PrintAST, "ast", false, "Trace the whole astract syntax tree (very verbose).")
 	flag.BoolVar(&gofmt, "gofmt", false, "Format and simplify the generated code nicely.")
-	flag.BoolVar(&printJson, "json", false, "Read/print the table description in JSON.")
+	flag.BoolVar(&jsonFile, "json", false, "Read/print the table description in JSON (overrides Go parsing if the JSON file exists).")
+	flag.BoolVar(&yamlFile, "yaml", false, "Read/print the table description in YAML (overrides Go parsing if the YAML file exists).")
 	flag.BoolVar(&showVersion, "version", false, "Show the version.")
 
 	flag.Parse()
@@ -87,11 +89,6 @@ func main() {
 	pkg, name := words[0], words[1]
 	mainPkg := pkg
 
-	// parse the Go source code file(s) to extract the required struct and return it as an AST.
-	pkgStore, err := parse.Parse(flag.Args())
-	output.Require(err == nil, "%v\n", err)
-	//utter.Dump(pkgStore)
-
 	if oFile == "" {
 		oFile = flag.Args()[0]
 		output.Require(strings.HasSuffix(oFile, ".go"), oFile+": must end '.go'")
@@ -105,14 +102,31 @@ func main() {
 	o := output.NewOutput(oFile)
 
 	var table *schema.TableDescription
-	if printJson {
-		table = readTableYaml(o.Derive(".json"))
+
+	if yamlFile {
+		buf := &bytes.Buffer{}
+		dec := yaml.NewDecoder(buf)
+		table = readTableJson(o.Derive(".yml"), buf, dec)
 		if table != nil {
-			printJson = false
+			yamlFile = false
+		}
+	} else if jsonFile {
+		buf := &bytes.Buffer{}
+		dec := json.NewDecoder(buf)
+		table = readTableJson(o.Derive(".json"), buf, dec)
+		if table != nil {
+			jsonFile = false
 		}
 	}
 
 	if table == nil {
+		output.Info("parsing %s\n", strings.Join(flag.Args(), ", "))
+
+		// parse the Go source code file(s) to extract the required struct and return it as an AST.
+		pkgStore, err := parse.Parse(flag.Args())
+		output.Require(err == nil, "%v\n", err)
+		//utter.Dump(pkgStore)
+
 		tags, err := types.ReadTagsFile(tagsFile)
 		if err != nil && !os.IsNotExist(err) {
 			exit.Fail(1, "tags file %s failed: %s.\n", tagsFile, err)
@@ -131,10 +145,21 @@ func main() {
 		if len(table.Fields) < 1 {
 			exit.Fail(1, "no fields found. Check earlier parser warnings.\n")
 		}
+	} else {
+		output.Info("ignored %s\n", strings.Join(flag.Args(), ", "))
 	}
 
-	if printJson {
-		writeTableJson(o.Derive(".json"), table)
+	if yamlFile {
+		buf := &bytes.Buffer{}
+		enc := yaml.NewEncoder(buf)
+		writeTableJson(o.Derive(".yml"), buf, enc, table)
+	}
+
+	if jsonFile {
+		buf := &bytes.Buffer{}
+		enc := json.NewEncoder(buf)
+		enc.SetIndent("", "  ")
+		writeTableJson(o.Derive(".json"), buf, enc, table)
 	}
 
 	writeSqlGo(o, name, prefix, tableName, kind, list, mainPkg, genSetters, table, flags, gofmt)
@@ -142,17 +167,16 @@ func main() {
 	output.Info("%s took %v\n", o.Path(), time.Now().Sub(start))
 }
 
-func readTableYaml(o output.Output) *schema.TableDescription {
-	buf := &bytes.Buffer{}
+func readTableJson(o output.Output, buf io.ReadWriter, dec decoder) *schema.TableDescription {
 	err := o.ReadTo(buf)
 	if err != nil {
-		if !os.IsNotExist(err) {
-			exit.Fail(1, "YAML reader from %s failed: %v.\n", o.Path(), err)
+		if os.IsNotExist(err) {
+			return nil
 		}
-		return nil
+		exit.Fail(1, "YAML reader from %s failed: %v.\n", o.Path(), err)
 	}
 
-	dec := json.NewDecoder(buf)
+	output.Info("reading %s\n", o.Path())
 	table := schema.TableDescription{}
 	err = dec.Decode(&table)
 	if err != nil {
@@ -161,10 +185,7 @@ func readTableYaml(o output.Output) *schema.TableDescription {
 	return &table
 }
 
-func writeTableJson(o output.Output, table *schema.TableDescription) {
-	buf := &bytes.Buffer{}
-	enc := json.NewEncoder(buf)
-	enc.SetIndent("", "  ")
+func writeTableJson(o output.Output, buf io.ReadWriter, enc encoder, table *schema.TableDescription) {
 	err := enc.Encode(table)
 	if err != nil {
 		exit.Fail(1, "YAML writer to %s failed: %v.\n", o.Path(), err)
@@ -255,4 +276,12 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, g
 	}
 
 	o.Write(pretty)
+}
+
+type encoder interface {
+	Encode(v interface{}) (err error)
+}
+
+type decoder interface {
+	Decode(v interface{}) (err error)
 }

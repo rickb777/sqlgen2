@@ -11,7 +11,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/onsi/gomega v1.4.3
 	github.com/pkg/errors v0.8.1
-	github.com/rickb777/sqlapi v0.15.0
+	github.com/rickb777/sqlapi v0.16.0
 	github.com/spf13/cast v1.3.0
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.3.0 // indirect

@@ -1,0 +1,45 @@
+type: Compound
+name: compounds
+fields:
+- node:
+    name: Alpha
+    type:
+      name: string
+      base: 17
+  sqlname: alpha
+  tags:
+    unique: alpha_beta
+- node:
+    name: Beta
+    type:
+      name: string
+      base: 17
+  sqlname: beta
+  tags:
+    unique: alpha_beta
+- node:
+    name: Category
+    type:
+      name: Category
+      base: 8
+  sqlname: category
+index:
+- name: alpha_beta
+  unique: true
+  fields:
+  - node:
+      name: Alpha
+      type:
+        name: string
+        base: 17
+    sqlname: alpha
+    tags:
+      unique: alpha_beta
+  - node:
+      name: Beta
+      type:
+        name: string
+        base: 17
+    sqlname: beta
+    tags:
+      unique: alpha_beta
