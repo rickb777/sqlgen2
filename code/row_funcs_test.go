@@ -11,8 +11,7 @@ import (
 	"testing"
 )
 
-//TODO
-func xTestWriteRowsFunc1(t *testing.T) {
+func TestWriteRowsFunc1(t *testing.T) {
 	exit.TestableExit()
 
 	p1 := &Node{Name: "Commit"}
@@ -43,7 +42,7 @@ func xTestWriteRowsFunc1(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-func scanXExamples(query string, rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err error) {
+func scanXExamples(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Example, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -96,8 +95,7 @@ func scanXExamples(query string, rows *sql.Rows, firstOnly bool) (vv []*Example,
 	}
 }
 
-//TODO
-func xTestWriteRowFunc2(t *testing.T) {
+func TestWriteRowFunc2(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "", "")
@@ -108,7 +106,7 @@ func xTestWriteRowFunc2(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-func scanXExamples(query string, rows *sql.Rows, firstOnly bool) (vv []*Example, n int64, err error) {
+func scanXExamples(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Example, n int64, err error) {
 	for rows.Next() {
 		n++
 

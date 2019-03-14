@@ -6,8 +6,7 @@ import (
 	"testing"
 )
 
-//TODO
-func xTestWriteConstructInsert(t *testing.T) {
+func TestWriteConstructInsert(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "", "")
@@ -18,110 +17,111 @@ func xTestWriteConstructInsert(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-func constructXExampleInsert(w io.Writer, v *Example, dialect dialect.Dialect, withPk bool) (s []interface{}, err error) {
+func (tbl XExampleTable) constructXExampleInsert(w dialect.StringWriter, v *Example, withPk bool) (s []interface{}, err error) {
+	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 17)
 
 	comma := ""
-	io.WriteString(w, " (")
+	w.WriteString(" (")
 
 	if withPk {
-		dialect.QuoteW(w, "id")
+		q.QuoteW(w, "id")
 		comma = ","
 		s = append(s, v.Id)
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "cat")
+	q.QuoteW(w, "cat")
 	s = append(s, v.Cat)
 	comma = ","
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "username")
+	q.QuoteW(w, "username")
 	s = append(s, v.Name)
 	if v.Mobile != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "mobile")
+		q.QuoteW(w, "mobile")
 		s = append(s, v.Mobile)
 	}
 	if v.Qual != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "qual")
+		q.QuoteW(w, "qual")
 		s = append(s, v.Qual)
 	}
 	if v.Numbers.Diff != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "diff")
+		q.QuoteW(w, "diff")
 		s = append(s, v.Numbers.Diff)
 	}
 	if v.Numbers.Age != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "age")
+		q.QuoteW(w, "age")
 		s = append(s, v.Numbers.Age)
 	}
 	if v.Numbers.Bmi != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "bmi")
+		q.QuoteW(w, "bmi")
 		s = append(s, v.Numbers.Bmi)
 	}
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "active")
+	q.QuoteW(w, "active")
 	s = append(s, v.Active)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "labels")
+	q.QuoteW(w, "labels")
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "fave")
+	q.QuoteW(w, "fave")
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "avatar")
+	q.QuoteW(w, "avatar")
 	s = append(s, v.Avatar)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "foo1")
+	q.QuoteW(w, "foo1")
 	s = append(s, v.Foo1)
 	if v.Foo2 != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "foo2")
+		q.QuoteW(w, "foo2")
 		s = append(s, v.Foo2)
 	}
 	if v.Foo3 != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "foo3")
+		q.QuoteW(w, "foo3")
 		s = append(s, v.Foo3)
 	}
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "bar1")
+	q.QuoteW(w, "bar1")
 	s = append(s, v.Bar1)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "updated")
+	q.QuoteW(w, "updated")
 	x, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
-	io.WriteString(w, ")")
+	w.WriteString(")")
 	return s, nil
 }
 `
@@ -132,8 +132,7 @@ func constructXExampleInsert(w io.Writer, v *Example, dialect dialect.Dialect, w
 	}
 }
 
-//TODO
-func xTestWriteConstructUpdate(t *testing.T) {
+func TestWriteConstructUpdate(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "", "")
@@ -144,137 +143,154 @@ func xTestWriteConstructUpdate(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-func constructXExampleUpdate(w io.Writer, v *Example, dialect dialect.Dialect) (s []interface{}, err error) {
+func (tbl XExampleTable) constructXExampleUpdate(w dialect.StringWriter, v *Example) (s []interface{}, err error) {
+	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 16)
 
 	comma := ""
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "cat", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "cat")
+	w.WriteString("=?")
 	s = append(s, v.Cat)
 	comma = ", "
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "username", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "username")
+	w.WriteString("=?")
 	s = append(s, v.Name)
 	j++
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Mobile != nil {
-		dialect.QuoteWithPlaceholder(w, "mobile", j)
+		q.QuoteW(w, "mobile")
+		w.WriteString("=?")
 		s = append(s, v.Mobile)
 		j++
 	} else {
-		dialect.QuoteW(w, "mobile")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "mobile")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Qual != nil {
-		dialect.QuoteWithPlaceholder(w, "qual", j)
+		q.QuoteW(w, "qual")
+		w.WriteString("=?")
 		s = append(s, v.Qual)
 		j++
 	} else {
-		dialect.QuoteW(w, "qual")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "qual")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Numbers.Diff != nil {
-		dialect.QuoteWithPlaceholder(w, "diff", j)
+		q.QuoteW(w, "diff")
+		w.WriteString("=?")
 		s = append(s, v.Numbers.Diff)
 		j++
 	} else {
-		dialect.QuoteW(w, "diff")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "diff")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Numbers.Age != nil {
-		dialect.QuoteWithPlaceholder(w, "age", j)
+		q.QuoteW(w, "age")
+		w.WriteString("=?")
 		s = append(s, v.Numbers.Age)
 		j++
 	} else {
-		dialect.QuoteW(w, "age")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "age")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Numbers.Bmi != nil {
-		dialect.QuoteWithPlaceholder(w, "bmi", j)
+		q.QuoteW(w, "bmi")
+		w.WriteString("=?")
 		s = append(s, v.Numbers.Bmi)
 		j++
 	} else {
-		dialect.QuoteW(w, "bmi")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "bmi")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "active", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "active")
+	w.WriteString("=?")
 	s = append(s, v.Active)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "labels", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "labels")
+	w.WriteString("=?")
 	j++
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "fave", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "fave")
+	w.WriteString("=?")
 	j++
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "avatar", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "avatar")
+	w.WriteString("=?")
 	s = append(s, v.Avatar)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "foo1", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "foo1")
+	w.WriteString("=?")
 	s = append(s, v.Foo1)
 	j++
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Foo2 != nil {
-		dialect.QuoteWithPlaceholder(w, "foo2", j)
+		q.QuoteW(w, "foo2")
+		w.WriteString("=?")
 		s = append(s, v.Foo2)
 		j++
 	} else {
-		dialect.QuoteW(w, "foo2")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "foo2")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Foo3 != nil {
-		dialect.QuoteWithPlaceholder(w, "foo3", j)
+		q.QuoteW(w, "foo3")
+		w.WriteString("=?")
 		s = append(s, v.Foo3)
 		j++
 	} else {
-		dialect.QuoteW(w, "foo3")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "foo3")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "bar1", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "bar1")
+	w.WriteString("=?")
 	s = append(s, v.Bar1)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "updated", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "updated")
+	w.WriteString("=?")
 	j++
 	x, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
