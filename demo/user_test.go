@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/stdlib"
 	"github.com/kortschak/utter"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -39,11 +40,13 @@ func connect() {
 	dbDriver, ok := os.LookupEnv("GO_DRIVER")
 	if !ok {
 		dbDriver = "sqlite3"
+		//dbDriver = "postgres"
 	}
 	di = dialect.PickDialect(dbDriver)
 	dsn, ok := os.LookupEnv("GO_DSN")
 	if !ok {
 		dsn = ":memory:"
+		//dsn = "postgres://testuser:TestPasswd.9.9.9@/test"
 	}
 	conn, err := sql.Open(dbDriver, dsn)
 	if err != nil {

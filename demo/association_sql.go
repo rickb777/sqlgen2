@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0-1-g3001101
+// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0-2-g272c739
 
 package demo
 
@@ -618,9 +618,10 @@ func (tbl AssociationTable) Select(req require.Requirement, wh where.Expression,
 func (tbl AssociationTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	q := tbl.Dialect().Quoter()
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", q.Quote(tbl.name.String()), where)
-	tbl.logQuery(query, args...)
-	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
-	err = row.Scan(&count)
+	rows, err := support.Query(tbl, query, args...)
+	if rows.Next() {
+		err = rows.Scan(&count)
+	}
 	return count, tbl.logIfError(err)
 }
 

@@ -1,12 +1,16 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="go test demo" type="GoTestRunConfiguration" factoryName="Go Test">
+  <configuration default="false" name="go test demo - postgres" type="GoTestRunConfiguration" factoryName="Go Test">
     <module name="sqlgen2" />
     <working_directory value="$PROJECT_DIR$/demo" />
+    <envs>
+      <env name="GO_DRIVER" value="postgres" />
+      <env name="GO_DSN" value="postgres://testuser:TestPasswd.9.9.9@/test" />
+    </envs>
     <framework value="gotest" />
     <kind value="DIRECTORY" />
     <package value="github.com/rickb777/sqlgen2" />
     <directory value="$PROJECT_DIR$/demo" />
     <filePath value="$PROJECT_DIR$" />
-    <method />
+    <method v="2" />
   </configuration>
 </component>
