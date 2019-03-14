@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0; sqlgen v0.42.0
+// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0
 
 package demo
 
@@ -11,12 +11,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
-	"github.com/rickb777/sqlapi/schema"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/sqlapi/where"
 	"io"
 	"log"
+	"strings"
 )
 
 // AssociationTable holds a given table name with the database reference, providing access methods below.
@@ -24,7 +25,7 @@ import (
 // specify the name of the schema, in which case it should have a trailing '.'.
 type AssociationTable struct {
 	name        sqlapi.TableName
-	database    *sqlapi.Database
+	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
@@ -38,7 +39,7 @@ var _ sqlapi.TableWithCrud = &AssociationTable{}
 // NewAssociationTable returns a new table instance.
 // If a blank table name is supplied, the default name "associations" will be used instead.
 // The request context is initialised with the background.
-func NewAssociationTable(name string, d *sqlapi.Database) AssociationTable {
+func NewAssociationTable(name string, d sqlapi.Database) AssociationTable {
 	if name == "" {
 		name = "associations"
 	}
@@ -94,7 +95,7 @@ func (tbl AssociationTable) WithContext(ctx context.Context) AssociationTable {
 }
 
 // Database gets the shared database information.
-func (tbl AssociationTable) Database() *sqlapi.Database {
+func (tbl AssociationTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
@@ -120,7 +121,7 @@ func (tbl AssociationTable) Ctx() context.Context {
 }
 
 // Dialect gets the database dialect.
-func (tbl AssociationTable) Dialect() schema.Dialect {
+func (tbl AssociationTable) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
@@ -136,8 +137,8 @@ func (tbl AssociationTable) PkColumn() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AssociationTable) DB() *sql.DB {
-	return tbl.db.(*sql.DB)
+func (tbl AssociationTable) DB() sqlapi.SqlDB {
+	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
@@ -147,13 +148,13 @@ func (tbl AssociationTable) Execer() sqlapi.Execer {
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AssociationTable) Tx() *sql.Tx {
-	return tbl.db.(*sql.Tx)
+func (tbl AssociationTable) Tx() sqlapi.SqlTx {
+	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl AssociationTable) IsTx() bool {
-	_, ok := tbl.db.(*sql.Tx)
+	_, ok := tbl.db.(sqlapi.SqlTx)
 	return ok
 }
 
@@ -170,14 +171,14 @@ func (tbl AssociationTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl AssociationTable) BeginTx(opts *sql.TxOptions) (AssociationTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) Using(tx *sql.Tx) AssociationTable {
+func (tbl AssociationTable) Using(tx sqlapi.SqlTx) AssociationTable {
 	tbl.db = tx
 	return tbl
 }
@@ -196,54 +197,57 @@ func (tbl AssociationTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
-// NumAssociationColumns is the total number of columns in Association.
-const NumAssociationColumns = 6
+// NumAssociationTableColumns is the total number of columns in AssociationTable.
+const NumAssociationTableColumns = 6
 
-// NumAssociationDataColumns is the number of columns in Association not including the auto-increment key.
-const NumAssociationDataColumns = 5
+// NumAssociationTableDataColumns is the number of columns in AssociationTable not including the auto-increment key.
+const NumAssociationTableDataColumns = 5
 
-// AssociationColumnNames is the list of columns in Association.
-const AssociationColumnNames = "id,name,quality,ref1,ref2,category"
+// AssociationTableColumnNames is the list of columns in AssociationTable.
+const AssociationTableColumnNames = "id,name,quality,ref1,ref2,category"
 
-// AssociationDataColumnNames is the list of data columns in Association.
-const AssociationDataColumnNames = "name,quality,ref1,ref2,category"
+// AssociationTableDataColumnNames is the list of data columns in AssociationTable.
+const AssociationTableDataColumnNames = "name,quality,ref1,ref2,category"
+
+var listOfAssociationTableColumnNames = strings.Split(AssociationTableColumnNames, ",")
 
 //--------------------------------------------------------------------------------
 
-const sqlAssociationTableCreateColumnsSqlite = "\n" +
-	" `id`       integer not null primary key autoincrement,\n" +
-	" `name`     text default null,\n" +
-	" `quality`  text default null,\n" +
-	" `ref1`     bigint default null,\n" +
-	" `ref2`     bigint default null,\n" +
-	" `category` tinyint unsigned default null"
+var sqlAssociationTableCreateColumnsSqlite = []string{
+	"integer not null primary key autoincrement",
+	"text default null",
+	"text default null",
+	"bigint default null",
+	"bigint default null",
+	"tinyint unsigned default null",
+}
 
-const sqlAssociationTableCreateColumnsMysql = "\n" +
-	" `id`       bigint not null primary key auto_increment,\n" +
-	" `name`     varchar(255) default null,\n" +
-	" `quality`  varchar(255) default null,\n" +
-	" `ref1`     bigint default null,\n" +
-	" `ref2`     bigint default null,\n" +
-	" `category` tinyint unsigned default null"
+var sqlAssociationTableCreateColumnsMysql = []string{
+	"bigint not null primary key auto_increment",
+	"text default null",
+	"text default null",
+	"bigint default null",
+	"bigint default null",
+	"tinyint unsigned default null",
+}
 
-const sqlAssociationTableCreateColumnsPostgres = `
- "id"       bigserial not null primary key,
- "name"     varchar(255) default null,
- "quality"  varchar(255) default null,
- "ref1"     bigint default null,
- "ref2"     bigint default null,
- "category" smallint default null`
+var sqlAssociationTableCreateColumnsPostgres = []string{
+	"bigserial not null primary key",
+	"text default null",
+	"text default null",
+	"bigint default null",
+	"bigint default null",
+	"smallint default null",
+}
 
-const sqlAssociationTableCreateColumnsPgx = `
- "id"       bigserial not null primary key,
- "name"     varchar(255) default null,
- "quality"  varchar(255) default null,
- "ref1"     bigint default null,
- "ref2"     bigint default null,
- "category" smallint default null`
-
-const sqlConstrainAssociationTable = `
-`
+var sqlAssociationTableCreateColumnsPgx = []string{
+	"bigserial not null primary key",
+	"text default null",
+	"text default null",
+	"bigint default null",
+	"bigint default null",
+	"smallint default null",
+}
 
 //--------------------------------------------------------------------------------
 
@@ -253,36 +257,43 @@ func (tbl AssociationTable) CreateTable(ifNotExists bool) (int64, error) {
 }
 
 func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
-	var columns string
-	var settings string
-	switch tbl.Dialect() {
-	case schema.Sqlite:
-		columns = sqlAssociationTableCreateColumnsSqlite
-		settings = ""
-	case schema.Mysql:
-		columns = sqlAssociationTableCreateColumnsMysql
-		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-	case schema.Postgres:
-		columns = sqlAssociationTableCreateColumnsPostgres
-		settings = ""
-	case schema.Pgx:
-		columns = sqlAssociationTableCreateColumnsPgx
-		settings = ""
-	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
 		buf.WriteString("IF NOT EXISTS ")
 	}
-	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (")
-	buf.WriteString(columns)
+	q := tbl.Dialect().Quoter()
+	q.QuoteW(buf, tbl.name.String())
+	buf.WriteString(" (\n ")
+
+	var columns []string
+	switch tbl.Dialect().Index() {
+	case dialect.SqliteIndex:
+		columns = sqlAssociationTableCreateColumnsSqlite
+	case dialect.MysqlIndex:
+		columns = sqlAssociationTableCreateColumnsMysql
+	case dialect.PostgresIndex:
+		columns = sqlAssociationTableCreateColumnsPostgres
+	case dialect.PgxIndex:
+		columns = sqlAssociationTableCreateColumnsPgx
+	}
+
+	comma := ""
+	for i, n := range listOfAssociationTableColumnNames {
+		buf.WriteString(comma)
+		q.QuoteW(buf, n)
+		buf.WriteString(" ")
+		buf.WriteString(columns[i])
+		comma = ",\n "
+	}
+
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")
-		buf.WriteString(c.ConstraintSql(tbl.Dialect(), tbl.name, i+1))
+		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.name, i+1))
 	}
+
 	buf.WriteString("\n)")
-	buf.WriteString(settings)
+	buf.WriteString(tbl.Dialect().CreateTableSettings())
 	return buf.String()
 }
 
@@ -345,7 +356,7 @@ func (tbl AssociationTable) Exec(req require.Requirement, query string, args ...
 // The caller must call rows.Close() on the result.
 //
 // Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl AssociationTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (tbl AssociationTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
 	return support.Query(tbl, query, args...)
 }
 
@@ -387,7 +398,7 @@ func (tbl AssociationTable) QueryOneNullFloat64(req require.Requirement, query s
 	return result, err
 }
 
-func scanAssociations(query string, rows *sql.Rows, firstOnly bool) (vv []*Association, n int64, err error) {
+func scanAssociations(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Association, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -456,11 +467,8 @@ func scanAssociations(query string, rows *sql.Rows, firstOnly bool) (vv []*Assoc
 
 //--------------------------------------------------------------------------------
 
-var allAssociationQuotedColumnNames = []string{
-	schema.Sqlite.SplitAndQuote(AssociationColumnNames),
-	schema.Mysql.SplitAndQuote(AssociationColumnNames),
-	schema.Postgres.SplitAndQuote(AssociationColumnNames),
-	schema.Pgx.SplitAndQuote(AssociationColumnNames),
+func allAssociationColumnNamesQuoted(q dialect.Quoter) string {
+	return strings.Join(q.QuoteN(listOfAssociationTableColumnNames), ",")
 }
 
 //--------------------------------------------------------------------------------
@@ -495,9 +503,10 @@ func (tbl AssociationTable) GetAssociationById(req require.Requirement, id int64
 }
 
 func (tbl AssociationTable) getAssociation(req require.Requirement, column string, arg interface{}) (*Association, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
-		allAssociationQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), dialect.Placeholder(column, 1))
+	d := tbl.Dialect()
+	q := d.Quoter()
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allAssociationColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -507,10 +516,11 @@ func (tbl AssociationTable) getAssociations(req require.Requirement, column stri
 		if req == require.All {
 			req = require.Exactly(len(args))
 		}
-		dialect := tbl.Dialect()
-		pl := dialect.Placeholders(len(args))
+		d := tbl.Dialect()
+		q := d.Quoter()
+		pl := d.Placeholders(len(args))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allAssociationQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), pl)
+			allAssociationColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column), pl)
 		list, err = tbl.doQuery(req, false, query, args...)
 	}
 
@@ -554,7 +564,7 @@ func (tbl AssociationTable) Fetch(req require.Requirement, query string, args ..
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allAssociationQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
+		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -567,9 +577,9 @@ func (tbl AssociationTable) SelectOneWhere(req require.Requirement, where, order
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl AssociationTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Association, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
+	q := tbl.Dialect().Quoter()
+	whs, args := where.Where(wh, q)
+	orderBy := where.BuildQueryConstraint(qc, q)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -583,7 +593,7 @@ func (tbl AssociationTable) SelectOne(req require.Requirement, wh where.Expressi
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allAssociationQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
+		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }
@@ -595,9 +605,9 @@ func (tbl AssociationTable) SelectWhere(req require.Requirement, where, orderBy 
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl AssociationTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Association, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
+	q := tbl.Dialect().Quoter()
+	whs, args := where.Where(wh, q)
+	orderBy := where.BuildQueryConstraint(qc, q)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -606,7 +616,8 @@ func (tbl AssociationTable) Select(req require.Requirement, wh where.Expression,
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
+	q := tbl.Dialect().Quoter()
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", q.Quote(tbl.name.String()), where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
@@ -616,7 +627,7 @@ func (tbl AssociationTable) CountWhere(where string, args ...interface{}) (count
 // Count counts the Associations in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl AssociationTable) Count(wh where.Expression) (count int64, err error) {
-	whs, args := where.BuildExpression(wh, tbl.Dialect())
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	return tbl.CountWhere(whs, args...)
 }
 
@@ -626,284 +637,147 @@ func (tbl AssociationTable) Count(wh where.Expression) (count int64, err error) 
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.sliceInt64List(req, tbl.pk, wh, qc)
+	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
 }
 
 // SliceName gets the name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.sliceStringPtrList(req, "name", wh, qc)
-}
-
-// SliceQuality gets the quality column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
-	return tbl.sliceQualNamePtrList(req, "quality", wh, qc)
+	return support.SliceStringPtrList(tbl, req, "name", wh, qc)
 }
 
 // SliceRef1 gets the ref1 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceRef1(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.sliceInt64PtrList(req, "ref1", wh, qc)
+	return support.SliceInt64PtrList(tbl, req, "ref1", wh, qc)
 }
 
 // SliceRef2 gets the ref2 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceRef2(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.sliceInt64PtrList(req, "ref2", wh, qc)
+	return support.SliceInt64PtrList(tbl, req, "ref2", wh, qc)
 }
 
-// SliceCategory gets the category column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return tbl.sliceCategoryPtrList(req, "category", wh, qc)
-}
-
-func (tbl AssociationTable) sliceCategoryPtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v Category
-	list := make([]Category, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl AssociationTable) sliceQualNamePtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v QualName
-	list := make([]QualName, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl AssociationTable) sliceInt64List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v int64
-	list := make([]int64, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl AssociationTable) sliceInt64PtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v int64
-	list := make([]int64, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl AssociationTable) sliceStringPtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v string
-	list := make([]string, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func constructAssociationInsert(w io.Writer, v *Association, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
+func (tbl AssociationTable) constructAssociationInsert(w dialect.StringWriter, v *Association, withPk bool) (s []interface{}, err error) {
+	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 6)
 
 	comma := ""
-	io.WriteString(w, " (")
+	w.WriteString(" (")
 
 	if withPk {
-		dialect.QuoteW(w, "id")
+		q.QuoteW(w, "id")
 		comma = ","
 		s = append(s, v.Id)
 	}
 
 	if v.Name != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "name")
+		q.QuoteW(w, "name")
 		s = append(s, v.Name)
 		comma = ","
 	}
 	if v.Quality != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "quality")
+		q.QuoteW(w, "quality")
 		s = append(s, v.Quality)
 		comma = ","
 	}
 	if v.Ref1 != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "ref1")
+		q.QuoteW(w, "ref1")
 		s = append(s, v.Ref1)
 		comma = ","
 	}
 	if v.Ref2 != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "ref2")
+		q.QuoteW(w, "ref2")
 		s = append(s, v.Ref2)
 		comma = ","
 	}
 	if v.Category != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "category")
+		q.QuoteW(w, "category")
 		s = append(s, v.Category)
 		comma = ","
 	}
-	io.WriteString(w, ")")
+	w.WriteString(")")
 	return s, nil
 }
 
-func constructAssociationUpdate(w io.Writer, v *Association, dialect schema.Dialect) (s []interface{}, err error) {
+func (tbl AssociationTable) constructAssociationUpdate(w dialect.StringWriter, v *Association) (s []interface{}, err error) {
+	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 5)
 
 	comma := ""
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Name != nil {
-		dialect.QuoteWithPlaceholder(w, "name", j)
+		q.QuoteW(w, "name")
+		w.WriteString("=?")
 		s = append(s, v.Name)
 		comma = ", "
 		j++
 	} else {
-		dialect.QuoteW(w, "name")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "name")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Quality != nil {
-		dialect.QuoteWithPlaceholder(w, "quality", j)
+		q.QuoteW(w, "quality")
+		w.WriteString("=?")
 		s = append(s, v.Quality)
 		comma = ", "
 		j++
 	} else {
-		dialect.QuoteW(w, "quality")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "quality")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Ref1 != nil {
-		dialect.QuoteWithPlaceholder(w, "ref1", j)
+		q.QuoteW(w, "ref1")
+		w.WriteString("=?")
 		s = append(s, v.Ref1)
 		comma = ", "
 		j++
 	} else {
-		dialect.QuoteW(w, "ref1")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "ref1")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Ref2 != nil {
-		dialect.QuoteWithPlaceholder(w, "ref2", j)
+		q.QuoteW(w, "ref2")
+		w.WriteString("=?")
 		s = append(s, v.Ref2)
 		comma = ", "
 		j++
 	} else {
-		dialect.QuoteW(w, "ref2")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "ref2")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Category != nil {
-		dialect.QuoteWithPlaceholder(w, "category", j)
+		q.QuoteW(w, "category")
+		w.WriteString("=?")
 		s = append(s, v.Category)
 		comma = ", "
 		j++
 	} else {
-		dialect.QuoteW(w, "category")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "category")
+		w.WriteString("=NULL")
 	}
 
 	return s, nil
@@ -939,7 +813,7 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 		io.WriteString(b, "INSERT INTO ")
 		io.WriteString(b, tbl.name.String())
 
-		fields, err := constructAssociationInsert(b, v, tbl.Dialect(), false)
+		fields, err := tbl.constructAssociationInsert(b, v, false)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -988,19 +862,6 @@ func (tbl AssociationTable) UpdateFields(req require.Requirement, wh where.Expre
 
 //--------------------------------------------------------------------------------
 
-var allAssociationQuotedUpdates = []string{
-	// Sqlite
-	"`name`=?,`quality`=?,`ref1`=?,`ref2`=?,`category`=? WHERE `id`=?",
-	// Mysql
-	"`name`=?,`quality`=?,`ref1`=?,`ref2`=?,`category`=? WHERE `id`=?",
-	// Postgres
-	`"name"=$2,"quality"=$3,"ref1"=$4,"ref2"=$5,"category"=$6 WHERE "id"=$1`,
-	// Pgx
-	`"name"=$2,"quality"=$3,"ref1"=$4,"ref2"=$5,"category"=$6 WHERE "id"=$1`,
-}
-
-//--------------------------------------------------------------------------------
-
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Association.PreUpdate(Execer) method will be called, if it exists.
 func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) (int64, error) {
@@ -1009,8 +870,9 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 	}
 
 	var count int64
-	dialect := tbl.Dialect()
-	//columns := allAssociationQuotedUpdates[dialect.Index()]
+	d := tbl.Dialect()
+	q := d.Quoter()
+	//columns := allAssociationQuotedUpdates[d.Index()]
 	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
@@ -1022,20 +884,20 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 			}
 		}
 
-		b := &bytes.Buffer{}
-		io.WriteString(b, "UPDATE ")
-		io.WriteString(b, tbl.name.String())
-		io.WriteString(b, " SET ")
+		b := dialect.Adapt(&bytes.Buffer{})
+		b.WriteString("UPDATE ")
+		b.WriteString(tbl.name.String())
+		b.WriteString(" SET ")
 
-		args, err := constructAssociationUpdate(b, v, dialect)
-		k := len(args) + 1
-		args = append(args, v.Id)
+		args, err := tbl.constructAssociationUpdate(b, v)
 		if err != nil {
-			return count, tbl.logError(err)
+			return count, err
 		}
+		args = append(args, v.Id)
 
-		io.WriteString(b, " WHERE ")
-		dialect.QuoteWithPlaceholder(b, tbl.pk, k)
+		b.WriteString(" WHERE ")
+		q.QuoteW(b, tbl.pk)
+		b.WriteString("=?")
 
 		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
@@ -1066,12 +928,12 @@ func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...in
 	if len(id) < batch {
 		max = len(id)
 	}
-	dialect := tbl.Dialect()
-	col := dialect.Quote(tbl.pk)
+	d := tbl.Dialect()
+	col := d.Quoter().Quote(tbl.pk)
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
-		pl := dialect.Placeholders(batch)
+		pl := d.Placeholders(batch)
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
@@ -1090,7 +952,7 @@ func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...in
 	}
 
 	if len(id) > 0 {
-		pl := dialect.Placeholders(len(id))
+		pl := d.Placeholders(len(id))
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
@@ -1112,7 +974,7 @@ func (tbl AssociationTable) Delete(req require.Requirement, wh where.Expression)
 }
 
 func (tbl AssociationTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.BuildExpression(wh, tbl.Dialect())
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }

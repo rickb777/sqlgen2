@@ -27,7 +27,7 @@ const sQueryRows = `
 // The caller must call rows.Close() on the result.
 //
 // Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
 	return support.Query(tbl, query, args...)
 }
 `
@@ -79,10 +79,8 @@ var tQueryThings = template.Must(template.New("QueryThings").Funcs(funcMap).Pars
 const sGetRow = `
 //--------------------------------------------------------------------------------
 
-var all{{.CamelName}}QuotedColumnNames = []string{
-{{- range .Dialects}}
-	schema.{{.String}}.SplitAndQuote({{$.CamelName}}ColumnNames),
-{{- end}}
+func all{{.CamelName}}ColumnNamesQuoted(q dialect.Quoter) string {
+	return strings.Join(q.QuoteN(listOf{{$.CamelName}}{{.Thing}}ColumnNames), ",")
 }
 {{- if .Table.Primary}}
 
@@ -136,9 +134,10 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And
 {{- end}}
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Type}}(req require.Requirement, column string, arg interface{}) (*{{.Type}}, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
-		all{{.CamelName}}QuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), dialect.Placeholder(column, 1))
+	d := tbl.Dialect()
+	q := d.Quoter()
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		all{{.CamelName}}ColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -148,10 +147,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Types}}(req require.Requirement,
 		if req == require.All {
 			req = require.Exactly(len(args))
 		}
-		dialect := tbl.Dialect()
-		pl := dialect.Placeholders(len(args))
+		d := tbl.Dialect()
+		q := d.Quoter()
+		pl := d.Placeholders(len(args))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			all{{.CamelName}}QuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), pl)
+			all{{.CamelName}}ColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column), pl)
 		list, err = tbl.doQuery(req, false, query, args...)
 	}
 
@@ -199,7 +199,7 @@ const sSelectRows = `
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		all{{.CamelName}}QuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
+		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -212,9 +212,9 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*{{.Type}}, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
+	q := tbl.Dialect().Quoter()
+	whs, args := where.Where(wh, q)
+	orderBy := where.BuildQueryConstraint(qc, q)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -228,7 +228,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(req require.Requirement, wh 
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ({{.List}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		all{{.CamelName}}QuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
+		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }
@@ -240,9 +240,9 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(req require.Requirement, w
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ({{.List}}, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
+	q := tbl.Dialect().Quoter()
+	whs, args := where.Where(wh, q)
+	orderBy := where.BuildQueryConstraint(qc, q)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 `
@@ -257,7 +257,8 @@ const sCountRows = `
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
+	q := tbl.Dialect().Quoter()
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", q.Quote(tbl.name.String()), where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
@@ -267,7 +268,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(where string, args ...inter
 // Count counts the {{.Types}} in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Count(wh where.Expression) (count int64, err error) {
-	whs, args := where.BuildExpression(wh, tbl.Dialect())
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	return tbl.CountWhere(whs, args...)
 }
 `
@@ -284,7 +285,7 @@ const sSliceItem = `
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Slice{{camel .Table.Primary.SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Table.Primary.Type.Type}}, error) {
-	return tbl.slice{{camel .Table.Primary.Type.Tag}}List(req, tbl.pk, wh, qc)
+	return support.Slice{{camel .Table.Primary.Type.Tag}}List(tbl, req, tbl.pk, wh, qc)
 }
 {{- end}}
 {{- range .Table.SimpleFields.NoSkips.NoPrimary}}
@@ -293,35 +294,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Slice{{camel .Table.Primary.SqlName}}(
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error) {
-	return tbl.slice{{camel .Type.Tag}}List(req, "{{.SqlName}}", wh, qc)
-}
-{{- end}}
-{{- range .Table.SimpleFields.NoSkips.DistinctTypes}}
-
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) slice{{camel .Tag}}List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v {{.Type}}
-	list := make([]{{.Type}}, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return support.Slice{{camel .Type.Tag}}List(tbl, req, "{{.SqlName}}", wh, qc)
 }
 {{- end}}
 `
@@ -331,7 +304,7 @@ var tSliceItem = template.Must(template.New("SliceItem").Funcs(funcMap).Parse(sS
 //-------------------------------------------------------------------------------------------------
 
 const sConstructInsert = `
-func construct{{.Prefix}}{{.Type}}Insert(w io.Writer, v *{{.Type}}, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) construct{{.Prefix}}{{.Type}}Insert(w dialect.StringWriter, v *{{.Type}}, withPk bool) (s []interface{}, err error) {
 {{range .Body1}}{{.}}{{- end}}
 {{range .Body2}}{{.}}{{- end}}
 	return s, nil
@@ -343,7 +316,7 @@ var tConstructInsert = template.Must(template.New("ConstructInsert").Funcs(funcM
 //-------------------------------------------------------------------------------------------------
 
 const sConstructUpdate = `
-func construct{{.Prefix}}{{.Type}}Update(w io.Writer, v *{{.Type}}, dialect schema.Dialect) (s []interface{}, err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) construct{{.Prefix}}{{.Type}}Update(w dialect.StringWriter, v *{{.Type}}) (s []interface{}, err error) {
 {{range .Body1}}{{.}}{{- end}}
 {{range .Body2}}{{.}}{{- end}}
 	return s, nil
@@ -387,7 +360,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 		io.WriteString(b, "INSERT INTO ")
 		io.WriteString(b, tbl.name.String())
 
-		fields, err := construct{{.Prefix}}{{.Type}}Insert(b, v, tbl.Dialect(), {{not .Table.HasLastInsertId}})
+		fields, err := tbl.construct{{.Prefix}}{{.Type}}Insert(b, v, {{not .Table.HasLastInsertId}})
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -469,15 +442,6 @@ const sUpdate = `
 {{- if .Table.Primary}}
 //--------------------------------------------------------------------------------
 
-var all{{.CamelName}}QuotedUpdates = []string{
-{{- range .Dialects}}
-	// {{.}}
-	{{.UpdateDML $.Table}},
-{{- end}}
-}
-
-//--------------------------------------------------------------------------------
-
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The {{.Type}}.PreUpdate(Execer) method will be called, if it exists.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...*{{.Type}}) (int64, error) {
@@ -486,8 +450,9 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 	}
 
 	var count int64
-	dialect := tbl.Dialect()
-	//columns := all{{.CamelName}}QuotedUpdates[dialect.Index()]
+	d := tbl.Dialect()
+	q := d.Quoter()
+	//columns := all{{.CamelName}}QuotedUpdates[d.Index()]
 	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
@@ -499,20 +464,20 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 			}
 		}
 
-		b := &bytes.Buffer{}
-		io.WriteString(b, "UPDATE ")
-		io.WriteString(b, tbl.name.String())
-		io.WriteString(b, " SET ")
+		b := dialect.Adapt(&bytes.Buffer{})
+		b.WriteString("UPDATE ")
+		b.WriteString(tbl.name.String())
+		b.WriteString(" SET ")
 
-		args, err := construct{{.Prefix}}{{.Type}}Update(b, v, dialect)
-		k := len(args) + 1
-		args = append(args, v.{{.Table.Primary.Name}})
+		args, err := tbl.construct{{.Prefix}}{{.Type}}Update(b, v)
 		if err != nil {
-			return count, tbl.logError(err)
+			return count, err
 		}
+		args = append(args, v.{{.Table.Primary.Name}})
 
-		io.WriteString(b, " WHERE ")
-		dialect.QuoteWithPlaceholder(b, tbl.pk, k)
+		b.WriteString(" WHERE ")
+		q.QuoteW(b, tbl.pk)
+		b.WriteString("=?")
 
 		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
@@ -549,12 +514,12 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 	if len(id) < batch {
 		max = len(id)
 	}
-	dialect := tbl.Dialect()
-	col := dialect.Quote(tbl.pk)
+	d := tbl.Dialect()
+	col := d.Quoter().Quote(tbl.pk)
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
-		pl := dialect.Placeholders(batch)
+		pl := d.Placeholders(batch)
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
@@ -573,7 +538,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 	}
 
 	if len(id) > 0 {
-		pl := dialect.Placeholders(len(id))
+		pl := d.Placeholders(len(id))
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
@@ -596,7 +561,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete(req require.Requirement, wh whe
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.BuildExpression(wh, tbl.Dialect())
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }

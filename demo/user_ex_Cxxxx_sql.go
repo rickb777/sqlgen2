@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0; sqlgen v0.42.0
+// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0
 
 package demo
 
@@ -12,11 +12,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
-	"github.com/rickb777/sqlapi/schema"
 	"github.com/rickb777/sqlapi/support"
 	"io"
 	"log"
+	"strings"
 )
 
 // CUserTable holds a given table name with the database reference, providing access methods below.
@@ -24,7 +25,7 @@ import (
 // specify the name of the schema, in which case it should have a trailing '.'.
 type CUserTable struct {
 	name        sqlapi.TableName
-	database    *sqlapi.Database
+	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
@@ -38,7 +39,7 @@ var _ sqlapi.Table = &CUserTable{}
 // NewCUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewCUserTable(name string, d *sqlapi.Database) CUserTable {
+func NewCUserTable(name string, d sqlapi.Database) CUserTable {
 	if name == "" {
 		name = "users"
 	}
@@ -96,7 +97,7 @@ func (tbl CUserTable) WithContext(ctx context.Context) CUserTable {
 }
 
 // Database gets the shared database information.
-func (tbl CUserTable) Database() *sqlapi.Database {
+func (tbl CUserTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
@@ -122,7 +123,7 @@ func (tbl CUserTable) Ctx() context.Context {
 }
 
 // Dialect gets the database dialect.
-func (tbl CUserTable) Dialect() schema.Dialect {
+func (tbl CUserTable) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
@@ -138,8 +139,8 @@ func (tbl CUserTable) PkColumn() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl CUserTable) DB() *sql.DB {
-	return tbl.db.(*sql.DB)
+func (tbl CUserTable) DB() sqlapi.SqlDB {
+	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
@@ -149,13 +150,13 @@ func (tbl CUserTable) Execer() sqlapi.Execer {
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl CUserTable) Tx() *sql.Tx {
-	return tbl.db.(*sql.Tx)
+func (tbl CUserTable) Tx() sqlapi.SqlTx {
+	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl CUserTable) IsTx() bool {
-	_, ok := tbl.db.(*sql.Tx)
+	_, ok := tbl.db.(sqlapi.SqlTx)
 	return ok
 }
 
@@ -172,14 +173,14 @@ func (tbl CUserTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl CUserTable) BeginTx(opts *sql.TxOptions) (CUserTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl CUserTable) Using(tx *sql.Tx) CUserTable {
+func (tbl CUserTable) Using(tx sqlapi.SqlTx) CUserTable {
 	tbl.db = tx
 	return tbl
 }
@@ -198,17 +199,19 @@ func (tbl CUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
-// NumCUserColumns is the total number of columns in CUser.
-const NumCUserColumns = 22
+// NumCUserTableColumns is the total number of columns in CUserTable.
+const NumCUserTableColumns = 22
 
-// NumCUserDataColumns is the number of columns in CUser not including the auto-increment key.
-const NumCUserDataColumns = 21
+// NumCUserTableDataColumns is the number of columns in CUserTable not including the auto-increment key.
+const NumCUserTableDataColumns = 21
 
-// CUserColumnNames is the list of columns in CUser.
-const CUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// CUserTableColumnNames is the list of columns in CUserTable.
+const CUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-// CUserDataColumnNames is the list of data columns in CUser.
-const CUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// CUserTableDataColumnNames is the list of data columns in CUserTable.
+const CUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+
+var listOfCUserTableColumnNames = strings.Split(CUserTableColumnNames, ",")
 
 //--------------------------------------------------------------------------------
 
@@ -222,7 +225,7 @@ const CUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,adm
 // The caller must call rows.Close() on the result.
 //
 // Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl CUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (tbl CUserTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
 	return support.Query(tbl, query, args...)
 }
 
@@ -264,114 +267,115 @@ func (tbl CUserTable) QueryOneNullFloat64(req require.Requirement, query string,
 	return result, err
 }
 
-func constructCUserInsert(w io.Writer, v *User, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
+func (tbl CUserTable) constructCUserInsert(w dialect.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
+	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 22)
 
 	comma := ""
-	io.WriteString(w, " (")
+	w.WriteString(" (")
 
 	if withPk {
-		dialect.QuoteW(w, "uid")
+		q.QuoteW(w, "uid")
 		comma = ","
 		s = append(s, v.Uid)
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "name")
+	q.QuoteW(w, "name")
 	s = append(s, v.Name)
 	comma = ","
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "emailaddress")
+	q.QuoteW(w, "emailaddress")
 	s = append(s, v.EmailAddress)
 	if v.AddressId != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "addressid")
+		q.QuoteW(w, "addressid")
 		s = append(s, v.AddressId)
 	}
 	if v.Avatar != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "avatar")
+		q.QuoteW(w, "avatar")
 		s = append(s, v.Avatar)
 	}
 	if v.Role != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "role")
+		q.QuoteW(w, "role")
 		s = append(s, v.Role)
 	}
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "active")
+	q.QuoteW(w, "active")
 	s = append(s, v.Active)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "admin")
+	q.QuoteW(w, "admin")
 	s = append(s, v.Admin)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "fave")
+	q.QuoteW(w, "fave")
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "lastupdated")
+	q.QuoteW(w, "lastupdated")
 	s = append(s, v.LastUpdated)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "i8")
+	q.QuoteW(w, "i8")
 	s = append(s, v.Numbers.I8)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "u8")
+	q.QuoteW(w, "u8")
 	s = append(s, v.Numbers.U8)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "i16")
+	q.QuoteW(w, "i16")
 	s = append(s, v.Numbers.I16)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "u16")
+	q.QuoteW(w, "u16")
 	s = append(s, v.Numbers.U16)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "i32")
+	q.QuoteW(w, "i32")
 	s = append(s, v.Numbers.I32)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "u32")
+	q.QuoteW(w, "u32")
 	s = append(s, v.Numbers.U32)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "i64")
+	q.QuoteW(w, "i64")
 	s = append(s, v.Numbers.I64)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "u64")
+	q.QuoteW(w, "u64")
 	s = append(s, v.Numbers.U64)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "f32")
+	q.QuoteW(w, "f32")
 	s = append(s, v.Numbers.F32)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "f64")
+	q.QuoteW(w, "f64")
 	s = append(s, v.Numbers.F64)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "token")
+	q.QuoteW(w, "token")
 	s = append(s, v.token)
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "secret")
+	q.QuoteW(w, "secret")
 	s = append(s, v.secret)
-	io.WriteString(w, ")")
+	w.WriteString(")")
 	return s, nil
 }
 
@@ -405,7 +409,7 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 		io.WriteString(b, "INSERT INTO ")
 		io.WriteString(b, tbl.name.String())
 
-		fields, err := constructCUserInsert(b, v, tbl.Dialect(), false)
+		fields, err := tbl.constructCUserInsert(b, v, false)
 		if err != nil {
 			return tbl.logError(err)
 		}

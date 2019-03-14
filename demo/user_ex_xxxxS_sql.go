@@ -1,19 +1,19 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0; sqlgen v0.42.0
+// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0
 
 package demo
 
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
-	"github.com/rickb777/sqlapi/schema"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/sqlapi/where"
 	"log"
+	"strings"
 )
 
 // SUserTable holds a given table name with the database reference, providing access methods below.
@@ -21,7 +21,7 @@ import (
 // specify the name of the schema, in which case it should have a trailing '.'.
 type SUserTable struct {
 	name        sqlapi.TableName
-	database    *sqlapi.Database
+	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
@@ -35,7 +35,7 @@ var _ sqlapi.Table = &SUserTable{}
 // NewSUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewSUserTable(name string, d *sqlapi.Database) SUserTable {
+func NewSUserTable(name string, d sqlapi.Database) SUserTable {
 	if name == "" {
 		name = "users"
 	}
@@ -93,7 +93,7 @@ func (tbl SUserTable) WithContext(ctx context.Context) SUserTable {
 }
 
 // Database gets the shared database information.
-func (tbl SUserTable) Database() *sqlapi.Database {
+func (tbl SUserTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
@@ -119,7 +119,7 @@ func (tbl SUserTable) Ctx() context.Context {
 }
 
 // Dialect gets the database dialect.
-func (tbl SUserTable) Dialect() schema.Dialect {
+func (tbl SUserTable) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
@@ -135,8 +135,8 @@ func (tbl SUserTable) PkColumn() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl SUserTable) DB() *sql.DB {
-	return tbl.db.(*sql.DB)
+func (tbl SUserTable) DB() sqlapi.SqlDB {
+	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
@@ -146,13 +146,13 @@ func (tbl SUserTable) Execer() sqlapi.Execer {
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl SUserTable) Tx() *sql.Tx {
-	return tbl.db.(*sql.Tx)
+func (tbl SUserTable) Tx() sqlapi.SqlTx {
+	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl SUserTable) IsTx() bool {
-	_, ok := tbl.db.(*sql.Tx)
+	_, ok := tbl.db.(sqlapi.SqlTx)
 	return ok
 }
 
@@ -169,14 +169,14 @@ func (tbl SUserTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl SUserTable) BeginTx(opts *sql.TxOptions) (SUserTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl SUserTable) Using(tx *sql.Tx) SUserTable {
+func (tbl SUserTable) Using(tx sqlapi.SqlTx) SUserTable {
 	tbl.db = tx
 	return tbl
 }
@@ -195,17 +195,19 @@ func (tbl SUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
-// NumSUserColumns is the total number of columns in SUser.
-const NumSUserColumns = 22
+// NumSUserTableColumns is the total number of columns in SUserTable.
+const NumSUserTableColumns = 22
 
-// NumSUserDataColumns is the number of columns in SUser not including the auto-increment key.
-const NumSUserDataColumns = 21
+// NumSUserTableDataColumns is the number of columns in SUserTable not including the auto-increment key.
+const NumSUserTableDataColumns = 21
 
-// SUserColumnNames is the list of columns in SUser.
-const SUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// SUserTableColumnNames is the list of columns in SUserTable.
+const SUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-// SUserDataColumnNames is the list of data columns in SUser.
-const SUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// SUserTableDataColumnNames is the list of data columns in SUserTable.
+const SUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+
+var listOfSUserTableColumnNames = strings.Split(SUserTableColumnNames, ",")
 
 //--------------------------------------------------------------------------------
 
@@ -219,7 +221,7 @@ const SUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,adm
 // The caller must call rows.Close() on the result.
 //
 // Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl SUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (tbl SUserTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
 	return support.Query(tbl, query, args...)
 }
 
@@ -267,481 +269,96 @@ func (tbl SUserTable) QueryOneNullFloat64(req require.Requirement, query string,
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.sliceInt64List(req, tbl.pk, wh, qc)
+	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
 }
 
 // SliceName gets the name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.sliceStringList(req, "name", wh, qc)
+	return support.SliceStringList(tbl, req, "name", wh, qc)
 }
 
 // SliceEmailaddress gets the emailaddress column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.sliceStringList(req, "emailaddress", wh, qc)
+	return support.SliceStringList(tbl, req, "emailaddress", wh, qc)
 }
 
 // SliceAddressid gets the addressid column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.sliceInt64PtrList(req, "addressid", wh, qc)
+	return support.SliceInt64PtrList(tbl, req, "addressid", wh, qc)
 }
 
 // SliceAvatar gets the avatar column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceAvatar(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.sliceStringPtrList(req, "avatar", wh, qc)
-}
-
-// SliceRole gets the role column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
-	return tbl.sliceRolePtrList(req, "role", wh, qc)
+	return support.SliceStringPtrList(tbl, req, "avatar", wh, qc)
 }
 
 // SliceLastupdated gets the lastupdated column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceLastupdated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.sliceInt64List(req, "lastupdated", wh, qc)
+	return support.SliceInt64List(tbl, req, "lastupdated", wh, qc)
 }
 
 // SliceI8 gets the i8 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
-	return tbl.sliceInt8List(req, "i8", wh, qc)
+	return support.SliceInt8List(tbl, req, "i8", wh, qc)
 }
 
 // SliceU8 gets the u8 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
-	return tbl.sliceUint8List(req, "u8", wh, qc)
+	return support.SliceUint8List(tbl, req, "u8", wh, qc)
 }
 
 // SliceI16 gets the i16 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
-	return tbl.sliceInt16List(req, "i16", wh, qc)
+	return support.SliceInt16List(tbl, req, "i16", wh, qc)
 }
 
 // SliceU16 gets the u16 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
-	return tbl.sliceUint16List(req, "u16", wh, qc)
+	return support.SliceUint16List(tbl, req, "u16", wh, qc)
 }
 
 // SliceI32 gets the i32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
-	return tbl.sliceInt32List(req, "i32", wh, qc)
+	return support.SliceInt32List(tbl, req, "i32", wh, qc)
 }
 
 // SliceU32 gets the u32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
-	return tbl.sliceUint32List(req, "u32", wh, qc)
+	return support.SliceUint32List(tbl, req, "u32", wh, qc)
 }
 
 // SliceI64 gets the i64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.sliceInt64List(req, "i64", wh, qc)
+	return support.SliceInt64List(tbl, req, "i64", wh, qc)
 }
 
 // SliceU64 gets the u64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl SUserTable) SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
-	return tbl.sliceUint64List(req, "u64", wh, qc)
-}
-
-// SliceF32 gets the f32 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
-	return tbl.sliceFloat32List(req, "f32", wh, qc)
-}
-
-// SliceF64 gets the f64 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
-	return tbl.sliceFloat64List(req, "f64", wh, qc)
-}
-
-func (tbl SUserTable) sliceRolePtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v Role
-	list := make([]Role, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceFloat32List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v float32
-	list := make([]float32, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceFloat64List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v float64
-	list := make([]float64, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceInt16List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v int16
-	list := make([]int16, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceInt32List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v int32
-	list := make([]int32, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceInt64List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v int64
-	list := make([]int64, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceInt64PtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v int64
-	list := make([]int64, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceInt8List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v int8
-	list := make([]int8, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceStringList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v string
-	list := make([]string, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceStringPtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v string
-	list := make([]string, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceUint16List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v uint16
-	list := make([]uint16, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceUint32List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v uint32
-	list := make([]uint32, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceUint64List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v uint64
-	list := make([]uint64, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl SUserTable) sliceUint8List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v uint8
-	list := make([]uint8, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return support.SliceUint64List(tbl, req, "u64", wh, qc)
 }

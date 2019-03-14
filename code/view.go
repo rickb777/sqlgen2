@@ -2,6 +2,7 @@ package code
 
 import (
 	"fmt"
+	"github.com/rickb777/sqlapi/dialect"
 	"strings"
 	"text/template"
 
@@ -24,7 +25,7 @@ type View struct {
 	Body1      []string
 	Body2      []string
 	Body3      []string
-	Dialects   []schema.Dialect
+	Dialects   []dialect.Dialect
 	Table      *schema.TableDescription
 	Setter     *schema.Field
 }
@@ -47,7 +48,7 @@ func NewView(name, prefix, tableName, list string) View {
 		Interface1: "sqlapi.Table",
 		Interface2: "sqlapi.Table",
 		List:       list,
-		Dialects:   schema.AllDialects,
+		Dialects:   dialect.AllDialects,
 	}
 }
 

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0; sqlgen v0.42.0
+// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0
 
 package demo
 
@@ -8,10 +8,11 @@ import (
 	"database/sql"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
-	"github.com/rickb777/sqlapi/schema"
 	"github.com/rickb777/sqlapi/support"
 	"log"
+	"strings"
 )
 
 // XUserTable holds a given table name with the database reference, providing access methods below.
@@ -19,7 +20,7 @@ import (
 // specify the name of the schema, in which case it should have a trailing '.'.
 type XUserTable struct {
 	name        sqlapi.TableName
-	database    *sqlapi.Database
+	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
@@ -33,7 +34,7 @@ var _ sqlapi.Table = &XUserTable{}
 // NewXUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewXUserTable(name string, d *sqlapi.Database) XUserTable {
+func NewXUserTable(name string, d sqlapi.Database) XUserTable {
 	if name == "" {
 		name = "users"
 	}
@@ -91,7 +92,7 @@ func (tbl XUserTable) WithContext(ctx context.Context) XUserTable {
 }
 
 // Database gets the shared database information.
-func (tbl XUserTable) Database() *sqlapi.Database {
+func (tbl XUserTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
@@ -117,7 +118,7 @@ func (tbl XUserTable) Ctx() context.Context {
 }
 
 // Dialect gets the database dialect.
-func (tbl XUserTable) Dialect() schema.Dialect {
+func (tbl XUserTable) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
@@ -133,8 +134,8 @@ func (tbl XUserTable) PkColumn() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl XUserTable) DB() *sql.DB {
-	return tbl.db.(*sql.DB)
+func (tbl XUserTable) DB() sqlapi.SqlDB {
+	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
@@ -144,13 +145,13 @@ func (tbl XUserTable) Execer() sqlapi.Execer {
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl XUserTable) Tx() *sql.Tx {
-	return tbl.db.(*sql.Tx)
+func (tbl XUserTable) Tx() sqlapi.SqlTx {
+	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl XUserTable) IsTx() bool {
-	_, ok := tbl.db.(*sql.Tx)
+	_, ok := tbl.db.(sqlapi.SqlTx)
 	return ok
 }
 
@@ -167,14 +168,14 @@ func (tbl XUserTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl XUserTable) BeginTx(opts *sql.TxOptions) (XUserTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl XUserTable) Using(tx *sql.Tx) XUserTable {
+func (tbl XUserTable) Using(tx sqlapi.SqlTx) XUserTable {
 	tbl.db = tx
 	return tbl
 }
@@ -193,17 +194,19 @@ func (tbl XUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
-// NumXUserColumns is the total number of columns in XUser.
-const NumXUserColumns = 22
+// NumXUserTableColumns is the total number of columns in XUserTable.
+const NumXUserTableColumns = 22
 
-// NumXUserDataColumns is the number of columns in XUser not including the auto-increment key.
-const NumXUserDataColumns = 21
+// NumXUserTableDataColumns is the number of columns in XUserTable not including the auto-increment key.
+const NumXUserTableDataColumns = 21
 
-// XUserColumnNames is the list of columns in XUser.
-const XUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// XUserTableColumnNames is the list of columns in XUserTable.
+const XUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-// XUserDataColumnNames is the list of data columns in XUser.
-const XUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// XUserTableDataColumnNames is the list of data columns in XUserTable.
+const XUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+
+var listOfXUserTableColumnNames = strings.Split(XUserTableColumnNames, ",")
 
 //--------------------------------------------------------------------------------
 
@@ -217,7 +220,7 @@ const XUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,adm
 // The caller must call rows.Close() on the result.
 //
 // Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl XUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (tbl XUserTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
 	return support.Query(tbl, query, args...)
 }
 

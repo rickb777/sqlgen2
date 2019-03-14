@@ -23,20 +23,21 @@ func PackagesToImport(flags FuncFlags, hasPrimaryKey bool) util.StringSet {
 		"context",
 		"database/sql",
 		"log",
+		"strings",
 		"github.com/rickb777/sqlapi",
 		"github.com/rickb777/sqlapi/constraint",
+		"github.com/rickb777/sqlapi/dialect",
 		"github.com/rickb777/sqlapi/require",
-		"github.com/rickb777/sqlapi/schema",
 		"github.com/rickb777/sqlapi/support",
 	)
 
 	if flags.Insert || flags.Update || flags.Schema {
 		imports.Add("bytes")
 	}
-	if flags.Insert || flags.Update {
+	if flags.Insert {
 		imports.Add("io")
 	}
-	if flags.Insert || flags.Select || flags.Slice || flags.Delete {
+	if flags.Insert || flags.Select || flags.Delete {
 		imports.Add("fmt")
 	}
 	if flags.Insert || flags.Select || flags.Update {

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0; sqlgen v0.42.0
+// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0
 
 package demo
 
@@ -12,12 +12,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
-	"github.com/rickb777/sqlapi/schema"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/sqlapi/where"
 	"io"
 	"log"
+	"strings"
 )
 
 // AddressTable holds a given table name with the database reference, providing access methods below.
@@ -25,7 +26,7 @@ import (
 // specify the name of the schema, in which case it should have a trailing '.'.
 type AddressTable struct {
 	name        sqlapi.TableName
-	database    *sqlapi.Database
+	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
@@ -39,7 +40,7 @@ var _ sqlapi.TableWithCrud = &AddressTable{}
 // NewAddressTable returns a new table instance.
 // If a blank table name is supplied, the default name "addresses" will be used instead.
 // The request context is initialised with the background.
-func NewAddressTable(name string, d *sqlapi.Database) AddressTable {
+func NewAddressTable(name string, d sqlapi.Database) AddressTable {
 	if name == "" {
 		name = "addresses"
 	}
@@ -95,7 +96,7 @@ func (tbl AddressTable) WithContext(ctx context.Context) AddressTable {
 }
 
 // Database gets the shared database information.
-func (tbl AddressTable) Database() *sqlapi.Database {
+func (tbl AddressTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
@@ -121,7 +122,7 @@ func (tbl AddressTable) Ctx() context.Context {
 }
 
 // Dialect gets the database dialect.
-func (tbl AddressTable) Dialect() schema.Dialect {
+func (tbl AddressTable) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
@@ -137,8 +138,8 @@ func (tbl AddressTable) PkColumn() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AddressTable) DB() *sql.DB {
-	return tbl.db.(*sql.DB)
+func (tbl AddressTable) DB() sqlapi.SqlDB {
+	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
@@ -148,13 +149,13 @@ func (tbl AddressTable) Execer() sqlapi.Execer {
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AddressTable) Tx() *sql.Tx {
-	return tbl.db.(*sql.Tx)
+func (tbl AddressTable) Tx() sqlapi.SqlTx {
+	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl AddressTable) IsTx() bool {
-	_, ok := tbl.db.(*sql.Tx)
+	_, ok := tbl.db.(sqlapi.SqlTx)
 	return ok
 }
 
@@ -171,14 +172,14 @@ func (tbl AddressTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl AddressTable) BeginTx(opts *sql.TxOptions) (AddressTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AddressTable) Using(tx *sql.Tx) AddressTable {
+func (tbl AddressTable) Using(tx sqlapi.SqlTx) AddressTable {
 	tbl.db = tx
 	return tbl
 }
@@ -197,51 +198,52 @@ func (tbl AddressTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
-// NumAddressColumns is the total number of columns in Address.
-const NumAddressColumns = 4
+// NumAddressTableColumns is the total number of columns in AddressTable.
+const NumAddressTableColumns = 4
 
-// NumAddressDataColumns is the number of columns in Address not including the auto-increment key.
-const NumAddressDataColumns = 3
+// NumAddressTableDataColumns is the number of columns in AddressTable not including the auto-increment key.
+const NumAddressTableDataColumns = 3
 
-// AddressColumnNames is the list of columns in Address.
-const AddressColumnNames = "id,lines,town,postcode"
+// AddressTableColumnNames is the list of columns in AddressTable.
+const AddressTableColumnNames = "id,lines,town,postcode"
 
-// AddressDataColumnNames is the list of data columns in Address.
-const AddressDataColumnNames = "lines,town,postcode"
+// AddressTableDataColumnNames is the list of data columns in AddressTable.
+const AddressTableDataColumnNames = "lines,town,postcode"
 
-//--------------------------------------------------------------------------------
-
-const sqlAddressTableCreateColumnsSqlite = "\n" +
-	" `id`       integer not null primary key autoincrement,\n" +
-	" `lines`    text,\n" +
-	" `town`     text default null,\n" +
-	" `postcode` text not null"
-
-const sqlAddressTableCreateColumnsMysql = "\n" +
-	" `id`       bigint not null primary key auto_increment,\n" +
-	" `lines`    json,\n" +
-	" `town`     varchar(80) default null,\n" +
-	" `postcode` varchar(20) not null"
-
-const sqlAddressTableCreateColumnsPostgres = `
- "id"       bigserial not null primary key,
- "lines"    json,
- "town"     varchar(80) default null,
- "postcode" varchar(20) not null`
-
-const sqlAddressTableCreateColumnsPgx = `
- "id"       bigserial not null primary key,
- "lines"    json,
- "town"     varchar(80) default null,
- "postcode" varchar(20) not null`
-
-const sqlConstrainAddressTable = `
-`
+var listOfAddressTableColumnNames = strings.Split(AddressTableColumnNames, ",")
 
 //--------------------------------------------------------------------------------
 
+var sqlAddressTableCreateColumnsSqlite = []string{
+	"integer not null primary key autoincrement",
+	"text",
+	"text default null",
+	"text not null",
+}
+
+var sqlAddressTableCreateColumnsMysql = []string{
+	"bigint not null primary key auto_increment",
+	"json",
+	"varchar(80) default null",
+	"varchar(20) not null",
+}
+
+var sqlAddressTableCreateColumnsPostgres = []string{
+	"bigserial not null primary key",
+	"json",
+	"text default null",
+	"text not null",
+}
+
+var sqlAddressTableCreateColumnsPgx = []string{
+	"bigserial not null primary key",
+	"json",
+	"text default null",
+	"text not null",
+}
+
+//--------------------------------------------------------------------------------
 const sqlPostcodeIdxIndexColumns = "postcode"
-
 const sqlTownIdxIndexColumns = "town"
 
 //--------------------------------------------------------------------------------
@@ -252,36 +254,43 @@ func (tbl AddressTable) CreateTable(ifNotExists bool) (int64, error) {
 }
 
 func (tbl AddressTable) createTableSql(ifNotExists bool) string {
-	var columns string
-	var settings string
-	switch tbl.Dialect() {
-	case schema.Sqlite:
-		columns = sqlAddressTableCreateColumnsSqlite
-		settings = ""
-	case schema.Mysql:
-		columns = sqlAddressTableCreateColumnsMysql
-		settings = " ENGINE=InnoDB DEFAULT CHARSET=utf8"
-	case schema.Postgres:
-		columns = sqlAddressTableCreateColumnsPostgres
-		settings = ""
-	case schema.Pgx:
-		columns = sqlAddressTableCreateColumnsPgx
-		settings = ""
-	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
 		buf.WriteString("IF NOT EXISTS ")
 	}
-	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (")
-	buf.WriteString(columns)
+	q := tbl.Dialect().Quoter()
+	q.QuoteW(buf, tbl.name.String())
+	buf.WriteString(" (\n ")
+
+	var columns []string
+	switch tbl.Dialect().Index() {
+	case dialect.SqliteIndex:
+		columns = sqlAddressTableCreateColumnsSqlite
+	case dialect.MysqlIndex:
+		columns = sqlAddressTableCreateColumnsMysql
+	case dialect.PostgresIndex:
+		columns = sqlAddressTableCreateColumnsPostgres
+	case dialect.PgxIndex:
+		columns = sqlAddressTableCreateColumnsPgx
+	}
+
+	comma := ""
+	for i, n := range listOfAddressTableColumnNames {
+		buf.WriteString(comma)
+		q.QuoteW(buf, n)
+		buf.WriteString(" ")
+		buf.WriteString(columns[i])
+		comma = ",\n "
+	}
+
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")
-		buf.WriteString(c.ConstraintSql(tbl.Dialect(), tbl.name, i+1))
+		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.name, i+1))
 	}
+
 	buf.WriteString("\n)")
-	buf.WriteString(settings)
+	buf.WriteString(tbl.Dialect().CreateTableSettings())
 	return buf.String()
 }
 
@@ -333,12 +342,12 @@ func (tbl AddressTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreatePostcodeIdxIndex creates the postcodeIdx index.
 func (tbl AddressTable) CreatePostcodeIdxIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect() != schema.Mysql, "IF NOT EXISTS ", "")
+	ine := tbl.ternary(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect() == schema.Mysql {
+	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
 		tbl.Execer().ExecContext(tbl.ctx, tbl.dropPostcodeIdxIndexSql(false))
 		ine = ""
@@ -362,20 +371,20 @@ func (tbl AddressTable) DropPostcodeIdxIndex(ifExists bool) error {
 
 func (tbl AddressTable) dropPostcodeIdxIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect() != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect() == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.name), "")
 	indexPrefix := tbl.name.PrefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%spostcodeIdx%s", ie, indexPrefix, onTbl)
 }
 
 // CreateTownIdxIndex creates the townIdx index.
 func (tbl AddressTable) CreateTownIdxIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect() != schema.Mysql, "IF NOT EXISTS ", "")
+	ine := tbl.ternary(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect() == schema.Mysql {
+	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
 		tbl.Execer().ExecContext(tbl.ctx, tbl.dropTownIdxIndexSql(false))
 		ine = ""
@@ -399,8 +408,8 @@ func (tbl AddressTable) DropTownIdxIndex(ifExists bool) error {
 
 func (tbl AddressTable) dropTownIdxIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect() != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect() == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.name), "")
 	indexPrefix := tbl.name.PrefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%stownIdx%s", ie, indexPrefix, onTbl)
 }
@@ -462,7 +471,7 @@ func (tbl AddressTable) Exec(req require.Requirement, query string, args ...inte
 // The caller must call rows.Close() on the result.
 //
 // Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl AddressTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (tbl AddressTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
 	return support.Query(tbl, query, args...)
 }
 
@@ -504,7 +513,7 @@ func (tbl AddressTable) QueryOneNullFloat64(req require.Requirement, query strin
 	return result, err
 }
 
-func scanAddresses(query string, rows *sql.Rows, firstOnly bool) (vv []*Address, n int64, err error) {
+func scanAddresses(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Address, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -558,11 +567,8 @@ func scanAddresses(query string, rows *sql.Rows, firstOnly bool) (vv []*Address,
 
 //--------------------------------------------------------------------------------
 
-var allAddressQuotedColumnNames = []string{
-	schema.Sqlite.SplitAndQuote(AddressColumnNames),
-	schema.Mysql.SplitAndQuote(AddressColumnNames),
-	schema.Postgres.SplitAndQuote(AddressColumnNames),
-	schema.Pgx.SplitAndQuote(AddressColumnNames),
+func allAddressColumnNamesQuoted(q dialect.Quoter) string {
+	return strings.Join(q.QuoteN(listOfAddressTableColumnNames), ",")
 }
 
 //--------------------------------------------------------------------------------
@@ -609,9 +615,10 @@ func (tbl AddressTable) GetAddressesByTown(req require.Requirement, town string)
 }
 
 func (tbl AddressTable) getAddress(req require.Requirement, column string, arg interface{}) (*Address, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
-		allAddressQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), dialect.Placeholder(column, 1))
+	d := tbl.Dialect()
+	q := d.Quoter()
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allAddressColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -621,10 +628,11 @@ func (tbl AddressTable) getAddresses(req require.Requirement, column string, arg
 		if req == require.All {
 			req = require.Exactly(len(args))
 		}
-		dialect := tbl.Dialect()
-		pl := dialect.Placeholders(len(args))
+		d := tbl.Dialect()
+		q := d.Quoter()
+		pl := d.Placeholders(len(args))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allAddressQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), pl)
+			allAddressColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column), pl)
 		list, err = tbl.doQuery(req, false, query, args...)
 	}
 
@@ -668,7 +676,7 @@ func (tbl AddressTable) Fetch(req require.Requirement, query string, args ...int
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allAddressQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
+		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -681,9 +689,9 @@ func (tbl AddressTable) SelectOneWhere(req require.Requirement, where, orderBy s
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl AddressTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Address, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
+	q := tbl.Dialect().Quoter()
+	whs, args := where.Where(wh, q)
+	orderBy := where.BuildQueryConstraint(qc, q)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -697,7 +705,7 @@ func (tbl AddressTable) SelectOne(req require.Requirement, wh where.Expression, 
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Address, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allAddressQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
+		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }
@@ -709,9 +717,9 @@ func (tbl AddressTable) SelectWhere(req require.Requirement, where, orderBy stri
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl AddressTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Address, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
+	q := tbl.Dialect().Quoter()
+	whs, args := where.Where(wh, q)
+	orderBy := where.BuildQueryConstraint(qc, q)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -720,7 +728,8 @@ func (tbl AddressTable) Select(req require.Requirement, wh where.Expression, qc 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
+	q := tbl.Dialect().Quoter()
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", q.Quote(tbl.name.String()), where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
@@ -730,7 +739,7 @@ func (tbl AddressTable) CountWhere(where string, args ...interface{}) (count int
 // Count counts the Addresses in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl AddressTable) Count(wh where.Expression) (count int64, err error) {
-	whs, args := where.BuildExpression(wh, tbl.Dialect())
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	return tbl.CountWhere(whs, args...)
 }
 
@@ -740,167 +749,94 @@ func (tbl AddressTable) Count(wh where.Expression) (count int64, err error) {
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AddressTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return tbl.sliceInt64List(req, tbl.pk, wh, qc)
+	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
 }
 
 // SliceTown gets the town column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AddressTable) SliceTown(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.sliceStringPtrList(req, "town", wh, qc)
+	return support.SliceStringPtrList(tbl, req, "town", wh, qc)
 }
 
 // SlicePostcode gets the postcode column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AddressTable) SlicePostcode(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return tbl.sliceStringList(req, "postcode", wh, qc)
+	return support.SliceStringList(tbl, req, "postcode", wh, qc)
 }
 
-func (tbl AddressTable) sliceInt64List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v int64
-	list := make([]int64, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl AddressTable) sliceStringList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v string
-	list := make([]string, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func (tbl AddressTable) sliceStringPtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", dialect.Quote(sqlname), tbl.name, whs, orderBy)
-	tbl.logQuery(query, args...)
-	rows, err := tbl.db.QueryContext(tbl.ctx, query, args...)
-	if err != nil {
-		return nil, tbl.logError(err)
-	}
-	defer rows.Close()
-
-	var v string
-	list := make([]string, 0, 10)
-
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
-}
-
-func constructAddressInsert(w io.Writer, v *Address, dialect schema.Dialect, withPk bool) (s []interface{}, err error) {
+func (tbl AddressTable) constructAddressInsert(w dialect.StringWriter, v *Address, withPk bool) (s []interface{}, err error) {
+	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 4)
 
 	comma := ""
-	io.WriteString(w, " (")
+	w.WriteString(" (")
 
 	if withPk {
-		dialect.QuoteW(w, "id")
+		q.QuoteW(w, "id")
 		comma = ","
 		s = append(s, v.Id)
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "lines")
+	q.QuoteW(w, "lines")
 	comma = ","
 	x, err := json.Marshal(&v.Lines)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 	if v.Town != nil {
-		io.WriteString(w, comma)
+		w.WriteString(comma)
 
-		dialect.QuoteW(w, "town")
+		q.QuoteW(w, "town")
 		s = append(s, v.Town)
 		comma = ","
 	}
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 
-	dialect.QuoteW(w, "postcode")
+	q.QuoteW(w, "postcode")
 	s = append(s, v.Postcode)
 	comma = ","
-	io.WriteString(w, ")")
+	w.WriteString(")")
 	return s, nil
 }
 
-func constructAddressUpdate(w io.Writer, v *Address, dialect schema.Dialect) (s []interface{}, err error) {
+func (tbl AddressTable) constructAddressUpdate(w dialect.StringWriter, v *Address) (s []interface{}, err error) {
+	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 3)
 
 	comma := ""
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "lines", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "lines")
+	w.WriteString("=?")
 	comma = ", "
 	j++
 	x, err := json.Marshal(&v.Lines)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Town != nil {
-		dialect.QuoteWithPlaceholder(w, "town", j)
+		q.QuoteW(w, "town")
+		w.WriteString("=?")
 		s = append(s, v.Town)
 		comma = ", "
 		j++
 	} else {
-		dialect.QuoteW(w, "town")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "town")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "postcode", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "postcode")
+	w.WriteString("=?")
 	s = append(s, v.Postcode)
 	comma = ", "
 	j++
@@ -938,7 +874,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 		io.WriteString(b, "INSERT INTO ")
 		io.WriteString(b, tbl.name.String())
 
-		fields, err := constructAddressInsert(b, v, tbl.Dialect(), false)
+		fields, err := tbl.constructAddressInsert(b, v, false)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -987,19 +923,6 @@ func (tbl AddressTable) UpdateFields(req require.Requirement, wh where.Expressio
 
 //--------------------------------------------------------------------------------
 
-var allAddressQuotedUpdates = []string{
-	// Sqlite
-	"`lines`=?,`town`=?,`postcode`=? WHERE `id`=?",
-	// Mysql
-	"`lines`=?,`town`=?,`postcode`=? WHERE `id`=?",
-	// Postgres
-	`"lines"=$2,"town"=$3,"postcode"=$4 WHERE "id"=$1`,
-	// Pgx
-	`"lines"=$2,"town"=$3,"postcode"=$4 WHERE "id"=$1`,
-}
-
-//--------------------------------------------------------------------------------
-
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Address.PreUpdate(Execer) method will be called, if it exists.
 func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, error) {
@@ -1008,8 +931,9 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 	}
 
 	var count int64
-	dialect := tbl.Dialect()
-	//columns := allAddressQuotedUpdates[dialect.Index()]
+	d := tbl.Dialect()
+	q := d.Quoter()
+	//columns := allAddressQuotedUpdates[d.Index()]
 	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
@@ -1021,20 +945,20 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 			}
 		}
 
-		b := &bytes.Buffer{}
-		io.WriteString(b, "UPDATE ")
-		io.WriteString(b, tbl.name.String())
-		io.WriteString(b, " SET ")
+		b := dialect.Adapt(&bytes.Buffer{})
+		b.WriteString("UPDATE ")
+		b.WriteString(tbl.name.String())
+		b.WriteString(" SET ")
 
-		args, err := constructAddressUpdate(b, v, dialect)
-		k := len(args) + 1
-		args = append(args, v.Id)
+		args, err := tbl.constructAddressUpdate(b, v)
 		if err != nil {
-			return count, tbl.logError(err)
+			return count, err
 		}
+		args = append(args, v.Id)
 
-		io.WriteString(b, " WHERE ")
-		dialect.QuoteWithPlaceholder(b, tbl.pk, k)
+		b.WriteString(" WHERE ")
+		q.QuoteW(b, tbl.pk)
+		b.WriteString("=?")
 
 		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)
@@ -1065,12 +989,12 @@ func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (i
 	if len(id) < batch {
 		max = len(id)
 	}
-	dialect := tbl.Dialect()
-	col := dialect.Quote(tbl.pk)
+	d := tbl.Dialect()
+	col := d.Quoter().Quote(tbl.pk)
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
-		pl := dialect.Placeholders(batch)
+		pl := d.Placeholders(batch)
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
@@ -1089,7 +1013,7 @@ func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (i
 	}
 
 	if len(id) > 0 {
-		pl := dialect.Placeholders(len(id))
+		pl := d.Placeholders(len(id))
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
@@ -1111,7 +1035,7 @@ func (tbl AddressTable) Delete(req require.Requirement, wh where.Expression) (in
 }
 
 func (tbl AddressTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.BuildExpression(wh, tbl.Dialect())
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }

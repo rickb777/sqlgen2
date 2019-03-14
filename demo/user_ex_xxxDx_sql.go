@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0; sqlgen v0.42.0
+// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0
 
 package demo
 
@@ -9,11 +9,12 @@ import (
 	"fmt"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
-	"github.com/rickb777/sqlapi/schema"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/sqlapi/where"
 	"log"
+	"strings"
 )
 
 // DUserTable holds a given table name with the database reference, providing access methods below.
@@ -21,7 +22,7 @@ import (
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DUserTable struct {
 	name        sqlapi.TableName
-	database    *sqlapi.Database
+	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
@@ -35,7 +36,7 @@ var _ sqlapi.Table = &DUserTable{}
 // NewDUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewDUserTable(name string, d *sqlapi.Database) DUserTable {
+func NewDUserTable(name string, d sqlapi.Database) DUserTable {
 	if name == "" {
 		name = "users"
 	}
@@ -93,7 +94,7 @@ func (tbl DUserTable) WithContext(ctx context.Context) DUserTable {
 }
 
 // Database gets the shared database information.
-func (tbl DUserTable) Database() *sqlapi.Database {
+func (tbl DUserTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
@@ -119,7 +120,7 @@ func (tbl DUserTable) Ctx() context.Context {
 }
 
 // Dialect gets the database dialect.
-func (tbl DUserTable) Dialect() schema.Dialect {
+func (tbl DUserTable) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
@@ -135,8 +136,8 @@ func (tbl DUserTable) PkColumn() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl DUserTable) DB() *sql.DB {
-	return tbl.db.(*sql.DB)
+func (tbl DUserTable) DB() sqlapi.SqlDB {
+	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
@@ -146,13 +147,13 @@ func (tbl DUserTable) Execer() sqlapi.Execer {
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl DUserTable) Tx() *sql.Tx {
-	return tbl.db.(*sql.Tx)
+func (tbl DUserTable) Tx() sqlapi.SqlTx {
+	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl DUserTable) IsTx() bool {
-	_, ok := tbl.db.(*sql.Tx)
+	_, ok := tbl.db.(sqlapi.SqlTx)
 	return ok
 }
 
@@ -169,14 +170,14 @@ func (tbl DUserTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl DUserTable) BeginTx(opts *sql.TxOptions) (DUserTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DUserTable) Using(tx *sql.Tx) DUserTable {
+func (tbl DUserTable) Using(tx sqlapi.SqlTx) DUserTable {
 	tbl.db = tx
 	return tbl
 }
@@ -195,17 +196,19 @@ func (tbl DUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
-// NumDUserColumns is the total number of columns in DUser.
-const NumDUserColumns = 22
+// NumDUserTableColumns is the total number of columns in DUserTable.
+const NumDUserTableColumns = 22
 
-// NumDUserDataColumns is the number of columns in DUser not including the auto-increment key.
-const NumDUserDataColumns = 21
+// NumDUserTableDataColumns is the number of columns in DUserTable not including the auto-increment key.
+const NumDUserTableDataColumns = 21
 
-// DUserColumnNames is the list of columns in DUser.
-const DUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// DUserTableColumnNames is the list of columns in DUserTable.
+const DUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-// DUserDataColumnNames is the list of data columns in DUser.
-const DUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// DUserTableDataColumnNames is the list of data columns in DUserTable.
+const DUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+
+var listOfDUserTableColumnNames = strings.Split(DUserTableColumnNames, ",")
 
 //--------------------------------------------------------------------------------
 
@@ -229,7 +232,7 @@ func (tbl DUserTable) Exec(req require.Requirement, query string, args ...interf
 // The caller must call rows.Close() on the result.
 //
 // Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl DUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (tbl DUserTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
 	return support.Query(tbl, query, args...)
 }
 
@@ -289,12 +292,12 @@ func (tbl DUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 	if len(id) < batch {
 		max = len(id)
 	}
-	dialect := tbl.Dialect()
-	col := dialect.Quote(tbl.pk)
+	d := tbl.Dialect()
+	col := d.Quoter().Quote(tbl.pk)
 	args := make([]interface{}, max)
 
 	if len(id) > batch {
-		pl := dialect.Placeholders(batch)
+		pl := d.Placeholders(batch)
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for len(id) > batch {
@@ -313,7 +316,7 @@ func (tbl DUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 	}
 
 	if len(id) > 0 {
-		pl := dialect.Placeholders(len(id))
+		pl := d.Placeholders(len(id))
 		query := fmt.Sprintf(qt, tbl.name, col, pl)
 
 		for i := 0; i < len(id); i++ {
@@ -335,7 +338,7 @@ func (tbl DUserTable) Delete(req require.Requirement, wh where.Expression) (int6
 }
 
 func (tbl DUserTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.BuildExpression(wh, tbl.Dialect())
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
 	return query, args
 }

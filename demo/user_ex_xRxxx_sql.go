@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0; sqlgen v0.42.0
+// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0
 
 package demo
 
@@ -11,11 +11,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
-	"github.com/rickb777/sqlapi/schema"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/sqlapi/where"
 	"log"
+	"strings"
 )
 
 // RUserTable holds a given table name with the database reference, providing access methods below.
@@ -23,7 +24,7 @@ import (
 // specify the name of the schema, in which case it should have a trailing '.'.
 type RUserTable struct {
 	name        sqlapi.TableName
-	database    *sqlapi.Database
+	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
@@ -37,7 +38,7 @@ var _ sqlapi.Table = &RUserTable{}
 // NewRUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewRUserTable(name string, d *sqlapi.Database) RUserTable {
+func NewRUserTable(name string, d sqlapi.Database) RUserTable {
 	if name == "" {
 		name = "users"
 	}
@@ -95,7 +96,7 @@ func (tbl RUserTable) WithContext(ctx context.Context) RUserTable {
 }
 
 // Database gets the shared database information.
-func (tbl RUserTable) Database() *sqlapi.Database {
+func (tbl RUserTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
@@ -121,7 +122,7 @@ func (tbl RUserTable) Ctx() context.Context {
 }
 
 // Dialect gets the database dialect.
-func (tbl RUserTable) Dialect() schema.Dialect {
+func (tbl RUserTable) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
@@ -137,8 +138,8 @@ func (tbl RUserTable) PkColumn() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl RUserTable) DB() *sql.DB {
-	return tbl.db.(*sql.DB)
+func (tbl RUserTable) DB() sqlapi.SqlDB {
+	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
@@ -148,13 +149,13 @@ func (tbl RUserTable) Execer() sqlapi.Execer {
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl RUserTable) Tx() *sql.Tx {
-	return tbl.db.(*sql.Tx)
+func (tbl RUserTable) Tx() sqlapi.SqlTx {
+	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl RUserTable) IsTx() bool {
-	_, ok := tbl.db.(*sql.Tx)
+	_, ok := tbl.db.(sqlapi.SqlTx)
 	return ok
 }
 
@@ -171,14 +172,14 @@ func (tbl RUserTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl RUserTable) BeginTx(opts *sql.TxOptions) (RUserTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl RUserTable) Using(tx *sql.Tx) RUserTable {
+func (tbl RUserTable) Using(tx sqlapi.SqlTx) RUserTable {
 	tbl.db = tx
 	return tbl
 }
@@ -197,17 +198,19 @@ func (tbl RUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
-// NumRUserColumns is the total number of columns in RUser.
-const NumRUserColumns = 22
+// NumRUserTableColumns is the total number of columns in RUserTable.
+const NumRUserTableColumns = 22
 
-// NumRUserDataColumns is the number of columns in RUser not including the auto-increment key.
-const NumRUserDataColumns = 21
+// NumRUserTableDataColumns is the number of columns in RUserTable not including the auto-increment key.
+const NumRUserTableDataColumns = 21
 
-// RUserColumnNames is the list of columns in RUser.
-const RUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// RUserTableColumnNames is the list of columns in RUserTable.
+const RUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-// RUserDataColumnNames is the list of data columns in RUser.
-const RUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// RUserTableDataColumnNames is the list of data columns in RUserTable.
+const RUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+
+var listOfRUserTableColumnNames = strings.Split(RUserTableColumnNames, ",")
 
 //--------------------------------------------------------------------------------
 
@@ -221,7 +224,7 @@ const RUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,adm
 // The caller must call rows.Close() on the result.
 //
 // Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl RUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (tbl RUserTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
 	return support.Query(tbl, query, args...)
 }
 
@@ -263,7 +266,7 @@ func (tbl RUserTable) QueryOneNullFloat64(req require.Requirement, query string,
 	return result, err
 }
 
-func scanRUsers(query string, rows *sql.Rows, firstOnly bool) (vv []*User, n int64, err error) {
+func scanRUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -380,11 +383,8 @@ func scanRUsers(query string, rows *sql.Rows, firstOnly bool) (vv []*User, n int
 
 //--------------------------------------------------------------------------------
 
-var allRUserQuotedColumnNames = []string{
-	schema.Sqlite.SplitAndQuote(RUserColumnNames),
-	schema.Mysql.SplitAndQuote(RUserColumnNames),
-	schema.Postgres.SplitAndQuote(RUserColumnNames),
-	schema.Pgx.SplitAndQuote(RUserColumnNames),
+func allRUserColumnNamesQuoted(q dialect.Quoter) string {
+	return strings.Join(q.QuoteN(listOfRUserTableColumnNames), ",")
 }
 
 //--------------------------------------------------------------------------------
@@ -431,9 +431,10 @@ func (tbl RUserTable) GetUserByName(req require.Requirement, name string) (*User
 }
 
 func (tbl RUserTable) getUser(req require.Requirement, column string, arg interface{}) (*User, error) {
-	dialect := tbl.Dialect()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=%s",
-		allRUserQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), dialect.Placeholder(column, 1))
+	d := tbl.Dialect()
+	q := d.Quoter()
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allRUserColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -443,10 +444,11 @@ func (tbl RUserTable) getUsers(req require.Requirement, column string, args ...i
 		if req == require.All {
 			req = require.Exactly(len(args))
 		}
-		dialect := tbl.Dialect()
-		pl := dialect.Placeholders(len(args))
+		d := tbl.Dialect()
+		q := d.Quoter()
+		pl := d.Placeholders(len(args))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allRUserQuotedColumnNames[dialect.Index()], tbl.name, dialect.Quote(column), pl)
+			allRUserColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column), pl)
 		list, err = tbl.doQuery(req, false, query, args...)
 	}
 
@@ -490,7 +492,7 @@ func (tbl RUserTable) Fetch(req require.Requirement, query string, args ...inter
 // The args are for any placeholder parameters in the query.
 func (tbl RUserTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allRUserQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
+		allRUserColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -503,9 +505,9 @@ func (tbl RUserTable) SelectOneWhere(req require.Requirement, where, orderBy str
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl RUserTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
+	q := tbl.Dialect().Quoter()
+	whs, args := where.Where(wh, q)
+	orderBy := where.BuildQueryConstraint(qc, q)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -519,7 +521,7 @@ func (tbl RUserTable) SelectOne(req require.Requirement, wh where.Expression, qc
 // The args are for any placeholder parameters in the query.
 func (tbl RUserTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allRUserQuotedColumnNames[tbl.Dialect().Index()], tbl.name, where, orderBy)
+		allRUserColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
 	vv, err := tbl.doQuery(req, false, query, args...)
 	return vv, err
 }
@@ -531,9 +533,9 @@ func (tbl RUserTable) SelectWhere(req require.Requirement, where, orderBy string
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl RUserTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
-	dialect := tbl.Dialect()
-	whs, args := where.BuildExpression(wh, dialect)
-	orderBy := where.BuildQueryConstraint(qc, dialect)
+	q := tbl.Dialect().Quoter()
+	whs, args := where.Where(wh, q)
+	orderBy := where.BuildQueryConstraint(qc, q)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -542,7 +544,8 @@ func (tbl RUserTable) Select(req require.Requirement, wh where.Expression, qc wh
 //
 // The args are for any placeholder parameters in the query.
 func (tbl RUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.name, where)
+	q := tbl.Dialect().Quoter()
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", q.Quote(tbl.name.String()), where)
 	tbl.logQuery(query, args...)
 	row := tbl.db.QueryRowContext(tbl.ctx, query, args...)
 	err = row.Scan(&count)
@@ -552,6 +555,6 @@ func (tbl RUserTable) CountWhere(where string, args ...interface{}) (count int64
 // Count counts the Users in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl RUserTable) Count(wh where.Expression) (count int64, err error) {
-	whs, args := where.BuildExpression(wh, tbl.Dialect())
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	return tbl.CountWhere(whs, args...)
 }

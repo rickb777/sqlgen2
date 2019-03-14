@@ -31,19 +31,22 @@ for db in $@; do
     mysql)
       echo MySQL....
       echo go test .
-      GO_DRIVER=mysql GO_DSN=testuser:TestPasswd9@/test go test .
+      go clean -testcache ||:
+      GO_DRIVER=mysql GO_DSN=testuser:TestPasswd.9.9.9@/test go test . ||:
       ;;
 
     postgres)
       echo PostgreSQL....
       echo go test .
-      GO_DRIVER=postgres GO_DSN="postgres://testuser:TestPasswd9@/test" go test .
+      go clean -testcache ||:
+      GO_DRIVER=postgres GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" go test . ||:
       ;;
 
     pgx)
       echo PGX....
       echo go test .
-      GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd9@/test" go test .
+      go clean -testcache ||:
+      GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" go test . ||:
       ;;
 
     sqlite) # default - see above

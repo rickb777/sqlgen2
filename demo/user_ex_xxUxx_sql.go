@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0; sqlgen v0.42.0
+// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0
 
 package demo
 
@@ -11,12 +11,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
-	"github.com/rickb777/sqlapi/schema"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/sqlapi/where"
-	"io"
 	"log"
+	"strings"
 )
 
 // UUserTable holds a given table name with the database reference, providing access methods below.
@@ -24,7 +24,7 @@ import (
 // specify the name of the schema, in which case it should have a trailing '.'.
 type UUserTable struct {
 	name        sqlapi.TableName
-	database    *sqlapi.Database
+	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
@@ -38,7 +38,7 @@ var _ sqlapi.Table = &UUserTable{}
 // NewUUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewUUserTable(name string, d *sqlapi.Database) UUserTable {
+func NewUUserTable(name string, d sqlapi.Database) UUserTable {
 	if name == "" {
 		name = "users"
 	}
@@ -96,7 +96,7 @@ func (tbl UUserTable) WithContext(ctx context.Context) UUserTable {
 }
 
 // Database gets the shared database information.
-func (tbl UUserTable) Database() *sqlapi.Database {
+func (tbl UUserTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
@@ -122,7 +122,7 @@ func (tbl UUserTable) Ctx() context.Context {
 }
 
 // Dialect gets the database dialect.
-func (tbl UUserTable) Dialect() schema.Dialect {
+func (tbl UUserTable) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
@@ -138,8 +138,8 @@ func (tbl UUserTable) PkColumn() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl UUserTable) DB() *sql.DB {
-	return tbl.db.(*sql.DB)
+func (tbl UUserTable) DB() sqlapi.SqlDB {
+	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
@@ -149,13 +149,13 @@ func (tbl UUserTable) Execer() sqlapi.Execer {
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl UUserTable) Tx() *sql.Tx {
-	return tbl.db.(*sql.Tx)
+func (tbl UUserTable) Tx() sqlapi.SqlTx {
+	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl UUserTable) IsTx() bool {
-	_, ok := tbl.db.(*sql.Tx)
+	_, ok := tbl.db.(sqlapi.SqlTx)
 	return ok
 }
 
@@ -172,14 +172,14 @@ func (tbl UUserTable) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl UUserTable) BeginTx(opts *sql.TxOptions) (UUserTable, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl UUserTable) Using(tx *sql.Tx) UUserTable {
+func (tbl UUserTable) Using(tx sqlapi.SqlTx) UUserTable {
 	tbl.db = tx
 	return tbl
 }
@@ -198,17 +198,19 @@ func (tbl UUserTable) logIfError(err error) error {
 
 //--------------------------------------------------------------------------------
 
-// NumUUserColumns is the total number of columns in UUser.
-const NumUUserColumns = 22
+// NumUUserTableColumns is the total number of columns in UUserTable.
+const NumUUserTableColumns = 22
 
-// NumUUserDataColumns is the number of columns in UUser not including the auto-increment key.
-const NumUUserDataColumns = 21
+// NumUUserTableDataColumns is the number of columns in UUserTable not including the auto-increment key.
+const NumUUserTableDataColumns = 21
 
-// UUserColumnNames is the list of columns in UUser.
-const UUserColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// UUserTableColumnNames is the list of columns in UUserTable.
+const UUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-// UUserDataColumnNames is the list of data columns in UUser.
-const UUserDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// UUserTableDataColumnNames is the list of data columns in UUserTable.
+const UUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+
+var listOfUUserTableColumnNames = strings.Split(UUserTableColumnNames, ",")
 
 //--------------------------------------------------------------------------------
 
@@ -232,7 +234,7 @@ func (tbl UUserTable) Exec(req require.Requirement, query string, args ...interf
 // The caller must call rows.Close() on the result.
 //
 // Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl UUserTable) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (tbl UUserTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
 	return support.Query(tbl, query, args...)
 }
 
@@ -274,134 +276,156 @@ func (tbl UUserTable) QueryOneNullFloat64(req require.Requirement, query string,
 	return result, err
 }
 
-func constructUUserUpdate(w io.Writer, v *User, dialect schema.Dialect) (s []interface{}, err error) {
+func (tbl UUserTable) constructUUserUpdate(w dialect.StringWriter, v *User) (s []interface{}, err error) {
+	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 21)
 
 	comma := ""
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "name", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "name")
+	w.WriteString("=?")
 	s = append(s, v.Name)
 	comma = ", "
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "emailaddress", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "emailaddress")
+	w.WriteString("=?")
 	s = append(s, v.EmailAddress)
 	j++
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.AddressId != nil {
-		dialect.QuoteWithPlaceholder(w, "addressid", j)
+		q.QuoteW(w, "addressid")
+		w.WriteString("=?")
 		s = append(s, v.AddressId)
 		j++
 	} else {
-		dialect.QuoteW(w, "addressid")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "addressid")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Avatar != nil {
-		dialect.QuoteWithPlaceholder(w, "avatar", j)
+		q.QuoteW(w, "avatar")
+		w.WriteString("=?")
 		s = append(s, v.Avatar)
 		j++
 	} else {
-		dialect.QuoteW(w, "avatar")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "avatar")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
+	w.WriteString(comma)
 	if v.Role != nil {
-		dialect.QuoteWithPlaceholder(w, "role", j)
+		q.QuoteW(w, "role")
+		w.WriteString("=?")
 		s = append(s, v.Role)
 		j++
 	} else {
-		dialect.QuoteW(w, "role")
-		io.WriteString(w, "=NULL")
+		q.QuoteW(w, "role")
+		w.WriteString("=NULL")
 	}
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "active", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "active")
+	w.WriteString("=?")
 	s = append(s, v.Active)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "admin", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "admin")
+	w.WriteString("=?")
 	s = append(s, v.Admin)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "fave", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "fave")
+	w.WriteString("=?")
 	j++
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "lastupdated", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "lastupdated")
+	w.WriteString("=?")
 	s = append(s, v.LastUpdated)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "i8", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "i8")
+	w.WriteString("=?")
 	s = append(s, v.Numbers.I8)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "u8", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "u8")
+	w.WriteString("=?")
 	s = append(s, v.Numbers.U8)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "i16", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "i16")
+	w.WriteString("=?")
 	s = append(s, v.Numbers.I16)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "u16", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "u16")
+	w.WriteString("=?")
 	s = append(s, v.Numbers.U16)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "i32", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "i32")
+	w.WriteString("=?")
 	s = append(s, v.Numbers.I32)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "u32", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "u32")
+	w.WriteString("=?")
 	s = append(s, v.Numbers.U32)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "i64", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "i64")
+	w.WriteString("=?")
 	s = append(s, v.Numbers.I64)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "u64", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "u64")
+	w.WriteString("=?")
 	s = append(s, v.Numbers.U64)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "f32", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "f32")
+	w.WriteString("=?")
 	s = append(s, v.Numbers.F32)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "f64", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "f64")
+	w.WriteString("=?")
 	s = append(s, v.Numbers.F64)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "token", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "token")
+	w.WriteString("=?")
 	s = append(s, v.token)
 	j++
 
-	io.WriteString(w, comma)
-	dialect.QuoteWithPlaceholder(w, "secret", j)
+	w.WriteString(comma)
+	q.QuoteW(w, "secret")
+	w.WriteString("=?")
 	s = append(s, v.secret)
 	j++
 
@@ -416,19 +440,6 @@ func (tbl UUserTable) UpdateFields(req require.Requirement, wh where.Expression,
 
 //--------------------------------------------------------------------------------
 
-var allUUserQuotedUpdates = []string{
-	// Sqlite
-	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`i8`=?,`u8`=?,`i16`=?,`u16`=?,`i32`=?,`u32`=?,`i64`=?,`u64`=?,`f32`=?,`f64`=?,`token`=?,`secret`=? WHERE `uid`=?",
-	// Mysql
-	"`name`=?,`emailaddress`=?,`addressid`=?,`avatar`=?,`role`=?,`active`=?,`admin`=?,`fave`=?,`lastupdated`=?,`i8`=?,`u8`=?,`i16`=?,`u16`=?,`i32`=?,`u32`=?,`i64`=?,`u64`=?,`f32`=?,`f64`=?,`token`=?,`secret`=? WHERE `uid`=?",
-	// Postgres
-	`"name"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"i8"=$11,"u8"=$12,"i16"=$13,"u16"=$14,"i32"=$15,"u32"=$16,"i64"=$17,"u64"=$18,"f32"=$19,"f64"=$20,"token"=$21,"secret"=$22 WHERE "uid"=$1`,
-	// Pgx
-	`"name"=$2,"emailaddress"=$3,"addressid"=$4,"avatar"=$5,"role"=$6,"active"=$7,"admin"=$8,"fave"=$9,"lastupdated"=$10,"i8"=$11,"u8"=$12,"i16"=$13,"u16"=$14,"i32"=$15,"u32"=$16,"i64"=$17,"u64"=$18,"f32"=$19,"f64"=$20,"token"=$21,"secret"=$22 WHERE "uid"=$1`,
-}
-
-//--------------------------------------------------------------------------------
-
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The User.PreUpdate(Execer) method will be called, if it exists.
 func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error) {
@@ -437,8 +448,9 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 	}
 
 	var count int64
-	dialect := tbl.Dialect()
-	//columns := allUUserQuotedUpdates[dialect.Index()]
+	d := tbl.Dialect()
+	q := d.Quoter()
+	//columns := allUUserQuotedUpdates[d.Index()]
 	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
@@ -450,20 +462,20 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 			}
 		}
 
-		b := &bytes.Buffer{}
-		io.WriteString(b, "UPDATE ")
-		io.WriteString(b, tbl.name.String())
-		io.WriteString(b, " SET ")
+		b := dialect.Adapt(&bytes.Buffer{})
+		b.WriteString("UPDATE ")
+		b.WriteString(tbl.name.String())
+		b.WriteString(" SET ")
 
-		args, err := constructUUserUpdate(b, v, dialect)
-		k := len(args) + 1
-		args = append(args, v.Uid)
+		args, err := tbl.constructUUserUpdate(b, v)
 		if err != nil {
-			return count, tbl.logError(err)
+			return count, err
 		}
+		args = append(args, v.Uid)
 
-		io.WriteString(b, " WHERE ")
-		dialect.QuoteWithPlaceholder(b, tbl.pk, k)
+		b.WriteString(" WHERE ")
+		q.QuoteW(b, tbl.pk)
+		b.WriteString("=?")
 
 		query := b.String()
 		n, err := tbl.Exec(nil, query, args...)

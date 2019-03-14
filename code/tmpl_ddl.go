@@ -17,7 +17,7 @@ const sTable = `
 // specify the name of the schema, in which case it should have a trailing '.'.
 type {{.Prefix}}{{.Type}}{{.Thing}} struct {
 	name        sqlapi.TableName
-	database    *sqlapi.Database
+	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
@@ -31,7 +31,7 @@ var _ {{.Interface2}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
 // New{{.Prefix}}{{.Type}}{{.Thing}} returns a new table instance.
 // If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.
 // The request context is initialised with the background.
-func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d *sqlapi.Database) {{.Prefix}}{{.Type}}{{.Thing}} {
+func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d sqlapi.Database) {{.Prefix}}{{.Type}}{{.Thing}} {
 	if name == "" {
 		name = "{{.DbName}}"
 	}
@@ -92,7 +92,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithContext(ctx context.Context) {{.Pr
 }
 
 // Database gets the shared database information.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Database() *sqlapi.Database {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Database() sqlapi.Database {
 	return tbl.database
 }
 
@@ -118,7 +118,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Ctx() context.Context {
 }
 
 // Dialect gets the database dialect.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Dialect() schema.Dialect {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
@@ -136,8 +136,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) PkColumn() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DB() *sql.DB {
-	return tbl.db.(*sql.DB)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DB() sqlapi.SqlDB {
+	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
@@ -147,13 +147,13 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Execer() sqlapi.Execer {
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Tx() *sql.Tx {
-	return tbl.db.(*sql.Tx)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Tx() sqlapi.SqlTx {
+	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
-	_, ok := tbl.db.(*sql.Tx)
+	_, ok := tbl.db.(sqlapi.SqlTx)
 	return ok
 }
 
@@ -170,14 +170,14 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
 // Panics if the Execer is not TxStarter.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) BeginTx(opts *sql.TxOptions) ({{.Prefix}}{{.Type}}{{.Thing}}, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlapi.TxStarter).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx *sql.Tx) {{.Prefix}}{{.Type}}{{.Thing}} {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx sqlapi.SqlTx) {{.Prefix}}{{.Type}}{{.Thing}} {
 	tbl.db = tx
 	return tbl
 }
@@ -201,7 +201,7 @@ var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
 
 // function template to scan multiple rows.
 const sScanRows = `
-func scan{{.Prefix}}{{.Types}}(query string, rows *sql.Rows, firstOnly bool) (vv {{.List}}, n int64, err error) {
+func scan{{.Prefix}}{{.Types}}(query string, rows sqlapi.SqlRows, firstOnly bool) (vv {{.List}}, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -290,29 +290,39 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateTable(ifNotExists bool) (int64, 
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) createTableSql(ifNotExists bool) string {
-	var columns string
-	var settings string
-	switch tbl.Dialect() {
-	{{- range .Dialects}}
-	case schema.{{.String}}:
-		columns = sql{{$.Prefix}}{{$.Type}}{{$.Thing}}CreateColumns{{.}}
-		settings = "{{.CreateTableSettings}}"
-    {{- end}}
-	}
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
 		buf.WriteString("IF NOT EXISTS ")
 	}
-	buf.WriteString(tbl.name.String())
-	buf.WriteString(" (")
-	buf.WriteString(columns)
+	q := tbl.Dialect().Quoter()
+	q.QuoteW(buf, tbl.name.String())
+	buf.WriteString(" (\n ")
+
+	var columns []string
+	switch tbl.Dialect().Index() {
+	{{- range .Dialects}}
+	case dialect.{{.String}}Index:
+		columns = sql{{$.Prefix}}{{$.Type}}{{$.Thing}}CreateColumns{{.}}
+    {{- end}}
+	}
+
+	comma := ""
+	for i, n := range listOf{{$.Prefix}}{{$.Type}}{{$.Thing}}ColumnNames {
+		buf.WriteString(comma)
+		q.QuoteW(buf, n)
+		buf.WriteString(" ")
+		buf.WriteString(columns[i])
+		comma = ",\n "
+	}
+
 	for i, c := range tbl.constraints {
 		buf.WriteString(",\n ")
-		buf.WriteString(c.ConstraintSql(tbl.Dialect(), tbl.name, i+1))
+		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.name, i+1))
 	}
+
 	buf.WriteString("\n)")
-	buf.WriteString(settings)
+	buf.WriteString(tbl.Dialect().CreateTableSettings())
 	return buf.String()
 }
 
@@ -362,12 +372,12 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateIndexes(ifNotExist bool) (err er
 {{range .Table.Index}}
 // Create{{camel .Name}}Index creates the {{.Name}} index.
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect() != schema.Mysql, "IF NOT EXISTS ", "")
+	ine := tbl.ternary(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect() == schema.Mysql {
+	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
 		tbl.Execer().ExecContext(tbl.ctx, tbl.drop{{$.Prefix}}{{camel .Name}}IndexSql(false))
 		ine = ""
@@ -391,8 +401,8 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Drop{{camel .Name}}Index(ifExists b
 
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) drop{{$.Prefix}}{{camel .Name}}IndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect() != schema.Mysql, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect() == schema.Mysql, fmt.Sprintf(" ON %s", tbl.name), "")
+	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.name), "")
 	indexPrefix := tbl.name.PrefixWithoutDot()
 	return fmt.Sprintf("DROP INDEX %s%s{{.Name}}%s", ie, indexPrefix, onTbl)
 }

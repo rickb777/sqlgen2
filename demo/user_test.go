@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
-	. "fmt"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/kortschak/utter"
 	_ "github.com/lib/pq"
@@ -13,8 +13,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
-	"github.com/rickb777/sqlapi/schema"
 	"github.com/rickb777/sqlapi/where"
 	"github.com/spf13/cast"
 	"log"
@@ -25,30 +25,51 @@ import (
 )
 
 var db *sql.DB
-var dialect schema.Dialect
+var di dialect.Dialect
 
-func connect(t *testing.T) {
+func TestMain(m *testing.M) {
+	connect()
+	code := m.Run()
+	cleanup()
+	os.Exit(code)
+}
+
+func connect() {
 	db = nil
 	dbDriver, ok := os.LookupEnv("GO_DRIVER")
 	if !ok {
 		dbDriver = "sqlite3"
 	}
-	dialect = schema.PickDialect(dbDriver)
+	di = dialect.PickDialect(dbDriver)
 	dsn, ok := os.LookupEnv("GO_DSN")
 	if !ok {
 		dsn = ":memory:"
 	}
 	conn, err := sql.Open(dbDriver, dsn)
 	if err != nil {
-		t.Logf("\n***Warning: unable to connect to %s (%v); test is only partially complete.\n\n", dbDriver, err)
-		return
+		fmt.Fprintf(os.Stderr, "Warning: Unable to connect to %s (%v); test is only partially complete.\n\n", dbDriver, err)
+		os.Exit(9)
 	}
 	err = conn.Ping()
 	if err != nil {
-		t.Logf("\n***Warning: unable to connect to %s (%v); test is only partially complete.\n\n", dbDriver, err)
-		return
+		fmt.Fprintf(os.Stderr, "Warning: Unable to ping %s (%v); test is only partially complete.\n\n", dbDriver, err)
+		os.Exit(9)
 	}
+	fmt.Fprintf(os.Stderr, "Successfully connected to %s.\n", dbDriver)
 	db = conn
+}
+
+func newDatabase(t *testing.T) sqlapi.Database {
+	if db == nil {
+		return nil
+	}
+
+	d := sqlapi.NewDatabase(db, di, nil, nil)
+	if testing.Verbose() {
+		lgr := log.New(os.Stdout, "", log.LstdFlags)
+		d = sqlapi.NewDatabase(db, di, lgr, nil)
+	}
+	return d
 }
 
 func cleanup() {
@@ -60,8 +81,8 @@ func cleanup() {
 
 func user(i int) *User {
 	return &User{
-		Name:         Sprintf("user%02d", i),
-		EmailAddress: Sprintf("foo%d@x.z", i),
+		Name:         fmt.Sprintf("user%02d", i),
+		EmailAddress: fmt.Sprintf("foo%d@x.z", i),
 		Active:       true,
 		Fave:         big.NewInt(int64(i)),
 		Numbers: Numbers{
@@ -80,92 +101,122 @@ func user(i int) *User {
 }
 
 func TestCreateTable_sql_syntax(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewGomegaWithT(t)
 
 	cases := []struct {
-		dialect  schema.Dialect
+		dialect  dialect.Dialect
 		expected string
 	}{
-		{schema.Sqlite,
+		{dialect.Sqlite,
+			`CREATE TABLE IF NOT EXISTS "prefix_users" (
+ "uid" integer not null primary key autoincrement,
+ "name" text not null,
+ "emailaddress" text not null,
+ "addressid" bigint default null,
+ "avatar" text default null,
+ "role" text default null,
+ "active" boolean not null,
+ "admin" boolean not null,
+ "fave" text,
+ "lastupdated" bigint not null,
+ "i8" tinyint not null default -8,
+ "u8" tinyint unsigned not null default 8,
+ "i16" smallint not null default -16,
+ "u16" smallint unsigned not null default 16,
+ "i32" int not null default -32,
+ "u32" int unsigned not null default 32,
+ "i64" bigint not null default -64,
+ "u64" bigint unsigned not null default 64,
+ "f32" float not null default 3.2,
+ "f64" double not null default 6.4,
+ "token" text not null,
+ "secret" text not null,
+ CONSTRAINT "prefix_users_c1" foreign key ("addressid") references "prefix_addresses" ("id") on update restrict on delete restrict,
+ CONSTRAINT "prefix_users_c2" CHECK (role < 3)
+)`},
+
+		{dialect.Mysql,
+			`CREATE TABLE IF NOT EXISTS ¬prefix_users¬ (
+ ¬uid¬ bigint not null primary key auto_increment,
+ ¬name¬ varchar(255) not null,
+ ¬emailaddress¬ varchar(255) not null,
+ ¬addressid¬ bigint default null,
+ ¬avatar¬ text default null,
+ ¬role¬ varchar(20) default null,
+ ¬active¬ boolean not null,
+ ¬admin¬ boolean not null,
+ ¬fave¬ json,
+ ¬lastupdated¬ bigint not null,
+ ¬i8¬ tinyint not null default -8,
+ ¬u8¬ tinyint unsigned not null default 8,
+ ¬i16¬ smallint not null default -16,
+ ¬u16¬ smallint unsigned not null default 16,
+ ¬i32¬ int not null default -32,
+ ¬u32¬ int unsigned not null default 32,
+ ¬i64¬ bigint not null default -64,
+ ¬u64¬ bigint unsigned not null default 64,
+ ¬f32¬ float not null default 3.2,
+ ¬f64¬ double not null default 6.4,
+ ¬token¬ text not null,
+ ¬secret¬ text not null,
+ CONSTRAINT ¬prefix_users_c1¬ foreign key (¬addressid¬) references ¬prefix_addresses¬ (¬id¬) on update restrict on delete restrict,
+ CONSTRAINT ¬prefix_users_c2¬ CHECK (role < 3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8`},
+
+		{dialect.Postgres.WithQuoter(dialect.NoQuoter),
 			`CREATE TABLE IF NOT EXISTS prefix_users (
- ¬uid¬          integer not null primary key autoincrement,
- ¬name¬         text not null,
- ¬emailaddress¬ text not null,
- ¬addressid¬    bigint default null,
- ¬avatar¬       text default null,
- ¬role¬         text default null,
- ¬active¬       boolean not null,
- ¬admin¬        boolean not null,
- ¬fave¬         text,
- ¬lastupdated¬  bigint not null,
- ¬i8¬           tinyint not null default -8,
- ¬u8¬           tinyint unsigned not null default 8,
- ¬i16¬          smallint not null default -16,
- ¬u16¬          smallint unsigned not null default 16,
- ¬i32¬          int not null default -32,
- ¬u32¬          int unsigned not null default 32,
- ¬i64¬          bigint not null default -64,
- ¬u64¬          bigint unsigned not null default 64,
- ¬f32¬          float not null default 3.2,
- ¬f64¬          double not null default 6.4,
- ¬token¬        text not null,
- ¬secret¬       text not null,
- CONSTRAINT prefix_users_c1 foreign key (¬addressid¬) references prefix_addresses (¬id¬) on update restrict on delete restrict,
+ uid bigserial not null primary key,
+ name text not null,
+ emailaddress text not null,
+ addressid bigint default null,
+ avatar text default null,
+ role text default null,
+ active boolean not null,
+ admin boolean not null,
+ fave json,
+ lastupdated bigint not null,
+ i8 int8 not null default -8,
+ u8 smallint not null default 8,
+ i16 smallint not null default -16,
+ u16 integer not null default 16,
+ i32 integer not null default -32,
+ u32 bigint not null default 32,
+ i64 bigint not null default -64,
+ u64 bigint not null default 64,
+ f32 real not null default 3.2,
+ f64 double precision not null default 6.4,
+ token text not null,
+ secret text not null,
+ CONSTRAINT prefix_users_c1 foreign key (addressid) references prefix_addresses (id) on update restrict on delete restrict,
  CONSTRAINT prefix_users_c2 CHECK (role < 3)
 )`},
-		{schema.Mysql,
-			`CREATE TABLE IF NOT EXISTS prefix_users (
- ¬uid¬          bigint not null primary key auto_increment,
- ¬name¬         varchar(255) not null,
- ¬emailaddress¬ varchar(255) not null,
- ¬addressid¬    bigint default null,
- ¬avatar¬       varchar(255) default null,
- ¬role¬         varchar(20) default null,
- ¬active¬       tinyint(1) not null,
- ¬admin¬        tinyint(1) not null,
- ¬fave¬         json,
- ¬lastupdated¬  bigint not null,
- ¬i8¬           tinyint not null default -8,
- ¬u8¬           tinyint unsigned not null default 8,
- ¬i16¬          smallint not null default -16,
- ¬u16¬          smallint unsigned not null default 16,
- ¬i32¬          int not null default -32,
- ¬u32¬          int unsigned not null default 32,
- ¬i64¬          bigint not null default -64,
- ¬u64¬          bigint unsigned not null default 64,
- ¬f32¬          float not null default 3.2,
- ¬f64¬          double not null default 6.4,
- ¬token¬        varchar(255) not null,
- ¬secret¬       varchar(255) not null,
- CONSTRAINT prefix_users_c1 foreign key (¬addressid¬) references prefix_addresses (¬id¬) on update restrict on delete restrict,
- CONSTRAINT prefix_users_c2 CHECK (role < 3)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8`},
-		{schema.Postgres,
-			`CREATE TABLE IF NOT EXISTS prefix_users (
- "uid"          bigserial not null primary key,
- "name"         varchar(255) not null,
- "emailaddress" varchar(255) not null,
- "addressid"    bigint default null,
- "avatar"       varchar(255) default null,
- "role"         varchar(20) default null,
- "active"       boolean not null,
- "admin"        boolean not null,
- "fave"         json,
- "lastupdated"  bigint not null,
- "i8"           int8 not null default -8,
- "u8"           smallint not null default 8,
- "i16"          smallint not null default -16,
- "u16"          integer not null default 16,
- "i32"          integer not null default -32,
- "u32"          bigint not null default 32,
- "i64"          bigint not null default -64,
- "u64"          bigint not null default 64,
- "f32"          real not null default 3.2,
- "f64"          double precision not null default 6.4,
- "token"        varchar(255) not null,
- "secret"       varchar(255) not null,
- CONSTRAINT prefix_users_c1 foreign key ("addressid") references prefix_addresses ("id") on update restrict on delete restrict,
- CONSTRAINT prefix_users_c2 CHECK (role < 3)
+
+		{dialect.Postgres,
+			`CREATE TABLE IF NOT EXISTS "prefix_users" (
+ "uid" bigserial not null primary key,
+ "name" text not null,
+ "emailaddress" text not null,
+ "addressid" bigint default null,
+ "avatar" text default null,
+ "role" text default null,
+ "active" boolean not null,
+ "admin" boolean not null,
+ "fave" json,
+ "lastupdated" bigint not null,
+ "i8" int8 not null default -8,
+ "u8" smallint not null default 8,
+ "i16" smallint not null default -16,
+ "u16" integer not null default 16,
+ "i32" integer not null default -32,
+ "u32" bigint not null default 32,
+ "i64" bigint not null default -64,
+ "u64" bigint not null default 64,
+ "f32" real not null default 3.2,
+ "f64" double precision not null default 6.4,
+ "token" text not null,
+ "secret" text not null,
+ CONSTRAINT "prefix_users_c1" foreign key ("addressid") references "prefix_addresses" ("id") on update restrict on delete restrict,
+ CONSTRAINT "prefix_users_c2" CHECK (role < 3)
 )`},
 	}
 
@@ -173,14 +224,13 @@ func TestCreateTable_sql_syntax(t *testing.T) {
 		d := sqlapi.NewDatabase(nil, c.dialect, nil, nil)
 		tbl := NewDbUserTable("users", d).
 			WithPrefix("prefix_").
-			WithConstraint(
-				constraint.CheckConstraint{"role < 3"})
+			WithConstraint(constraint.CheckConstraint{"role < 3"})
 		s := tbl.createTableSql(true)
 		expected := strings.Replace(c.expected, "¬", "`", -1)
 		if s != expected {
 			outputDiff(s, c.dialect.String()+".txt")
 		}
-		Ω(s).Should(Equal(expected), "%s\n%s", c.dialect, s)
+		g.Expect(s).To(Equal(expected), "%s\n%s", c.dialect, s)
 	}
 }
 
@@ -198,313 +248,298 @@ func outputDiff(a, name string) {
 }
 
 func TestCreateIndexSql(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewGomegaWithT(t)
 
-	d := sqlapi.NewDatabase(nil, schema.Postgres, nil, nil)
+	d := sqlapi.NewDatabase(nil, dialect.Postgres, nil, nil)
 	tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
 	s := tbl.createDbEmailaddressIdxIndexSql("IF NOT EXISTS ")
 	expected := `CREATE UNIQUE INDEX IF NOT EXISTS prefix_emailaddress_idx ON prefix_users (emailaddress)`
-	Ω(s).Should(Equal(expected))
+	g.Expect(s).To(Equal(expected))
 }
 
 func TestDropIndexSql(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewGomegaWithT(t)
 
 	cases := []struct {
-		d        schema.Dialect
+		d        dialect.Dialect
 		expected string
 	}{
-		{schema.Sqlite, `DROP INDEX IF EXISTS prefix_emailaddress_idx`},
-		{schema.Mysql, `DROP INDEX prefix_emailaddress_idx ON prefix_users`},
-		{schema.Postgres, `DROP INDEX IF EXISTS prefix_emailaddress_idx`},
+		{dialect.Sqlite, `DROP INDEX IF EXISTS prefix_emailaddress_idx`},
+		{dialect.Mysql, `DROP INDEX prefix_emailaddress_idx ON prefix_users`},
+		{dialect.Postgres, `DROP INDEX IF EXISTS prefix_emailaddress_idx`},
 	}
 
 	for _, c := range cases {
 		d := sqlapi.NewDatabase(nil, c.d, nil, nil)
 		tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
 		s := tbl.dropDbEmailaddressIdxIndexSql(true)
-		Ω(s).Should(Equal(c.expected))
+		g.Expect(s).To(Equal(c.expected))
 	}
 }
 
 func TestUpdateFields_ok_using_mock(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewGomegaWithT(t)
 
 	mockDb := mockExecer{RowsAffected: 1}
 
-	d := sqlapi.NewDatabase(mockDb, schema.Mysql, nil, nil)
+	d := sqlapi.NewDatabase(mockDb, dialect.Mysql, nil, nil)
 	tbl := NewDbUserTable("users", d)
 
 	n, err := tbl.UpdateFields(require.One, where.NoOp(),
 		sqlapi.Named("EmailAddress", "foo@x.com"),
 		sqlapi.Named("Hash", "abc123"))
 
-	Ω(err).Should(BeNil())
-	Ω(n).Should(Equal(int64(1)))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(n).To(Equal(int64(1)))
 }
 
 func TestUpdateFields_error_using_mock(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewGomegaWithT(t)
 
-	exp := Errorf("foo")
+	exp := fmt.Errorf("foo")
 	mockDb := mockExecer{Error: exp}
 
-	d := sqlapi.NewDatabase(mockDb, schema.Mysql, nil, nil)
+	d := sqlapi.NewDatabase(mockDb, dialect.Mysql, nil, nil)
 	tbl := NewDbUserTable("users", d)
 
 	_, err := tbl.UpdateFields(nil, where.NoOp(),
 		sqlapi.Named("EmailAddress", "foo@x.com"),
 		sqlapi.Named("Hash", "abc123"))
 
-	Ω(errors.Cause(err)).Should(Equal(exp))
+	g.Expect(errors.Cause(err)).To(Equal(exp))
 }
 
 func TestUpdate_ok_using_mock(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewGomegaWithT(t)
 
 	mockDb := mockExecer{RowsAffected: 1}
 
-	d := sqlapi.NewDatabase(mockDb, schema.Mysql, nil, nil)
+	d := sqlapi.NewDatabase(mockDb, dialect.Mysql, nil, nil)
 	tbl := NewDbUserTable("users", d)
 
 	n, err := tbl.Update(require.One, &User{})
 
-	Ω(err).Should(BeNil())
-	Ω(n).Should(Equal(int64(1)))
-}
-
-func TestUpdate_error_using_mock(t *testing.T) {
-	RegisterTestingT(t)
-
-	exp := Errorf("foo")
-	mockDb := mockExecer{Error: exp}
-
-	d := sqlapi.NewDatabase(mockDb, schema.Mysql, nil, nil)
-	tbl := NewDbUserTable("users", d)
-
-	_, err := tbl.Update(nil, &User{})
-
-	Ω(errors.Cause(err)).Should(Equal(exp))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(n).To(Equal(int64(1)))
 }
 
 //-------------------------------------------------------------------------------------------------
 
+func TestUpdate_error_using_mock(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	exp := fmt.Errorf("foo")
+	mockDb := mockExecer{Error: exp}
+
+	d := sqlapi.NewDatabase(mockDb, dialect.Mysql, nil, nil)
+	tbl := NewDbUserTable("users", d)
+
+	_, err := tbl.Update(nil, &User{})
+
+	g.Expect(errors.Cause(err)).To(Equal(exp))
+}
+
 func TestCrud_using_database(t *testing.T) {
-	RegisterTestingT(t)
-	connect(t)
-	if db == nil {
+	g := NewGomegaWithT(t)
+
+	d := newDatabase(t)
+	if d == nil {
 		return
 	}
-	defer cleanup()
 
-	d := sqlapi.NewDatabase(db, dialect, nil, nil)
-	if testing.Verbose() {
-		lgr := log.New(os.Stderr, "", log.LstdFlags)
-		d = sqlapi.NewDatabase(db, dialect, lgr, nil)
-	}
 	addresses := NewAddressTable("addresses", d)
 
 	users := NewDbUserTable("users", d)
 
 	_, err := users.DropTable(true)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	_, err = addresses.DropTable(true)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	err = addresses.CreateTableWithIndexes(false)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	err = users.CreateTableWithIndexes(false)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
-	count_remainder_should_be(t, users, 0)
+	count_remainder_should_be(g, users, 0)
 
-	insert_user_should_run_PreInsert(t, users, "user1")
-	user1 := insert_user_should_run_PreInsert(t, users, "user2")
-	insert_user_should_run_PreInsert(t, users, "user3")
+	insert_user_should_run_PreInsert(g, users, "user1")
+	user1 := insert_user_should_run_PreInsert(g, users, "user2")
+	insert_user_should_run_PreInsert(g, users, "user3")
 
-	get_user_should_call_PostGet_and_match_expected(t, users, user1)
+	get_user_should_call_PostGet_and_match_expected(g, users, user1)
 
-	get_unknown_user_should_return_nil(t, users, user1)
+	get_unknown_user_should_return_nil(g, users, user1)
 
-	must_get_unknown_user_should_return_error(t, users, user1)
+	must_get_unknown_user_should_return_error(g, users, user1)
 
-	count_known_user_should_return_1(t, users)
+	count_known_user_should_return_1(g, users)
 
-	select_unknown_user_should_return_empty_list(t, users)
+	select_unknown_user_should_return_empty_list(g, users)
 
-	select_unknown_user_requiring_one_should_return_error(t, users)
+	select_unknown_user_requiring_one_should_return_error(g, users)
 
-	query_one_nullstring_for_user_should_return_valid(t, users)
+	query_one_nullstring_for_user_should_return_valid(g, users)
 
-	query_one_nullstring_for_unknown_should_return_invalid(t, users)
+	query_one_nullstring_for_unknown_should_return_invalid(g, users)
 
-	user2 := select_known_user_requiring_one_should_return_user(t, users)
+	user2 := select_known_user_requiring_one_should_return_user(g, users)
 
-	update_user_should_call_PreUpdate(t, users, user2)
+	update_user_should_call_PreUpdate(g, users, user2)
 
-	update_users_in_tx(t, users, user2)
+	update_users_in_tx(g, users, user2)
 
-	delete_one_should_return_1(t, users)
+	delete_one_should_return_1(g, users)
 
-	count_remainder_should_be(t, users, 2)
+	count_remainder_should_be(g, users, 2)
 }
 
-func count_remainder_should_be(t *testing.T, tbl DbUserTable, expected int64) {
+func count_remainder_should_be(g *GomegaWithT, tbl DbUserTable, expected int64) {
 	c1, err := tbl.Count(where.NoOp())
-	Ω(err).Should(BeNil())
-	Ω(c1).Should(Equal(expected))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(c1).To(Equal(expected))
 }
 
-func insert_user_should_run_PreInsert(t *testing.T, tbl DbUserTable, name string) *User {
+func insert_user_should_run_PreInsert(g *GomegaWithT, tbl DbUserTable, name string) *User {
 	user := &User{Name: name, EmailAddress: name + "@x.z"}
 	user = user.SetRole(UserRole)
 	err := tbl.Insert(require.One, user)
-	Ω(err).Should(BeNil())
-	Ω(user.hash).Should(Equal("PreInsert"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(user.hash).To(Equal("PreInsert"))
 	return user
 }
 
-func get_user_should_call_PostGet_and_match_expected(t *testing.T, tbl DbUserTable, expected *User) {
+func get_user_should_call_PostGet_and_match_expected(g *GomegaWithT, tbl DbUserTable, expected *User) {
 	user, err := tbl.GetUserByUid(nil, expected.Uid)
-	Ω(err).Should(BeNil())
-	if user.hash != "PostGet" {
-		t.Fatalf("%q", user.hash)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(user.hash).To(Equal("PostGet"))
 	user.hash = expected.hash
-	Ω(user).Should(Equal(expected))
+	g.Expect(user).To(Equal(expected))
 }
 
-func get_unknown_user_should_return_nil(t *testing.T, tbl DbUserTable, expected *User) {
+func get_unknown_user_should_return_nil(g *GomegaWithT, tbl DbUserTable, expected *User) {
 	user, err := tbl.GetUserByUid(nil, expected.Uid+100000)
-	Ω(err).Should(BeNil())
-	Ω(user).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(user).To(BeNil())
 }
 
-func must_get_unknown_user_should_return_error(t *testing.T, tbl DbUserTable, expected *User) {
+func must_get_unknown_user_should_return_error(g *GomegaWithT, tbl DbUserTable, expected *User) {
 	_, err := tbl.GetUserByUid(require.One, expected.Uid+100000)
-	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
+	g.Expect(err.Error()).To(Equal("expected to fetch one but got 0"))
 }
 
-func count_known_user_should_return_1(t *testing.T, tbl DbUserTable) {
+func count_known_user_should_return_1(g *GomegaWithT, tbl DbUserTable) {
 	count, err := tbl.Count(where.Eq("name", "user1"))
-	Ω(err).Should(BeNil())
-	Ω(count).Should(BeEquivalentTo(1))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(count).To(BeEquivalentTo(1))
 }
 
-func select_unknown_user_should_return_empty_list(t *testing.T, tbl DbUserTable) {
+func select_unknown_user_should_return_empty_list(g *GomegaWithT, tbl DbUserTable) {
 	list, err := tbl.Select(require.None, where.Eq("name", "unknown"), nil)
-	Ω(err).Should(BeNil())
-	Ω(list).Should(HaveLen(0))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(list).To(HaveLen(0))
 }
 
-func select_unknown_user_requiring_one_should_return_error(t *testing.T, tbl DbUserTable) {
+func select_unknown_user_requiring_one_should_return_error(g *GomegaWithT, tbl DbUserTable) {
 	list, err := tbl.Select(require.None, where.Eq("name", "unknown"), nil)
-	Ω(err).Should(BeNil())
-	Ω(list).Should(HaveLen(0))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(list).To(HaveLen(0))
 
 	_, err = tbl.Select(require.One, where.Eq("name", "unknown"), nil)
-	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
+	g.Expect(err.Error()).To(Equal("expected to fetch one but got 0"))
 }
 
-func query_one_nullstring_for_user_should_return_valid(t *testing.T, tbl DbUserTable) {
-	p := dialect.Placeholder("name", 1)
-	q := Sprintf("select %s from {TABLE} where %s=%s", dialect.Quote("emailaddress"), dialect.Quote("name"), p)
+func query_one_nullstring_for_user_should_return_valid(g *GomegaWithT, tbl DbUserTable) {
+	q := fmt.Sprintf("select emailaddress from {TABLE} where name=?")
 	s, err := tbl.QueryOneNullString(nil, q, "user1")
-	Ω(err).Should(BeNil())
-	Ω(s.Valid).Should(BeTrue())
-	Ω(s.String).Should(Equal("user1@x.z"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(s.Valid).To(BeTrue())
+	g.Expect(s.String).To(Equal("user1@x.z"))
 
 	s, err = tbl.QueryOneNullString(require.One, q, "user1")
-	Ω(err).Should(BeNil())
-	Ω(s.Valid).Should(BeTrue())
-	Ω(s.String).Should(Equal("user1@x.z"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(s.Valid).To(BeTrue())
+	g.Expect(s.String).To(Equal("user1@x.z"))
 }
 
-func query_one_nullstring_for_unknown_should_return_invalid(t *testing.T, tbl DbUserTable) {
-	p := tbl.Dialect().Placeholder("name", 1)
-	q := Sprintf("select %s from {TABLE} where %s=%s", dialect.Quote("emailaddress"), dialect.Quote("name"), p)
+func query_one_nullstring_for_unknown_should_return_invalid(g *GomegaWithT, tbl DbUserTable) {
+	q := fmt.Sprintf("select emailaddress from {TABLE} where name=?")
 	s, err := tbl.QueryOneNullString(nil, q, "foo")
-	Ω(err).Should(BeNil())
-	Ω(s.Valid).Should(BeFalse())
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(s.Valid).To(BeFalse())
 
 	_, err = tbl.QueryOneNullString(require.One, q, "foo")
-	Ω(err.Error()).Should(Equal("expected to fetch one but got 0"))
-	Ω(s.Valid).Should(BeFalse())
+	g.Expect(err.Error()).To(Equal("expected to fetch one but got 0"))
+	g.Expect(s.Valid).To(BeFalse())
 }
 
-func select_known_user_requiring_one_should_return_user(t *testing.T, tbl DbUserTable) *User {
+func select_known_user_requiring_one_should_return_user(g *GomegaWithT, tbl DbUserTable) *User {
 	list, err := tbl.Select(require.One, where.Eq("name", "user1"), nil)
-	Ω(err).Should(BeNil())
-	Ω(list).Should(HaveLen(1))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(list).To(HaveLen(1))
 	return list[0]
 }
 
-func update_user_should_call_PreUpdate(t *testing.T, tbl DbUserTable, user *User) {
+func update_user_should_call_PreUpdate(g *GomegaWithT, tbl DbUserTable, user *User) {
 	user.EmailAddress = "bah0@zzz.com"
 	utter.Dump(user)
 
 	n, err := tbl.Update(require.One, user)
-	Ω(err).Should(BeNil())
-	Ω(n).Should(BeEquivalentTo(1))
-	Ω(user.hash).Should(Equal("PreUpdate"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(n).To(BeEquivalentTo(1))
+	g.Expect(user.hash).To(Equal("PreUpdate"))
 
 	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("uid", user.Uid), nil)
-	Ω(err).Should(BeNil())
-	Ω(ss).Should(HaveLen(1))
-	Ω(ss[0]).Should(Equal("bah0@zzz.com"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(ss).To(HaveLen(1))
+	g.Expect(ss[0]).To(Equal("bah0@zzz.com"))
 }
 
-func update_users_in_tx(t *testing.T, tbl DbUserTable, user *User) {
+func update_users_in_tx(g *GomegaWithT, tbl DbUserTable, user *User) {
 	user.EmailAddress = "dude@zzz.com"
 	utter.Dump(user)
 
 	t2, err := tbl.BeginTx(nil)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	n, err := t2.Update(require.One, user)
-	Ω(err).Should(BeNil())
-	Ω(n).Should(BeEquivalentTo(1))
-	Ω(user.hash).Should(Equal("PreUpdate"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(n).To(BeEquivalentTo(1))
+	g.Expect(user.hash).To(Equal("PreUpdate"))
 
 	err = t2.Tx().Commit()
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("uid", user.Uid), nil)
-	Ω(err).Should(BeNil())
-	Ω(ss).Should(HaveLen(1))
-	Ω(ss[0]).Should(Equal("dude@zzz.com"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(ss).To(HaveLen(1))
+	g.Expect(ss[0]).To(Equal("dude@zzz.com"))
 }
 
-func delete_one_should_return_1(t *testing.T, tbl DbUserTable) {
+func delete_one_should_return_1(g *GomegaWithT, tbl DbUserTable) {
 	n, err := tbl.Delete(require.One, where.Eq("name", "user1"))
-	Ω(err).Should(BeNil())
-	Ω(n).Should(BeEquivalentTo(1))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(n).To(BeEquivalentTo(1))
 }
 
 //-------------------------------------------------------------------------------------------------
 
 func TestMultiSelect_using_database(t *testing.T) {
-	RegisterTestingT(t)
-	connect(t)
-	if db == nil {
+	g := NewGomegaWithT(t)
+	d := newDatabase(t)
+	if d == nil {
 		return
 	}
-	defer cleanup()
 
-	d := sqlapi.NewDatabase(db, dialect, nil, nil)
-	if testing.Verbose() {
-		lgr := log.New(os.Stderr, "", log.LstdFlags)
-		d = sqlapi.NewDatabase(db, dialect, lgr, nil)
-	}
 	tbl := NewDbUserTable("users", d)
 
 	_, err := tbl.DropTable(true)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	err = tbl.CreateTableWithIndexes(true)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	const n = 3
 
@@ -517,44 +552,38 @@ func TestMultiSelect_using_database(t *testing.T) {
 		fave := big.NewInt(int64(i))
 		user := &User{Fave: fave}
 		user = user.SetRole(UserRole)
-		user = user.SetName(Sprintf("user%d", i))
-		user = user.SetEmailAddress(Sprintf("foo%d@x.z", i))
-		user = user.SetAvatar(Sprintf("user%d-avatar%d", i, i))
+		user = user.SetName(fmt.Sprintf("user%d", i))
+		user = user.SetEmailAddress(fmt.Sprintf("foo%d@x.z", i))
+		user = user.SetAvatar(fmt.Sprintf("user%d-avatar%d", i, i))
 		users = append(users, user)
 	}
 
 	err = tbl.Insert(require.All, users...)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	list, err := tbl.Select(nil, where.NotEq("name", "nobody"), where.OrderBy("name").Desc())
-	Ω(err).Should(BeNil())
-	Ω(list).Should(HaveLen(n + 1))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(list).To(HaveLen(n + 1))
 	for i := 0; i <= n; i++ {
 		users[n-i].hash = "PostGet"
-		Ω(list[i]).Should(Equal(users[n-i]))
+		g.Expect(list[i]).To(Equal(users[n-i]))
 	}
 }
 
 func TestGetters_using_database(t *testing.T) {
-	RegisterTestingT(t)
-	connect(t)
-	if db == nil {
+	g := NewGomegaWithT(t)
+	d := newDatabase(t)
+	if d == nil {
 		return
 	}
-	defer cleanup()
 
-	d := sqlapi.NewDatabase(db, dialect, nil, nil)
-	if testing.Verbose() {
-		lgr := log.New(os.Stderr, "", log.LstdFlags)
-		d = sqlapi.NewDatabase(db, dialect, lgr, nil)
-	}
 	tbl := NewDbUserTable("users", d)
 
 	err := tbl.CreateTableWithIndexes(true)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	err = tbl.Truncate(true)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	const n = 20
 
@@ -564,38 +593,32 @@ func TestGetters_using_database(t *testing.T) {
 	}
 
 	err = tbl.Insert(require.All, list...)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	names, err := tbl.SliceName(require.Exactly(n), where.NoOp(), where.OrderBy("name"))
-	Ω(err).Should(BeNil())
-	Ω(names).Should(HaveLen(n))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(names).To(HaveLen(n))
 
 	for i := 0; i < n; i++ {
-		exp := Sprintf("user%02d", i)
-		Ω(names[i]).Should(Equal(exp))
+		exp := fmt.Sprintf("user%02d", i)
+		g.Expect(names[i]).To(Equal(exp))
 	}
 }
 
 func TestRowsAsMaps_using_database(t *testing.T) {
-	RegisterTestingT(t)
-	connect(t)
-	if db == nil {
+	g := NewGomegaWithT(t)
+	d := newDatabase(t)
+	if d == nil {
 		return
 	}
-	defer cleanup()
 
-	d := sqlapi.NewDatabase(db, dialect, nil, nil)
-	if testing.Verbose() {
-		lgr := log.New(os.Stderr, "", log.LstdFlags)
-		d = sqlapi.NewDatabase(db, dialect, lgr, nil)
-	}
 	tbl := NewDbUserTable("users", d)
 
 	err := tbl.CreateTableWithIndexes(true)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	err = tbl.Truncate(true)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	const n = 5
 
@@ -605,65 +628,59 @@ func TestRowsAsMaps_using_database(t *testing.T) {
 	}
 
 	err = tbl.Insert(require.All, list...)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	rows, err := tbl.Query("SELECT * from users")
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	ram, err := sqlapi.WrapRows(rows)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	i := 0
 	for ram.Next() {
 		m, err := ram.ScanToMap()
-		Ω(err).Should(BeNil())
+		g.Expect(err).NotTo(HaveOccurred())
 
-		Ω(m.Columns).Should(HaveLen(22))
-		Ω(m.ColumnTypes).Should(HaveLen(22))
-		Ω(m.Data).Should(HaveLen(22))
+		g.Expect(m.Columns).To(HaveLen(22))
+		g.Expect(m.ColumnTypes).To(HaveLen(22))
+		g.Expect(m.Data).To(HaveLen(22))
 
-		Ω(m.Data["name"]).Should(BeEquivalentTo(Sprintf("user%02d", i)), Sprintf("%d %+v %#v", i, m.ColumnTypes[1], m.Data["name"]))
-		Ω(cast.ToBool(m.Data["admin"])).Should(Equal(false), Sprintf("%d %+v %#v", i, m.ColumnTypes[7], m.Data["admin"]))
-		Ω(cast.ToInt(cast.ToString(m.Data["i8"]))).Should(Equal(i*5), Sprintf("%d %+v %#v", i, m.ColumnTypes[10], m.Data["i8"]))
-		Ω(cast.ToInt(cast.ToString(m.Data["u8"]))).Should(Equal(i*6), Sprintf("%d %+v %#v", i, m.ColumnTypes[11], m.Data["u8"]))
-		Ω(cast.ToInt(cast.ToString(m.Data["i16"]))).Should(Equal(i*10), Sprintf("%d %+v %#v", i, m.ColumnTypes[12], m.Data["i16"]))
-		Ω(cast.ToInt(cast.ToString(m.Data["u16"]))).Should(Equal(i*11), Sprintf("%d %+v %#v", i, m.ColumnTypes[13], m.Data["u16"]))
-		Ω(cast.ToInt(cast.ToString(m.Data["i32"]))).Should(Equal(i*100), Sprintf("%d %+v %#v", i, m.ColumnTypes[14], m.Data["i32"]))
-		Ω(cast.ToInt(cast.ToString(m.Data["u32"]))).Should(Equal(i*101), Sprintf("%d %+v %#v", i, m.ColumnTypes[15], m.Data["u32"]))
-		Ω(cast.ToInt(cast.ToString(m.Data["i64"]))).Should(Equal(i*200), Sprintf("%d %+v %#v", i, m.ColumnTypes[16], m.Data["i64"]))
-		Ω(cast.ToInt(cast.ToString(m.Data["u64"]))).Should(Equal(i*201), Sprintf("%d %+v %#v", i, m.ColumnTypes[17], m.Data["u64"]))
-		Ω(cast.ToFloat32(cast.ToString(m.Data["f32"]))).Should(BeEquivalentTo(i*300), Sprintf("%d %+v %#v", i, m.ColumnTypes[18], m.Data["f32"]))
-		Ω(cast.ToFloat32(cast.ToString(m.Data["f64"]))).Should(BeEquivalentTo(i*301), Sprintf("%d %+v %#v", i, m.ColumnTypes[19], m.Data["f64"]))
+		g.Expect(m.Data["name"]).To(BeEquivalentTo(fmt.Sprintf("user%02d", i)), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[1], m.Data["name"]))
+		g.Expect(cast.ToBool(m.Data["admin"])).To(Equal(false), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[7], m.Data["admin"]))
+		g.Expect(cast.ToInt(cast.ToString(m.Data["i8"]))).To(Equal(i*5), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[10], m.Data["i8"]))
+		g.Expect(cast.ToInt(cast.ToString(m.Data["u8"]))).To(Equal(i*6), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[11], m.Data["u8"]))
+		g.Expect(cast.ToInt(cast.ToString(m.Data["i16"]))).To(Equal(i*10), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[12], m.Data["i16"]))
+		g.Expect(cast.ToInt(cast.ToString(m.Data["u16"]))).To(Equal(i*11), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[13], m.Data["u16"]))
+		g.Expect(cast.ToInt(cast.ToString(m.Data["i32"]))).To(Equal(i*100), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[14], m.Data["i32"]))
+		g.Expect(cast.ToInt(cast.ToString(m.Data["u32"]))).To(Equal(i*101), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[15], m.Data["u32"]))
+		g.Expect(cast.ToInt(cast.ToString(m.Data["i64"]))).To(Equal(i*200), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[16], m.Data["i64"]))
+		g.Expect(cast.ToInt(cast.ToString(m.Data["u64"]))).To(Equal(i*201), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[17], m.Data["u64"]))
+		g.Expect(cast.ToFloat32(cast.ToString(m.Data["f32"]))).To(BeEquivalentTo(i*300), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[18], m.Data["f32"]))
+		g.Expect(cast.ToFloat32(cast.ToString(m.Data["f64"]))).To(BeEquivalentTo(i*301), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[19], m.Data["f64"]))
 
 		fave := big.NewInt(-1)
 		err = fave.UnmarshalJSON(m.Data["fave"].([]byte))
-		Ω(err).Should(BeNil())
-		Ω(fave.Cmp(big.NewInt(int64(i)))).Should(Equal(0), Sprintf("%d %+v %#v", i, m.ColumnTypes[8], m.Data["fave"]))
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(fave.Cmp(big.NewInt(int64(i)))).To(Equal(0), fmt.Sprintf("%d %+v %#v", i, m.ColumnTypes[8], m.Data["fave"]))
 		i++
 	}
-	Ω(i).Should(Equal(n))
+	g.Expect(i).To(Equal(n))
 }
 
 func TestBulk_delete_using_database(t *testing.T) {
-	RegisterTestingT(t)
-	connect(t)
-	if db == nil {
+	g := NewGomegaWithT(t)
+	d := newDatabase(t)
+	if d == nil {
 		return
 	}
-	defer cleanup()
 
-	d := sqlapi.NewDatabase(db, dialect, nil, nil)
-	if testing.Verbose() {
-		lgr := log.New(os.Stderr, "", log.LstdFlags)
-		d = sqlapi.NewDatabase(db, dialect, lgr, nil)
-	}
 	tbl := NewDbUserTable("users", d)
 
 	err := tbl.CreateTableWithIndexes(true)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	err = tbl.Truncate(true)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	const n = 17
 
@@ -673,7 +690,7 @@ func TestBulk_delete_using_database(t *testing.T) {
 	}
 
 	err = tbl.Insert(require.All, list...)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	ids := make([]int64, n)
 	for i := 0; i < n; i++ {
@@ -681,32 +698,26 @@ func TestBulk_delete_using_database(t *testing.T) {
 	}
 
 	j, err := tbl.DeleteUsers(require.All, ids...)
-	Ω(err).Should(BeNil())
-	Ω(j).Should(BeEquivalentTo(n))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(j).To(BeEquivalentTo(n))
 }
 
 //-------------------------------------------------------------------------------------------------
 
 func TestNumericRanges_using_database(t *testing.T) {
-	RegisterTestingT(t)
-	connect(t)
-	if db == nil {
+	g := NewGomegaWithT(t)
+	d := newDatabase(t)
+	if d == nil {
 		return
 	}
-	defer cleanup()
 
-	d := sqlapi.NewDatabase(db, dialect, nil, nil)
-	if testing.Verbose() {
-		lgr := log.New(os.Stderr, "", log.LstdFlags)
-		d = sqlapi.NewDatabase(db, dialect, lgr, nil)
-	}
 	tbl := NewDbUserTable("users", d)
 
 	err := tbl.CreateTableWithIndexes(true)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	err = tbl.Truncate(true)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	const n = 63 // note: cannot support 64 bits unsigned
 
@@ -728,23 +739,23 @@ func TestNumericRanges_using_database(t *testing.T) {
 	}
 
 	err = tbl.Insert(require.All, list...)
-	Ω(err).Should(BeNil())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	for i := 0; i < n; i++ {
 		j := uint64(1) << uint(i)
-		name := Sprintf("user%02d", i)
+		name := fmt.Sprintf("user%02d", i)
 		u, err := tbl.GetUserByName(require.One, name)
-		Ω(err).Should(BeNil())
-		Ω(u.Numbers.I8).Should(Equal(int8(j)), name)
-		Ω(u.Numbers.U8).Should(Equal(uint8(j)), name)
-		Ω(u.Numbers.I16).Should(Equal(int16(j)), name)
-		Ω(u.Numbers.U16).Should(Equal(uint16(j)), name)
-		Ω(u.Numbers.I32).Should(Equal(int32(j)), name)
-		Ω(u.Numbers.U32).Should(Equal(uint32(j)), name)
-		Ω(u.Numbers.I64).Should(Equal(int64(j)), name)
-		Ω(u.Numbers.U64).Should(Equal(j), name)
-		Ω(u.Numbers.F32).Should(Equal(float32(j)), name)
-		Ω(u.Numbers.F64).Should(Equal(float64(j)), name)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(u.Numbers.I8).To(Equal(int8(j)), name)
+		g.Expect(u.Numbers.U8).To(Equal(uint8(j)), name)
+		g.Expect(u.Numbers.I16).To(Equal(int16(j)), name)
+		g.Expect(u.Numbers.U16).To(Equal(uint16(j)), name)
+		g.Expect(u.Numbers.I32).To(Equal(int32(j)), name)
+		g.Expect(u.Numbers.U32).To(Equal(uint32(j)), name)
+		g.Expect(u.Numbers.I64).To(Equal(int64(j)), name)
+		g.Expect(u.Numbers.U64).To(Equal(j), name)
+		g.Expect(u.Numbers.F32).To(Equal(float32(j)), name)
+		g.Expect(u.Numbers.F64).To(Equal(float64(j)), name)
 	}
 }
 

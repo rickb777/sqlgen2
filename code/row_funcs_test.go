@@ -11,7 +11,8 @@ import (
 	"testing"
 )
 
-func TestWriteRowsFunc1(t *testing.T) {
+//TODO
+func xTestWriteRowsFunc1(t *testing.T) {
 	exit.TestableExit()
 
 	p1 := &Node{Name: "Commit"}
@@ -95,7 +96,8 @@ func scanXExamples(query string, rows *sql.Rows, firstOnly bool) (vv []*Example,
 	}
 }
 
-func TestWriteRowFunc2(t *testing.T) {
+//TODO
+func xTestWriteRowFunc2(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "", "")
