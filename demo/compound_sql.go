@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.18.0; sqlgen v0.44.0-1-g4ef8b50
+// sqlapi v0.20.0; sqlgen v0.45.0
 
 package demo
 
@@ -521,7 +521,7 @@ func (tbl DbCompoundTable) getCompound(req require.Requirement, column string, a
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
 		allDbCompoundColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
-	v, err := tbl.doQueryOne(req, query, arg)
+	v, err := tbl.doQueryAndScanOne(req, query, arg)
 	return v, err
 }
 
@@ -541,7 +541,7 @@ func (tbl DbCompoundTable) getCompounds(req require.Requirement, column string, 
 	return list, err
 }
 
-func (tbl DbCompoundTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Compound, error) {
+func (tbl DbCompoundTable) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*Compound, error) {
 	list, err := tbl.doQueryAndScan(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
@@ -550,7 +550,7 @@ func (tbl DbCompoundTable) doQueryOne(req require.Requirement, query string, arg
 }
 
 func (tbl DbCompoundTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Compound, error) {
-	rows, err := tbl.Query(query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -580,7 +580,7 @@ func (tbl DbCompoundTable) Fetch(req require.Requirement, query string, args ...
 func (tbl DbCompoundTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Compound, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		allDbCompoundColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	v, err := tbl.doQueryOne(req, query, args...)
+	v, err := tbl.doQueryAndScanOne(req, query, args...)
 	return v, err
 }
 
@@ -664,6 +664,38 @@ func (tbl DbCompoundTable) SliceAlpha(req require.Requirement, wh where.Expressi
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbCompoundTable) SliceBeta(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return support.SliceStringList(tbl, req, "beta", wh, qc)
+}
+
+// SliceCategory gets the category column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl DbCompoundTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	return tbl.sliceCategoryList(req, "category", wh, qc)
+}
+
+func (tbl DbCompoundTable) sliceCategoryList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	q := tbl.Dialect().Quoter()
+	whs, args := where.Where(wh, q)
+	orderBy := where.BuildQueryConstraint(qc, q)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
+	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var v Category
+	list := make([]Category, 0, 10)
+
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err == sql.ErrNoRows {
+			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+		} else {
+			list = append(list, v)
+		}
+	}
+	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func (tbl DbCompoundTable) constructDbCompoundInsert(w dialect.StringWriter, v *Compound, withPk bool) (s []interface{}, err error) {

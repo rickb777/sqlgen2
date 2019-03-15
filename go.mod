@@ -13,7 +13,7 @@ require (
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.4.3
 	github.com/pkg/errors v0.8.1
-	github.com/rickb777/sqlapi v0.18.0
+	github.com/rickb777/sqlapi v0.20.0
 	github.com/spf13/cast v1.3.0
 	github.com/stretchr/testify v1.3.0 // indirect
 	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6 // indirect

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.18.0; sqlgen v0.44.0-1-g4ef8b50
+// sqlapi v0.20.0; sqlgen v0.45.0
 
 package demo
 
@@ -252,11 +252,9 @@ var sqlAddressTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlPostcodeIdxIndexColumns = "postcode"
-
 var listOfPostcodeIdxIndexColumns = []string{"postcode"}
 
 const sqlTownIdxIndexColumns = "town"
-
 var listOfTownIdxIndexColumns = []string{"town"}
 
 //--------------------------------------------------------------------------------
@@ -644,7 +642,7 @@ func (tbl AddressTable) getAddress(req require.Requirement, column string, arg i
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
 		allAddressColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
-	v, err := tbl.doQueryOne(req, query, arg)
+	v, err := tbl.doQueryAndScanOne(req, query, arg)
 	return v, err
 }
 
@@ -664,7 +662,7 @@ func (tbl AddressTable) getAddresses(req require.Requirement, column string, arg
 	return list, err
 }
 
-func (tbl AddressTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Address, error) {
+func (tbl AddressTable) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*Address, error) {
 	list, err := tbl.doQueryAndScan(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
@@ -673,7 +671,7 @@ func (tbl AddressTable) doQueryOne(req require.Requirement, query string, args .
 }
 
 func (tbl AddressTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
-	rows, err := tbl.Query(query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -703,7 +701,7 @@ func (tbl AddressTable) Fetch(req require.Requirement, query string, args ...int
 func (tbl AddressTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	v, err := tbl.doQueryOne(req, query, args...)
+	v, err := tbl.doQueryAndScanOne(req, query, args...)
 	return v, err
 }
 

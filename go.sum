@@ -54,6 +54,10 @@ github.com/rickb777/sqlapi v0.17.0 h1:I0n2f7nMX38oa/gsVjo5sum6xxJ2DxzhlKEaz68Fr6
 github.com/rickb777/sqlapi v0.17.0/go.mod h1:I61mEoaja6w0qko48+ci/Aic+6UgHy2Uomcgm88m3OU=
 github.com/rickb777/sqlapi v0.18.0 h1:STNavP/7dQEH5c09fmKeaANKtWM07xozTGtXEO+YXJU=
 github.com/rickb777/sqlapi v0.18.0/go.mod h1:I61mEoaja6w0qko48+ci/Aic+6UgHy2Uomcgm88m3OU=
+github.com/rickb777/sqlapi v0.19.0 h1:ErQ3l5/NQb11I1xUE/ZHNqIIZYvphHuwZd6hatM3vGw=
+github.com/rickb777/sqlapi v0.19.0/go.mod h1:I61mEoaja6w0qko48+ci/Aic+6UgHy2Uomcgm88m3OU=
+github.com/rickb777/sqlapi v0.20.0 h1:EoOnLGLz7f8AaNUxDmWtMp35zu4uGOxytoxz2RgSKCc=
+github.com/rickb777/sqlapi v0.20.0/go.mod h1:I61mEoaja6w0qko48+ci/Aic+6UgHy2Uomcgm88m3OU=
 github.com/spf13/cast v1.3.0 h1:oget//CVOEoFewqQxwr0Ej5yjygnqGkvggSE/gB35Q8=
 github.com/spf13/cast v1.3.0/go.mod h1:Qx5cxh0v+4UWYiBimWS+eyWzqEqokIECu5etghLkUJE=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

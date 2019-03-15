@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.18.0; sqlgen v0.44.0-1-g4ef8b50
+// sqlapi v0.20.0; sqlgen v0.45.0
 
 package demo
 
@@ -268,7 +268,6 @@ var sqlIssueTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlIssueAssigneeIndexColumns = "assignee"
-
 var listOfIssueAssigneeIndexColumns = []string{"assignee"}
 
 //--------------------------------------------------------------------------------
@@ -606,7 +605,7 @@ func (tbl IssueTable) getIssue(req require.Requirement, column string, arg inter
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
 		allIssueColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
-	v, err := tbl.doQueryOne(req, query, arg)
+	v, err := tbl.doQueryAndScanOne(req, query, arg)
 	return v, err
 }
 
@@ -626,7 +625,7 @@ func (tbl IssueTable) getIssues(req require.Requirement, column string, args ...
 	return list, err
 }
 
-func (tbl IssueTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Issue, error) {
+func (tbl IssueTable) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*Issue, error) {
 	list, err := tbl.doQueryAndScan(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
@@ -635,7 +634,7 @@ func (tbl IssueTable) doQueryOne(req require.Requirement, query string, args ...
 }
 
 func (tbl IssueTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Issue, error) {
-	rows, err := tbl.Query(query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -665,7 +664,7 @@ func (tbl IssueTable) Fetch(req require.Requirement, query string, args ...inter
 func (tbl IssueTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Issue, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		allIssueColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	v, err := tbl.doQueryOne(req, query, args...)
+	v, err := tbl.doQueryAndScanOne(req, query, args...)
 	return v, err
 }
 

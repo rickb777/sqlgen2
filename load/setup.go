@@ -34,7 +34,7 @@ func PackagesToImport(flags FuncFlags, hasPrimaryKey bool) util.StringSet {
 	if flags.Insert || flags.Update || flags.Schema {
 		imports.Add("bytes")
 	}
-	if flags.Insert || flags.Select || flags.Delete {
+	if flags.Insert || flags.Select || flags.Slice || flags.Delete {
 		imports.Add("fmt")
 	}
 	if flags.Insert || flags.Select || flags.Update {
