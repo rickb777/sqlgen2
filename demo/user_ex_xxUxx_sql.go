@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.17.0; sqlgen v0.44.0
+// sqlapi v0.18.0; sqlgen v0.44.0-1-g4ef8b50
 
 package demo
 
@@ -43,9 +43,11 @@ func NewUUserTable(name string, d sqlapi.Database) UUserTable {
 		name = "users"
 	}
 	var constraints constraint.Constraints
-	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
+	constraints = append(constraints,
+		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
+
 	return UUserTable{
-		name:        sqlapi.TableName{"", name},
+		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -294,8 +296,8 @@ func (tbl UUserTable) constructUUserUpdate(w dialect.StringWriter, v *User) (s [
 	q.QuoteW(w, "name")
 	w.WriteString("=?")
 	s = append(s, v.Name)
-	comma = ", "
 	j++
+	comma = ", "
 
 	w.WriteString(comma)
 	q.QuoteW(w, "emailaddress")
@@ -352,6 +354,7 @@ func (tbl UUserTable) constructUUserUpdate(w dialect.StringWriter, v *User) (s [
 	q.QuoteW(w, "fave")
 	w.WriteString("=?")
 	j++
+
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, tbl.database.LogError(errors.WithStack(err))
@@ -435,7 +438,6 @@ func (tbl UUserTable) constructUUserUpdate(w dialect.StringWriter, v *User) (s [
 	w.WriteString("=?")
 	s = append(s, v.secret)
 	j++
-
 	return s, nil
 }
 

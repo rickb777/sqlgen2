@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.17.0; sqlgen v0.44.0
+// sqlapi v0.18.0; sqlgen v0.44.0-1-g4ef8b50
 
 package demo
 
@@ -44,7 +44,7 @@ func NewDbCompoundTable(name string, d sqlapi.Database) DbCompoundTable {
 	}
 	var constraints constraint.Constraints
 	return DbCompoundTable{
-		name:        sqlapi.TableName{"", name},
+		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -674,18 +674,18 @@ func (tbl DbCompoundTable) constructDbCompoundInsert(w dialect.StringWriter, v *
 	w.WriteString(" (")
 
 	w.WriteString(comma)
-
 	q.QuoteW(w, "alpha")
 	s = append(s, v.Alpha)
 	comma = ","
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "beta")
 	s = append(s, v.Beta)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "category")
 	s = append(s, v.Category)
+
 	w.WriteString(")")
 	return s, nil
 }
@@ -701,8 +701,8 @@ func (tbl DbCompoundTable) constructDbCompoundUpdate(w dialect.StringWriter, v *
 	q.QuoteW(w, "alpha")
 	w.WriteString("=?")
 	s = append(s, v.Alpha)
-	comma = ", "
 	j++
+	comma = ", "
 
 	w.WriteString(comma)
 	q.QuoteW(w, "beta")
@@ -715,7 +715,6 @@ func (tbl DbCompoundTable) constructDbCompoundUpdate(w dialect.StringWriter, v *
 	w.WriteString("=?")
 	s = append(s, v.Category)
 	j++
-
 	return s, nil
 }
 

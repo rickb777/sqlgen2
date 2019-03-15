@@ -36,11 +36,13 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d sqlapi.Database) {{.Prefix
 		name = "{{.DbName}}"
 	}
 	var constraints constraint.Constraints
-	{{- range .Constraints}}
-	constraints = append(constraints, {{.GoString}})
-	{{- end}}
+	{{range .Constraints -}}
+	constraints = append(constraints,
+		{{.GoString}})
+
+	{{end -}}
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
-		name:        sqlapi.TableName{"", name},
+		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,

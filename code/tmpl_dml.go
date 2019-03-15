@@ -310,8 +310,8 @@ var tSliceItem = template.Must(template.New("SliceItem").Funcs(funcMap).Parse(sS
 
 const sConstructInsert = `
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) construct{{.Prefix}}{{.Type}}Insert(w dialect.StringWriter, v *{{.Type}}, withPk bool) (s []interface{}, err error) {
-{{range .Body1}}{{.}}{{- end}}
-{{range .Body2}}{{.}}{{- end}}
+{{range .Body1}}{{.}}{{end}}
+{{range .Body2}}{{.}}{{end}}
 	return s, nil
 }
 `
@@ -322,8 +322,8 @@ var tConstructInsert = template.Must(template.New("ConstructInsert").Funcs(funcM
 
 const sConstructUpdate = `
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) construct{{.Prefix}}{{.Type}}Update(w dialect.StringWriter, v *{{.Type}}) (s []interface{}, err error) {
-{{range .Body1}}{{.}}{{- end}}
-{{range .Body2}}{{.}}{{- end}}
+{{range .Body1}}{{.}}{{end}}
+{{range .Body2}}{{.}}{{end}}
 	return s, nil
 }
 `

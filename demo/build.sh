@@ -18,7 +18,7 @@ sqlgen -type demo.User -o user_ex_xxxDx_sql.go -v -prefix D -schema=false -creat
 sqlgen -type demo.User -o user_ex_xxxxS_sql.go -v -prefix S -schema=false -create=false -read=false -update=false -delete=false -slice=true  user.go role.go
 sqlgen -type demo.User -o user_ex_CRUDS_sql.go -v -prefix A -schema=false -all user.go role.go
 
-unset GO_DRIVER GO_DSN
+unset GO_DRIVER GO_DSN GO_QUOTER
 
 for db in $@; do
   echo
@@ -26,28 +26,37 @@ for db in $@; do
 
   case $db in
     mysql)
-      echo MySQL....
-      echo go test .
+      echo
+      echo "MySQL...."
       GO_DRIVER=mysql GO_DSN=testuser:TestPasswd.9.9.9@/test go test -v .
       ;;
 
     postgres)
-      echo PostgreSQL....
-      echo go test .
-      GO_DRIVER=postgres GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" go test -v . ||:
+      echo
+      echo "PostgreSQL (no quotes)...."
+      GO_DRIVER=postgres GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" GO_QUOTER=none go test -v . ||:
+      echo
+      echo "PostgreSQL (ANSI)...."
+      GO_DRIVER=postgres GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" GO_QUOTER=ansi go test -v . ||:
       ;;
 
     pgx)
-      echo PGX....
-      echo go test .
-      GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" go test -v . ||:
+      echo
+      echo "PGX (no quotes)...."
+      GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" GO_QUOTER=none go test -v . ||:
+      echo
+      echo "PGX (ANSI)...."
+      GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" GO_QUOTER=ansi go test -v . ||:
       ;;
 
     sqlite) # default - see above
       unset GO_DRIVER GO_DSN
-      echo SQLite3...
-      echo go test .
-      go test -v .
+      echo
+      echo "SQLite3 (no quotes)..."
+      GO_QUOTER=none go test -v .
+      echo
+      echo "SQLite3 (ANSI)..."
+      GO_QUOTER=ansi go test -v .
       ;;
 
     *)

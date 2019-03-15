@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.17.0; sqlgen v0.44.0
+// sqlapi v0.18.0; sqlgen v0.44.0-1-g4ef8b50
 
 package demo
 
@@ -43,9 +43,11 @@ func NewCUserTable(name string, d sqlapi.Database) CUserTable {
 		name = "users"
 	}
 	var constraints constraint.Constraints
-	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
+	constraints = append(constraints,
+		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
+
 	return CUserTable{
-		name:        sqlapi.TableName{"", name},
+		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -287,100 +289,100 @@ func (tbl CUserTable) constructCUserInsert(w dialect.StringWriter, v *User, with
 	}
 
 	w.WriteString(comma)
-
 	q.QuoteW(w, "name")
 	s = append(s, v.Name)
 	comma = ","
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "emailaddress")
 	s = append(s, v.EmailAddress)
+
 	if v.AddressId != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "addressid")
 		s = append(s, v.AddressId)
 	}
+
 	if v.Avatar != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "avatar")
 		s = append(s, v.Avatar)
 	}
+
 	if v.Role != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "role")
 		s = append(s, v.Role)
 	}
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "active")
 	s = append(s, v.Active)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "admin")
 	s = append(s, v.Admin)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "fave")
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "lastupdated")
 	s = append(s, v.LastUpdated)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "i8")
 	s = append(s, v.Numbers.I8)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "u8")
 	s = append(s, v.Numbers.U8)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "i16")
 	s = append(s, v.Numbers.I16)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "u16")
 	s = append(s, v.Numbers.U16)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "i32")
 	s = append(s, v.Numbers.I32)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "u32")
 	s = append(s, v.Numbers.U32)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "i64")
 	s = append(s, v.Numbers.I64)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "u64")
 	s = append(s, v.Numbers.U64)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "f32")
 	s = append(s, v.Numbers.F32)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "f64")
 	s = append(s, v.Numbers.F64)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "token")
 	s = append(s, v.token)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "secret")
 	s = append(s, v.secret)
+
 	w.WriteString(")")
 	return s, nil
 }

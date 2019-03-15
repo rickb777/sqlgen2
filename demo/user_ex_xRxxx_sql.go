@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.17.0; sqlgen v0.44.0
+// sqlapi v0.18.0; sqlgen v0.44.0-1-g4ef8b50
 
 package demo
 
@@ -43,9 +43,11 @@ func NewRUserTable(name string, d sqlapi.Database) RUserTable {
 		name = "users"
 	}
 	var constraints constraint.Constraints
-	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
+	constraints = append(constraints,
+		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
+
 	return RUserTable{
-		name:        sqlapi.TableName{"", name},
+		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.17.0; sqlgen v0.44.0
+// sqlapi v0.18.0; sqlgen v0.44.0-1-g4ef8b50
 
 package demo
 
@@ -45,7 +45,7 @@ func NewAddressTable(name string, d sqlapi.Database) AddressTable {
 	}
 	var constraints constraint.Constraints
 	return AddressTable{
-		name:        sqlapi.TableName{"", name},
+		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -810,7 +810,6 @@ func (tbl AddressTable) constructAddressInsert(w dialect.StringWriter, v *Addres
 	}
 
 	w.WriteString(comma)
-
 	q.QuoteW(w, "lines")
 	comma = ","
 	x, err := json.Marshal(&v.Lines)
@@ -818,18 +817,17 @@ func (tbl AddressTable) constructAddressInsert(w dialect.StringWriter, v *Addres
 		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
+
 	if v.Town != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "town")
 		s = append(s, v.Town)
-		comma = ","
 	}
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "postcode")
 	s = append(s, v.Postcode)
-	comma = ","
+
 	w.WriteString(")")
 	return s, nil
 }
@@ -846,6 +844,7 @@ func (tbl AddressTable) constructAddressUpdate(w dialect.StringWriter, v *Addres
 	w.WriteString("=?")
 	comma = ", "
 	j++
+
 	x, err := json.Marshal(&v.Lines)
 	if err != nil {
 		return nil, tbl.database.LogError(errors.WithStack(err))
@@ -857,7 +856,6 @@ func (tbl AddressTable) constructAddressUpdate(w dialect.StringWriter, v *Addres
 		q.QuoteW(w, "town")
 		w.WriteString("=?")
 		s = append(s, v.Town)
-		comma = ", "
 		j++
 	} else {
 		q.QuoteW(w, "town")
@@ -868,9 +866,7 @@ func (tbl AddressTable) constructAddressUpdate(w dialect.StringWriter, v *Addres
 	q.QuoteW(w, "postcode")
 	w.WriteString("=?")
 	s = append(s, v.Postcode)
-	comma = ", "
 	j++
-
 	return s, nil
 }
 

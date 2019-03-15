@@ -31,96 +31,96 @@ func (tbl XExampleTable) constructXExampleInsert(w dialect.StringWriter, v *Exam
 	}
 
 	w.WriteString(comma)
-
 	q.QuoteW(w, "cat")
 	s = append(s, v.Cat)
 	comma = ","
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "username")
 	s = append(s, v.Name)
+
 	if v.Mobile != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "mobile")
 		s = append(s, v.Mobile)
 	}
+
 	if v.Qual != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "qual")
 		s = append(s, v.Qual)
 	}
+
 	if v.Numbers.Diff != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "diff")
 		s = append(s, v.Numbers.Diff)
 	}
+
 	if v.Numbers.Age != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "age")
 		s = append(s, v.Numbers.Age)
 	}
+
 	if v.Numbers.Bmi != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "bmi")
 		s = append(s, v.Numbers.Bmi)
 	}
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "active")
 	s = append(s, v.Active)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "labels")
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "fave")
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "avatar")
 	s = append(s, v.Avatar)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "foo1")
 	s = append(s, v.Foo1)
+
 	if v.Foo2 != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "foo2")
 		s = append(s, v.Foo2)
 	}
+
 	if v.Foo3 != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "foo3")
 		s = append(s, v.Foo3)
 	}
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "bar1")
 	s = append(s, v.Bar1)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "updated")
 	x, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
 		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
+
 	w.WriteString(")")
 	return s, nil
 }
@@ -154,8 +154,8 @@ func (tbl XExampleTable) constructXExampleUpdate(w dialect.StringWriter, v *Exam
 	q.QuoteW(w, "cat")
 	w.WriteString("=?")
 	s = append(s, v.Cat)
-	comma = ", "
 	j++
+	comma = ", "
 
 	w.WriteString(comma)
 	q.QuoteW(w, "username")
@@ -228,6 +228,7 @@ func (tbl XExampleTable) constructXExampleUpdate(w dialect.StringWriter, v *Exam
 	q.QuoteW(w, "labels")
 	w.WriteString("=?")
 	j++
+
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, tbl.database.LogError(errors.WithStack(err))
@@ -238,6 +239,7 @@ func (tbl XExampleTable) constructXExampleUpdate(w dialect.StringWriter, v *Exam
 	q.QuoteW(w, "fave")
 	w.WriteString("=?")
 	j++
+
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, tbl.database.LogError(errors.WithStack(err))

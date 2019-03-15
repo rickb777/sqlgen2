@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.17.0; sqlgen v0.44.0
+// sqlapi v0.18.0; sqlgen v0.44.0-1-g4ef8b50
 
 package demo
 
@@ -44,7 +44,7 @@ func NewAssociationTable(name string, d sqlapi.Database) AssociationTable {
 	}
 	var constraints constraint.Constraints
 	return AssociationTable{
-		name:        sqlapi.TableName{"", name},
+		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -688,39 +688,39 @@ func (tbl AssociationTable) constructAssociationInsert(w dialect.StringWriter, v
 
 	if v.Name != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "name")
 		s = append(s, v.Name)
 		comma = ","
 	}
+
 	if v.Quality != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "quality")
 		s = append(s, v.Quality)
 		comma = ","
 	}
+
 	if v.Ref1 != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "ref1")
 		s = append(s, v.Ref1)
 		comma = ","
 	}
+
 	if v.Ref2 != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "ref2")
 		s = append(s, v.Ref2)
 		comma = ","
 	}
+
 	if v.Category != nil {
 		w.WriteString(comma)
-
 		q.QuoteW(w, "category")
 		s = append(s, v.Category)
 		comma = ","
 	}
+
 	w.WriteString(")")
 	return s, nil
 }
@@ -737,8 +737,8 @@ func (tbl AssociationTable) constructAssociationUpdate(w dialect.StringWriter, v
 		q.QuoteW(w, "name")
 		w.WriteString("=?")
 		s = append(s, v.Name)
-		comma = ", "
 		j++
+		comma = ", "
 	} else {
 		q.QuoteW(w, "name")
 		w.WriteString("=NULL")
@@ -749,8 +749,8 @@ func (tbl AssociationTable) constructAssociationUpdate(w dialect.StringWriter, v
 		q.QuoteW(w, "quality")
 		w.WriteString("=?")
 		s = append(s, v.Quality)
-		comma = ", "
 		j++
+		comma = ", "
 	} else {
 		q.QuoteW(w, "quality")
 		w.WriteString("=NULL")
@@ -761,8 +761,8 @@ func (tbl AssociationTable) constructAssociationUpdate(w dialect.StringWriter, v
 		q.QuoteW(w, "ref1")
 		w.WriteString("=?")
 		s = append(s, v.Ref1)
-		comma = ", "
 		j++
+		comma = ", "
 	} else {
 		q.QuoteW(w, "ref1")
 		w.WriteString("=NULL")
@@ -773,8 +773,8 @@ func (tbl AssociationTable) constructAssociationUpdate(w dialect.StringWriter, v
 		q.QuoteW(w, "ref2")
 		w.WriteString("=?")
 		s = append(s, v.Ref2)
-		comma = ", "
 		j++
+		comma = ", "
 	} else {
 		q.QuoteW(w, "ref2")
 		w.WriteString("=NULL")
@@ -785,13 +785,12 @@ func (tbl AssociationTable) constructAssociationUpdate(w dialect.StringWriter, v
 		q.QuoteW(w, "category")
 		w.WriteString("=?")
 		s = append(s, v.Category)
-		comma = ", "
 		j++
+		comma = ", "
 	} else {
 		q.QuoteW(w, "category")
 		w.WriteString("=NULL")
 	}
-
 	return s, nil
 }
 

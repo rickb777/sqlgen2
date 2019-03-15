@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.17.0; sqlgen v0.44.0
+// sqlapi v0.18.0; sqlgen v0.44.0-1-g4ef8b50
 
 package demo
 
@@ -45,7 +45,7 @@ func NewIssueTable(name string, d sqlapi.Database) IssueTable {
 	}
 	var constraints constraint.Constraints
 	return IssueTable{
-		name:        sqlapi.TableName{"", name},
+		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -793,38 +793,38 @@ func (tbl IssueTable) constructIssueInsert(w dialect.StringWriter, v *Issue, wit
 	}
 
 	w.WriteString(comma)
-
 	q.QuoteW(w, "number")
 	s = append(s, v.Number)
 	comma = ","
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "date")
 	s = append(s, v.Date)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "title")
 	s = append(s, v.Title)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "bigbody")
 	s = append(s, v.Body)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "assignee")
 	s = append(s, v.Assignee)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "state")
 	s = append(s, v.State)
-	w.WriteString(comma)
 
+	w.WriteString(comma)
 	q.QuoteW(w, "labels")
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
+
 	w.WriteString(")")
 	return s, nil
 }
@@ -840,8 +840,8 @@ func (tbl IssueTable) constructIssueUpdate(w dialect.StringWriter, v *Issue) (s 
 	q.QuoteW(w, "number")
 	w.WriteString("=?")
 	s = append(s, v.Number)
-	comma = ", "
 	j++
+	comma = ", "
 
 	w.WriteString(comma)
 	q.QuoteW(w, "date")
@@ -877,12 +877,12 @@ func (tbl IssueTable) constructIssueUpdate(w dialect.StringWriter, v *Issue) (s 
 	q.QuoteW(w, "labels")
 	w.WriteString("=?")
 	j++
+
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
 		return nil, tbl.database.LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
-
 	return s, nil
 }
 
