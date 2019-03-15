@@ -137,7 +137,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Type}}(req require.Requirement, 
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		all{{.CamelName}}ColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column))
+		all{{.CamelName}}ColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -151,26 +151,27 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Types}}(req require.Requirement,
 		q := d.Quoter()
 		pl := d.Placeholders(len(args))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			all{{.CamelName}}ColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column), pl)
-		list, err = tbl.doQuery(req, false, query, args...)
+			all{{.CamelName}}ColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
+		list, err = tbl.doQueryAndScan(req, false, query, args...)
 	}
 
 	return list, err
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryOne(req require.Requirement, query string, args ...interface{}) (*{{.Type}}, error) {
-	list, err := tbl.doQuery(req, true, query, args...)
+	list, err := tbl.doQueryAndScan(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
 }
 
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
 	rows, err := tbl.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	vv, n, err := scan{{.Prefix}}{{.Types}}(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
@@ -179,7 +180,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQuery(req require.Requirement, first
 // Fetch fetches a list of {{.Type}} based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of {{.Type}}. Other queries might be better handled by GetXxx or Select methods.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Fetch(req require.Requirement, query string, args ...interface{}) ({{.List}}, error) {
-	return tbl.doQuery(req, false, query, args...)
+	return tbl.doQueryAndScan(req, false, query, args...)
 }
 `
 
@@ -199,7 +200,7 @@ const sSelectRows = `
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
+		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -228,8 +229,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(req require.Requirement, wh 
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ({{.List}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
-	vv, err := tbl.doQuery(req, false, query, args...)
+		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
+	vv, err := tbl.doQueryAndScan(req, false, query, args...)
 	return vv, err
 }
 
@@ -257,9 +258,12 @@ const sCountRows = `
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	q := tbl.Dialect().Quoter()
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", q.Quote(tbl.name.String()), where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
 	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
@@ -357,19 +361,19 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 			}
 		}
 
-		b := &bytes.Buffer{}
-		io.WriteString(b, "INSERT INTO ")
-		io.WriteString(b, tbl.name.String())
+		b := dialect.Adapt(&bytes.Buffer{})
+		b.WriteString("INSERT INTO ")
+		tbl.quotedNameW(b)
 
 		fields, err := tbl.construct{{.Prefix}}{{.Type}}Insert(b, v, {{not .Table.HasLastInsertId}})
 		if err != nil {
 			return tbl.logError(err)
 		}
 
-		io.WriteString(b, " VALUES (")
-		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
-		io.WriteString(b, ")")
-		io.WriteString(b, returning)
+		b.WriteString(" VALUES (")
+		b.WriteString(tbl.Dialect().Placeholders(len(fields)))
+		b.WriteString(")")
+		b.WriteString(returning)
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
@@ -453,8 +457,6 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 	var count int64
 	d := tbl.Dialect()
 	q := d.Quoter()
-	//columns := all{{.CamelName}}QuotedUpdates[d.Index()]
-	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -467,7 +469,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 
 		b := dialect.Adapt(&bytes.Buffer{})
 		b.WriteString("UPDATE ")
-		b.WriteString(tbl.name.String())
+		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
 		args, err := tbl.construct{{.Prefix}}{{.Type}}Update(b, v)
@@ -504,6 +506,7 @@ const sDelete = `
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requirement, id ...{{.Table.Primary.Type.Type}}) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE %s IN (%s)"
+	qName := tbl.quotedName()
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -521,7 +524,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 
 	if len(id) > batch {
 		pl := d.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, col, pl)
+		query := fmt.Sprintf(qt, qName, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -540,7 +543,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 
 	if len(id) > 0 {
 		pl := d.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, col, pl)
+		query := fmt.Sprintf(qt, qName, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]
@@ -562,8 +565,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete(req require.Requirement, wh whe
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
+	whs, args := where.Build(" WHERE ", wh, tbl.Dialect().Quoter())
+	query := fmt.Sprintf("DELETE FROM %s%s", tbl.quotedName(), whs)
 	return query, args
 }
 `

@@ -38,7 +38,7 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d sqlapi.Database) {{.Prefix
 	var constraints constraint.Constraints
 	{{- range .Constraints}}
 	constraints = append(constraints, {{.GoString}})
-	{{end}}
+	{{- end}}
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -193,6 +193,14 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logError(err error) error {
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
+
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) quotedName() string {
+	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+}
+
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) quotedNameW(w dialect.StringWriter) {
+	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
+}
 `
 
 var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
@@ -340,7 +348,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DropTable(ifExists bool) (int64, error
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) dropTableSql(ifExists bool) string {
 	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.quotedName())
 	return query
 }
 `
@@ -389,8 +397,11 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ifNotExi
 
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) create{{$.Prefix}}{{camel .Name}}IndexSql(ifNotExists string) string {
 	indexPrefix := tbl.name.PrefixWithoutDot()
-	return fmt.Sprintf("CREATE {{.UniqueStr}}INDEX %s%s{{.Name}} ON %s (%s)", ifNotExists, indexPrefix,
-		tbl.name, sql{{$.Prefix}}{{camel .Name}}IndexColumns)
+	id := fmt.Sprintf("%s{{.Name}}", indexPrefix)
+	q := tbl.Dialect().Quoter()
+	cols := strings.Join(q.QuoteN(listOf{{$.Prefix}}{{camel .Name}}IndexColumns), ",")
+	return fmt.Sprintf("CREATE {{.UniqueStr}}INDEX %s%s ON %s (%s)", ifNotExists,
+		q.Quote(id), tbl.quotedName(), cols)
 }
 
 // Drop{{camel .Name}}Index drops the {{.Name}} index.
@@ -402,9 +413,12 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Drop{{camel .Name}}Index(ifExists b
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) drop{{$.Prefix}}{{camel .Name}}IndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.name), "")
 	indexPrefix := tbl.name.PrefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%s{{.Name}}%s", ie, indexPrefix, onTbl)
+	id := fmt.Sprintf("%s{{.Name}}", indexPrefix)
+	q := tbl.Dialect().Quoter()
+	// Mysql requires extra "ON tbl" clause
+	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.quotedName()), "")
+	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 {{end}}
 // DropIndexes executes queries that drop the indexes on by the {{.Type}} table.

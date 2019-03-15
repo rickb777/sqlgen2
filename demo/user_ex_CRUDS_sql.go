@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0-2-g272c739
+// sqlapi v0.17.0; sqlgen v0.44.0
 
 package demo
 
@@ -16,7 +16,6 @@ import (
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/sqlapi/where"
-	"io"
 	"log"
 	"strings"
 )
@@ -46,7 +45,6 @@ func NewAUserTable(name string, d sqlapi.Database) AUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-
 	return AUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -198,6 +196,14 @@ func (tbl AUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
+func (tbl AUserTable) quotedName() string {
+	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+}
+
+func (tbl AUserTable) quotedNameW(w dialect.StringWriter) {
+	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
+}
+
 //--------------------------------------------------------------------------------
 
 // NumAUserTableColumns is the total number of columns in AUserTable.
@@ -317,8 +323,14 @@ var sqlAUserTableCreateColumnsPgx = []string{
 }
 
 //--------------------------------------------------------------------------------
+
 const sqlAEmailaddressIdxIndexColumns = "emailaddress"
+
+var listOfAEmailaddressIdxIndexColumns = []string{"emailaddress"}
+
 const sqlAUserLoginIndexColumns = "name"
+
+var listOfAUserLoginIndexColumns = []string{"name"}
 
 //--------------------------------------------------------------------------------
 
@@ -382,7 +394,7 @@ func (tbl AUserTable) DropTable(ifExists bool) (int64, error) {
 
 func (tbl AUserTable) dropTableSql(ifExists bool) string {
 	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.quotedName())
 	return query
 }
 
@@ -433,8 +445,11 @@ func (tbl AUserTable) CreateEmailaddressIdxIndex(ifNotExist bool) error {
 
 func (tbl AUserTable) createAEmailaddressIdxIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.name.PrefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%semailaddress_idx ON %s (%s)", ifNotExists, indexPrefix,
-		tbl.name, sqlAEmailaddressIdxIndexColumns)
+	id := fmt.Sprintf("%semailaddress_idx", indexPrefix)
+	q := tbl.Dialect().Quoter()
+	cols := strings.Join(q.QuoteN(listOfAEmailaddressIdxIndexColumns), ",")
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%s ON %s (%s)", ifNotExists,
+		q.Quote(id), tbl.quotedName(), cols)
 }
 
 // DropEmailaddressIdxIndex drops the emailaddress_idx index.
@@ -446,9 +461,12 @@ func (tbl AUserTable) DropEmailaddressIdxIndex(ifExists bool) error {
 func (tbl AUserTable) dropAEmailaddressIdxIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.name), "")
 	indexPrefix := tbl.name.PrefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%semailaddress_idx%s", ie, indexPrefix, onTbl)
+	id := fmt.Sprintf("%semailaddress_idx", indexPrefix)
+	q := tbl.Dialect().Quoter()
+	// Mysql requires extra "ON tbl" clause
+	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.quotedName()), "")
+	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
 // CreateUserLoginIndex creates the user_login index.
@@ -470,8 +488,11 @@ func (tbl AUserTable) CreateUserLoginIndex(ifNotExist bool) error {
 
 func (tbl AUserTable) createAUserLoginIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.name.PrefixWithoutDot()
-	return fmt.Sprintf("CREATE UNIQUE INDEX %s%suser_login ON %s (%s)", ifNotExists, indexPrefix,
-		tbl.name, sqlAUserLoginIndexColumns)
+	id := fmt.Sprintf("%suser_login", indexPrefix)
+	q := tbl.Dialect().Quoter()
+	cols := strings.Join(q.QuoteN(listOfAUserLoginIndexColumns), ",")
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%s ON %s (%s)", ifNotExists,
+		q.Quote(id), tbl.quotedName(), cols)
 }
 
 // DropUserLoginIndex drops the user_login index.
@@ -483,9 +504,12 @@ func (tbl AUserTable) DropUserLoginIndex(ifExists bool) error {
 func (tbl AUserTable) dropAUserLoginIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.name), "")
 	indexPrefix := tbl.name.PrefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%suser_login%s", ie, indexPrefix, onTbl)
+	id := fmt.Sprintf("%suser_login", indexPrefix)
+	q := tbl.Dialect().Quoter()
+	// Mysql requires extra "ON tbl" clause
+	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.quotedName()), "")
+	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
 // DropIndexes executes queries that drop the indexes on by the User table.
@@ -755,7 +779,7 @@ func (tbl AUserTable) getUser(req require.Requirement, column string, arg interf
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allAUserColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column))
+		allAUserColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -769,26 +793,27 @@ func (tbl AUserTable) getUsers(req require.Requirement, column string, args ...i
 		q := d.Quoter()
 		pl := d.Placeholders(len(args))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allAUserColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column), pl)
-		list, err = tbl.doQuery(req, false, query, args...)
+			allAUserColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
+		list, err = tbl.doQueryAndScan(req, false, query, args...)
 	}
 
 	return list, err
 }
 
 func (tbl AUserTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*User, error) {
-	list, err := tbl.doQuery(req, true, query, args...)
+	list, err := tbl.doQueryAndScan(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
 }
 
-func (tbl AUserTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func (tbl AUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	rows, err := tbl.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	vv, n, err := scanAUsers(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
@@ -797,7 +822,7 @@ func (tbl AUserTable) doQuery(req require.Requirement, firstOnly bool, query str
 // Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of User. Other queries might be better handled by GetXxx or Select methods.
 func (tbl AUserTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return tbl.doQuery(req, false, query, args...)
+	return tbl.doQueryAndScan(req, false, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -813,7 +838,7 @@ func (tbl AUserTable) Fetch(req require.Requirement, query string, args ...inter
 // The args are for any placeholder parameters in the query.
 func (tbl AUserTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allAUserColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
+		allAUserColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -842,8 +867,8 @@ func (tbl AUserTable) SelectOne(req require.Requirement, wh where.Expression, qc
 // The args are for any placeholder parameters in the query.
 func (tbl AUserTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allAUserColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
-	vv, err := tbl.doQuery(req, false, query, args...)
+		allAUserColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
+	vv, err := tbl.doQueryAndScan(req, false, query, args...)
 	return vv, err
 }
 
@@ -865,9 +890,12 @@ func (tbl AUserTable) Select(req require.Requirement, wh where.Expression, qc wh
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	q := tbl.Dialect().Quoter()
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", q.Quote(tbl.name.String()), where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
 	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
@@ -1275,19 +1303,19 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 			}
 		}
 
-		b := &bytes.Buffer{}
-		io.WriteString(b, "INSERT INTO ")
-		io.WriteString(b, tbl.name.String())
+		b := dialect.Adapt(&bytes.Buffer{})
+		b.WriteString("INSERT INTO ")
+		tbl.quotedNameW(b)
 
 		fields, err := tbl.constructAUserInsert(b, v, false)
 		if err != nil {
 			return tbl.logError(err)
 		}
 
-		io.WriteString(b, " VALUES (")
-		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
-		io.WriteString(b, ")")
-		io.WriteString(b, returning)
+		b.WriteString(" VALUES (")
+		b.WriteString(tbl.Dialect().Placeholders(len(fields)))
+		b.WriteString(")")
+		b.WriteString(returning)
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
@@ -1338,8 +1366,6 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 	var count int64
 	d := tbl.Dialect()
 	q := d.Quoter()
-	//columns := allAUserQuotedUpdates[d.Index()]
-	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -1352,7 +1378,7 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 
 		b := dialect.Adapt(&bytes.Buffer{})
 		b.WriteString("UPDATE ")
-		b.WriteString(tbl.name.String())
+		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
 		args, err := tbl.constructAUserUpdate(b, v)
@@ -1383,6 +1409,7 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 func (tbl AUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE %s IN (%s)"
+	qName := tbl.quotedName()
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -1400,7 +1427,7 @@ func (tbl AUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 
 	if len(id) > batch {
 		pl := d.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, col, pl)
+		query := fmt.Sprintf(qt, qName, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -1419,7 +1446,7 @@ func (tbl AUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 
 	if len(id) > 0 {
 		pl := d.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, col, pl)
+		query := fmt.Sprintf(qt, qName, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]
@@ -1440,8 +1467,8 @@ func (tbl AUserTable) Delete(req require.Requirement, wh where.Expression) (int6
 }
 
 func (tbl AUserTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
+	whs, args := where.Build(" WHERE ", wh, tbl.Dialect().Quoter())
+	query := fmt.Sprintf("DELETE FROM %s%s", tbl.quotedName(), whs)
 	return query, args
 }
 

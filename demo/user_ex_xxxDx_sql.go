@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0-2-g272c739
+// sqlapi v0.17.0; sqlgen v0.44.0
 
 package demo
 
@@ -42,7 +42,6 @@ func NewDUserTable(name string, d sqlapi.Database) DUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-
 	return DUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -194,6 +193,14 @@ func (tbl DUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
+func (tbl DUserTable) quotedName() string {
+	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+}
+
+func (tbl DUserTable) quotedNameW(w dialect.StringWriter) {
+	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
+}
+
 //--------------------------------------------------------------------------------
 
 // NumDUserTableColumns is the total number of columns in DUserTable.
@@ -281,6 +288,7 @@ func (tbl DUserTable) QueryOneNullFloat64(req require.Requirement, query string,
 func (tbl DUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE %s IN (%s)"
+	qName := tbl.quotedName()
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -298,7 +306,7 @@ func (tbl DUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 
 	if len(id) > batch {
 		pl := d.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, col, pl)
+		query := fmt.Sprintf(qt, qName, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -317,7 +325,7 @@ func (tbl DUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 
 	if len(id) > 0 {
 		pl := d.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, col, pl)
+		query := fmt.Sprintf(qt, qName, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]
@@ -338,8 +346,8 @@ func (tbl DUserTable) Delete(req require.Requirement, wh where.Expression) (int6
 }
 
 func (tbl DUserTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
+	whs, args := where.Build(" WHERE ", wh, tbl.Dialect().Quoter())
+	query := fmt.Sprintf("DELETE FROM %s%s", tbl.quotedName(), whs)
 	return query, args
 }
 

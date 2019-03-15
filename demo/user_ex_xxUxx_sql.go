@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0-2-g272c739
+// sqlapi v0.17.0; sqlgen v0.44.0
 
 package demo
 
@@ -44,7 +44,6 @@ func NewUUserTable(name string, d sqlapi.Database) UUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-
 	return UUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -194,6 +193,14 @@ func (tbl UUserTable) logError(err error) error {
 
 func (tbl UUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
+}
+
+func (tbl UUserTable) quotedName() string {
+	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+}
+
+func (tbl UUserTable) quotedNameW(w dialect.StringWriter) {
+	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
 //--------------------------------------------------------------------------------
@@ -450,8 +457,6 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 	var count int64
 	d := tbl.Dialect()
 	q := d.Quoter()
-	//columns := allUUserQuotedUpdates[d.Index()]
-	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -464,7 +469,7 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 
 		b := dialect.Adapt(&bytes.Buffer{})
 		b.WriteString("UPDATE ")
-		b.WriteString(tbl.name.String())
+		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
 		args, err := tbl.constructUUserUpdate(b, v)

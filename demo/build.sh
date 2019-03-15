@@ -20,36 +20,34 @@ sqlgen -type demo.User -o user_ex_CRUDS_sql.go -v -prefix A -schema=false -all u
 
 unset GO_DRIVER GO_DSN
 
-echo
-echo SQLite3...
-echo go test .
-go test .
-
 for db in $@; do
   echo
+  go clean -testcache ||:
+
   case $db in
     mysql)
       echo MySQL....
       echo go test .
-      go clean -testcache ||:
-      GO_DRIVER=mysql GO_DSN=testuser:TestPasswd.9.9.9@/test go test . ||:
+      GO_DRIVER=mysql GO_DSN=testuser:TestPasswd.9.9.9@/test go test -v .
       ;;
 
     postgres)
       echo PostgreSQL....
       echo go test .
-      go clean -testcache ||:
-      GO_DRIVER=postgres GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" go test . ||:
+      GO_DRIVER=postgres GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" go test -v . ||:
       ;;
 
     pgx)
       echo PGX....
       echo go test .
-      go clean -testcache ||:
-      GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" go test . ||:
+      GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" go test -v . ||:
       ;;
 
     sqlite) # default - see above
+      unset GO_DRIVER GO_DSN
+      echo SQLite3...
+      echo go test .
+      go test -v .
       ;;
 
     *)

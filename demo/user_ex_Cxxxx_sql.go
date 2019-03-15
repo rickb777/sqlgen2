@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0-2-g272c739
+// sqlapi v0.17.0; sqlgen v0.44.0
 
 package demo
 
@@ -15,7 +15,6 @@ import (
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
-	"io"
 	"log"
 	"strings"
 )
@@ -45,7 +44,6 @@ func NewCUserTable(name string, d sqlapi.Database) CUserTable {
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints, constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-
 	return CUserTable{
 		name:        sqlapi.TableName{"", name},
 		database:    d,
@@ -195,6 +193,14 @@ func (tbl CUserTable) logError(err error) error {
 
 func (tbl CUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
+}
+
+func (tbl CUserTable) quotedName() string {
+	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+}
+
+func (tbl CUserTable) quotedNameW(w dialect.StringWriter) {
+	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
 //--------------------------------------------------------------------------------
@@ -405,19 +411,19 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 			}
 		}
 
-		b := &bytes.Buffer{}
-		io.WriteString(b, "INSERT INTO ")
-		io.WriteString(b, tbl.name.String())
+		b := dialect.Adapt(&bytes.Buffer{})
+		b.WriteString("INSERT INTO ")
+		tbl.quotedNameW(b)
 
 		fields, err := tbl.constructCUserInsert(b, v, false)
 		if err != nil {
 			return tbl.logError(err)
 		}
 
-		io.WriteString(b, " VALUES (")
-		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
-		io.WriteString(b, ")")
-		io.WriteString(b, returning)
+		b.WriteString(" VALUES (")
+		b.WriteString(tbl.Dialect().Placeholders(len(fields)))
+		b.WriteString(")")
+		b.WriteString(returning)
 
 		query := b.String()
 		tbl.logQuery(query, fields...)

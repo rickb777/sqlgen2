@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0-2-g272c739
+// sqlapi v0.17.0; sqlgen v0.44.0
 
 package demo
 
@@ -16,7 +16,6 @@ import (
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/sqlapi/where"
-	"io"
 	"log"
 	"strings"
 )
@@ -196,6 +195,14 @@ func (tbl AddressTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
+func (tbl AddressTable) quotedName() string {
+	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+}
+
+func (tbl AddressTable) quotedNameW(w dialect.StringWriter) {
+	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
+}
+
 //--------------------------------------------------------------------------------
 
 // NumAddressTableColumns is the total number of columns in AddressTable.
@@ -243,8 +250,14 @@ var sqlAddressTableCreateColumnsPgx = []string{
 }
 
 //--------------------------------------------------------------------------------
+
 const sqlPostcodeIdxIndexColumns = "postcode"
+
+var listOfPostcodeIdxIndexColumns = []string{"postcode"}
+
 const sqlTownIdxIndexColumns = "town"
+
+var listOfTownIdxIndexColumns = []string{"town"}
 
 //--------------------------------------------------------------------------------
 
@@ -308,7 +321,7 @@ func (tbl AddressTable) DropTable(ifExists bool) (int64, error) {
 
 func (tbl AddressTable) dropTableSql(ifExists bool) string {
 	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.quotedName())
 	return query
 }
 
@@ -359,8 +372,11 @@ func (tbl AddressTable) CreatePostcodeIdxIndex(ifNotExist bool) error {
 
 func (tbl AddressTable) createPostcodeIdxIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.name.PrefixWithoutDot()
-	return fmt.Sprintf("CREATE INDEX %s%spostcodeIdx ON %s (%s)", ifNotExists, indexPrefix,
-		tbl.name, sqlPostcodeIdxIndexColumns)
+	id := fmt.Sprintf("%spostcodeIdx", indexPrefix)
+	q := tbl.Dialect().Quoter()
+	cols := strings.Join(q.QuoteN(listOfPostcodeIdxIndexColumns), ",")
+	return fmt.Sprintf("CREATE INDEX %s%s ON %s (%s)", ifNotExists,
+		q.Quote(id), tbl.quotedName(), cols)
 }
 
 // DropPostcodeIdxIndex drops the postcodeIdx index.
@@ -372,9 +388,12 @@ func (tbl AddressTable) DropPostcodeIdxIndex(ifExists bool) error {
 func (tbl AddressTable) dropPostcodeIdxIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.name), "")
 	indexPrefix := tbl.name.PrefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%spostcodeIdx%s", ie, indexPrefix, onTbl)
+	id := fmt.Sprintf("%spostcodeIdx", indexPrefix)
+	q := tbl.Dialect().Quoter()
+	// Mysql requires extra "ON tbl" clause
+	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.quotedName()), "")
+	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
 // CreateTownIdxIndex creates the townIdx index.
@@ -396,8 +415,11 @@ func (tbl AddressTable) CreateTownIdxIndex(ifNotExist bool) error {
 
 func (tbl AddressTable) createTownIdxIndexSql(ifNotExists string) string {
 	indexPrefix := tbl.name.PrefixWithoutDot()
-	return fmt.Sprintf("CREATE INDEX %s%stownIdx ON %s (%s)", ifNotExists, indexPrefix,
-		tbl.name, sqlTownIdxIndexColumns)
+	id := fmt.Sprintf("%stownIdx", indexPrefix)
+	q := tbl.Dialect().Quoter()
+	cols := strings.Join(q.QuoteN(listOfTownIdxIndexColumns), ",")
+	return fmt.Sprintf("CREATE INDEX %s%s ON %s (%s)", ifNotExists,
+		q.Quote(id), tbl.quotedName(), cols)
 }
 
 // DropTownIdxIndex drops the townIdx index.
@@ -409,9 +431,12 @@ func (tbl AddressTable) DropTownIdxIndex(ifExists bool) error {
 func (tbl AddressTable) dropTownIdxIndexSql(ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
-	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.name), "")
 	indexPrefix := tbl.name.PrefixWithoutDot()
-	return fmt.Sprintf("DROP INDEX %s%stownIdx%s", ie, indexPrefix, onTbl)
+	id := fmt.Sprintf("%stownIdx", indexPrefix)
+	q := tbl.Dialect().Quoter()
+	// Mysql requires extra "ON tbl" clause
+	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.quotedName()), "")
+	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
 // DropIndexes executes queries that drop the indexes on by the Address table.
@@ -618,7 +643,7 @@ func (tbl AddressTable) getAddress(req require.Requirement, column string, arg i
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allAddressColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column))
+		allAddressColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -632,26 +657,27 @@ func (tbl AddressTable) getAddresses(req require.Requirement, column string, arg
 		q := d.Quoter()
 		pl := d.Placeholders(len(args))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allAddressColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column), pl)
-		list, err = tbl.doQuery(req, false, query, args...)
+			allAddressColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
+		list, err = tbl.doQueryAndScan(req, false, query, args...)
 	}
 
 	return list, err
 }
 
 func (tbl AddressTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Address, error) {
-	list, err := tbl.doQuery(req, true, query, args...)
+	list, err := tbl.doQueryAndScan(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
 }
 
-func (tbl AddressTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
+func (tbl AddressTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
 	rows, err := tbl.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	vv, n, err := scanAddresses(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
@@ -660,7 +686,7 @@ func (tbl AddressTable) doQuery(req require.Requirement, firstOnly bool, query s
 // Fetch fetches a list of Address based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of Address. Other queries might be better handled by GetXxx or Select methods.
 func (tbl AddressTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Address, error) {
-	return tbl.doQuery(req, false, query, args...)
+	return tbl.doQueryAndScan(req, false, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -676,7 +702,7 @@ func (tbl AddressTable) Fetch(req require.Requirement, query string, args ...int
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
+		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -705,8 +731,8 @@ func (tbl AddressTable) SelectOne(req require.Requirement, wh where.Expression, 
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Address, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
-	vv, err := tbl.doQuery(req, false, query, args...)
+		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
+	vv, err := tbl.doQueryAndScan(req, false, query, args...)
 	return vv, err
 }
 
@@ -728,9 +754,12 @@ func (tbl AddressTable) Select(req require.Requirement, wh where.Expression, qc 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	q := tbl.Dialect().Quoter()
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", q.Quote(tbl.name.String()), where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
 	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
@@ -871,19 +900,19 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 			}
 		}
 
-		b := &bytes.Buffer{}
-		io.WriteString(b, "INSERT INTO ")
-		io.WriteString(b, tbl.name.String())
+		b := dialect.Adapt(&bytes.Buffer{})
+		b.WriteString("INSERT INTO ")
+		tbl.quotedNameW(b)
 
 		fields, err := tbl.constructAddressInsert(b, v, false)
 		if err != nil {
 			return tbl.logError(err)
 		}
 
-		io.WriteString(b, " VALUES (")
-		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
-		io.WriteString(b, ")")
-		io.WriteString(b, returning)
+		b.WriteString(" VALUES (")
+		b.WriteString(tbl.Dialect().Placeholders(len(fields)))
+		b.WriteString(")")
+		b.WriteString(returning)
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
@@ -934,8 +963,6 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 	var count int64
 	d := tbl.Dialect()
 	q := d.Quoter()
-	//columns := allAddressQuotedUpdates[d.Index()]
-	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -948,7 +975,7 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 
 		b := dialect.Adapt(&bytes.Buffer{})
 		b.WriteString("UPDATE ")
-		b.WriteString(tbl.name.String())
+		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
 		args, err := tbl.constructAddressUpdate(b, v)
@@ -979,6 +1006,7 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE %s IN (%s)"
+	qName := tbl.quotedName()
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -996,7 +1024,7 @@ func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (i
 
 	if len(id) > batch {
 		pl := d.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, col, pl)
+		query := fmt.Sprintf(qt, qName, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -1015,7 +1043,7 @@ func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (i
 
 	if len(id) > 0 {
 		pl := d.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, col, pl)
+		query := fmt.Sprintf(qt, qName, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]
@@ -1036,8 +1064,8 @@ func (tbl AddressTable) Delete(req require.Requirement, wh where.Expression) (in
 }
 
 func (tbl AddressTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
+	whs, args := where.Build(" WHERE ", wh, tbl.Dialect().Quoter())
+	query := fmt.Sprintf("DELETE FROM %s%s", tbl.quotedName(), whs)
 	return query, args
 }
 

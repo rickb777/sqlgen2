@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.16.0-18-g0e010bf; sqlgen v0.43.0-2-g272c739
+// sqlapi v0.17.0; sqlgen v0.44.0
 
 package demo
 
@@ -15,7 +15,6 @@ import (
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/sqlapi/where"
-	"io"
 	"log"
 	"strings"
 )
@@ -195,6 +194,14 @@ func (tbl AssociationTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
+func (tbl AssociationTable) quotedName() string {
+	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+}
+
+func (tbl AssociationTable) quotedNameW(w dialect.StringWriter) {
+	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
+}
+
 //--------------------------------------------------------------------------------
 
 // NumAssociationTableColumns is the total number of columns in AssociationTable.
@@ -311,7 +318,7 @@ func (tbl AssociationTable) DropTable(ifExists bool) (int64, error) {
 
 func (tbl AssociationTable) dropTableSql(ifExists bool) string {
 	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.name)
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.quotedName())
 	return query
 }
 
@@ -506,7 +513,7 @@ func (tbl AssociationTable) getAssociation(req require.Requirement, column strin
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allAssociationColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column))
+		allAssociationColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
 	v, err := tbl.doQueryOne(req, query, arg)
 	return v, err
 }
@@ -520,26 +527,27 @@ func (tbl AssociationTable) getAssociations(req require.Requirement, column stri
 		q := d.Quoter()
 		pl := d.Placeholders(len(args))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allAssociationColumnNamesQuoted(q), q.Quote(tbl.name.String()), q.Quote(column), pl)
-		list, err = tbl.doQuery(req, false, query, args...)
+			allAssociationColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
+		list, err = tbl.doQueryAndScan(req, false, query, args...)
 	}
 
 	return list, err
 }
 
 func (tbl AssociationTable) doQueryOne(req require.Requirement, query string, args ...interface{}) (*Association, error) {
-	list, err := tbl.doQuery(req, true, query, args...)
+	list, err := tbl.doQueryAndScan(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
 	return list[0], nil
 }
 
-func (tbl AssociationTable) doQuery(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Association, error) {
+func (tbl AssociationTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Association, error) {
 	rows, err := tbl.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	vv, n, err := scanAssociations(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
@@ -548,7 +556,7 @@ func (tbl AssociationTable) doQuery(req require.Requirement, firstOnly bool, que
 // Fetch fetches a list of Association based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of Association. Other queries might be better handled by GetXxx or Select methods.
 func (tbl AssociationTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Association, error) {
-	return tbl.doQuery(req, false, query, args...)
+	return tbl.doQueryAndScan(req, false, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -564,7 +572,7 @@ func (tbl AssociationTable) Fetch(req require.Requirement, query string, args ..
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
+		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
 	v, err := tbl.doQueryOne(req, query, args...)
 	return v, err
 }
@@ -593,8 +601,8 @@ func (tbl AssociationTable) SelectOne(req require.Requirement, wh where.Expressi
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.name, where, orderBy)
-	vv, err := tbl.doQuery(req, false, query, args...)
+		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
+	vv, err := tbl.doQueryAndScan(req, false, query, args...)
 	return vv, err
 }
 
@@ -616,9 +624,12 @@ func (tbl AssociationTable) Select(req require.Requirement, wh where.Expression,
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	q := tbl.Dialect().Quoter()
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", q.Quote(tbl.name.String()), where)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
 	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
@@ -810,19 +821,19 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 			}
 		}
 
-		b := &bytes.Buffer{}
-		io.WriteString(b, "INSERT INTO ")
-		io.WriteString(b, tbl.name.String())
+		b := dialect.Adapt(&bytes.Buffer{})
+		b.WriteString("INSERT INTO ")
+		tbl.quotedNameW(b)
 
 		fields, err := tbl.constructAssociationInsert(b, v, false)
 		if err != nil {
 			return tbl.logError(err)
 		}
 
-		io.WriteString(b, " VALUES (")
-		io.WriteString(b, tbl.Dialect().Placeholders(len(fields)))
-		io.WriteString(b, ")")
-		io.WriteString(b, returning)
+		b.WriteString(" VALUES (")
+		b.WriteString(tbl.Dialect().Placeholders(len(fields)))
+		b.WriteString(")")
+		b.WriteString(returning)
 
 		query := b.String()
 		tbl.logQuery(query, fields...)
@@ -873,8 +884,6 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 	var count int64
 	d := tbl.Dialect()
 	q := d.Quoter()
-	//columns := allAssociationQuotedUpdates[d.Index()]
-	//query := fmt.Sprintf("UPDATE %s SET %s", tbl.name, columns)
 
 	for _, v := range vv {
 		var iv interface{} = v
@@ -887,7 +896,7 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 
 		b := dialect.Adapt(&bytes.Buffer{})
 		b.WriteString("UPDATE ")
-		b.WriteString(tbl.name.String())
+		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
 		args, err := tbl.constructAssociationUpdate(b, v)
@@ -918,6 +927,7 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE %s IN (%s)"
+	qName := tbl.quotedName()
 
 	if req == require.All {
 		req = require.Exactly(len(id))
@@ -935,7 +945,7 @@ func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...in
 
 	if len(id) > batch {
 		pl := d.Placeholders(batch)
-		query := fmt.Sprintf(qt, tbl.name, col, pl)
+		query := fmt.Sprintf(qt, qName, col, pl)
 
 		for len(id) > batch {
 			for i := 0; i < batch; i++ {
@@ -954,7 +964,7 @@ func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...in
 
 	if len(id) > 0 {
 		pl := d.Placeholders(len(id))
-		query := fmt.Sprintf(qt, tbl.name, col, pl)
+		query := fmt.Sprintf(qt, qName, col, pl)
 
 		for i := 0; i < len(id); i++ {
 			args[i] = id[i]
@@ -975,8 +985,8 @@ func (tbl AssociationTable) Delete(req require.Requirement, wh where.Expression)
 }
 
 func (tbl AssociationTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s %s", tbl.name, whs)
+	whs, args := where.Build(" WHERE ", wh, tbl.Dialect().Quoter())
+	query := fmt.Sprintf("DELETE FROM %s%s", tbl.quotedName(), whs)
 	return query, args
 }
 

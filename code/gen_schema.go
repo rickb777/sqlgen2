@@ -56,28 +56,22 @@ func WriteSchemaDeclarations(w io.Writer, view View) {
 		fmt.Fprintln(w, "}")
 	}
 
-	//fmt.Fprintf(w, "\nconst sqlConstrain%s%s = `", tableName, view.Thing)
-	//for i, f := range view.Table.Fields {
-	//	if f.GetTags().ForeignKey != "" {
-	//		slice := Split(f.Tags.ForeignKey, ".")
-	//		fmt.Fprintf(w, "\n CONSTRAINT %sc%d foreign key (%s) references %%s%s (%s)", tableName, i, f.SqlName, slice[0], slice[1])
-	//		if f.Tags.OnUpdate != "" {
-	//			fmt.Fprintf(w, " on update %s", f.Tags.OnUpdate)
-	//		}
-	//		if f.Tags.OnDelete != "" {
-	//			fmt.Fprintf(w, " on delete %s", f.Tags.OnDelete)
-	//		}
-	//	}
-	//}
-	//fmt.Fprintf(w, "\n`\n")
-
 	if len(view.Table.Index) > 0 {
 		// write constants that specify the columns needed in each index
 
-		fmt.Fprintln(w, sectionBreak)
+		fmt.Fprintln(w, sectionBreak+"\n")
+		before := ""
 		for _, ix := range view.Table.Index {
-			cols := ix.Columns()
-			fmt.Fprintf(w, "const sql%sIndexColumns = %q\n", view.Prefix+inflect.Camelize(ix.Name), cols)
+			cols := ix.Fields.SqlNames()
+			colsStr := cols.MkString(",")
+			name := view.Prefix + inflect.Camelize(ix.Name)
+			fmt.Fprintf(w, "%sconst sql%sIndexColumns = %q\n", before, name, colsStr)
+			if len(cols) == 1 {
+				fmt.Fprintf(w, "var listOf%sIndexColumns = []string{%q}\n", name, cols[0])
+			} else {
+				fmt.Fprintf(w, "var listOf%sIndexColumns = strings.Split(sql%sIndexColumns, \",\")\n", name, name)
+			}
+			before = "\n"
 		}
 	}
 }

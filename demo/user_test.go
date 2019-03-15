@@ -7,7 +7,6 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/stdlib"
-	"github.com/kortschak/utter"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	. "github.com/onsi/gomega"
@@ -18,6 +17,7 @@ import (
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/where"
 	"github.com/spf13/cast"
+	"io"
 	"log"
 	"math/big"
 	"os"
@@ -25,60 +25,71 @@ import (
 	"testing"
 )
 
-var db *sql.DB
-var di dialect.Dialect
+// Environment:
+// GO_DRIVER  - the driver (sqlite3, mysql, postgres, pgx)
+// GO_QUOTER  - the identifier quoter (ansi, mysql, none)
+// GO_DSN     - the database DSN
+// GO_VERBOSE - true for query logging
 
-func TestMain(m *testing.M) {
-	connect()
-	code := m.Run()
-	cleanup()
-	os.Exit(code)
-}
+var verbose = false
 
-func connect() {
-	db = nil
+func connect(t *testing.T) (*sql.DB, dialect.Dialect) {
 	dbDriver, ok := os.LookupEnv("GO_DRIVER")
 	if !ok {
 		dbDriver = "sqlite3"
-		//dbDriver = "postgres"
 	}
-	di = dialect.PickDialect(dbDriver)
+
+	di := dialect.PickDialect(dbDriver) //.WithQuoter(dialect.NoQuoter)
+	quoter, ok := os.LookupEnv("GO_QUOTER")
+	if ok {
+		switch strings.ToLower(quoter) {
+		case "ansi":
+			di = di.WithQuoter(dialect.AnsiQuoter)
+		case "mysql":
+			di = di.WithQuoter(dialect.MySqlQuoter)
+		case "none":
+			di = di.WithQuoter(dialect.NoQuoter)
+		default:
+			t.Fatalf("Warning: unrecognised quoter %q.\n", quoter)
+		}
+	}
+
 	dsn, ok := os.LookupEnv("GO_DSN")
 	if !ok {
-		dsn = ":memory:"
-		//dsn = "postgres://testuser:TestPasswd.9.9.9@/test"
+		dsn = "file::memory:?mode=memory&cache=shared"
 	}
-	conn, err := sql.Open(dbDriver, dsn)
+
+	db, err := sql.Open(dbDriver, dsn)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Unable to connect to %s (%v); test is only partially complete.\n\n", dbDriver, err)
-		os.Exit(9)
+		t.Fatalf("Warning: Unable to connect to %s (%v); test is only partially complete.\n\n", dbDriver, err)
 	}
-	err = conn.Ping()
+
+	err = db.Ping()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Unable to ping %s (%v); test is only partially complete.\n\n", dbDriver, err)
-		os.Exit(9)
+		t.Fatalf("Warning: Unable to ping %s (%v); test is only partially complete.\n\n", dbDriver, err)
 	}
-	fmt.Fprintf(os.Stderr, "Successfully connected to %s.\n", dbDriver)
-	db = conn
+
+	fmt.Printf("Successfully connected to %s.\n", dbDriver)
+	return db, di
 }
 
 func newDatabase(t *testing.T) sqlapi.Database {
-	if db == nil {
-		return nil
+	db, di := connect(t)
+
+	var lgr *log.Logger
+	goVerbose, ok := os.LookupEnv("GO_VERBOSE")
+	if ok && strings.ToLower(goVerbose) == "true" {
+		lgr = log.New(os.Stdout, "", log.LstdFlags)
+		verbose = true
 	}
 
-	d := sqlapi.NewDatabase(db, di, nil, nil)
-	if testing.Verbose() {
-		lgr := log.New(os.Stdout, "", log.LstdFlags)
-		d = sqlapi.NewDatabase(db, di, lgr, nil)
-	}
-	return d
+	return sqlapi.NewDatabase(db, di, lgr, nil)
 }
 
-func cleanup() {
+func cleanup(db sqlapi.Execer) {
 	if db != nil {
-		db.Close()
-		db = nil
+		db.(io.Closer).Close()
+		os.Remove("test.db")
 	}
 }
 
@@ -256,7 +267,7 @@ func TestCreateIndexSql(t *testing.T) {
 	d := sqlapi.NewDatabase(nil, dialect.Postgres, nil, nil)
 	tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
 	s := tbl.createDbEmailaddressIdxIndexSql("IF NOT EXISTS ")
-	expected := `CREATE UNIQUE INDEX IF NOT EXISTS prefix_emailaddress_idx ON prefix_users (emailaddress)`
+	expected := `CREATE UNIQUE INDEX IF NOT EXISTS "prefix_emailaddress_idx" ON "prefix_users" ("emailaddress")`
 	g.Expect(s).To(Equal(expected))
 }
 
@@ -267,9 +278,9 @@ func TestDropIndexSql(t *testing.T) {
 		d        dialect.Dialect
 		expected string
 	}{
-		{dialect.Sqlite, `DROP INDEX IF EXISTS prefix_emailaddress_idx`},
-		{dialect.Mysql, `DROP INDEX prefix_emailaddress_idx ON prefix_users`},
-		{dialect.Postgres, `DROP INDEX IF EXISTS prefix_emailaddress_idx`},
+		{dialect.Sqlite, `DROP INDEX IF EXISTS "prefix_emailaddress_idx"`},
+		{dialect.Mysql, "DROP INDEX `prefix_emailaddress_idx` ON `prefix_users`"},
+		{dialect.Postgres, `DROP INDEX IF EXISTS "prefix_emailaddress_idx"`},
 	}
 
 	for _, c := range cases {
@@ -346,9 +357,7 @@ func TestCrud_using_database(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	d := newDatabase(t)
-	if d == nil {
-		return
-	}
+	defer cleanup(d.DB())
 
 	addresses := NewAddressTable("addresses", d)
 
@@ -487,7 +496,7 @@ func select_known_user_requiring_one_should_return_user(g *GomegaWithT, tbl DbUs
 
 func update_user_should_call_PreUpdate(g *GomegaWithT, tbl DbUserTable, user *User) {
 	user.EmailAddress = "bah0@zzz.com"
-	utter.Dump(user)
+	//utter.Dump(user)
 
 	n, err := tbl.Update(require.One, user)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -502,7 +511,7 @@ func update_user_should_call_PreUpdate(g *GomegaWithT, tbl DbUserTable, user *Us
 
 func update_users_in_tx(g *GomegaWithT, tbl DbUserTable, user *User) {
 	user.EmailAddress = "dude@zzz.com"
-	utter.Dump(user)
+	//utter.Dump(user)
 
 	t2, err := tbl.BeginTx(nil)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -529,12 +538,10 @@ func delete_one_should_return_1(g *GomegaWithT, tbl DbUserTable) {
 
 //-------------------------------------------------------------------------------------------------
 
-func TestMultiSelect_using_database(t *testing.T) {
+func xTestMultiSelect_using_database(t *testing.T) {
 	g := NewGomegaWithT(t)
 	d := newDatabase(t)
-	if d == nil {
-		return
-	}
+	defer cleanup(d.DB())
 
 	tbl := NewDbUserTable("users", d)
 
@@ -573,12 +580,10 @@ func TestMultiSelect_using_database(t *testing.T) {
 	}
 }
 
-func TestGetters_using_database(t *testing.T) {
+func xTestGetters_using_database(t *testing.T) {
 	g := NewGomegaWithT(t)
 	d := newDatabase(t)
-	if d == nil {
-		return
-	}
+	defer cleanup(d.DB())
 
 	tbl := NewDbUserTable("users", d)
 
@@ -608,12 +613,10 @@ func TestGetters_using_database(t *testing.T) {
 	}
 }
 
-func TestRowsAsMaps_using_database(t *testing.T) {
+func xTestRowsAsMaps_using_database(t *testing.T) {
 	g := NewGomegaWithT(t)
 	d := newDatabase(t)
-	if d == nil {
-		return
-	}
+	defer cleanup(d.DB())
 
 	tbl := NewDbUserTable("users", d)
 
@@ -670,12 +673,10 @@ func TestRowsAsMaps_using_database(t *testing.T) {
 	g.Expect(i).To(Equal(n))
 }
 
-func TestBulk_delete_using_database(t *testing.T) {
+func xTestBulk_delete_using_database(t *testing.T) {
 	g := NewGomegaWithT(t)
 	d := newDatabase(t)
-	if d == nil {
-		return
-	}
+	defer cleanup(d.DB())
 
 	tbl := NewDbUserTable("users", d)
 
@@ -707,12 +708,10 @@ func TestBulk_delete_using_database(t *testing.T) {
 
 //-------------------------------------------------------------------------------------------------
 
-func TestNumericRanges_using_database(t *testing.T) {
+func xTestNumericRanges_using_database(t *testing.T) {
 	g := NewGomegaWithT(t)
 	d := newDatabase(t)
-	if d == nil {
-		return
-	}
+	defer cleanup(d.DB())
 
 	tbl := NewDbUserTable("users", d)
 
