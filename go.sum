@@ -54,6 +54,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rickb777/sqlapi v0.21.2 h1:QXWKeWphkngLOF/QbRjvMkGavvxA7GDoFfpiwaLextM=
 github.com/rickb777/sqlapi v0.21.2/go.mod h1:I61mEoaja6w0qko48+ci/Aic+6UgHy2Uomcgm88m3OU=
+github.com/rickb777/sqlapi v0.22.0 h1:6toROJZZe8z9FleD9ksm/sL9rGakYwSXjVFZlgL9+MY=
+github.com/rickb777/sqlapi v0.22.0/go.mod h1:I61mEoaja6w0qko48+ci/Aic+6UgHy2Uomcgm88m3OU=
 github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
 github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24 h1:pntxY8Ary0t43dCZ5dqY4YTJCObLY1kIXl0uzMv+7DE=

@@ -15,7 +15,7 @@ require (
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.4.3
 	github.com/pkg/errors v0.8.1
-	github.com/rickb777/sqlapi v0.21.2
+	github.com/rickb777/sqlapi v0.22.0
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24 // indirect
 	github.com/spf13/cast v1.3.0
