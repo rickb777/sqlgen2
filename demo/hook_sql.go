@@ -19,10 +19,10 @@ import (
 	"strings"
 )
 
-// AssociationTable holds a given table name with the database reference, providing access methods below.
+// HookTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
-type AssociationTable struct {
+type HookTable struct {
 	name        sqlapi.TableName
 	database    sqlapi.Database
 	db          sqlapi.Execer
@@ -32,18 +32,18 @@ type AssociationTable struct {
 }
 
 // Type conformance checks
-var _ sqlapi.TableCreator = &AssociationTable{}
-var _ sqlapi.TableWithCrud = &AssociationTable{}
+var _ sqlapi.TableCreator = &HookTable{}
+var _ sqlapi.TableWithCrud = &HookTable{}
 
-// NewAssociationTable returns a new table instance.
-// If a blank table name is supplied, the default name "associations" will be used instead.
+// NewHookTable returns a new table instance.
+// If a blank table name is supplied, the default name "hooks" will be used instead.
 // The request context is initialised with the background.
-func NewAssociationTable(name string, d sqlapi.Database) AssociationTable {
+func NewHookTable(name string, d sqlapi.Database) HookTable {
 	if name == "" {
-		name = "associations"
+		name = "hooks"
 	}
 	var constraints constraint.Constraints
-	return AssociationTable{
+	return HookTable{
 		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
@@ -53,13 +53,13 @@ func NewAssociationTable(name string, d sqlapi.Database) AssociationTable {
 	}
 }
 
-// CopyTableAsAssociationTable copies a table instance, retaining the name etc but
-// providing methods appropriate for 'Association'. It doesn't copy the constraints of the original table.
+// CopyTableAsHookTable copies a table instance, retaining the name etc but
+// providing methods appropriate for 'Hook'. It doesn't copy the constraints of the original table.
 //
-// It serves to provide methods appropriate for 'Association'. This is most useful when this is used to represent a
+// It serves to provide methods appropriate for 'Hook'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsAssociationTable(origin sqlapi.Table) AssociationTable {
-	return AssociationTable{
+func CopyTableAsHookTable(origin sqlapi.Table) HookTable {
+	return HookTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
 		db:          origin.DB(),
@@ -71,14 +71,14 @@ func CopyTableAsAssociationTable(origin sqlapi.Table) AssociationTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) SetPkColumn(pk string) AssociationTable {
+func (tbl HookTable) SetPkColumn(pk string) HookTable {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) WithPrefix(pfx string) AssociationTable {
+func (tbl HookTable) WithPrefix(pfx string) HookTable {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -88,71 +88,71 @@ func (tbl AssociationTable) WithPrefix(pfx string) AssociationTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl AssociationTable) WithContext(ctx context.Context) AssociationTable {
+func (tbl HookTable) WithContext(ctx context.Context) HookTable {
 	tbl.ctx = ctx
 	return tbl
 }
 
 // Database gets the shared database information.
-func (tbl AssociationTable) Database() sqlapi.Database {
+func (tbl HookTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
 // Logger gets the trace logger.
-func (tbl AssociationTable) Logger() *log.Logger {
+func (tbl HookTable) Logger() *log.Logger {
 	return tbl.database.Logger()
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl AssociationTable) WithConstraint(cc ...constraint.Constraint) AssociationTable {
+func (tbl HookTable) WithConstraint(cc ...constraint.Constraint) HookTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
 
 // Constraints returns the table's constraints.
-func (tbl AssociationTable) Constraints() constraint.Constraints {
+func (tbl HookTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
 // Ctx gets the current request context.
-func (tbl AssociationTable) Ctx() context.Context {
+func (tbl HookTable) Ctx() context.Context {
 	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
-func (tbl AssociationTable) Dialect() dialect.Dialect {
+func (tbl HookTable) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
 // Name gets the table name.
-func (tbl AssociationTable) Name() sqlapi.TableName {
+func (tbl HookTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
 // PkColumn gets the column name used as a primary key.
-func (tbl AssociationTable) PkColumn() string {
+func (tbl HookTable) PkColumn() string {
 	return tbl.pk
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AssociationTable) DB() sqlapi.SqlDB {
+func (tbl HookTable) DB() sqlapi.SqlDB {
 	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl AssociationTable) Execer() sqlapi.Execer {
+func (tbl HookTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AssociationTable) Tx() sqlapi.SqlTx {
+func (tbl HookTable) Tx() sqlapi.SqlTx {
 	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
-func (tbl AssociationTable) IsTx() bool {
+func (tbl HookTable) IsTx() bool {
 	_, ok := tbl.db.(sqlapi.SqlTx)
 	return ok
 }
@@ -168,7 +168,7 @@ func (tbl AssociationTable) IsTx() bool {
 // an error will be returned.
 //
 // Panics if the Execer is not TxStarter.
-func (tbl AssociationTable) BeginTx(opts *sql.TxOptions) (AssociationTable, error) {
+func (tbl HookTable) BeginTx(opts *sql.TxOptions) (HookTable, error) {
 	var err error
 	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
@@ -177,93 +177,137 @@ func (tbl AssociationTable) BeginTx(opts *sql.TxOptions) (AssociationTable, erro
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) Using(tx sqlapi.SqlTx) AssociationTable {
+func (tbl HookTable) Using(tx sqlapi.SqlTx) HookTable {
 	tbl.db = tx
 	return tbl
 }
 
-func (tbl AssociationTable) logQuery(query string, args ...interface{}) {
+func (tbl HookTable) logQuery(query string, args ...interface{}) {
 	tbl.database.LogQuery(query, args...)
 }
 
-func (tbl AssociationTable) logError(err error) error {
+func (tbl HookTable) logError(err error) error {
 	return tbl.database.LogError(err)
 }
 
-func (tbl AssociationTable) logIfError(err error) error {
+func (tbl HookTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-func (tbl AssociationTable) quotedName() string {
+func (tbl HookTable) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.name.String())
 }
 
-func (tbl AssociationTable) quotedNameW(w dialect.StringWriter) {
+func (tbl HookTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
 //--------------------------------------------------------------------------------
 
-// NumAssociationTableColumns is the total number of columns in AssociationTable.
-const NumAssociationTableColumns = 6
+// NumHookTableColumns is the total number of columns in HookTable.
+const NumHookTableColumns = 17
 
-// NumAssociationTableDataColumns is the number of columns in AssociationTable not including the auto-increment key.
-const NumAssociationTableDataColumns = 5
+// NumHookTableDataColumns is the number of columns in HookTable not including the auto-increment key.
+const NumHookTableDataColumns = 16
 
-// AssociationTableColumnNames is the list of columns in AssociationTable.
-const AssociationTableColumnNames = "id,name,quality,ref1,ref2,category"
+// HookTableColumnNames is the list of columns in HookTable.
+const HookTableColumnNames = "id,sha,after,before,category,created,deleted,forced,commit_id,message,timestamp,head_commit_author_name,head_commit_author_email,head_commit_author_username,head_commit_committer_name,head_commit_committer_email,head_commit_committer_username"
 
-// AssociationTableDataColumnNames is the list of data columns in AssociationTable.
-const AssociationTableDataColumnNames = "name,quality,ref1,ref2,category"
+// HookTableDataColumnNames is the list of data columns in HookTable.
+const HookTableDataColumnNames = "sha,after,before,category,created,deleted,forced,commit_id,message,timestamp,head_commit_author_name,head_commit_author_email,head_commit_author_username,head_commit_committer_name,head_commit_committer_email,head_commit_committer_username"
 
-var listOfAssociationTableColumnNames = strings.Split(AssociationTableColumnNames, ",")
+var listOfHookTableColumnNames = strings.Split(HookTableColumnNames, ",")
 
 //--------------------------------------------------------------------------------
 
-var sqlAssociationTableCreateColumnsSqlite = []string{
+var sqlHookTableCreateColumnsSqlite = []string{
 	"integer not null primary key autoincrement",
-	"text default null",
-	"text default null",
-	"bigint default null",
-	"bigint default null",
-	"tinyint unsigned default null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"tinyint unsigned not null",
+	"boolean not null",
+	"boolean not null",
+	"boolean not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
 }
 
-var sqlAssociationTableCreateColumnsMysql = []string{
-	"bigint not null primary key auto_increment",
-	"text default null",
-	"text default null",
-	"bigint default null",
-	"bigint default null",
-	"tinyint unsigned default null",
+var sqlHookTableCreateColumnsMysql = []string{
+	"bigint unsigned not null primary key auto_increment",
+	"text not null",
+	"varchar(20) not null",
+	"varchar(20) not null",
+	"tinyint unsigned not null",
+	"boolean not null",
+	"boolean not null",
+	"boolean not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
 }
 
-var sqlAssociationTableCreateColumnsPostgres = []string{
+var sqlHookTableCreateColumnsPostgres = []string{
 	"bigserial not null primary key",
-	"text default null",
-	"text default null",
-	"bigint default null",
-	"bigint default null",
-	"smallint default null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"smallint not null",
+	"boolean not null",
+	"boolean not null",
+	"boolean not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
 }
 
-var sqlAssociationTableCreateColumnsPgx = []string{
+var sqlHookTableCreateColumnsPgx = []string{
 	"bigserial not null primary key",
-	"text default null",
-	"text default null",
-	"bigint default null",
-	"bigint default null",
-	"smallint default null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"smallint not null",
+	"boolean not null",
+	"boolean not null",
+	"boolean not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
+	"text not null",
 }
 
 //--------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl AssociationTable) CreateTable(ifNotExists bool) (int64, error) {
+func (tbl HookTable) CreateTable(ifNotExists bool) (int64, error) {
 	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
 }
 
-func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
+func (tbl HookTable) createTableSql(ifNotExists bool) string {
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -276,17 +320,17 @@ func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
 	var columns []string
 	switch tbl.Dialect().Index() {
 	case dialect.SqliteIndex:
-		columns = sqlAssociationTableCreateColumnsSqlite
+		columns = sqlHookTableCreateColumnsSqlite
 	case dialect.MysqlIndex:
-		columns = sqlAssociationTableCreateColumnsMysql
+		columns = sqlHookTableCreateColumnsMysql
 	case dialect.PostgresIndex:
-		columns = sqlAssociationTableCreateColumnsPostgres
+		columns = sqlHookTableCreateColumnsPostgres
 	case dialect.PgxIndex:
-		columns = sqlAssociationTableCreateColumnsPgx
+		columns = sqlHookTableCreateColumnsPgx
 	}
 
 	comma := ""
-	for i, n := range listOfAssociationTableColumnNames {
+	for i, n := range listOfHookTableColumnNames {
 		buf.WriteString(comma)
 		q.QuoteW(buf, n)
 		buf.WriteString(" ")
@@ -304,7 +348,7 @@ func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
 	return buf.String()
 }
 
-func (tbl AssociationTable) ternary(flag bool, a, b string) string {
+func (tbl HookTable) ternary(flag bool, a, b string) string {
 	if flag {
 		return a
 	}
@@ -312,11 +356,11 @@ func (tbl AssociationTable) ternary(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl AssociationTable) DropTable(ifExists bool) (int64, error) {
+func (tbl HookTable) DropTable(ifExists bool) (int64, error) {
 	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
 }
 
-func (tbl AssociationTable) dropTableSql(ifExists bool) string {
+func (tbl HookTable) dropTableSql(ifExists bool) string {
 	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
 	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.quotedName())
 	return query
@@ -331,7 +375,7 @@ func (tbl AssociationTable) dropTableSql(ifExists bool) string {
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl AssociationTable) Truncate(force bool) (err error) {
+func (tbl HookTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
 		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
@@ -347,7 +391,7 @@ func (tbl AssociationTable) Truncate(force bool) (err error) {
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
+func (tbl HookTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
 	return support.Exec(tbl, req, query, args...)
 }
 
@@ -363,7 +407,7 @@ func (tbl AssociationTable) Exec(req require.Requirement, query string, args ...
 // The caller must call rows.Close() on the result.
 //
 // Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl AssociationTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
+func (tbl HookTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
 	return support.Query(tbl, query, args...)
 }
 
@@ -376,7 +420,7 @@ func (tbl AssociationTable) Query(query string, args ...interface{}) (sqlapi.Sql
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+func (tbl HookTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
 	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
@@ -388,7 +432,7 @@ func (tbl AssociationTable) QueryOneNullString(req require.Requirement, query st
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+func (tbl HookTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
 	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
@@ -400,21 +444,32 @@ func (tbl AssociationTable) QueryOneNullInt64(req require.Requirement, query str
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+func (tbl HookTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
 	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
-func scanAssociations(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Association, n int64, err error) {
+func scanHooks(query string, rows sqlapi.SqlRows, firstOnly bool) (vv HookList, n int64, err error) {
 	for rows.Next() {
 		n++
 
-		var v0 int64
-		var v1 sql.NullString
-		var v2 sql.NullString
-		var v3 sql.NullInt64
-		var v4 sql.NullInt64
-		var v5 sql.NullInt64
+		var v0 uint64
+		var v1 string
+		var v2 string
+		var v3 string
+		var v4 Category
+		var v5 bool
+		var v6 bool
+		var v7 bool
+		var v8 string
+		var v9 string
+		var v10 string
+		var v11 string
+		var v12 Email
+		var v13 string
+		var v14 string
+		var v15 Email
+		var v16 string
 
 		err = rows.Scan(
 			&v0,
@@ -423,33 +478,40 @@ func scanAssociations(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*
 			&v3,
 			&v4,
 			&v5,
+			&v6,
+			&v7,
+			&v8,
+			&v9,
+			&v10,
+			&v11,
+			&v12,
+			&v13,
+			&v14,
+			&v15,
+			&v16,
 		)
 		if err != nil {
 			return vv, n, errors.Wrap(err, query)
 		}
 
-		v := &Association{}
+		v := &Hook{}
 		v.Id = v0
-		if v1.Valid {
-			a := v1.String
-			v.Name = &a
-		}
-		if v2.Valid {
-			a := QualName(v2.String)
-			v.Quality = &a
-		}
-		if v3.Valid {
-			a := v3.Int64
-			v.Ref1 = &a
-		}
-		if v4.Valid {
-			a := v4.Int64
-			v.Ref2 = &a
-		}
-		if v5.Valid {
-			a := Category(v5.Int64)
-			v.Category = &a
-		}
+		v.Sha = v1
+		v.Bounds.After = v2
+		v.Bounds.Before = v3
+		v.Category = v4
+		v.Created = v5
+		v.Deleted = v6
+		v.Forced = v7
+		v.HeadCommit.ID = v8
+		v.HeadCommit.Message = v9
+		v.HeadCommit.Timestamp = v10
+		v.HeadCommit.Author.Name = v11
+		v.HeadCommit.Author.Email = v12
+		v.HeadCommit.Author.Username = v13
+		v.HeadCommit.Committer.Name = v14
+		v.HeadCommit.Committer.Email = v15
+		v.HeadCommit.Committer.Username = v16
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlapi.CanPostGet); ok {
@@ -474,19 +536,19 @@ func scanAssociations(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*
 
 //--------------------------------------------------------------------------------
 
-func allAssociationColumnNamesQuoted(q dialect.Quoter) string {
-	return strings.Join(q.QuoteN(listOfAssociationTableColumnNames), ",")
+func allHookColumnNamesQuoted(q dialect.Quoter) string {
+	return strings.Join(q.QuoteN(listOfHookTableColumnNames), ",")
 }
 
 //--------------------------------------------------------------------------------
 
-// GetAssociationsById gets records from the table according to a list of primary keys.
+// GetHooksById gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl AssociationTable) GetAssociationsById(req require.Requirement, id ...int64) (list []*Association, err error) {
+func (tbl HookTable) GetHooksById(req require.Requirement, id ...uint64) (list HookList, err error) {
 	if len(id) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(id))
@@ -497,28 +559,28 @@ func (tbl AssociationTable) GetAssociationsById(req require.Requirement, id ...i
 			args[i] = v
 		}
 
-		list, err = tbl.getAssociations(req, tbl.pk, args...)
+		list, err = tbl.getHooks(req, tbl.pk, args...)
 	}
 
 	return list, err
 }
 
-// GetAssociationById gets the record with a given primary key value.
-// If not found, *Association will be nil.
-func (tbl AssociationTable) GetAssociationById(req require.Requirement, id int64) (*Association, error) {
-	return tbl.getAssociation(req, tbl.pk, id)
+// GetHookById gets the record with a given primary key value.
+// If not found, *Hook will be nil.
+func (tbl HookTable) GetHookById(req require.Requirement, id uint64) (*Hook, error) {
+	return tbl.getHook(req, tbl.pk, id)
 }
 
-func (tbl AssociationTable) getAssociation(req require.Requirement, column string, arg interface{}) (*Association, error) {
+func (tbl HookTable) getHook(req require.Requirement, column string, arg interface{}) (*Hook, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allAssociationColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
+		allHookColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
 	v, err := tbl.doQueryAndScanOne(req, query, arg)
 	return v, err
 }
 
-func (tbl AssociationTable) getAssociations(req require.Requirement, column string, args ...interface{}) (list []*Association, err error) {
+func (tbl HookTable) getHooks(req require.Requirement, column string, args ...interface{}) (list HookList, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -527,14 +589,14 @@ func (tbl AssociationTable) getAssociations(req require.Requirement, column stri
 		q := d.Quoter()
 		pl := d.Placeholders(len(args))
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allAssociationColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
+			allHookColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
 		list, err = tbl.doQueryAndScan(req, false, query, args...)
 	}
 
 	return list, err
 }
 
-func (tbl AssociationTable) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*Association, error) {
+func (tbl HookTable) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*Hook, error) {
 	list, err := tbl.doQueryAndScan(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
@@ -542,20 +604,20 @@ func (tbl AssociationTable) doQueryAndScanOne(req require.Requirement, query str
 	return list[0], nil
 }
 
-func (tbl AssociationTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Association, error) {
+func (tbl HookTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) (HookList, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	vv, n, err := scanAssociations(query, rows, firstOnly)
+	vv, n, err := scanHooks(query, rows, firstOnly)
 	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
-// Fetch fetches a list of Association based on a supplied query. This is mostly used for join queries that map its
-// result columns to the fields of Association. Other queries might be better handled by GetXxx or Select methods.
-func (tbl AssociationTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Association, error) {
+// Fetch fetches a list of Hook based on a supplied query. This is mostly used for join queries that map its
+// result columns to the fields of Hook. Other queries might be better handled by GetXxx or Select methods.
+func (tbl HookTable) Fetch(req require.Requirement, query string, args ...interface{}) (HookList, error) {
 	return tbl.doQueryAndScan(req, false, query, args...)
 }
 
@@ -570,28 +632,28 @@ func (tbl AssociationTable) Fetch(req require.Requirement, query string, args ..
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error) {
+func (tbl HookTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Hook, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
+		allHookColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
 	v, err := tbl.doQueryAndScanOne(req, query, args...)
 	return v, err
 }
 
-// SelectOne allows a single Association to be obtained from the database.
+// SelectOne allows a single Hook to be obtained from the database.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl AssociationTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Association, error) {
+func (tbl HookTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Hook, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.BuildQueryConstraint(qc, q)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
-// SelectWhere allows Associations to be obtained from the table that match a 'where' clause.
+// SelectWhere allows Hooks to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 //
@@ -599,31 +661,31 @@ func (tbl AssociationTable) SelectOne(req require.Requirement, wh where.Expressi
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error) {
+func (tbl HookTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) (HookList, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
+		allHookColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
 	vv, err := tbl.doQueryAndScan(req, false, query, args...)
 	return vv, err
 }
 
-// Select allows Associations to be obtained from the table that match a 'where' clause.
+// Select allows Hooks to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
-func (tbl AssociationTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Association, error) {
+func (tbl HookTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (HookList, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.BuildQueryConstraint(qc, q)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
-// CountWhere counts Associations in the table that match a 'where' clause.
+// CountWhere counts Hooks in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
+func (tbl HookTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
@@ -636,9 +698,9 @@ func (tbl AssociationTable) CountWhere(where string, args ...interface{}) (count
 	return count, tbl.logIfError(err)
 }
 
-// Count counts the Associations in the table that match a 'where' clause.
+// Count counts the Hooks in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl AssociationTable) Count(wh where.Expression) (count int64, err error) {
+func (tbl HookTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	return tbl.CountWhere(whs, args...)
 }
@@ -648,46 +710,102 @@ func (tbl AssociationTable) Count(wh where.Expression) (count int64, err error) 
 // SliceId gets the id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
+func (tbl HookTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+	return support.SliceUint64List(tbl, req, tbl.pk, wh, qc)
 }
 
-// SliceName gets the name column for all rows that match the 'where' condition.
+// SliceSha gets the sha column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringPtrList(tbl, req, "name", wh, qc)
+func (tbl HookTable) SliceSha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "sha", wh, qc)
 }
 
-// SliceRef1 gets the ref1 column for all rows that match the 'where' condition.
+// SliceAfter gets the after column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceRef1(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64PtrList(tbl, req, "ref1", wh, qc)
+func (tbl HookTable) SliceAfter(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "after", wh, qc)
 }
 
-// SliceRef2 gets the ref2 column for all rows that match the 'where' condition.
+// SliceBefore gets the before column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceRef2(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64PtrList(tbl, req, "ref2", wh, qc)
+func (tbl HookTable) SliceBefore(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "before", wh, qc)
 }
 
-// SliceQuality gets the quality column for all rows that match the 'where' condition.
+// SliceCommitId gets the commit_id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
-	return tbl.sliceQualNamePtrList(req, "quality", wh, qc)
+func (tbl HookTable) SliceCommitId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "commit_id", wh, qc)
+}
+
+// SliceMessage gets the message column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl HookTable) SliceMessage(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "message", wh, qc)
+}
+
+// SliceTimestamp gets the timestamp column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl HookTable) SliceTimestamp(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "timestamp", wh, qc)
+}
+
+// SliceHeadCommitAuthorName gets the head_commit_author_name column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl HookTable) SliceHeadCommitAuthorName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "head_commit_author_name", wh, qc)
+}
+
+// SliceHeadCommitAuthorUsername gets the head_commit_author_username column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl HookTable) SliceHeadCommitAuthorUsername(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "head_commit_author_username", wh, qc)
+}
+
+// SliceHeadCommitCommitterName gets the head_commit_committer_name column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl HookTable) SliceHeadCommitCommitterName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "head_commit_committer_name", wh, qc)
+}
+
+// SliceHeadCommitCommitterUsername gets the head_commit_committer_username column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl HookTable) SliceHeadCommitCommitterUsername(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "head_commit_committer_username", wh, qc)
 }
 
 // SliceCategory gets the category column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return tbl.sliceCategoryPtrList(req, "category", wh, qc)
+func (tbl HookTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	return tbl.sliceCategoryList(req, "category", wh, qc)
 }
 
-func (tbl AssociationTable) sliceCategoryPtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+// SliceHeadCommitAuthorEmail gets the head_commit_author_email column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl HookTable) SliceHeadCommitAuthorEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+	return tbl.sliceEmailList(req, "head_commit_author_email", wh, qc)
+}
+
+// SliceHeadCommitCommitterEmail gets the head_commit_committer_email column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl HookTable) SliceHeadCommitCommitterEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+	return tbl.sliceEmailList(req, "head_commit_committer_email", wh, qc)
+}
+
+func (tbl HookTable) sliceCategoryList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.BuildQueryConstraint(qc, q)
@@ -712,7 +830,7 @@ func (tbl AssociationTable) sliceCategoryPtrList(req require.Requirement, sqlnam
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl AssociationTable) sliceQualNamePtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
+func (tbl HookTable) sliceEmailList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.BuildQueryConstraint(qc, q)
@@ -723,8 +841,8 @@ func (tbl AssociationTable) sliceQualNamePtrList(req require.Requirement, sqlnam
 	}
 	defer rows.Close()
 
-	var v QualName
-	list := make([]QualName, 0, 10)
+	var v Email
+	list := make([]Email, 0, 10)
 
 	for rows.Next() {
 		err = rows.Scan(&v)
@@ -737,9 +855,9 @@ func (tbl AssociationTable) sliceQualNamePtrList(req require.Requirement, sqlnam
 	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl AssociationTable) constructAssociationInsert(w dialect.StringWriter, v *Association, withPk bool) (s []interface{}, err error) {
+func (tbl HookTable) constructHookInsert(w dialect.StringWriter, v *Hook, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
-	s = make([]interface{}, 0, 6)
+	s = make([]interface{}, 0, 17)
 
 	comma := ""
 	w.WriteString(" (")
@@ -750,120 +868,187 @@ func (tbl AssociationTable) constructAssociationInsert(w dialect.StringWriter, v
 		s = append(s, v.Id)
 	}
 
-	if v.Name != nil {
-		w.WriteString(comma)
-		q.QuoteW(w, "name")
-		s = append(s, v.Name)
-		comma = ","
-	}
+	w.WriteString(comma)
+	q.QuoteW(w, "sha")
+	s = append(s, v.Sha)
+	comma = ","
 
-	if v.Quality != nil {
-		w.WriteString(comma)
-		q.QuoteW(w, "quality")
-		s = append(s, v.Quality)
-		comma = ","
-	}
+	w.WriteString(comma)
+	q.QuoteW(w, "after")
+	s = append(s, v.Bounds.After)
 
-	if v.Ref1 != nil {
-		w.WriteString(comma)
-		q.QuoteW(w, "ref1")
-		s = append(s, v.Ref1)
-		comma = ","
-	}
+	w.WriteString(comma)
+	q.QuoteW(w, "before")
+	s = append(s, v.Bounds.Before)
 
-	if v.Ref2 != nil {
-		w.WriteString(comma)
-		q.QuoteW(w, "ref2")
-		s = append(s, v.Ref2)
-		comma = ","
-	}
+	w.WriteString(comma)
+	q.QuoteW(w, "category")
+	s = append(s, v.Category)
 
-	if v.Category != nil {
-		w.WriteString(comma)
-		q.QuoteW(w, "category")
-		s = append(s, v.Category)
-		comma = ","
-	}
+	w.WriteString(comma)
+	q.QuoteW(w, "created")
+	s = append(s, v.Created)
+
+	w.WriteString(comma)
+	q.QuoteW(w, "deleted")
+	s = append(s, v.Deleted)
+
+	w.WriteString(comma)
+	q.QuoteW(w, "forced")
+	s = append(s, v.Forced)
+
+	w.WriteString(comma)
+	q.QuoteW(w, "commit_id")
+	s = append(s, v.HeadCommit.ID)
+
+	w.WriteString(comma)
+	q.QuoteW(w, "message")
+	s = append(s, v.HeadCommit.Message)
+
+	w.WriteString(comma)
+	q.QuoteW(w, "timestamp")
+	s = append(s, v.HeadCommit.Timestamp)
+
+	w.WriteString(comma)
+	q.QuoteW(w, "head_commit_author_name")
+	s = append(s, v.HeadCommit.Author.Name)
+
+	w.WriteString(comma)
+	q.QuoteW(w, "head_commit_author_email")
+	s = append(s, v.HeadCommit.Author.Email)
+
+	w.WriteString(comma)
+	q.QuoteW(w, "head_commit_author_username")
+	s = append(s, v.HeadCommit.Author.Username)
+
+	w.WriteString(comma)
+	q.QuoteW(w, "head_commit_committer_name")
+	s = append(s, v.HeadCommit.Committer.Name)
+
+	w.WriteString(comma)
+	q.QuoteW(w, "head_commit_committer_email")
+	s = append(s, v.HeadCommit.Committer.Email)
+
+	w.WriteString(comma)
+	q.QuoteW(w, "head_commit_committer_username")
+	s = append(s, v.HeadCommit.Committer.Username)
 
 	w.WriteString(")")
 	return s, nil
 }
 
-func (tbl AssociationTable) constructAssociationUpdate(w dialect.StringWriter, v *Association) (s []interface{}, err error) {
+func (tbl HookTable) constructHookUpdate(w dialect.StringWriter, v *Hook) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
-	s = make([]interface{}, 0, 5)
+	s = make([]interface{}, 0, 16)
 
 	comma := ""
 
 	w.WriteString(comma)
-	if v.Name != nil {
-		q.QuoteW(w, "name")
-		w.WriteString("=?")
-		s = append(s, v.Name)
-		j++
-		comma = ", "
-	} else {
-		q.QuoteW(w, "name")
-		w.WriteString("=NULL")
-	}
+	q.QuoteW(w, "sha")
+	w.WriteString("=?")
+	s = append(s, v.Sha)
+	j++
+	comma = ", "
 
 	w.WriteString(comma)
-	if v.Quality != nil {
-		q.QuoteW(w, "quality")
-		w.WriteString("=?")
-		s = append(s, v.Quality)
-		j++
-		comma = ", "
-	} else {
-		q.QuoteW(w, "quality")
-		w.WriteString("=NULL")
-	}
+	q.QuoteW(w, "after")
+	w.WriteString("=?")
+	s = append(s, v.Bounds.After)
+	j++
 
 	w.WriteString(comma)
-	if v.Ref1 != nil {
-		q.QuoteW(w, "ref1")
-		w.WriteString("=?")
-		s = append(s, v.Ref1)
-		j++
-		comma = ", "
-	} else {
-		q.QuoteW(w, "ref1")
-		w.WriteString("=NULL")
-	}
+	q.QuoteW(w, "before")
+	w.WriteString("=?")
+	s = append(s, v.Bounds.Before)
+	j++
 
 	w.WriteString(comma)
-	if v.Ref2 != nil {
-		q.QuoteW(w, "ref2")
-		w.WriteString("=?")
-		s = append(s, v.Ref2)
-		j++
-		comma = ", "
-	} else {
-		q.QuoteW(w, "ref2")
-		w.WriteString("=NULL")
-	}
+	q.QuoteW(w, "category")
+	w.WriteString("=?")
+	s = append(s, v.Category)
+	j++
 
 	w.WriteString(comma)
-	if v.Category != nil {
-		q.QuoteW(w, "category")
-		w.WriteString("=?")
-		s = append(s, v.Category)
-		j++
-		comma = ", "
-	} else {
-		q.QuoteW(w, "category")
-		w.WriteString("=NULL")
-	}
+	q.QuoteW(w, "created")
+	w.WriteString("=?")
+	s = append(s, v.Created)
+	j++
+
+	w.WriteString(comma)
+	q.QuoteW(w, "deleted")
+	w.WriteString("=?")
+	s = append(s, v.Deleted)
+	j++
+
+	w.WriteString(comma)
+	q.QuoteW(w, "forced")
+	w.WriteString("=?")
+	s = append(s, v.Forced)
+	j++
+
+	w.WriteString(comma)
+	q.QuoteW(w, "commit_id")
+	w.WriteString("=?")
+	s = append(s, v.HeadCommit.ID)
+	j++
+
+	w.WriteString(comma)
+	q.QuoteW(w, "message")
+	w.WriteString("=?")
+	s = append(s, v.HeadCommit.Message)
+	j++
+
+	w.WriteString(comma)
+	q.QuoteW(w, "timestamp")
+	w.WriteString("=?")
+	s = append(s, v.HeadCommit.Timestamp)
+	j++
+
+	w.WriteString(comma)
+	q.QuoteW(w, "head_commit_author_name")
+	w.WriteString("=?")
+	s = append(s, v.HeadCommit.Author.Name)
+	j++
+
+	w.WriteString(comma)
+	q.QuoteW(w, "head_commit_author_email")
+	w.WriteString("=?")
+	s = append(s, v.HeadCommit.Author.Email)
+	j++
+
+	w.WriteString(comma)
+	q.QuoteW(w, "head_commit_author_username")
+	w.WriteString("=?")
+	s = append(s, v.HeadCommit.Author.Username)
+	j++
+
+	w.WriteString(comma)
+	q.QuoteW(w, "head_commit_committer_name")
+	w.WriteString("=?")
+	s = append(s, v.HeadCommit.Committer.Name)
+	j++
+
+	w.WriteString(comma)
+	q.QuoteW(w, "head_commit_committer_email")
+	w.WriteString("=?")
+	s = append(s, v.HeadCommit.Committer.Email)
+	j++
+
+	w.WriteString(comma)
+	q.QuoteW(w, "head_commit_committer_username")
+	w.WriteString("=?")
+	s = append(s, v.HeadCommit.Committer.Username)
+	j++
 	return s, nil
 }
 
 //--------------------------------------------------------------------------------
 
-// Insert adds new records for the Associations.
-// The Associations have their primary key fields set to the new record identifiers.
-// The Association.PreInsert() method will be called, if it exists.
-func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) error {
+// Insert adds new records for the Hooks.
+// The Hooks have their primary key fields set to the new record identifiers.
+// The Hook.PreInsert() method will be called, if it exists.
+func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -888,7 +1073,7 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
-		fields, err := tbl.constructAssociationInsert(b, v, false)
+		fields, err := tbl.constructHookInsert(b, v, false)
 		if err != nil {
 			return tbl.logError(err)
 		}
@@ -904,7 +1089,9 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 		var n int64 = 1
 		if insertHasReturningPhrase {
 			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
-			err = row.Scan(&v.Id)
+			var i64 int64
+			err = row.Scan(&i64)
+			v.Id = uint64(i64)
 
 		} else {
 			res, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
@@ -912,7 +1099,8 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 				return tbl.logError(e2)
 			}
 
-			v.Id, err = res.LastInsertId()
+			i64, e2 := res.LastInsertId()
+			v.Id = uint64(i64)
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
@@ -931,15 +1119,15 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl AssociationTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+func (tbl HookTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
-// The Association.PreUpdate(Execer) method will be called, if it exists.
-func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) (int64, error) {
+// The Hook.PreUpdate(Execer) method will be called, if it exists.
+func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error) {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -962,7 +1150,7 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
-		args, err := tbl.constructAssociationUpdate(b, v)
+		args, err := tbl.constructHookUpdate(b, v)
 		if err != nil {
 			return count, err
 		}
@@ -985,9 +1173,9 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 
 //--------------------------------------------------------------------------------
 
-// DeleteAssociations deletes rows from the table, given some primary keys.
+// DeleteHooks deletes rows from the table, given some primary keys.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...int64) (int64, error) {
+func (tbl HookTable) DeleteHooks(req require.Requirement, id ...uint64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE %s IN (%s)"
 	qName := tbl.quotedName()
@@ -1042,12 +1230,12 @@ func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...in
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl AssociationTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
+func (tbl HookTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := tbl.deleteRows(wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func (tbl AssociationTable) deleteRows(wh where.Expression) (string, []interface{}) {
+func (tbl HookTable) deleteRows(wh where.Expression) (string, []interface{}) {
 	whs, args := where.Build(" WHERE ", wh, tbl.Dialect().Quoter())
 	query := fmt.Sprintf("DELETE FROM %s%s", tbl.quotedName(), whs)
 	return query, args

@@ -2,6 +2,8 @@
 *.sqlite
 *.txt
 _docs
+.idea/dataSources.*
+.idea/dataSources/
 .idea/shelf/
 .idea/workspace.xml
 demo/*.json

@@ -536,7 +536,7 @@ import "github.com/rickb777/sqlgen2/demo"
 type Example struct {
 	Cat1     demo.Category
 	Cat2     *demo.Category
-	demo.Dates
+	demo.Bounds
 	Name     string
 }
 `, "|", "`", -1)
@@ -555,7 +555,7 @@ type Example struct {
 		t.Fatalf("Error loading: %s", err)
 	}
 
-	p1 := &Node{Name: "Dates", Type: Type{PkgPath: demoPath, PkgName: "demo", Name: "Dates", Base: Struct}}
+	p1 := &Node{Name: "Bounds", Type: Type{PkgPath: demoPath, PkgName: "demo", Name: "Bounds", Base: Struct}}
 
 	cat1 := &Field{Node{"Cat1", Type{PkgPath: demoPath, PkgName: "demo", Name: "Category", Base: Uint8}, nil}, "cat1", ENCNONE, nil}
 	cat2 := &Field{Node{"Cat2", Type{PkgPath: demoPath, PkgName: "demo", Name: "Category", IsPtr: true, Base: Uint8}, nil}, "cat2", ENCNONE, nil}

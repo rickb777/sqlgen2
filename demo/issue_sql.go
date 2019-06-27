@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.22.0; sqlgen v0.48.0
+// sqlapi v0.24.0; sqlgen v0.48.0
 
 package demo
 
@@ -268,6 +268,7 @@ var sqlIssueTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlIssueAssigneeIndexColumns = "assignee"
+
 var listOfIssueAssigneeIndexColumns = []string{"assignee"}
 
 //--------------------------------------------------------------------------------

@@ -353,7 +353,7 @@ func TestUpdate_error_using_mock(t *testing.T) {
 	g.Expect(errors.Cause(err)).To(Equal(exp))
 }
 
-func TestCrud_using_database(t *testing.T) {
+func TestUserCrud_using_database(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	d := newDatabase(t)

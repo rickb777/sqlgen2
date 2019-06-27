@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.22.0; sqlgen v0.48.0
+// sqlapi v0.24.0; sqlgen v0.48.0
 
 package demo
 
@@ -327,9 +327,11 @@ var sqlAUserTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlAEmailaddressIdxIndexColumns = "emailaddress"
+
 var listOfAEmailaddressIdxIndexColumns = []string{"emailaddress"}
 
 const sqlAUserLoginIndexColumns = "name"
+
 var listOfAUserLoginIndexColumns = []string{"name"}
 
 //--------------------------------------------------------------------------------

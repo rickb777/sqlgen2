@@ -3,7 +3,7 @@ cd $(dirname $0)
 
 PATH=$PWD/..:$HOME/go/bin:$PATH
 
-rm -f *_sql.go
+rm -f *_sql.go *_sql.json
 
 go generate .
 
@@ -20,7 +20,12 @@ sqlgen -type demo.User -o user_ex_CRUDS_sql.go -v -prefix A -schema=false -all u
 
 unset GO_DRIVER GO_DSN GO_QUOTER
 
-for db in $@; do
+DBS=$@
+if [ "$1" = "all" ]; then
+  DBS="sqlite mysql postgres pgx"
+fi
+
+for db in $DBS; do
   echo
   go clean -testcache ||:
 
@@ -49,7 +54,7 @@ for db in $@; do
       GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" GO_QUOTER=ansi go test -v . ||:
       ;;
 
-    sqlite) # default - see above
+    sqlite)
       unset GO_DRIVER GO_DSN
       echo
       echo "SQLite3 (no quotes)..."
@@ -60,7 +65,7 @@ for db in $@; do
       ;;
 
     *)
-      echo "$db: unrecognised; must be sqlite, mysql, or postgres"
+      echo "$db: unrecognised; must be sqlite, mysql, or postgres. Use 'all' for all of these."
       exit 1
       ;;
   esac

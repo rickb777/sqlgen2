@@ -4,12 +4,12 @@ package demo
 //   * embedded structs
 //   * the use of pointers for optional items
 
-//xx:generate sqlgen -json -type demo.Hook -o hook_sql.go -list HookList -all -v .
+//go:generate sqlgen -json -type demo.Hook -o hook_sql.go -list HookList -all -v .
 
 type Hook struct {
 	Id  uint64 `sql:"pk: true, auto: true"`
 	Sha string
-	Dates
+	Bounds
 	Category   Category
 	Created    bool
 	Deleted    bool
@@ -19,7 +19,7 @@ type Hook struct {
 
 type HookList []*Hook
 
-type Dates struct {
+type Bounds struct {
 	After  string `sql:"size: 20"`
 	Before string `sql:"size: 20"`
 }
