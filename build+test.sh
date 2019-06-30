@@ -43,8 +43,7 @@ announce demo
 announce demopgx
 ./demopgx/build.sh
 
-cd ..
 echo
-go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
+#go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
 echo go vet -vettool=$(type -p shadow) ./...
 go vet -vettool=$(type -p shadow) ./...

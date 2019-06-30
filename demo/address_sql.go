@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-1-g8391f5c
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-2-g6b3f295
 
 package demo
 
