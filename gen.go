@@ -25,7 +25,7 @@ func main() {
 
 	var oFile, typeName, prefix, list, kind, tableName, tagsFile, genSetters string
 	var flags = FuncFlags{}
-	var all, sselect, insert, gofmt, jsonFile, yamlFile, showVersion bool
+	var pgx, all, sselect, insert, gofmt, jsonFile, yamlFile, showVersion bool
 
 	flag.StringVar(&oFile, "o", "", "Output file name; optional. Use '-' for stdout.\n"+
 		"\tIf omitted, the first input filename is used with '_sql.go' suffix.")
@@ -40,6 +40,7 @@ func main() {
 		"\tTags control the SQL type, size, column name, indexes etc.")
 
 	// filters for what gets generated
+	flag.BoolVar(&pgx, "pgx", false, "Generates code for github.com/jackc/pgx.")
 	flag.BoolVar(&all, "all", false, "Shorthand for '-schema -create -read -update -delete -slice'; recommended.\n"+
 		"\tThis does not affect -setters.")
 	flag.BoolVar(&sselect, "select", false, "Alias for -read")
@@ -162,7 +163,7 @@ func main() {
 		writeTableJson(o.Derive(".json"), buf, enc, table)
 	}
 
-	writeSqlGo(o, name, prefix, tableName, kind, list, mainPkg, genSetters, table, flags, gofmt)
+	writeSqlGo(o, name, prefix, tableName, kind, list, mainPkg, genSetters, table, flags, pgx, gofmt)
 
 	output.Info("%s took %v\n", o.Path(), time.Now().Sub(start))
 }
@@ -197,16 +198,22 @@ func writeTableJson(o output.Output, buf io.ReadWriter, enc encoder, table *sche
 	}
 }
 
-func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, genSetters string, table *schema.TableDescription, flags FuncFlags, gofmt bool) {
-	view := NewView(name, prefix, tableName, list)
+func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, genSetters string, table *schema.TableDescription, flags FuncFlags, pgx, gofmt bool) {
+	sql := "sql"
+	api := "sqlapi"
+	if pgx {
+		sql = "pgx"
+		api = "pgxapi"
+	}
+	view := NewView(name, prefix, tableName, list, sql, api)
 	view.Table = table
 	view.Thing = kind
-	view.Interface1 = PrimaryInterface(table, flags.Schema)
-	view.Interface2 = SecondaryInterface(flags)
+	view.Interface1 = api + "." + PrimaryInterface(table, flags.Schema)
+	view.Interface2 = api + "." + SecondaryInterface(flags)
 
 	setters := view.FilterSetters(genSetters)
 
-	importSet := PackagesToImport(flags, view.Table.HasPrimaryKey())
+	importSet := PackagesToImport(flags, pgx)
 
 	if flags.Select || flags.Insert || flags.Update {
 		ImportsForFields(table, importSet)

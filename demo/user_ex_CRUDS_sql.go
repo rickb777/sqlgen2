@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.24.0; sqlgen v0.48.0
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-1-g8391f5c
 
 package demo
 
@@ -15,8 +15,8 @@ import (
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
-	"github.com/rickb777/sqlapi/where"
-	"log"
+	"github.com/rickb777/where"
+	"github.com/rickb777/where/quote"
 	"strings"
 )
 
@@ -103,7 +103,7 @@ func (tbl AUserTable) Database() sqlapi.Database {
 }
 
 // Logger gets the trace logger.
-func (tbl AUserTable) Logger() *log.Logger {
+func (tbl AUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
@@ -157,8 +157,7 @@ func (tbl AUserTable) Tx() sqlapi.SqlTx {
 
 // IsTx tests whether this is within a transaction.
 func (tbl AUserTable) IsTx() bool {
-	_, ok := tbl.db.(sqlapi.SqlTx)
-	return ok
+	return tbl.db.IsTx()
 }
 
 // BeginTx starts a transaction using the table's context.
@@ -730,7 +729,7 @@ func scanAUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 
 //--------------------------------------------------------------------------------
 
-func allAUserColumnNamesQuoted(q dialect.Quoter) string {
+func allAUserColumnNamesQuoted(q quote.Quoter) string {
 	return strings.Join(q.QuoteN(listOfAUserTableColumnNames), ",")
 }
 
@@ -855,7 +854,7 @@ func (tbl AUserTable) SelectOneWhere(req require.Requirement, where, orderBy str
 func (tbl AUserTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -883,7 +882,7 @@ func (tbl AUserTable) SelectWhere(req require.Requirement, where, orderBy string
 func (tbl AUserTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -1035,7 +1034,7 @@ func (tbl AUserTable) SliceF64(req require.Requirement, wh where.Expression, qc 
 func (tbl AUserTable) sliceRolePtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
@@ -1060,7 +1059,7 @@ func (tbl AUserTable) sliceRolePtrList(req require.Requirement, sqlname string, 
 func (tbl AUserTable) sliceFloat32List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
@@ -1085,7 +1084,7 @@ func (tbl AUserTable) sliceFloat32List(req require.Requirement, sqlname string, 
 func (tbl AUserTable) sliceFloat64List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
@@ -1424,17 +1423,12 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 			err = row.Scan(&v.Uid)
 
 		} else {
-			res, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
 
-			v.Uid, err = res.LastInsertId()
-			if e2 != nil {
-				return tbl.logError(e2)
-			}
-
-			n, err = res.RowsAffected()
+			v.Uid = i64
 		}
 
 		if err != nil {
@@ -1565,8 +1559,8 @@ func (tbl AUserTable) Delete(req require.Requirement, wh where.Expression) (int6
 }
 
 func (tbl AUserTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.Build(" WHERE ", wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s%s", tbl.quotedName(), whs)
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
+	query := fmt.Sprintf("DELETE FROM %s %s", tbl.quotedName(), whs)
 	return query, args
 }
 

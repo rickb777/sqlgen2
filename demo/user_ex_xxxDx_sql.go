@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.24.0; sqlgen v0.48.0
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-1-g8391f5c
 
 package demo
 
@@ -12,8 +12,7 @@ import (
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
-	"github.com/rickb777/sqlapi/where"
-	"log"
+	"github.com/rickb777/where"
 	"strings"
 )
 
@@ -100,7 +99,7 @@ func (tbl DUserTable) Database() sqlapi.Database {
 }
 
 // Logger gets the trace logger.
-func (tbl DUserTable) Logger() *log.Logger {
+func (tbl DUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
@@ -154,8 +153,7 @@ func (tbl DUserTable) Tx() sqlapi.SqlTx {
 
 // IsTx tests whether this is within a transaction.
 func (tbl DUserTable) IsTx() bool {
-	_, ok := tbl.db.(sqlapi.SqlTx)
-	return ok
+	return tbl.db.IsTx()
 }
 
 // BeginTx starts a transaction using the table's context.
@@ -348,8 +346,8 @@ func (tbl DUserTable) Delete(req require.Requirement, wh where.Expression) (int6
 }
 
 func (tbl DUserTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.Build(" WHERE ", wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s%s", tbl.quotedName(), whs)
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
+	query := fmt.Sprintf("DELETE FROM %s %s", tbl.quotedName(), whs)
 	return query, args
 }
 

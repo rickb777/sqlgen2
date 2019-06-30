@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.24.0; sqlgen v0.48.0
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-1-g8391f5c
 
 package demo
 
@@ -15,8 +15,8 @@ import (
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
-	"github.com/rickb777/sqlapi/where"
-	"log"
+	"github.com/rickb777/where"
+	"github.com/rickb777/where/quote"
 	"strings"
 )
 
@@ -100,7 +100,7 @@ func (tbl DatesTable) Database() sqlapi.Database {
 }
 
 // Logger gets the trace logger.
-func (tbl DatesTable) Logger() *log.Logger {
+func (tbl DatesTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
@@ -154,8 +154,7 @@ func (tbl DatesTable) Tx() sqlapi.SqlTx {
 
 // IsTx tests whether this is within a transaction.
 func (tbl DatesTable) IsTx() bool {
-	_, ok := tbl.db.(sqlapi.SqlTx)
-	return ok
+	return tbl.db.IsTx()
 }
 
 // BeginTx starts a transaction using the table's context.
@@ -439,7 +438,7 @@ func scanDatess(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Dates,
 
 //--------------------------------------------------------------------------------
 
-func allDatesColumnNamesQuoted(q dialect.Quoter) string {
+func allDatesColumnNamesQuoted(q quote.Quoter) string {
 	return strings.Join(q.QuoteN(listOfDatesTableColumnNames), ",")
 }
 
@@ -552,7 +551,7 @@ func (tbl DatesTable) SelectOneWhere(req require.Requirement, where, orderBy str
 func (tbl DatesTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Dates, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -580,7 +579,7 @@ func (tbl DatesTable) SelectWhere(req require.Requirement, where, orderBy string
 func (tbl DatesTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Dates, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -634,7 +633,7 @@ func (tbl DatesTable) SliceString(req require.Requirement, wh where.Expression, 
 func (tbl DatesTable) sliceDateList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
@@ -659,7 +658,7 @@ func (tbl DatesTable) sliceDateList(req require.Requirement, sqlname string, wh 
 func (tbl DatesTable) sliceDateStringList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
@@ -780,18 +779,12 @@ func (tbl DatesTable) Insert(req require.Requirement, vv ...*Dates) error {
 			v.Id = uint64(i64)
 
 		} else {
-			res, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
 
-			i64, e2 := res.LastInsertId()
 			v.Id = uint64(i64)
-			if e2 != nil {
-				return tbl.logError(e2)
-			}
-
-			n, err = res.RowsAffected()
 		}
 
 		if err != nil {
@@ -922,8 +915,8 @@ func (tbl DatesTable) Delete(req require.Requirement, wh where.Expression) (int6
 }
 
 func (tbl DatesTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.Build(" WHERE ", wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s%s", tbl.quotedName(), whs)
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
+	query := fmt.Sprintf("DELETE FROM %s %s", tbl.quotedName(), whs)
 	return query, args
 }
 

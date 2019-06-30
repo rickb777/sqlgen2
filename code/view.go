@@ -22,6 +22,8 @@ type View struct {
 	Interface2 string
 	List       string
 	Suffix     string
+	Sql        string
+	Sqlapi     string
 	Body1      []string
 	Body2      []string
 	Body3      []string
@@ -30,7 +32,7 @@ type View struct {
 	Setter     *schema.Field
 }
 
-func NewView(name, prefix, tableName, list string) View {
+func NewView(name, prefix, tableName, list, sql, api string) View {
 	if list == "" {
 		list = fmt.Sprintf("[]*%s", name)
 	}
@@ -45,10 +47,12 @@ func NewView(name, prefix, tableName, list string) View {
 		Types:      pl,
 		DbName:     tn,
 		Thing:      "Table",
-		Interface1: "sqlapi.Table",
-		Interface2: "sqlapi.Table",
+		Interface1: api + ".Table",
+		Interface2: api + ".Table",
 		List:       list,
 		Dialects:   dialect.AllDialects,
+		Sql:        sql,
+		Sqlapi:     api,
 	}
 }
 

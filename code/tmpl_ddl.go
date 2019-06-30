@@ -16,9 +16,9 @@ const sTable = `
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type {{.Prefix}}{{.Type}}{{.Thing}} struct {
-	name        sqlapi.TableName
-	database    sqlapi.Database
-	db          sqlapi.Execer
+	name        {{.Sqlapi}}.TableName
+	database    {{.Sqlapi}}.Database
+	db          {{.Sqlapi}}.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
 	pk          string
@@ -31,7 +31,7 @@ var _ {{.Interface2}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
 // New{{.Prefix}}{{.Type}}{{.Thing}} returns a new table instance.
 // If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.
 // The request context is initialised with the background.
-func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d sqlapi.Database) {{.Prefix}}{{.Type}}{{.Thing}} {
+func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d {{.Sqlapi}}.Database) {{.Prefix}}{{.Type}}{{.Thing}} {
 	if name == "" {
 		name = "{{.DbName}}"
 	}
@@ -42,7 +42,7 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d sqlapi.Database) {{.Prefix
 
 	{{end -}}
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
-		name:        sqlapi.TableName{Prefix: "", Name: name},
+		name:        {{.Sqlapi}}.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -56,7 +56,7 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d sqlapi.Database) {{.Prefix
 //
 // It serves to provide methods appropriate for '{{.Type}}'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin sqlapi.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
+func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin {{.Sqlapi}}.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -94,12 +94,12 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithContext(ctx context.Context) {{.Pr
 }
 
 // Database gets the shared database information.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Database() sqlapi.Database {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Database() {{.Sqlapi}}.Database {
 	return tbl.database
 }
 
 // Logger gets the trace logger.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Logger() *log.Logger {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Logger() {{.Sqlapi}}.Logger {
 	return tbl.database.Logger()
 }
 
@@ -125,7 +125,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Dialect() dialect.Dialect {
 }
 
 // Name gets the table name.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Name() sqlapi.TableName {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Name() {{.Sqlapi}}.TableName {
 	return tbl.name
 }
 {{- if .Table.HasPrimaryKey}}
@@ -138,25 +138,24 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) PkColumn() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DB() sqlapi.SqlDB {
-	return tbl.db.(sqlapi.SqlDB)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DB() {{.Sqlapi}}.SqlDB {
+	return tbl.db.({{.Sqlapi}}.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Execer() sqlapi.Execer {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Execer() {{.Sqlapi}}.Execer {
 	return tbl.db
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Tx() sqlapi.SqlTx {
-	return tbl.db.(sqlapi.SqlTx)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Tx() {{.Sqlapi}}.SqlTx {
+	return tbl.db.({{.Sqlapi}}.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
-	_, ok := tbl.db.(sqlapi.SqlTx)
-	return ok
+	return tbl.db.IsTx()
 }
 
 // BeginTx starts a transaction using the table's context.
@@ -170,22 +169,24 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
 // an error will be returned.
 //
 // Panics if the Execer is not TxStarter.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) BeginTx(opts *sql.TxOptions) ({{.Prefix}}{{.Type}}{{.Thing}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) BeginTx(opts *{{.Sql}}.TxOptions) ({{.Prefix}}{{.Type}}{{.Thing}}, error) {
 	var err error
-	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
+	tbl.db, err = tbl.db.({{.Sqlapi}}.SqlDB).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx sqlapi.SqlTx) {{.Prefix}}{{.Type}}{{.Thing}} {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}}{{.Type}}{{.Thing}} {
 	tbl.db = tx
 	return tbl
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logQuery(query string, args ...interface{}) {
+	{{- if eq .Sql "sql"}}
 	tbl.database.LogQuery(query, args...)
+	{{- end}}
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logError(err error) error {
@@ -211,7 +212,7 @@ var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
 
 // function template to scan multiple rows.
 const sScanRows = `
-func scan{{.Prefix}}{{.Types}}(query string, rows sqlapi.SqlRows, firstOnly bool) (vv {{.List}}, n int64, err error) {
+func scan{{.Prefix}}{{.Types}}(query string, rows {{.Sqlapi}}.SqlRows, firstOnly bool) (vv {{.List}}, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -228,7 +229,7 @@ func scan{{.Prefix}}{{.Types}}(query string, rows sqlapi.SqlRows, firstOnly bool
 		v := &{{.Type}}{}
 {{range .Body3}}{{.}}{{end}}
 		var iv interface{} = v
-		if hook, ok := iv.(sqlapi.CanPostGet); ok {
+		if hook, ok := iv.({{.Sqlapi}}.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, errors.Wrap(err, query)

@@ -18,18 +18,29 @@ import (
 	"strings"
 )
 
-func PackagesToImport(flags FuncFlags, hasPrimaryKey bool) util.StringSet {
+func PackagesToImport(flags FuncFlags, pgx bool) util.StringSet {
 	imports := util.NewStringSet(
 		"context",
 		"database/sql",
-		"log",
 		"strings",
-		"github.com/rickb777/sqlapi",
-		"github.com/rickb777/sqlapi/constraint",
 		"github.com/rickb777/sqlapi/dialect",
 		"github.com/rickb777/sqlapi/require",
-		"github.com/rickb777/sqlapi/support",
 	)
+
+	if pgx {
+		imports.Add(
+			"github.com/jackc/pgx",
+			"github.com/rickb777/sqlapi/pgxapi",
+			"github.com/rickb777/sqlapi/pgxapi/constraint",
+			"github.com/rickb777/sqlapi/pgxapi/support",
+		)
+	} else {
+		imports.Add(
+			"github.com/rickb777/sqlapi",
+			"github.com/rickb777/sqlapi/constraint",
+			"github.com/rickb777/sqlapi/support",
+		)
+	}
 
 	if flags.Insert || flags.Update || flags.Schema {
 		imports.Add("bytes")
@@ -41,7 +52,10 @@ func PackagesToImport(flags FuncFlags, hasPrimaryKey bool) util.StringSet {
 		imports.Add("github.com/pkg/errors")
 	}
 	if flags.Select || flags.Slice || flags.Update || flags.Delete {
-		imports.Add("github.com/rickb777/sqlapi/where")
+		imports.Add("github.com/rickb777/where")
+	}
+	if flags.Select {
+		imports.Add("github.com/rickb777/where/quote")
 	}
 	return imports
 }
@@ -62,12 +76,12 @@ func PrimaryInterface(table *schema.TableDescription, genSchema bool) string {
 
 func primaryInterface(table *schema.TableDescription, genSchema bool) string {
 	if !genSchema {
-		return "sqlapi.Table"
+		return "Table"
 	}
 	if len(table.Index) == 0 {
-		return "sqlapi.TableCreator"
+		return "TableCreator"
 	}
-	return "sqlapi.TableWithIndexes"
+	return "TableWithIndexes"
 }
 
 func SecondaryInterface(flags FuncFlags) string {
@@ -76,9 +90,9 @@ func SecondaryInterface(flags FuncFlags) string {
 
 func secondaryInterface(flags FuncFlags) string {
 	if flags.Exec && flags.Select && flags.Insert && flags.Update && flags.Delete && flags.Slice {
-		return "sqlapi.TableWithCrud"
+		return "TableWithCrud"
 	}
-	return "sqlapi.Table"
+	return "Table"
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.24.0; sqlgen v0.48.0
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-1-g8391f5c
 
 package demo
 
@@ -15,7 +15,6 @@ import (
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
-	"log"
 	"strings"
 )
 
@@ -102,7 +101,7 @@ func (tbl CUserTable) Database() sqlapi.Database {
 }
 
 // Logger gets the trace logger.
-func (tbl CUserTable) Logger() *log.Logger {
+func (tbl CUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
@@ -156,8 +155,7 @@ func (tbl CUserTable) Tx() sqlapi.SqlTx {
 
 // IsTx tests whether this is within a transaction.
 func (tbl CUserTable) IsTx() bool {
-	_, ok := tbl.db.(sqlapi.SqlTx)
-	return ok
+	return tbl.db.IsTx()
 }
 
 // BeginTx starts a transaction using the table's context.
@@ -436,17 +434,12 @@ func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
 			err = row.Scan(&v.Uid)
 
 		} else {
-			res, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
 
-			v.Uid, err = res.LastInsertId()
-			if e2 != nil {
-				return tbl.logError(e2)
-			}
-
-			n, err = res.RowsAffected()
+			v.Uid = i64
 		}
 
 		if err != nil {

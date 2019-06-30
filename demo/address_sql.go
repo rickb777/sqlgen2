@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.24.0; sqlgen v0.48.0
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-1-g8391f5c
 
 package demo
 
@@ -15,8 +15,8 @@ import (
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
-	"github.com/rickb777/sqlapi/where"
-	"log"
+	"github.com/rickb777/where"
+	"github.com/rickb777/where/quote"
 	"strings"
 )
 
@@ -100,7 +100,7 @@ func (tbl AddressTable) Database() sqlapi.Database {
 }
 
 // Logger gets the trace logger.
-func (tbl AddressTable) Logger() *log.Logger {
+func (tbl AddressTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
@@ -154,8 +154,7 @@ func (tbl AddressTable) Tx() sqlapi.SqlTx {
 
 // IsTx tests whether this is within a transaction.
 func (tbl AddressTable) IsTx() bool {
-	_, ok := tbl.db.(sqlapi.SqlTx)
-	return ok
+	return tbl.db.IsTx()
 }
 
 // BeginTx starts a transaction using the table's context.
@@ -592,7 +591,7 @@ func scanAddresses(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Add
 
 //--------------------------------------------------------------------------------
 
-func allAddressColumnNamesQuoted(q dialect.Quoter) string {
+func allAddressColumnNamesQuoted(q quote.Quoter) string {
 	return strings.Join(q.QuoteN(listOfAddressTableColumnNames), ",")
 }
 
@@ -717,7 +716,7 @@ func (tbl AddressTable) SelectOneWhere(req require.Requirement, where, orderBy s
 func (tbl AddressTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Address, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -745,7 +744,7 @@ func (tbl AddressTable) SelectWhere(req require.Requirement, where, orderBy stri
 func (tbl AddressTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Address, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -919,17 +918,12 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 			err = row.Scan(&v.Id)
 
 		} else {
-			res, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
 
-			v.Id, err = res.LastInsertId()
-			if e2 != nil {
-				return tbl.logError(e2)
-			}
-
-			n, err = res.RowsAffected()
+			v.Id = i64
 		}
 
 		if err != nil {
@@ -1060,8 +1054,8 @@ func (tbl AddressTable) Delete(req require.Requirement, wh where.Expression) (in
 }
 
 func (tbl AddressTable) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.Build(" WHERE ", wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s%s", tbl.quotedName(), whs)
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
+	query := fmt.Sprintf("DELETE FROM %s %s", tbl.quotedName(), whs)
 	return query, args
 }
 

@@ -1,0 +1,106 @@
+{
+  "Type": "Address",
+  "Name": "addresses",
+  "Fields": [
+    {
+      "Name": "Id",
+      "Type": {
+        "Name": "int64",
+        "Base": 6
+      },
+      "SqlName": "id",
+      "Tags": {
+        "Primary": true,
+        "Auto": true
+      }
+    },
+    {
+      "Name": "Lines",
+      "Type": {
+        "Name": "[]string",
+        "Base": 103
+      },
+      "SqlName": "lines",
+      "Encode": 1,
+      "Tags": {
+        "Encode": "json"
+      }
+    },
+    {
+      "Name": "Town",
+      "Type": {
+        "Name": "string",
+        "IsPtr": true,
+        "Base": 17
+      },
+      "SqlName": "town",
+      "Tags": {
+        "Index": "townIdx",
+        "Size": 80
+      }
+    },
+    {
+      "Name": "Postcode",
+      "Type": {
+        "Name": "string",
+        "Base": 17
+      },
+      "SqlName": "postcode",
+      "Tags": {
+        "Index": "postcodeIdx",
+        "Size": 20
+      }
+    }
+  ],
+  "Index": [
+    {
+      "Name": "postcodeIdx",
+      "Unique": false,
+      "Fields": [
+        {
+          "Name": "Postcode",
+          "Type": {
+            "Name": "string",
+            "Base": 17
+          },
+          "SqlName": "postcode",
+          "Tags": {
+            "Index": "postcodeIdx",
+            "Size": 20
+          }
+        }
+      ]
+    },
+    {
+      "Name": "townIdx",
+      "Unique": false,
+      "Fields": [
+        {
+          "Name": "Town",
+          "Type": {
+            "Name": "string",
+            "IsPtr": true,
+            "Base": 17
+          },
+          "SqlName": "town",
+          "Tags": {
+            "Index": "townIdx",
+            "Size": 80
+          }
+        }
+      ]
+    }
+  ],
+  "Primary": {
+    "Name": "Id",
+    "Type": {
+      "Name": "int64",
+      "Base": 6
+    },
+    "SqlName": "id",
+    "Tags": {
+      "Primary": true,
+      "Auto": true
+    }
+  }
+}

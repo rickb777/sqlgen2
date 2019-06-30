@@ -26,8 +26,8 @@ const sQueryRows = `
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
+// Wrap the result in *{{.Sqlapi}}.Rows if you need to access its data as a map.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(query string, args ...interface{}) ({{.Sqlapi}}.SqlRows, error) {
 	return support.Query(tbl, query, args...)
 }
 `
@@ -79,7 +79,7 @@ var tQueryThings = template.Must(template.New("QueryThings").Funcs(funcMap).Pars
 const sGetRow = `
 //--------------------------------------------------------------------------------
 
-func all{{.CamelName}}ColumnNamesQuoted(q dialect.Quoter) string {
+func all{{.CamelName}}ColumnNamesQuoted(q quote.Quoter) string {
 	return strings.Join(q.QuoteN(listOf{{$.CamelName}}{{.Thing}}ColumnNames), ",")
 }
 {{- if .Table.Primary}}
@@ -215,7 +215,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*{{.Type}}, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -243,7 +243,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(req require.Requirement, w
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ({{.List}}, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 `
@@ -316,7 +316,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) slice{{camel .Tag}}List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
-	orderBy := where.BuildQueryConstraint(qc, q)
+	orderBy := where.Build(qc, q)
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
@@ -390,7 +390,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 	{{end -}}
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
+		if hook, ok := iv.({{.Sqlapi}}.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
 				return tbl.logError(err)
@@ -431,24 +431,24 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 			{{- end}}
 
 		} else {
-			res, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			{{if .Table.HasLastInsertId -}}
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
 
-			{{if .Table.HasLastInsertId -}}
 			{{if eq .Table.Primary.Type.Name "int64" -}}
-			v.{{.Table.Primary.Name}}, err = res.LastInsertId()
+			v.{{.Table.Primary.Name}} = i64
 			{{else -}}
-			i64, e2 := res.LastInsertId()
 			v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(i64)
 			{{end -}}
-			{{end -}}
+			{{else -}}
+			_, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
 			if e2 != nil {
 				return tbl.logError(e2)
 			}
 
-			n, err = res.RowsAffected()
+			{{end -}}
 		}
 
 		if err != nil {
@@ -496,7 +496,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
+		if hook, ok := iv.({{.Sqlapi}}.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
 				return count, tbl.logError(err)
@@ -601,8 +601,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete(req require.Requirement, wh whe
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) deleteRows(wh where.Expression) (string, []interface{}) {
-	whs, args := where.Build(" WHERE ", wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s%s", tbl.quotedName(), whs)
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
+	query := fmt.Sprintf("DELETE FROM %s %s", tbl.quotedName(), whs)
 	return query, args
 }
 `

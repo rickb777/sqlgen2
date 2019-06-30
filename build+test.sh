@@ -38,8 +38,10 @@ done
 ### Demo ###
 
 announce demo
-cd demo
-./build.sh sqlite mysql postgres pgx
+./demo/build.sh sqlite mysql postgres pgx
+
+announce demopgx
+./demopgx/build.sh
 
 cd ..
 echo
