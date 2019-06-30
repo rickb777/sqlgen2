@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-2-g6b3f295
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-3-g84d0e25
 
 package demo
 
@@ -267,7 +267,6 @@ var sqlIssueTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlIssueAssigneeIndexColumns = "assignee"
-
 var listOfIssueAssigneeIndexColumns = []string{"assignee"}
 
 //--------------------------------------------------------------------------------
@@ -940,7 +939,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 			}
 
 			v.Id = i64
-		}
+			}
 
 		if err != nil {
 			return tbl.logError(err)

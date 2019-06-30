@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-2-g6b3f295
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-3-g84d0e25
 
 package demo
 
@@ -912,7 +912,7 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 			}
 
 			v.Id = i64
-		}
+			}
 
 		if err != nil {
 			return tbl.logError(err)

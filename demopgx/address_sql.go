@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-2-g6b3f295
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-3-g84d0e25
 
 package demopgx
 
@@ -251,11 +251,9 @@ var sqlAddressTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlPostcodeIdxIndexColumns = "postcode"
-
 var listOfPostcodeIdxIndexColumns = []string{"postcode"}
 
 const sqlTownIdxIndexColumns = "town"
-
 var listOfTownIdxIndexColumns = []string{"town"}
 
 //--------------------------------------------------------------------------------
@@ -924,7 +922,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 			}
 
 			v.Id = i64
-		}
+			}
 
 		if err != nil {
 			return tbl.logError(err)
