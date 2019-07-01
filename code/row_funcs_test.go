@@ -42,6 +42,9 @@ func TestWriteRowsFunc1(t *testing.T) {
 
 	code := buf.String()
 	expected := `
+// scanXExamples reads rows from the database and returns a slice of corresponding values.
+// It also returns a number indicating how many rows were read; this will be larger than the length of the
+// slice if reading stopped after the first row.
 func scanXExamples(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Example, n int64, err error) {
 	for rows.Next() {
 		n++
@@ -99,6 +102,7 @@ func TestWriteRowFunc2(t *testing.T) {
 	exit.TestableExit()
 
 	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view.Scan = "Scan"
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
@@ -106,7 +110,10 @@ func TestWriteRowFunc2(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-func scanXExamples(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Example, n int64, err error) {
+// ScanXExamples reads rows from the database and returns a slice of corresponding values.
+// It also returns a number indicating how many rows were read; this will be larger than the length of the
+// slice if reading stopped after the first row.
+func ScanXExamples(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Example, n int64, err error) {
 	for rows.Next() {
 		n++
 

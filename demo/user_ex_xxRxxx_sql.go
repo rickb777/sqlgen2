@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.48.0-6-g20b5bdb
+// sqlapi v0.29.0; sqlgen v0.49.0
 
 package demo
 
@@ -262,6 +262,9 @@ func (tbl RUserTable) QueryOneNullFloat64(req require.Requirement, query string,
 	return result, err
 }
 
+// scanRUsers reads rows from the database and returns a slice of corresponding values.
+// It also returns a number indicating how many rows were read; this will be larger than the length of the
+// slice if reading stopped after the first row.
 func scanRUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, n int64, err error) {
 	for rows.Next() {
 		n++

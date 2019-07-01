@@ -173,7 +173,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryAndScan(req require.Requirement
 	}
 	defer rows.Close()
 
-	vv, n, err := scan{{.Prefix}}{{.Types}}(query, rows, firstOnly)
+	vv, n, err := {{.Scan}}{{.Prefix}}{{.Types}}(query, rows, firstOnly)
 	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 

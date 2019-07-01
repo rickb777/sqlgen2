@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.48.0-6-g20b5bdb
+// sqlapi v0.29.0; sqlgen v0.49.0
 
 package demo
 
@@ -381,7 +381,10 @@ func (tbl DatesTable) QueryOneNullFloat64(req require.Requirement, query string,
 	return result, err
 }
 
-func scanDatess(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Dates, n int64, err error) {
+// ScanDatess reads rows from the database and returns a slice of corresponding values.
+// It also returns a number indicating how many rows were read; this will be larger than the length of the
+// slice if reading stopped after the first row.
+func ScanDatess(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Dates, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -501,7 +504,7 @@ func (tbl DatesTable) doQueryAndScan(req require.Requirement, firstOnly bool, qu
 	}
 	defer rows.Close()
 
-	vv, n, err := scanDatess(query, rows, firstOnly)
+	vv, n, err := ScanDatess(query, rows, firstOnly)
 	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
@@ -775,7 +778,7 @@ func (tbl DatesTable) Insert(req require.Requirement, vv ...*Dates) error {
 			}
 
 			v.Id = uint64(i64)
-		}
+			}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -843,9 +846,9 @@ func (tbl DatesTable) Update(req require.Requirement, vv ...*Dates) (int64, erro
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified
-// key column(s). It must match either zero or one existing record. If it matches
-// none, a new record is inserted; otherwise the matching record is updated. An
+// This expression is used to search for an existing record based on some specified 
+// key column(s). It must match either zero or one existing record. If it matches 
+// none, a new record is inserted; otherwise the matching record is updated. An 
 // error results if these conditions are not met.
 func (tbl DatesTable) Upsert(v *Dates, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

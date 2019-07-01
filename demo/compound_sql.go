@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.48.0-6-g20b5bdb
+// sqlapi v0.29.0; sqlgen v0.49.0
 
 package demo
 
@@ -448,7 +448,10 @@ func (tbl DbCompoundTable) QueryOneNullFloat64(req require.Requirement, query st
 	return result, err
 }
 
-func scanDbCompounds(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Compound, n int64, err error) {
+// ScanDbCompounds reads rows from the database and returns a slice of corresponding values.
+// It also returns a number indicating how many rows were read; this will be larger than the length of the
+// slice if reading stopped after the first row.
+func ScanDbCompounds(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Compound, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -543,7 +546,7 @@ func (tbl DbCompoundTable) doQueryAndScan(req require.Requirement, firstOnly boo
 	}
 	defer rows.Close()
 
-	vv, n, err := scanDbCompounds(query, rows, firstOnly)
+	vv, n, err := ScanDbCompounds(query, rows, firstOnly)
 	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.48.0-6-g20b5bdb
+// sqlapi v0.29.0; sqlgen v0.49.0
 
 package demo
 
@@ -314,11 +314,9 @@ var sqlAUserTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlAEmailaddressIdxIndexColumns = "emailaddress"
-
 var listOfAEmailaddressIdxIndexColumns = []string{"emailaddress"}
 
 const sqlAUserLoginIndexColumns = "name"
-
 var listOfAUserLoginIndexColumns = []string{"name"}
 
 //--------------------------------------------------------------------------------
@@ -600,7 +598,10 @@ func (tbl AUserTable) QueryOneNullFloat64(req require.Requirement, query string,
 	return result, err
 }
 
-func scanAUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, n int64, err error) {
+// ScanAUsers reads rows from the database and returns a slice of corresponding values.
+// It also returns a number indicating how many rows were read; this will be larger than the length of the
+// slice if reading stopped after the first row.
+func ScanAUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -804,7 +805,7 @@ func (tbl AUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, qu
 	}
 	defer rows.Close()
 
-	vv, n, err := scanAUsers(query, rows, firstOnly)
+	vv, n, err := ScanAUsers(query, rows, firstOnly)
 	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
@@ -1419,7 +1420,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 			}
 
 			v.Uid = i64
-		}
+			}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -1487,9 +1488,9 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified
-// key column(s). It must match either zero or one existing record. If it matches
-// none, a new record is inserted; otherwise the matching record is updated. An
+// This expression is used to search for an existing record based on some specified 
+// key column(s). It must match either zero or one existing record. If it matches 
+// none, a new record is inserted; otherwise the matching record is updated. An 
 // error results if these conditions are not met.
 func (tbl AUserTable) Upsert(v *User, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

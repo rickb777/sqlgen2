@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.48.0-6-g20b5bdb
+// sqlapi v0.29.0; sqlgen v0.49.0
 
 package demo
 
@@ -255,7 +255,6 @@ var sqlIssueTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlIssueAssigneeIndexColumns = "assignee"
-
 var listOfIssueAssigneeIndexColumns = []string{"assignee"}
 
 //--------------------------------------------------------------------------------
@@ -484,7 +483,10 @@ func (tbl IssueTable) QueryOneNullFloat64(req require.Requirement, query string,
 	return result, err
 }
 
-func scanIssues(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Issue, n int64, err error) {
+// ScanIssues reads rows from the database and returns a slice of corresponding values.
+// It also returns a number indicating how many rows were read; this will be larger than the length of the
+// slice if reading stopped after the first row.
+func ScanIssues(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Issue, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -628,7 +630,7 @@ func (tbl IssueTable) doQueryAndScan(req require.Requirement, firstOnly bool, qu
 	}
 	defer rows.Close()
 
-	vv, n, err := scanIssues(query, rows, firstOnly)
+	vv, n, err := ScanIssues(query, rows, firstOnly)
 	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
@@ -930,7 +932,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 			}
 
 			v.Id = i64
-		}
+			}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -998,9 +1000,9 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified
-// key column(s). It must match either zero or one existing record. If it matches
-// none, a new record is inserted; otherwise the matching record is updated. An
+// This expression is used to search for an existing record based on some specified 
+// key column(s). It must match either zero or one existing record. If it matches 
+// none, a new record is inserted; otherwise the matching record is updated. An 
 // error results if these conditions are not met.
 func (tbl IssueTable) Upsert(v *Issue, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

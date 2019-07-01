@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.48.0-6-g20b5bdb
+// sqlapi v0.29.0; sqlgen v0.49.0
 
 package demopgx
 
@@ -602,7 +602,10 @@ func (tbl DbUserTable) QueryOneNullFloat64(req require.Requirement, query string
 	return result, err
 }
 
-func scanDbUsers(query string, rows pgxapi.SqlRows, firstOnly bool) (vv []*User, n int64, err error) {
+// ScanDbUsers reads rows from the database and returns a slice of corresponding values.
+// It also returns a number indicating how many rows were read; this will be larger than the length of the
+// slice if reading stopped after the first row.
+func ScanDbUsers(query string, rows pgxapi.SqlRows, firstOnly bool) (vv []*User, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -806,7 +809,7 @@ func (tbl DbUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, q
 	}
 	defer rows.Close()
 
-	vv, n, err := scanDbUsers(query, rows, firstOnly)
+	vv, n, err := ScanDbUsers(query, rows, firstOnly)
 	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 

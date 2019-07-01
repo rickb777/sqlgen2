@@ -24,6 +24,7 @@ type View struct {
 	Suffix     string
 	Sql        string
 	Sqlapi     string
+	Scan       string
 	Body1      []string
 	Body2      []string
 	Body3      []string
@@ -53,6 +54,7 @@ func NewView(name, prefix, tableName, list, sql, api string) View {
 		Dialects:   dialect.AllDialects,
 		Sql:        sql,
 		Sqlapi:     api,
+		Scan:       "scan",
 	}
 }
 

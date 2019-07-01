@@ -54,6 +54,7 @@ func main() {
 	flag.BoolVar(&flags.Upsert, "upsert", false, "Generate SQL upsert methods; ignored if there is no primary key.")
 	flag.BoolVar(&flags.Delete, "delete", false, "Generate SQL delete methods.")
 	flag.BoolVar(&flags.Slice, "slice", false, "Generate SQL slice (column select) methods.")
+	flag.BoolVar(&flags.Scan, "scan", false, "Generate exported row scan functions (these are normally unexported).")
 	flag.StringVar(&genSetters, "setters", "none", "Generate setters for fields of your type (see -type): none, optional, exported, all.\n"+
 		"\tFields that are pointers are assumed to be optional.")
 
@@ -221,6 +222,9 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, g
 	view.Thing = kind
 	view.Interface1 = api + "." + PrimaryInterface(table, flags.Schema)
 	view.Interface2 = api + "." + SecondaryInterface(flags)
+	if flags.Scan {
+		view.Scan = "Scan"
+	}
 
 	setters := view.FilterSetters(genSetters)
 
@@ -253,8 +257,11 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, g
 	WriteQueryRows(buf, view)
 	WriteQueryThings(buf, view)
 
-	if flags.Select {
+	if flags.Select || flags.Scan {
 		WriteScanRows(buf, view)
+	}
+
+	if flags.Select {
 		WriteGetRow(buf, view)
 		WriteSelectRowsFuncs(buf, view)
 	}

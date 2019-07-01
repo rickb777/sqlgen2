@@ -98,10 +98,10 @@ func secondaryInterface(flags FuncFlags) string {
 //-------------------------------------------------------------------------------------------------
 
 type FuncFlags struct {
-	Schema, Exec, Select, Count, Insert, Update, Upsert, Delete, Slice bool
+	Schema, Exec, Select, Count, Insert, Update, Upsert, Delete, Slice, Scan bool
 }
 
-var AllFuncFlags = FuncFlags{true, true, true, true, true, true, true, true, true}
+var AllFuncFlags = FuncFlags{true, true, true, true, true, true, true, true, true, true}
 
 //-------------------------------------------------------------------------------------------------
 

@@ -198,7 +198,10 @@ var tTable = template.Must(template.New("Table").Funcs(funcMap).Parse(sTable))
 
 // function template to scan multiple rows.
 const sScanRows = `
-func scan{{.Prefix}}{{.Types}}(query string, rows {{.Sqlapi}}.SqlRows, firstOnly bool) (vv {{.List}}, n int64, err error) {
+// {{.Scan}}{{.Prefix}}{{.Types}} reads rows from the database and returns a slice of corresponding values.
+// It also returns a number indicating how many rows were read; this will be larger than the length of the
+// slice if reading stopped after the first row.
+func {{.Scan}}{{.Prefix}}{{.Types}}(query string, rows {{.Sqlapi}}.SqlRows, firstOnly bool) (vv {{.List}}, n int64, err error) {
 	for rows.Next() {
 		n++
 

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.48.0-6-g20b5bdb
+// sqlapi v0.29.0; sqlgen v0.49.0
 
 package demo
 
@@ -428,7 +428,7 @@ func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 			}
 
 			v.Uid = i64
-		}
+			}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
