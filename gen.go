@@ -25,7 +25,7 @@ func main() {
 
 	var oFile, typeName, prefix, list, kind, tableName, tagsFile, genSetters string
 	var flags = FuncFlags{}
-	var pgx, all, sselect, insert, gofmt, jsonFile, yamlFile, showVersion bool
+	var pgx, all, read, create, gofmt, jsonFile, yamlFile, showVersion bool
 
 	flag.StringVar(&oFile, "o", "", "Output file name; optional. Use '-' for stdout.\n"+
 		"\tIf omitted, the first input filename is used with '_sql.go' suffix.")
@@ -41,15 +41,17 @@ func main() {
 
 	// filters for what gets generated
 	flag.BoolVar(&pgx, "pgx", false, "Generates code for github.com/jackc/pgx.")
-	flag.BoolVar(&all, "all", false, "Shorthand for '-schema -create -read -update -delete -slice'; recommended.\n"+
+	flag.BoolVar(&all, "all", false, "Shorthand for '-schema -read -count -insert -update -upsert -delete -slice'; recommended.\n"+
 		"\tThis does not affect -setters.")
-	flag.BoolVar(&sselect, "select", false, "Alias for -read")
-	flag.BoolVar(&insert, "insert", false, "Alias for -create")
+	flag.BoolVar(&read, "read", false, "Alias for -select")
+	flag.BoolVar(&create, "create", false, "Alias for -insert")
 	flag.BoolVar(&flags.Schema, "schema", false, "Generate SQL schema create/drop methods.")
-	flag.BoolVar(&flags.Insert, "create", false, "Generate SQL create (insert) methods.")
+	flag.BoolVar(&flags.Insert, "insert", false, "Generate SQL insert (create) methods.")
 	flag.BoolVar(&flags.Exec, "exec", false, "Generate Exec method. This is also provided with -update or -delete.")
-	flag.BoolVar(&flags.Select, "read", false, "Generate SQL select (read) methods.")
+	flag.BoolVar(&flags.Select, "select", false, "Generate SQL select (read) methods; also enables -count.")
+	flag.BoolVar(&flags.Count, "count", false, "Generate SQL count methods.")
 	flag.BoolVar(&flags.Update, "update", false, "Generate SQL update methods.")
+	flag.BoolVar(&flags.Upsert, "upsert", false, "Generate SQL upsert methods; ignored if there is no primary key.")
 	flag.BoolVar(&flags.Delete, "delete", false, "Generate SQL delete methods.")
 	flag.BoolVar(&flags.Slice, "slice", false, "Generate SQL slice (column select) methods.")
 	flag.StringVar(&genSetters, "setters", "none", "Generate setters for fields of your type (see -type): none, optional, exported, all.\n"+
@@ -72,12 +74,21 @@ func main() {
 
 	output.Require(flag.NArg() > 0, "At least one input file (or path) is required; put this after the other arguments.\n")
 
-	if sselect {
+	if read {
 		flags.Select = true
 	}
 
-	if insert {
+	if flags.Select {
+		flags.Count = true
+	}
+
+	if create {
 		flags.Insert = true
+	}
+
+	if flags.Upsert {
+		flags.Insert = true
+		flags.Update = true
 	}
 
 	if all {
@@ -248,6 +259,10 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, g
 		WriteSelectRowsFuncs(buf, view)
 	}
 
+	if flags.Count {
+		WriteCountRowsFuncs(buf, view)
+	}
+
 	if flags.Slice {
 		WriteSliceColumn(buf, view)
 	}
@@ -266,6 +281,10 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, g
 
 	if flags.Update {
 		WriteUpdateFunc(buf, view)
+	}
+
+	if flags.Upsert {
+		WriteUpsertFunc(buf, view)
 	}
 
 	if flags.Delete {

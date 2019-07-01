@@ -10,13 +10,14 @@ go generate .
 # also...
 
 # These demonstrate the various filters that control what methods are generated
-sqlgen -json -type demo.User -o user_ex_xxxxx_sql.go -v -prefix X -schema=false                                                                    user.go role.go
-sqlgen -type demo.User -o user_ex_Cxxxx_sql.go -v -prefix C -schema=false -create=true  -read=false -update=false -delete=false -slice=false user.go role.go
-sqlgen -type demo.User -o user_ex_xRxxx_sql.go -v -prefix R -schema=false -create=false -read=true  -update=false -delete=false -slice=false user.go role.go
-sqlgen -type demo.User -o user_ex_xxUxx_sql.go -v -prefix U -schema=false -create=false -read=false -update=true  -delete=false -slice=false user.go role.go
-sqlgen -type demo.User -o user_ex_xxxDx_sql.go -v -prefix D -schema=false -create=false -read=false -update=false -delete=true  -slice=false user.go role.go
-sqlgen -type demo.User -o user_ex_xxxxS_sql.go -v -prefix S -schema=false -create=false -read=false -update=false -delete=false -slice=true  user.go role.go
-sqlgen -type demo.User -o user_ex_CRUDS_sql.go -v -prefix A -schema=false -all user.go role.go
+sqlgen -json -type demo.User -o user_ex_xxxxxx_sql.go -v -prefix X -schema=false                                                                    user.go role.go
+sqlgen -type demo.User -o user_ex_Ixxxxx_sql.go -v -prefix I -schema=false -create=true  -count=false -read=false -update=false -delete=false -slice=false user.go role.go
+sqlgen -type demo.User -o user_ex_xCxxxx_sql.go -v -prefix C -schema=false -create=false -count=true  -read=false -update=false -delete=false -slice=false user.go role.go
+sqlgen -type demo.User -o user_ex_xxRxxx_sql.go -v -prefix R -schema=false -create=false -count=false -read=true  -update=false -delete=false -slice=false user.go role.go
+sqlgen -type demo.User -o user_ex_xxxUxx_sql.go -v -prefix U -schema=false -create=false -count=false -read=false -update=true  -delete=false -slice=false user.go role.go
+sqlgen -type demo.User -o user_ex_xxxxDx_sql.go -v -prefix D -schema=false -create=false -count=false -read=false -update=false -delete=true  -slice=false user.go role.go
+sqlgen -type demo.User -o user_ex_xxxxxS_sql.go -v -prefix S -schema=false -create=false -count=false -read=false -update=false -delete=false -slice=true  user.go role.go
+sqlgen -type demo.User -o user_ex_ICRUDS_sql.go -v -prefix A -schema=false -all user.go role.go
 
 unset GO_DRIVER GO_DSN GO_QUOTER
 

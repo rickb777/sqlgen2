@@ -45,13 +45,13 @@ func PackagesToImport(flags FuncFlags, pgx bool) util.StringSet {
 	if flags.Insert || flags.Update || flags.Schema {
 		imports.Add("bytes")
 	}
-	if flags.Insert || flags.Select || flags.Slice || flags.Delete {
+	if flags.Count || flags.Insert || flags.Select || flags.Slice || flags.Delete {
 		imports.Add("fmt")
 	}
 	if flags.Insert || flags.Select || flags.Update {
 		imports.Add("github.com/pkg/errors")
 	}
-	if flags.Select || flags.Slice || flags.Update || flags.Delete {
+	if flags.Count || flags.Select || flags.Slice || flags.Update || flags.Delete {
 		imports.Add("github.com/rickb777/where")
 	}
 	if flags.Select {
@@ -98,10 +98,10 @@ func secondaryInterface(flags FuncFlags) string {
 //-------------------------------------------------------------------------------------------------
 
 type FuncFlags struct {
-	Schema, Exec, Select, Insert, Update, Delete, Slice bool
+	Schema, Exec, Select, Count, Insert, Update, Upsert, Delete, Slice bool
 }
 
-var AllFuncFlags = FuncFlags{true, true, true, true, true, true, true}
+var AllFuncFlags = FuncFlags{true, true, true, true, true, true, true, true, true}
 
 //-------------------------------------------------------------------------------------------------
 

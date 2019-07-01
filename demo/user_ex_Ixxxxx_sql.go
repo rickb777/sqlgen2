@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-3-g84d0e25
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
 
 package demo
 
@@ -8,20 +8,20 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
-	"github.com/rickb777/where"
 	"strings"
 )
 
-// UUserTable holds a given table name with the database reference, providing access methods below.
+// IUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
-type UUserTable struct {
+type IUserTable struct {
 	name        sqlapi.TableName
 	database    sqlapi.Database
 	db          sqlapi.Execer
@@ -31,13 +31,13 @@ type UUserTable struct {
 }
 
 // Type conformance checks
-var _ sqlapi.Table = &UUserTable{}
-var _ sqlapi.Table = &UUserTable{}
+var _ sqlapi.Table = &IUserTable{}
+var _ sqlapi.Table = &IUserTable{}
 
-// NewUUserTable returns a new table instance.
+// NewIUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewUUserTable(name string, d sqlapi.Database) UUserTable {
+func NewIUserTable(name string, d sqlapi.Database) IUserTable {
 	if name == "" {
 		name = "users"
 	}
@@ -45,7 +45,7 @@ func NewUUserTable(name string, d sqlapi.Database) UUserTable {
 	constraints = append(constraints,
 		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 
-	return UUserTable{
+	return IUserTable{
 		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
@@ -55,13 +55,13 @@ func NewUUserTable(name string, d sqlapi.Database) UUserTable {
 	}
 }
 
-// CopyTableAsUUserTable copies a table instance, retaining the name etc but
+// CopyTableAsIUserTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'User'. It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for 'User'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsUUserTable(origin sqlapi.Table) UUserTable {
-	return UUserTable{
+func CopyTableAsIUserTable(origin sqlapi.Table) IUserTable {
+	return IUserTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
 		db:          origin.DB(),
@@ -73,14 +73,14 @@ func CopyTableAsUUserTable(origin sqlapi.Table) UUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl UUserTable) SetPkColumn(pk string) UUserTable {
+func (tbl IUserTable) SetPkColumn(pk string) IUserTable {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl UUserTable) WithPrefix(pfx string) UUserTable {
+func (tbl IUserTable) WithPrefix(pfx string) IUserTable {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -90,71 +90,71 @@ func (tbl UUserTable) WithPrefix(pfx string) UUserTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl UUserTable) WithContext(ctx context.Context) UUserTable {
+func (tbl IUserTable) WithContext(ctx context.Context) IUserTable {
 	tbl.ctx = ctx
 	return tbl
 }
 
 // Database gets the shared database information.
-func (tbl UUserTable) Database() sqlapi.Database {
+func (tbl IUserTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
 // Logger gets the trace logger.
-func (tbl UUserTable) Logger() sqlapi.Logger {
+func (tbl IUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl UUserTable) WithConstraint(cc ...constraint.Constraint) UUserTable {
+func (tbl IUserTable) WithConstraint(cc ...constraint.Constraint) IUserTable {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
 
 // Constraints returns the table's constraints.
-func (tbl UUserTable) Constraints() constraint.Constraints {
+func (tbl IUserTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
 // Ctx gets the current request context.
-func (tbl UUserTable) Ctx() context.Context {
+func (tbl IUserTable) Ctx() context.Context {
 	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
-func (tbl UUserTable) Dialect() dialect.Dialect {
+func (tbl IUserTable) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
 // Name gets the table name.
-func (tbl UUserTable) Name() sqlapi.TableName {
+func (tbl IUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
 // PkColumn gets the column name used as a primary key.
-func (tbl UUserTable) PkColumn() string {
+func (tbl IUserTable) PkColumn() string {
 	return tbl.pk
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl UUserTable) DB() sqlapi.SqlDB {
+func (tbl IUserTable) DB() sqlapi.SqlDB {
 	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl UUserTable) Execer() sqlapi.Execer {
+func (tbl IUserTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl UUserTable) Tx() sqlapi.SqlTx {
+func (tbl IUserTable) Tx() sqlapi.SqlTx {
 	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
-func (tbl UUserTable) IsTx() bool {
+func (tbl IUserTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
@@ -169,7 +169,7 @@ func (tbl UUserTable) IsTx() bool {
 // an error will be returned.
 //
 // Panics if the Execer is not TxStarter.
-func (tbl UUserTable) BeginTx(opts *sql.TxOptions) (UUserTable, error) {
+func (tbl IUserTable) BeginTx(opts *sql.TxOptions) (IUserTable, error) {
 	var err error
 	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
 	return tbl, tbl.logIfError(err)
@@ -178,56 +178,46 @@ func (tbl UUserTable) BeginTx(opts *sql.TxOptions) (UUserTable, error) {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl UUserTable) Using(tx sqlapi.SqlTx) UUserTable {
+func (tbl IUserTable) Using(tx sqlapi.SqlTx) IUserTable {
 	tbl.db = tx
 	return tbl
 }
 
-func (tbl UUserTable) logQuery(query string, args ...interface{}) {
+func (tbl IUserTable) logQuery(query string, args ...interface{}) {
 	tbl.database.LogQuery(query, args...)
 }
 
-func (tbl UUserTable) logError(err error) error {
+func (tbl IUserTable) logError(err error) error {
 	return tbl.database.LogError(err)
 }
 
-func (tbl UUserTable) logIfError(err error) error {
+func (tbl IUserTable) logIfError(err error) error {
 	return tbl.database.LogIfError(err)
 }
 
-func (tbl UUserTable) quotedName() string {
+func (tbl IUserTable) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.name.String())
 }
 
-func (tbl UUserTable) quotedNameW(w dialect.StringWriter) {
+func (tbl IUserTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
 //--------------------------------------------------------------------------------
 
-// NumUUserTableColumns is the total number of columns in UUserTable.
-const NumUUserTableColumns = 22
+// NumIUserTableColumns is the total number of columns in IUserTable.
+const NumIUserTableColumns = 22
 
-// NumUUserTableDataColumns is the number of columns in UUserTable not including the auto-increment key.
-const NumUUserTableDataColumns = 21
+// NumIUserTableDataColumns is the number of columns in IUserTable not including the auto-increment key.
+const NumIUserTableDataColumns = 21
 
-// UUserTableColumnNames is the list of columns in UUserTable.
-const UUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// IUserTableColumnNames is the list of columns in IUserTable.
+const IUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-// UUserTableDataColumnNames is the list of data columns in UUserTable.
-const UUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// IUserTableDataColumnNames is the list of data columns in IUserTable.
+const IUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-var listOfUUserTableColumnNames = strings.Split(UUserTableColumnNames, ",")
-
-//--------------------------------------------------------------------------------
-
-// Exec executes a query without returning any rows.
-// It returns the number of rows affected (if the database driver supports this).
-//
-// The args are for any placeholder parameters in the query.
-func (tbl UUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
-}
+var listOfIUserTableColumnNames = strings.Split(IUserTableColumnNames, ",")
 
 //--------------------------------------------------------------------------------
 
@@ -241,7 +231,7 @@ func (tbl UUserTable) Exec(req require.Requirement, query string, args ...interf
 // The caller must call rows.Close() on the result.
 //
 // Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl UUserTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
+func (tbl IUserTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
 	return support.Query(tbl, query, args...)
 }
 
@@ -254,7 +244,7 @@ func (tbl UUserTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, 
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl UUserTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+func (tbl IUserTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
 	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
@@ -266,7 +256,7 @@ func (tbl UUserTable) QueryOneNullString(req require.Requirement, query string, 
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl UUserTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+func (tbl IUserTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
 	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
@@ -278,81 +268,61 @@ func (tbl UUserTable) QueryOneNullInt64(req require.Requirement, query string, a
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl UUserTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+func (tbl IUserTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
 	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
-func (tbl UUserTable) constructUUserUpdate(w dialect.StringWriter, v *User) (s []interface{}, err error) {
+func (tbl IUserTable) constructIUserInsert(w dialect.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
-	j := 1
-	s = make([]interface{}, 0, 21)
+	s = make([]interface{}, 0, 22)
 
 	comma := ""
+	w.WriteString(" (")
+
+	if withPk {
+		q.QuoteW(w, "uid")
+		comma = ","
+		s = append(s, v.Uid)
+	}
 
 	w.WriteString(comma)
 	q.QuoteW(w, "name")
-	w.WriteString("=?")
 	s = append(s, v.Name)
-	j++
-	comma = ", "
+	comma = ","
 
 	w.WriteString(comma)
 	q.QuoteW(w, "emailaddress")
-	w.WriteString("=?")
 	s = append(s, v.EmailAddress)
-	j++
 
-	w.WriteString(comma)
 	if v.AddressId != nil {
+		w.WriteString(comma)
 		q.QuoteW(w, "addressid")
-		w.WriteString("=?")
 		s = append(s, v.AddressId)
-		j++
-	} else {
-		q.QuoteW(w, "addressid")
-		w.WriteString("=NULL")
 	}
 
-	w.WriteString(comma)
 	if v.Avatar != nil {
+		w.WriteString(comma)
 		q.QuoteW(w, "avatar")
-		w.WriteString("=?")
 		s = append(s, v.Avatar)
-		j++
-	} else {
-		q.QuoteW(w, "avatar")
-		w.WriteString("=NULL")
 	}
 
-	w.WriteString(comma)
 	if v.Role != nil {
+		w.WriteString(comma)
 		q.QuoteW(w, "role")
-		w.WriteString("=?")
 		s = append(s, v.Role)
-		j++
-	} else {
-		q.QuoteW(w, "role")
-		w.WriteString("=NULL")
 	}
 
 	w.WriteString(comma)
 	q.QuoteW(w, "active")
-	w.WriteString("=?")
 	s = append(s, v.Active)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "admin")
-	w.WriteString("=?")
 	s = append(s, v.Admin)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "fave")
-	w.WriteString("=?")
-	j++
-
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
 		return nil, tbl.database.LogError(errors.WithStack(err))
@@ -361,134 +331,122 @@ func (tbl UUserTable) constructUUserUpdate(w dialect.StringWriter, v *User) (s [
 
 	w.WriteString(comma)
 	q.QuoteW(w, "lastupdated")
-	w.WriteString("=?")
 	s = append(s, v.LastUpdated)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "i8")
-	w.WriteString("=?")
 	s = append(s, v.Numbers.I8)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "u8")
-	w.WriteString("=?")
 	s = append(s, v.Numbers.U8)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "i16")
-	w.WriteString("=?")
 	s = append(s, v.Numbers.I16)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "u16")
-	w.WriteString("=?")
 	s = append(s, v.Numbers.U16)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "i32")
-	w.WriteString("=?")
 	s = append(s, v.Numbers.I32)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "u32")
-	w.WriteString("=?")
 	s = append(s, v.Numbers.U32)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "i64")
-	w.WriteString("=?")
 	s = append(s, v.Numbers.I64)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "u64")
-	w.WriteString("=?")
 	s = append(s, v.Numbers.U64)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "f32")
-	w.WriteString("=?")
 	s = append(s, v.Numbers.F32)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "f64")
-	w.WriteString("=?")
 	s = append(s, v.Numbers.F64)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "token")
-	w.WriteString("=?")
 	s = append(s, v.token)
-	j++
 
 	w.WriteString(comma)
 	q.QuoteW(w, "secret")
-	w.WriteString("=?")
 	s = append(s, v.secret)
-	j++
-	return s, nil
-}
 
-// UpdateFields updates one or more columns, given a 'where' clause.
-// Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl UUserTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl, req, wh, fields...)
+	w.WriteString(")")
+	return s, nil
 }
 
 //--------------------------------------------------------------------------------
 
-// Update updates records, matching them by primary key. It returns the number of rows affected.
-// The User.PreUpdate(Execer) method will be called, if it exists.
-func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error) {
+// Insert adds new records for the Users.
+// The Users have their primary key fields set to the new record identifiers.
+// The User.PreInsert() method will be called, if it exists.
+func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
 
 	var count int64
-	d := tbl.Dialect()
-	q := d.Quoter()
+	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
+	returning := ""
+	if tbl.Dialect().InsertHasReturningPhrase() {
+		returning = fmt.Sprintf(" returning %q", tbl.pk)
+	}
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
-			err := hook.PreUpdate()
+		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
+			err := hook.PreInsert()
 			if err != nil {
-				return count, tbl.logError(err)
+				return tbl.logError(err)
 			}
 		}
 
 		b := dialect.Adapt(&bytes.Buffer{})
-		b.WriteString("UPDATE ")
+		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
-		b.WriteString(" SET ")
 
-		args, err := tbl.constructUUserUpdate(b, v)
+		fields, err := tbl.constructIUserInsert(b, v, false)
 		if err != nil {
-			return count, err
+			return tbl.logError(err)
 		}
-		args = append(args, v.Uid)
 
-		b.WriteString(" WHERE ")
-		q.QuoteW(b, tbl.pk)
-		b.WriteString("=?")
+		b.WriteString(" VALUES (")
+		b.WriteString(tbl.Dialect().Placeholders(len(fields)))
+		b.WriteString(")")
+		b.WriteString(returning)
 
 		query := b.String()
-		n, err := tbl.Exec(nil, query, args...)
+		tbl.logQuery(query, fields...)
+
+		var n int64 = 1
+		if insertHasReturningPhrase {
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			err = row.Scan(&v.Uid)
+
+		} else {
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
+			if e2 != nil {
+				return tbl.logError(e2)
+			}
+
+			v.Uid = i64
+		}
+
 		if err != nil {
-			return count, err
+			return tbl.logError(err)
 		}
 		count += n
 	}
 
-	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }

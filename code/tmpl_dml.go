@@ -535,6 +535,52 @@ var tUpdate = template.Must(template.New("Update").Funcs(funcMap).Parse(sUpdate)
 
 //-------------------------------------------------------------------------------------------------
 
+const sUpsert = `
+{{- if .Table.Primary}}
+//--------------------------------------------------------------------------------
+
+// Upsert inserts or updates a record, matching it using the expression supplied.
+// This expression is used to search for an existing record based on some specified 
+// key column(s). It must match either zero or one existing record. If it matches 
+// none, a new record is inserted; otherwise the matching record is updated. An 
+// error results if these conditions are not met.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Upsert(v *{{.Type}}, wh where.Expression) error {
+	col := tbl.Dialect().Quoter().Quote(tbl.pk)
+	qName := tbl.quotedName()
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
+
+	query := fmt.Sprintf("SELECT %s FROM %s %s", col, qName, whs)
+	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return tbl.Insert(require.One, v)
+	}
+
+	var id {{.Table.Primary.Type.Type}}
+	err = rows.Scan(&id)
+	if err != nil {
+		return tbl.logIfError(err)
+	}
+
+	if rows.Next() {
+		return require.ErrWrongSize(2, "expected to find no more than 1 but got at least 2 using %q", wh)
+	}
+
+	v.{{.Table.Primary.Name}} = id
+	_, err = tbl.Update(require.One, v)
+	return err
+}
+{{- end}}
+`
+
+var tUpsert = template.Must(template.New("Upsert").Funcs(funcMap).Parse(sUpsert))
+
+//-------------------------------------------------------------------------------------------------
+
 const sDelete = `
 {{- if .Table.Primary}}
 // Delete{{.Types}} deletes rows from the table, given some primary keys.

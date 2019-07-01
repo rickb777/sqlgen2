@@ -28,8 +28,11 @@ func WriteGetRow(w io.Writer, view View) {
 
 func WriteSelectRowsFuncs(w io.Writer, view View) {
 	fmt.Fprintln(w, sectionBreak)
-
 	must(tSelectRows.Execute(w, view))
+}
+
+func WriteCountRowsFuncs(w io.Writer, view View) {
+	fmt.Fprintln(w, sectionBreak)
 	must(tCountRows.Execute(w, view))
 }
 
@@ -39,6 +42,12 @@ func WriteSliceColumn(w io.Writer, view View) {
 
 func WriteInsertFunc(w io.Writer, view View) {
 	must(tInsert.Execute(w, view))
+}
+
+func WriteUpsertFunc(w io.Writer, view View) {
+	if view.Table.HasPrimaryKey() {
+		must(tUpsert.Execute(w, view))
+	}
 }
 
 func WriteUpdateFunc(w io.Writer, view View) {

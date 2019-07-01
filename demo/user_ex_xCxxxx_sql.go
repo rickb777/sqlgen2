@@ -1,20 +1,18 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-3-g84d0e25
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
 
 package demo
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
+	"github.com/rickb777/where"
 	"strings"
 )
 
@@ -273,180 +271,28 @@ func (tbl CUserTable) QueryOneNullFloat64(req require.Requirement, query string,
 	return result, err
 }
 
-func (tbl CUserTable) constructCUserInsert(w dialect.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
-	q := tbl.Dialect().Quoter()
-	s = make([]interface{}, 0, 22)
-
-	comma := ""
-	w.WriteString(" (")
-
-	if withPk {
-		q.QuoteW(w, "uid")
-		comma = ","
-		s = append(s, v.Uid)
-	}
-
-	w.WriteString(comma)
-	q.QuoteW(w, "name")
-	s = append(s, v.Name)
-	comma = ","
-
-	w.WriteString(comma)
-	q.QuoteW(w, "emailaddress")
-	s = append(s, v.EmailAddress)
-
-	if v.AddressId != nil {
-		w.WriteString(comma)
-		q.QuoteW(w, "addressid")
-		s = append(s, v.AddressId)
-	}
-
-	if v.Avatar != nil {
-		w.WriteString(comma)
-		q.QuoteW(w, "avatar")
-		s = append(s, v.Avatar)
-	}
-
-	if v.Role != nil {
-		w.WriteString(comma)
-		q.QuoteW(w, "role")
-		s = append(s, v.Role)
-	}
-
-	w.WriteString(comma)
-	q.QuoteW(w, "active")
-	s = append(s, v.Active)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "admin")
-	s = append(s, v.Admin)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "fave")
-	x, err := json.Marshal(&v.Fave)
-	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
-	}
-	s = append(s, x)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "lastupdated")
-	s = append(s, v.LastUpdated)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "i8")
-	s = append(s, v.Numbers.I8)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "u8")
-	s = append(s, v.Numbers.U8)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "i16")
-	s = append(s, v.Numbers.I16)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "u16")
-	s = append(s, v.Numbers.U16)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "i32")
-	s = append(s, v.Numbers.I32)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "u32")
-	s = append(s, v.Numbers.U32)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "i64")
-	s = append(s, v.Numbers.I64)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "u64")
-	s = append(s, v.Numbers.U64)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "f32")
-	s = append(s, v.Numbers.F32)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "f64")
-	s = append(s, v.Numbers.F64)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "token")
-	s = append(s, v.token)
-
-	w.WriteString(comma)
-	q.QuoteW(w, "secret")
-	s = append(s, v.secret)
-
-	w.WriteString(")")
-	return s, nil
-}
-
 //--------------------------------------------------------------------------------
 
-// Insert adds new records for the Users.
-// The Users have their primary key fields set to the new record identifiers.
-// The User.PreInsert() method will be called, if it exists.
-func (tbl CUserTable) Insert(req require.Requirement, vv ...*User) error {
-	if req == require.All {
-		req = require.Exactly(len(vv))
+// CountWhere counts Users in the table that match a 'where' clause.
+// Use a blank string for the 'where' argument if it is not needed.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl CUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
+	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return 0, err
 	}
-
-	var count int64
-	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
-	returning := ""
-	if tbl.Dialect().InsertHasReturningPhrase() {
-		returning = fmt.Sprintf(" returning %q", tbl.pk)
+	defer rows.Close()
+	if rows.Next() {
+		err = rows.Scan(&count)
 	}
+	return count, tbl.logIfError(err)
+}
 
-	for _, v := range vv {
-		var iv interface{} = v
-		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
-			err := hook.PreInsert()
-			if err != nil {
-				return tbl.logError(err)
-			}
-		}
-
-		b := dialect.Adapt(&bytes.Buffer{})
-		b.WriteString("INSERT INTO ")
-		tbl.quotedNameW(b)
-
-		fields, err := tbl.constructCUserInsert(b, v, false)
-		if err != nil {
-			return tbl.logError(err)
-		}
-
-		b.WriteString(" VALUES (")
-		b.WriteString(tbl.Dialect().Placeholders(len(fields)))
-		b.WriteString(")")
-		b.WriteString(returning)
-
-		query := b.String()
-		tbl.logQuery(query, fields...)
-
-		var n int64 = 1
-		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
-			err = row.Scan(&v.Uid)
-
-		} else {
-			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
-			if e2 != nil {
-				return tbl.logError(e2)
-			}
-
-			v.Uid = i64
-			}
-
-		if err != nil {
-			return tbl.logError(err)
-		}
-		count += n
-	}
-
-	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+// Count counts the Users in the table that match a 'where' clause.
+// Use a nil value for the 'wh' argument if it is not needed.
+func (tbl CUserTable) Count(wh where.Expression) (count int64, err error) {
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
+	return tbl.CountWhere(whs, args...)
 }

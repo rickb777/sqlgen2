@@ -405,9 +405,11 @@ func TestUserCrud_using_database(t *testing.T) {
 
 	update_users_in_tx(g, users, user2)
 
+	upsert_users(g, users, user2)
+
 	delete_one_should_return_1(g, users)
 
-	count_remainder_should_be(g, users, 2)
+	count_remainder_should_be(g, users, 3)
 }
 
 func count_remainder_should_be(g *GomegaWithT, tbl DbUserTable, expected int64) {
@@ -530,6 +532,34 @@ func update_users_in_tx(g *GomegaWithT, tbl DbUserTable, user *User) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(ss).To(HaveLen(1))
 	g.Expect(ss[0]).To(Equal("dude@zzz.com"))
+}
+
+func upsert_users(g *GomegaWithT, tbl DbUserTable, user *User) {
+	user.EmailAddress = "dodo@zzz.com"
+	//utter.Dump(user)
+
+	err := tbl.Upsert(user, where.Eq("name", user.Name))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(user.hash).To(Equal("PreUpdate"))
+
+	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("uid", user.Uid), nil)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(ss).To(HaveLen(1))
+	g.Expect(ss[0]).To(Equal("dodo@zzz.com"))
+
+	u2 := &User{
+		Name:         "another",
+		EmailAddress: "another@z.org",
+		Active:       true,
+	}
+	err = tbl.Upsert(u2, where.Eq("name", u2.Name))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(user.hash).To(Equal("PreUpdate"))
+
+	ss, err = tbl.SliceEmailaddress(require.One, where.Eq("uid", u2.Uid), nil)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(ss).To(HaveLen(1))
+	g.Expect(ss[0]).To(Equal("another@z.org"))
 }
 
 func delete_one_should_return_1(g *GomegaWithT, tbl DbUserTable) {

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-3-g84d0e25
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
 
 package demo
 
@@ -624,6 +624,8 @@ func (tbl DbCompoundTable) Select(req require.Requirement, wh where.Expression, 
 	orderBy := where.Build(qc, q)
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
+
+//--------------------------------------------------------------------------------
 
 // CountWhere counts Compounds in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-3-g84d0e25
+// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
 
 package demo
 
@@ -326,9 +326,11 @@ var sqlAUserTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlAEmailaddressIdxIndexColumns = "emailaddress"
+
 var listOfAEmailaddressIdxIndexColumns = []string{"emailaddress"}
 
 const sqlAUserLoginIndexColumns = "name"
+
 var listOfAUserLoginIndexColumns = []string{"name"}
 
 //--------------------------------------------------------------------------------
@@ -884,6 +886,8 @@ func (tbl AUserTable) Select(req require.Requirement, wh where.Expression, qc wh
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
+//--------------------------------------------------------------------------------
+
 // CountWhere counts Users in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
 //
@@ -1427,7 +1431,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 			}
 
 			v.Uid = i64
-			}
+		}
 
 		if err != nil {
 			return tbl.logError(err)
@@ -1490,6 +1494,44 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 	}
 
 	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+}
+
+//--------------------------------------------------------------------------------
+
+// Upsert inserts or updates a record, matching it using the expression supplied.
+// This expression is used to search for an existing record based on some specified
+// key column(s). It must match either zero or one existing record. If it matches
+// none, a new record is inserted; otherwise the matching record is updated. An
+// error results if these conditions are not met.
+func (tbl AUserTable) Upsert(v *User, wh where.Expression) error {
+	col := tbl.Dialect().Quoter().Quote(tbl.pk)
+	qName := tbl.quotedName()
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
+
+	query := fmt.Sprintf("SELECT %s FROM %s %s", col, qName, whs)
+	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return tbl.Insert(require.One, v)
+	}
+
+	var id int64
+	err = rows.Scan(&id)
+	if err != nil {
+		return tbl.logIfError(err)
+	}
+
+	if rows.Next() {
+		return require.ErrWrongSize(2, "expected to find no more than 1 but got at least 2 using %q", wh)
+	}
+
+	v.Uid = id
+	_, err = tbl.Update(require.One, v)
+	return err
 }
 
 //--------------------------------------------------------------------------------
