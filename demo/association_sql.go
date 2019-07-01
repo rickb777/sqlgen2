@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
+// sqlapi v0.28.0; sqlgen v0.48.0-5-g5e0d30b
 
 package demo
 
@@ -170,7 +170,7 @@ func (tbl AssociationTable) IsTx() bool {
 func (tbl AssociationTable) BeginTx(opts *sql.TxOptions) (AssociationTable, error) {
 	var err error
 	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
-	return tbl, tbl.logIfError(err)
+	return tbl, tbl.Logger().LogIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -179,18 +179,6 @@ func (tbl AssociationTable) BeginTx(opts *sql.TxOptions) (AssociationTable, erro
 func (tbl AssociationTable) Using(tx sqlapi.SqlTx) AssociationTable {
 	tbl.db = tx
 	return tbl
-}
-
-func (tbl AssociationTable) logQuery(query string, args ...interface{}) {
-	tbl.database.LogQuery(query, args...)
-}
-
-func (tbl AssociationTable) logError(err error) error {
-	return tbl.database.LogError(err)
-}
-
-func (tbl AssociationTable) logIfError(err error) error {
-	return tbl.database.LogIfError(err)
 }
 
 func (tbl AssociationTable) quotedName() string {
@@ -549,7 +537,7 @@ func (tbl AssociationTable) doQueryAndScan(req require.Requirement, firstOnly bo
 	defer rows.Close()
 
 	vv, n, err := scanAssociations(query, rows, firstOnly)
-	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of Association based on a supplied query. This is mostly used for join queries that map its
@@ -634,7 +622,7 @@ func (tbl AssociationTable) CountWhere(where string, args ...interface{}) (count
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
-	return count, tbl.logIfError(err)
+	return count, tbl.Logger().LogIfError(err)
 }
 
 // Count counts the Associations in the table that match a 'where' clause.
@@ -705,12 +693,12 @@ func (tbl AssociationTable) sliceCategoryPtrList(req require.Requirement, sqlnam
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func (tbl AssociationTable) sliceQualNamePtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
@@ -730,12 +718,12 @@ func (tbl AssociationTable) sliceQualNamePtrList(req require.Requirement, sqlnam
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func (tbl AssociationTable) constructAssociationInsert(w dialect.StringWriter, v *Association, withPk bool) (s []interface{}, err error) {
@@ -881,7 +869,7 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
-				return tbl.logError(err)
+				return tbl.Logger().LogError(err)
 			}
 		}
 
@@ -891,7 +879,7 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 
 		fields, err := tbl.constructAssociationInsert(b, v, false)
 		if err != nil {
-			return tbl.logError(err)
+			return tbl.Logger().LogError(err)
 		}
 
 		b.WriteString(" VALUES (")
@@ -900,7 +888,7 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 		b.WriteString(returning)
 
 		query := b.String()
-		tbl.logQuery(query, fields...)
+		tbl.Logger().LogQuery(query, fields...)
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
@@ -910,19 +898,19 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 		} else {
 			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
 			if e2 != nil {
-				return tbl.logError(e2)
+				return tbl.Logger().LogError(e2)
 			}
 
 			v.Id = i64
 		}
 
 		if err != nil {
-			return tbl.logError(err)
+			return tbl.Logger().LogError(err)
 		}
 		count += n
 	}
 
-	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
@@ -949,7 +937,7 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
-				return count, tbl.logError(err)
+				return count, tbl.Logger().LogError(err)
 			}
 		}
 
@@ -976,7 +964,7 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 		count += n
 	}
 
-	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return count, tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 //--------------------------------------------------------------------------------
@@ -1005,7 +993,7 @@ func (tbl AssociationTable) Upsert(v *Association, wh where.Expression) error {
 	var id int64
 	err = rows.Scan(&id)
 	if err != nil {
-		return tbl.logIfError(err)
+		return tbl.Logger().LogIfError(err)
 	}
 
 	if rows.Next() {
@@ -1071,7 +1059,7 @@ func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...in
 		count += n
 	}
 
-	return count, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+	return count, tbl.Logger().LogIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.

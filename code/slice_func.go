@@ -40,7 +40,7 @@ func WriteConstructInsert(w io.Writer, view View) {
 
 				view.Body2 = appendf(view.Body2, nltab+"x, err := json.Marshal(&v.%s)", joinedName)
 				view.Body2 = appendf(view.Body2, nltab+"if err != nil {")
-				view.Body2 = appendf(view.Body2, nltab+"\treturn nil, tbl.database.LogError(errors.WithStack(err))")
+				view.Body2 = appendf(view.Body2, nltab+"\treturn nil, tbl.Logger().LogError(errors.WithStack(err))")
 				view.Body2 = appendf(view.Body2, nltab+"}")
 				view.Body2 = appendf(view.Body2, nltab+"s = append(s, x)")
 
@@ -54,7 +54,7 @@ func WriteConstructInsert(w io.Writer, view View) {
 
 				view.Body2 = appendf(view.Body2, nltab+"x, err := encoding.MarshalText(&v.%s)", joinedName)
 				view.Body2 = appendf(view.Body2, nltab+"if err != nil {")
-				view.Body2 = appendf(view.Body2, nltab+"\treturn nil, tbl.database.LogError(errors.WithStack(err))")
+				view.Body2 = appendf(view.Body2, nltab+"\treturn nil, tbl.Logger().LogError(errors.WithStack(err))")
 				view.Body2 = appendf(view.Body2, nltab+"}")
 				view.Body2 = appendf(view.Body2, nltab+"s = append(s, x)")
 
@@ -116,7 +116,7 @@ func WriteConstructUpdate(w io.Writer, view View) {
 
 			view.Body2 = appendf(view.Body2, nltab+"x, err := json.Marshal(&v.%s)", joinedName)
 			view.Body2 = appendf(view.Body2, nltab+"if err != nil {")
-			view.Body2 = appendf(view.Body2, nltab+"\treturn nil, tbl.database.LogError(errors.WithStack(err))")
+			view.Body2 = appendf(view.Body2, nltab+"\treturn nil, tbl.Logger().LogError(errors.WithStack(err))")
 			view.Body2 = appendf(view.Body2, nltab+"}")
 			view.Body2 = appendf(view.Body2, nltab+"s = append(s, x)")
 
@@ -131,7 +131,7 @@ func WriteConstructUpdate(w io.Writer, view View) {
 
 			view.Body2 = appendf(view.Body2, nltab+"x, err := encoding.MarshalText(&v.%s)", joinedName)
 			view.Body2 = appendf(view.Body2, nltab+"if err != nil {")
-			view.Body2 = appendf(view.Body2, nltab+"\treturn nil, tbl.database.LogError(errors.WithStack(err))")
+			view.Body2 = appendf(view.Body2, nltab+"\treturn nil, tbl.Logger().LogError(errors.WithStack(err))")
 			view.Body2 = appendf(view.Body2, nltab+"}")
 			view.Body2 = appendf(view.Body2, nltab+"s = append(s, x)")
 			view.Body2 = appendf(view.Body2, "\n")

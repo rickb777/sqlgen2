@@ -77,7 +77,7 @@ func (tbl XExampleTable) constructXExampleInsert(w dialect.StringWriter, v *Exam
 	q.QuoteW(w, "labels")
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
@@ -85,7 +85,7 @@ func (tbl XExampleTable) constructXExampleInsert(w dialect.StringWriter, v *Exam
 	q.QuoteW(w, "fave")
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
@@ -117,7 +117,7 @@ func (tbl XExampleTable) constructXExampleInsert(w dialect.StringWriter, v *Exam
 	q.QuoteW(w, "updated")
 	x, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
@@ -231,7 +231,7 @@ func (tbl XExampleTable) constructXExampleUpdate(w dialect.StringWriter, v *Exam
 
 	x, err := json.Marshal(&v.Labels)
 	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
@@ -242,7 +242,7 @@ func (tbl XExampleTable) constructXExampleUpdate(w dialect.StringWriter, v *Exam
 
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
@@ -292,7 +292,7 @@ func (tbl XExampleTable) constructXExampleUpdate(w dialect.StringWriter, v *Exam
 	j++
 	x, err := encoding.MarshalText(&v.Updated)
 	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 

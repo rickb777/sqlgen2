@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
+// sqlapi v0.28.0; sqlgen v0.48.0-5-g5e0d30b
 
 package demo
 
@@ -170,7 +170,7 @@ func (tbl CUserTable) IsTx() bool {
 func (tbl CUserTable) BeginTx(opts *sql.TxOptions) (CUserTable, error) {
 	var err error
 	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
-	return tbl, tbl.logIfError(err)
+	return tbl, tbl.Logger().LogIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -179,18 +179,6 @@ func (tbl CUserTable) BeginTx(opts *sql.TxOptions) (CUserTable, error) {
 func (tbl CUserTable) Using(tx sqlapi.SqlTx) CUserTable {
 	tbl.db = tx
 	return tbl
-}
-
-func (tbl CUserTable) logQuery(query string, args ...interface{}) {
-	tbl.database.LogQuery(query, args...)
-}
-
-func (tbl CUserTable) logError(err error) error {
-	return tbl.database.LogError(err)
-}
-
-func (tbl CUserTable) logIfError(err error) error {
-	return tbl.database.LogIfError(err)
 }
 
 func (tbl CUserTable) quotedName() string {
@@ -287,7 +275,7 @@ func (tbl CUserTable) CountWhere(where string, args ...interface{}) (count int64
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
-	return count, tbl.logIfError(err)
+	return count, tbl.Logger().LogIfError(err)
 }
 
 // Count counts the Users in the table that match a 'where' clause.

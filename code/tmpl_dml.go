@@ -174,7 +174,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryAndScan(req require.Requirement
 	defer rows.Close()
 
 	vv, n, err := scan{{.Prefix}}{{.Types}}(query, rows, firstOnly)
-	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of {{.Type}} based on a supplied query. This is mostly used for join queries that map its
@@ -267,7 +267,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(where string, args ...inter
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
-	return count, tbl.logIfError(err)
+	return count, tbl.Logger().LogIfError(err)
 }
 
 // Count counts the {{.Types}} in the table that match a 'where' clause.
@@ -330,12 +330,12 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) slice{{camel .Tag}}List(req require
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 {{- end}}
 `
@@ -393,7 +393,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 		if hook, ok := iv.({{.Sqlapi}}.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
-				return tbl.logError(err)
+				return tbl.Logger().LogError(err)
 			}
 		}
 
@@ -403,7 +403,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 
 		fields, err := tbl.construct{{.Prefix}}{{.Type}}Insert(b, v, {{not .Table.HasLastInsertId}})
 		if err != nil {
-			return tbl.logError(err)
+			return tbl.Logger().LogError(err)
 		}
 
 		b.WriteString(" VALUES (")
@@ -412,7 +412,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 		b.WriteString(returning)
 
 		query := b.String()
-		tbl.logQuery(query, fields...)
+		tbl.Logger().LogQuery(query, fields...)
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
@@ -434,7 +434,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 			{{if .Table.HasLastInsertId -}}
 			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
 			if e2 != nil {
-				return tbl.logError(e2)
+				return tbl.Logger().LogError(e2)
 			}
 
 			{{if eq .Table.Primary.Type.Name "int64" -}}
@@ -445,19 +445,19 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 			{{else -}}
 			_, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
 			if e2 != nil {
-				return tbl.logError(e2)
+				return tbl.Logger().LogError(e2)
 			}
 
 			{{end -}}
 		}
 
 		if err != nil {
-			return tbl.logError(err)
+			return tbl.Logger().LogError(err)
 		}
 		count += n
 	}
 
-	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 `
 
@@ -499,7 +499,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 		if hook, ok := iv.({{.Sqlapi}}.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
-				return count, tbl.logError(err)
+				return count, tbl.Logger().LogError(err)
 			}
 		}
 
@@ -526,7 +526,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 		count += n
 	}
 
-	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return count, tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 {{- end}}
 `
@@ -563,7 +563,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Upsert(v *{{.Type}}, wh where.Expressi
 	var id {{.Table.Primary.Type.Type}}
 	err = rows.Scan(&id)
 	if err != nil {
-		return tbl.logIfError(err)
+		return tbl.Logger().LogIfError(err)
 	}
 
 	if rows.Next() {
@@ -635,7 +635,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 		count += n
 	}
 
-	return count, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+	return count, tbl.Logger().LogIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 {{- end}}
 

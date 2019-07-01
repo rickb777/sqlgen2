@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
+// sqlapi v0.28.0; sqlgen v0.48.0-5-g5e0d30b
 
 package demo
 
@@ -170,7 +170,7 @@ func (tbl DUserTable) IsTx() bool {
 func (tbl DUserTable) BeginTx(opts *sql.TxOptions) (DUserTable, error) {
 	var err error
 	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
-	return tbl, tbl.logIfError(err)
+	return tbl, tbl.Logger().LogIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -179,18 +179,6 @@ func (tbl DUserTable) BeginTx(opts *sql.TxOptions) (DUserTable, error) {
 func (tbl DUserTable) Using(tx sqlapi.SqlTx) DUserTable {
 	tbl.db = tx
 	return tbl
-}
-
-func (tbl DUserTable) logQuery(query string, args ...interface{}) {
-	tbl.database.LogQuery(query, args...)
-}
-
-func (tbl DUserTable) logError(err error) error {
-	return tbl.database.LogError(err)
-}
-
-func (tbl DUserTable) logIfError(err error) error {
-	return tbl.database.LogIfError(err)
 }
 
 func (tbl DUserTable) quotedName() string {
@@ -335,7 +323,7 @@ func (tbl DUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 		count += n
 	}
 
-	return count, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+	return count, tbl.Logger().LogIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.

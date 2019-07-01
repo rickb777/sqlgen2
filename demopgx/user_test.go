@@ -216,7 +216,7 @@ func TestDropIndexSql(t *testing.T) {
 func TestUpdateFields_ok_using_mock(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	mockDb := mockExecer{RowsAffected: 1}
+	mockDb := mockExecer{Result: 1}
 
 	d := pgxapi.NewDatabase(mockDb, dialect.Mysql, nil)
 	tbl := NewDbUserTable("users", d)
@@ -248,7 +248,7 @@ func TestUpdateFields_error_using_mock(t *testing.T) {
 func TestUpdate_ok_using_mock(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	mockDb := mockExecer{RowsAffected: 1}
+	mockDb := mockExecer{Result: 1}
 
 	d := pgxapi.NewDatabase(mockDb, dialect.Mysql, nil)
 	tbl := NewDbUserTable("users", d)
@@ -686,8 +686,54 @@ func xTestGetters_using_database(t *testing.T) {
 //-------------------------------------------------------------------------------------------------
 
 type mockExecer struct {
-	RowsAffected int64
-	Error        error
+	Result int64
+	Error  error
+}
+
+func (m mockExecer) InsertContext(ctx context.Context, query string, args ...interface{}) (int64, error) {
+	if m.Error != nil {
+		return 0, m.Error
+	}
+	return m.Result, nil
+}
+
+func (m mockExecer) ExecContext(ctx context.Context, sql string, arguments ...interface{}) (int64, error) {
+	if m.Error != nil {
+		return 0, m.Error
+	}
+	return m.Result, nil
+}
+
+func (m mockExecer) PrepareContext(ctx context.Context, name, sql string) (*pgx.PreparedStatement, error) {
+	panic("implement me")
+}
+
+func (m mockExecer) IsTx() bool {
+	panic("implement me")
+}
+
+func (m mockExecer) Logger() pgxapi.Logger {
+	return m
+}
+
+func (m mockExecer) BeginTx(ctx context.Context, opts *pgx.TxOptions) (pgxapi.SqlTx, error) {
+	panic("implement me")
+}
+
+func (m mockExecer) Transact(ctx context.Context, txOptions *pgx.TxOptions, fn func(pgxapi.Execer) error) error {
+	panic("implement me")
+}
+
+func (m mockExecer) PingContext(ctx context.Context) error {
+	panic("implement me")
+}
+
+func (m mockExecer) Stats() sql.DBStats {
+	panic("implement me")
+}
+
+func (m mockExecer) Close() {
+	panic("implement me")
 }
 
 func (m mockExecer) QueryContext(ctx context.Context, sql string, args ...interface{}) (pgxapi.SqlRows, error) {
@@ -710,47 +756,19 @@ func (m mockExecer) BeginBatch() *pgx.Batch {
 	panic("implement me")
 }
 
-func (m mockExecer) Log(level pgx.LogLevel, msg string, data map[string]interface{}) {
+func (m mockExecer) Log(level pgx.LogLevel, msg string, data map[string]interface{}) {}
+
+func (m mockExecer) LogT(level pgx.LogLevel, msg string, startTime *time.Time, data ...interface{}) {}
+
+func (m mockExecer) LogQuery(query string, args ...interface{}) {}
+
+func (m mockExecer) LogIfError(err error) error {
+	return err
 }
 
-func (m mockExecer) LogT(level pgx.LogLevel, msg string, startTime *time.Time, data ...interface{}) {
+func (m mockExecer) LogError(err error) error {
+	return err
 }
 
 func (m mockExecer) TraceLogging(on bool) {
-}
-
-func (m mockExecer) InsertContext(ctx context.Context, query string, args ...interface{}) (int64, error) {
-	panic("implement me")
-}
-
-func (m mockExecer) ExecContext(ctx context.Context, sql string, arguments ...interface{}) (int64, error) {
-	return m.RowsAffected, m.Error
-}
-
-func (m mockExecer) PrepareContext(ctx context.Context, name, sql string) (*pgx.PreparedStatement, error) {
-	panic("implement me")
-}
-
-func (m mockExecer) IsTx() bool {
-	panic("implement me")
-}
-
-func (m mockExecer) BeginTx(ctx context.Context, opts *pgx.TxOptions) (pgxapi.SqlTx, error) {
-	panic("implement me")
-}
-
-func (m mockExecer) Transact(ctx context.Context, txOptions *pgx.TxOptions, fn func(pgxapi.Execer) error) error {
-	panic("implement me")
-}
-
-func (m mockExecer) PingContext(ctx context.Context) error {
-	panic("implement me")
-}
-
-func (m mockExecer) Stats() sql.DBStats {
-	panic("implement me")
-}
-
-func (m mockExecer) Close() {
-	panic("implement me")
 }

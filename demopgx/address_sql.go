@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
+// sqlapi v0.28.0; sqlgen v0.48.0-5-g5e0d30b
 
 package demopgx
 
@@ -172,7 +172,7 @@ func (tbl AddressTable) IsTx() bool {
 func (tbl AddressTable) BeginTx(opts *pgx.TxOptions) (AddressTable, error) {
 	var err error
 	tbl.db, err = tbl.db.(pgxapi.SqlDB).BeginTx(tbl.ctx, opts)
-	return tbl, tbl.logIfError(err)
+	return tbl, tbl.Logger().LogIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -181,17 +181,6 @@ func (tbl AddressTable) BeginTx(opts *pgx.TxOptions) (AddressTable, error) {
 func (tbl AddressTable) Using(tx pgxapi.SqlTx) AddressTable {
 	tbl.db = tx
 	return tbl
-}
-
-func (tbl AddressTable) logQuery(query string, args ...interface{}) {
-}
-
-func (tbl AddressTable) logError(err error) error {
-	return tbl.database.LogError(err)
-}
-
-func (tbl AddressTable) logIfError(err error) error {
-	return tbl.database.LogIfError(err)
 }
 
 func (tbl AddressTable) quotedName() string {
@@ -679,7 +668,7 @@ func (tbl AddressTable) doQueryAndScan(req require.Requirement, firstOnly bool, 
 	defer rows.Close()
 
 	vv, n, err := scanAddresses(query, rows, firstOnly)
-	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of Address based on a supplied query. This is mostly used for join queries that map its
@@ -764,7 +753,7 @@ func (tbl AddressTable) CountWhere(where string, args ...interface{}) (count int
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
-	return count, tbl.logIfError(err)
+	return count, tbl.Logger().LogIfError(err)
 }
 
 // Count counts the Addresses in the table that match a 'where' clause.
@@ -815,7 +804,7 @@ func (tbl AddressTable) constructAddressInsert(w dialect.StringWriter, v *Addres
 	comma = ","
 	x, err := json.Marshal(&v.Lines)
 	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
@@ -848,7 +837,7 @@ func (tbl AddressTable) constructAddressUpdate(w dialect.StringWriter, v *Addres
 
 	x, err := json.Marshal(&v.Lines)
 	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
@@ -893,7 +882,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 		if hook, ok := iv.(pgxapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
-				return tbl.logError(err)
+				return tbl.Logger().LogError(err)
 			}
 		}
 
@@ -903,7 +892,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 
 		fields, err := tbl.constructAddressInsert(b, v, false)
 		if err != nil {
-			return tbl.logError(err)
+			return tbl.Logger().LogError(err)
 		}
 
 		b.WriteString(" VALUES (")
@@ -912,7 +901,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 		b.WriteString(returning)
 
 		query := b.String()
-		tbl.logQuery(query, fields...)
+		tbl.Logger().LogQuery(query, fields...)
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
@@ -922,19 +911,19 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 		} else {
 			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
 			if e2 != nil {
-				return tbl.logError(e2)
+				return tbl.Logger().LogError(e2)
 			}
 
 			v.Id = i64
 		}
 
 		if err != nil {
-			return tbl.logError(err)
+			return tbl.Logger().LogError(err)
 		}
 		count += n
 	}
 
-	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
@@ -961,7 +950,7 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 		if hook, ok := iv.(pgxapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
-				return count, tbl.logError(err)
+				return count, tbl.Logger().LogError(err)
 			}
 		}
 
@@ -988,7 +977,7 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 		count += n
 	}
 
-	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return count, tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 //--------------------------------------------------------------------------------
@@ -1017,7 +1006,7 @@ func (tbl AddressTable) Upsert(v *Address, wh where.Expression) error {
 	var id int64
 	err = rows.Scan(&id)
 	if err != nil {
-		return tbl.logIfError(err)
+		return tbl.Logger().LogIfError(err)
 	}
 
 	if rows.Next() {
@@ -1083,7 +1072,7 @@ func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (i
 		count += n
 	}
 
-	return count, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+	return count, tbl.Logger().LogIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.

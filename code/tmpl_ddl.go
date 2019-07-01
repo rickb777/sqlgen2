@@ -172,7 +172,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) BeginTx(opts *{{.Sql}}.TxOptions) ({{.Prefix}}{{.Type}}{{.Thing}}, error) {
 	var err error
 	tbl.db, err = tbl.db.({{.Sqlapi}}.SqlDB).BeginTx(tbl.ctx, opts)
-	return tbl, tbl.logIfError(err)
+	return tbl, tbl.Logger().LogIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -181,20 +181,6 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) BeginTx(opts *{{.Sql}}.TxOptions) ({{.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}}{{.Type}}{{.Thing}} {
 	tbl.db = tx
 	return tbl
-}
-
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logQuery(query string, args ...interface{}) {
-	{{- if eq .Sql "sql"}}
-	tbl.database.LogQuery(query, args...)
-	{{- end}}
-}
-
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logError(err error) error {
-	return tbl.database.LogError(err)
-}
-
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) logIfError(err error) error {
-	return tbl.database.LogIfError(err)
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) quotedName() string {

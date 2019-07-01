@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
+// sqlapi v0.28.0; sqlgen v0.48.0-5-g5e0d30b
 
 package demo
 
@@ -172,7 +172,7 @@ func (tbl IUserTable) IsTx() bool {
 func (tbl IUserTable) BeginTx(opts *sql.TxOptions) (IUserTable, error) {
 	var err error
 	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
-	return tbl, tbl.logIfError(err)
+	return tbl, tbl.Logger().LogIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -181,18 +181,6 @@ func (tbl IUserTable) BeginTx(opts *sql.TxOptions) (IUserTable, error) {
 func (tbl IUserTable) Using(tx sqlapi.SqlTx) IUserTable {
 	tbl.db = tx
 	return tbl
-}
-
-func (tbl IUserTable) logQuery(query string, args ...interface{}) {
-	tbl.database.LogQuery(query, args...)
-}
-
-func (tbl IUserTable) logError(err error) error {
-	return tbl.database.LogError(err)
-}
-
-func (tbl IUserTable) logIfError(err error) error {
-	return tbl.database.LogIfError(err)
 }
 
 func (tbl IUserTable) quotedName() string {
@@ -325,7 +313,7 @@ func (tbl IUserTable) constructIUserInsert(w dialect.StringWriter, v *User, with
 	q.QuoteW(w, "fave")
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
@@ -407,7 +395,7 @@ func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
-				return tbl.logError(err)
+				return tbl.Logger().LogError(err)
 			}
 		}
 
@@ -417,7 +405,7 @@ func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 
 		fields, err := tbl.constructIUserInsert(b, v, false)
 		if err != nil {
-			return tbl.logError(err)
+			return tbl.Logger().LogError(err)
 		}
 
 		b.WriteString(" VALUES (")
@@ -426,7 +414,7 @@ func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 		b.WriteString(returning)
 
 		query := b.String()
-		tbl.logQuery(query, fields...)
+		tbl.Logger().LogQuery(query, fields...)
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
@@ -436,17 +424,17 @@ func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 		} else {
 			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
 			if e2 != nil {
-				return tbl.logError(e2)
+				return tbl.Logger().LogError(e2)
 			}
 
 			v.Uid = i64
 		}
 
 		if err != nil {
-			return tbl.logError(err)
+			return tbl.Logger().LogError(err)
 		}
 		count += n
 	}
 
-	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }

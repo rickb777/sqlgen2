@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
+// sqlapi v0.28.0; sqlgen v0.48.0-5-g5e0d30b
 
 package demo
 
@@ -175,7 +175,7 @@ func (tbl DbUserTable) IsTx() bool {
 func (tbl DbUserTable) BeginTx(opts *sql.TxOptions) (DbUserTable, error) {
 	var err error
 	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
-	return tbl, tbl.logIfError(err)
+	return tbl, tbl.Logger().LogIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -184,18 +184,6 @@ func (tbl DbUserTable) BeginTx(opts *sql.TxOptions) (DbUserTable, error) {
 func (tbl DbUserTable) Using(tx sqlapi.SqlTx) DbUserTable {
 	tbl.db = tx
 	return tbl
-}
-
-func (tbl DbUserTable) logQuery(query string, args ...interface{}) {
-	tbl.database.LogQuery(query, args...)
-}
-
-func (tbl DbUserTable) logError(err error) error {
-	return tbl.database.LogError(err)
-}
-
-func (tbl DbUserTable) logIfError(err error) error {
-	return tbl.database.LogIfError(err)
 }
 
 func (tbl DbUserTable) quotedName() string {
@@ -818,7 +806,7 @@ func (tbl DbUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, q
 	defer rows.Close()
 
 	vv, n, err := scanDbUsers(query, rows, firstOnly)
-	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
@@ -903,7 +891,7 @@ func (tbl DbUserTable) CountWhere(where string, args ...interface{}) (count int6
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
-	return count, tbl.logIfError(err)
+	return count, tbl.Logger().LogIfError(err)
 }
 
 // Count counts the Users in the table that match a 'where' clause.
@@ -1051,12 +1039,12 @@ func (tbl DbUserTable) sliceRolePtrList(req require.Requirement, sqlname string,
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func (tbl DbUserTable) sliceFloat32List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
@@ -1076,12 +1064,12 @@ func (tbl DbUserTable) sliceFloat32List(req require.Requirement, sqlname string,
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func (tbl DbUserTable) sliceFloat64List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
@@ -1101,12 +1089,12 @@ func (tbl DbUserTable) sliceFloat64List(req require.Requirement, sqlname string,
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.logIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func (tbl DbUserTable) constructDbUserInsert(w dialect.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
@@ -1161,7 +1149,7 @@ func (tbl DbUserTable) constructDbUserInsert(w dialect.StringWriter, v *User, wi
 	q.QuoteW(w, "fave")
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
@@ -1293,7 +1281,7 @@ func (tbl DbUserTable) constructDbUserUpdate(w dialect.StringWriter, v *User) (s
 
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
@@ -1399,7 +1387,7 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
-				return tbl.logError(err)
+				return tbl.Logger().LogError(err)
 			}
 		}
 
@@ -1409,7 +1397,7 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 
 		fields, err := tbl.constructDbUserInsert(b, v, false)
 		if err != nil {
-			return tbl.logError(err)
+			return tbl.Logger().LogError(err)
 		}
 
 		b.WriteString(" VALUES (")
@@ -1418,7 +1406,7 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 		b.WriteString(returning)
 
 		query := b.String()
-		tbl.logQuery(query, fields...)
+		tbl.Logger().LogQuery(query, fields...)
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
@@ -1428,19 +1416,19 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 		} else {
 			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
 			if e2 != nil {
-				return tbl.logError(e2)
+				return tbl.Logger().LogError(e2)
 			}
 
 			v.Uid = i64
 		}
 
 		if err != nil {
-			return tbl.logError(err)
+			return tbl.Logger().LogError(err)
 		}
 		count += n
 	}
 
-	return tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
@@ -1467,7 +1455,7 @@ func (tbl DbUserTable) Update(req require.Requirement, vv ...*User) (int64, erro
 		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
-				return count, tbl.logError(err)
+				return count, tbl.Logger().LogError(err)
 			}
 		}
 
@@ -1494,7 +1482,7 @@ func (tbl DbUserTable) Update(req require.Requirement, vv ...*User) (int64, erro
 		count += n
 	}
 
-	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return count, tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 //--------------------------------------------------------------------------------
@@ -1523,7 +1511,7 @@ func (tbl DbUserTable) Upsert(v *User, wh where.Expression) error {
 	var id int64
 	err = rows.Scan(&id)
 	if err != nil {
-		return tbl.logIfError(err)
+		return tbl.Logger().LogIfError(err)
 	}
 
 	if rows.Next() {
@@ -1589,7 +1577,7 @@ func (tbl DbUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64,
 		count += n
 	}
 
-	return count, tbl.logIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+	return count, tbl.Logger().LogIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.

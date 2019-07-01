@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
+// sqlapi v0.28.0; sqlgen v0.48.0-5-g5e0d30b
 
 package demo
 
@@ -173,7 +173,7 @@ func (tbl RUserTable) IsTx() bool {
 func (tbl RUserTable) BeginTx(opts *sql.TxOptions) (RUserTable, error) {
 	var err error
 	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
-	return tbl, tbl.logIfError(err)
+	return tbl, tbl.Logger().LogIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -182,18 +182,6 @@ func (tbl RUserTable) BeginTx(opts *sql.TxOptions) (RUserTable, error) {
 func (tbl RUserTable) Using(tx sqlapi.SqlTx) RUserTable {
 	tbl.db = tx
 	return tbl
-}
-
-func (tbl RUserTable) logQuery(query string, args ...interface{}) {
-	tbl.database.LogQuery(query, args...)
-}
-
-func (tbl RUserTable) logError(err error) error {
-	return tbl.database.LogError(err)
-}
-
-func (tbl RUserTable) logIfError(err error) error {
-	return tbl.database.LogIfError(err)
 }
 
 func (tbl RUserTable) quotedName() string {
@@ -479,7 +467,7 @@ func (tbl RUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, qu
 	defer rows.Close()
 
 	vv, n, err := scanRUsers(query, rows, firstOnly)
-	return vv, tbl.logIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
@@ -564,7 +552,7 @@ func (tbl RUserTable) CountWhere(where string, args ...interface{}) (count int64
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
-	return count, tbl.logIfError(err)
+	return count, tbl.Logger().LogIfError(err)
 }
 
 // Count counts the Users in the table that match a 'where' clause.

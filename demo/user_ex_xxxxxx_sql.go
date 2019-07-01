@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
+// sqlapi v0.28.0; sqlgen v0.48.0-5-g5e0d30b
 
 package demo
 
@@ -168,7 +168,7 @@ func (tbl XUserTable) IsTx() bool {
 func (tbl XUserTable) BeginTx(opts *sql.TxOptions) (XUserTable, error) {
 	var err error
 	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
-	return tbl, tbl.logIfError(err)
+	return tbl, tbl.Logger().LogIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -177,18 +177,6 @@ func (tbl XUserTable) BeginTx(opts *sql.TxOptions) (XUserTable, error) {
 func (tbl XUserTable) Using(tx sqlapi.SqlTx) XUserTable {
 	tbl.db = tx
 	return tbl
-}
-
-func (tbl XUserTable) logQuery(query string, args ...interface{}) {
-	tbl.database.LogQuery(query, args...)
-}
-
-func (tbl XUserTable) logError(err error) error {
-	return tbl.database.LogError(err)
-}
-
-func (tbl XUserTable) logIfError(err error) error {
-	return tbl.database.LogIfError(err)
 }
 
 func (tbl XUserTable) quotedName() string {

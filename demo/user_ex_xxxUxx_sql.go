@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.25.0-11-ga42fdd5; sqlgen v0.48.0-4-g6308f1e
+// sqlapi v0.28.0; sqlgen v0.48.0-5-g5e0d30b
 
 package demo
 
@@ -172,7 +172,7 @@ func (tbl UUserTable) IsTx() bool {
 func (tbl UUserTable) BeginTx(opts *sql.TxOptions) (UUserTable, error) {
 	var err error
 	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
-	return tbl, tbl.logIfError(err)
+	return tbl, tbl.Logger().LogIfError(err)
 }
 
 // Using returns a modified Table using the transaction supplied. This is needed
@@ -181,18 +181,6 @@ func (tbl UUserTable) BeginTx(opts *sql.TxOptions) (UUserTable, error) {
 func (tbl UUserTable) Using(tx sqlapi.SqlTx) UUserTable {
 	tbl.db = tx
 	return tbl
-}
-
-func (tbl UUserTable) logQuery(query string, args ...interface{}) {
-	tbl.database.LogQuery(query, args...)
-}
-
-func (tbl UUserTable) logError(err error) error {
-	return tbl.database.LogError(err)
-}
-
-func (tbl UUserTable) logIfError(err error) error {
-	return tbl.database.LogIfError(err)
 }
 
 func (tbl UUserTable) quotedName() string {
@@ -355,7 +343,7 @@ func (tbl UUserTable) constructUUserUpdate(w dialect.StringWriter, v *User) (s [
 
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, tbl.database.LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
@@ -463,7 +451,7 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
-				return count, tbl.logError(err)
+				return count, tbl.Logger().LogError(err)
 			}
 		}
 
@@ -490,5 +478,5 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 		count += n
 	}
 
-	return count, tbl.logIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return count, tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
