@@ -26,6 +26,7 @@ export PGHOST=localhost
 export PGDATABASE=test
 export PGUSER=testuser
 export PGPASSWORD=TestPasswd.9.9.9
+export DB_CONNECT_TIMEOUT=1s
 
 echo
 echo "PGX (no quotes)...."

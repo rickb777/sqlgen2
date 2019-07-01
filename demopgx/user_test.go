@@ -37,8 +37,6 @@ func connect(t *testing.T) (pgxapi.SqlDB, dialect.Dialect) {
 		switch strings.ToLower(quoter) {
 		case "ansi":
 			di = di.WithQuoter(quote.AnsiQuoter)
-		case "mysql":
-			di = di.WithQuoter(quote.MySqlQuoter)
 		case "none":
 			di = di.WithQuoter(quote.NoQuoter)
 		default:
@@ -47,7 +45,15 @@ func connect(t *testing.T) (pgxapi.SqlDB, dialect.Dialect) {
 	}
 
 	lgr := testingadapter.NewLogger(t)
-	db := pgxapi.ConnectEnv(lgr, pgx.LogLevelInfo)
+	var lvl pgx.LogLevel = pgx.LogLevelInfo
+	if !testing.Verbose() {
+		lvl = pgx.LogLevelWarn
+	}
+	db, err := pgxapi.ConnectEnv(lgr, lvl)
+	if err != nil {
+		t.Log(err)
+		t.Skip()
+	}
 	return db, di
 }
 
@@ -59,7 +65,11 @@ func newDatabase(t *testing.T) pgxapi.Database {
 		verbose = true
 	}
 
-	return pgxapi.NewDatabase(db, di, nil)
+	pd := pgxapi.NewDatabase(db, di, nil)
+	if !testing.Verbose() {
+		pd.Logger().TraceLogging(false)
+	}
+	return pd
 }
 
 func cleanup(db pgxapi.Execer) {

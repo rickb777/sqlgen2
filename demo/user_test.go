@@ -33,6 +33,12 @@ import (
 
 var verbose = false
 
+func skipIfNoPostgresDB(t *testing.T, di dialect.Dialect) {
+	if (di.Index() == dialect.PostgresIndex || di.Index() == dialect.PgxIndex) && os.Getenv("PGHOST") == "" {
+		t.Skip()
+	}
+}
+
 func connect(t *testing.T) (*sql.DB, dialect.Dialect) {
 	dbDriver, ok := os.LookupEnv("GO_DRIVER")
 	if !ok {
@@ -53,6 +59,8 @@ func connect(t *testing.T) (*sql.DB, dialect.Dialect) {
 			t.Fatalf("Warning: unrecognised quoter %q.\n", quoter)
 		}
 	}
+
+	skipIfNoPostgresDB(t, di)
 
 	dsn, ok := os.LookupEnv("GO_DSN")
 	if !ok {
