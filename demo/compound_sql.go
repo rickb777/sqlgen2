@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.49.0-1-g39873a0
+// sqlapi v0.29.0; sqlgen v0.49.0-2-g18aa8b9
 
 package demo
 
@@ -395,14 +395,15 @@ func (tbl DbCompoundTable) Exec(req require.Requirement, query string, args ...i
 
 //--------------------------------------------------------------------------------
 
-// Query is the low-level request method for this table. The query is logged using whatever logger is
-// configured. If an error arises, this too is logged.
+// Query is the low-level request method for this table. The SQL query must return all the columns necessary for
+// Compound values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
+// the chosen dialect.
+//
+// The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
 // If you need a context other than the background, use WithContext before calling Query.
 //
 // The args are for any placeholder parameters in the query.
-//
-// The caller must call rows.Close() on the result.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
