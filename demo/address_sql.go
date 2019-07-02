@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.49.0
+// sqlapi v0.29.0; sqlgen v0.49.0-1-g39873a0
 
 package demo
 
@@ -34,7 +34,6 @@ type AddressTable struct {
 
 // Type conformance checks
 var _ sqlapi.TableWithIndexes = &AddressTable{}
-var _ sqlapi.TableWithCrud = &AddressTable{}
 
 // NewAddressTable returns a new table instance.
 // If a blank table name is supplied, the default name "addresses" will be used instead.
@@ -239,9 +238,11 @@ var sqlAddressTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlPostcodeIdxIndexColumns = "postcode"
+
 var listOfPostcodeIdxIndexColumns = []string{"postcode"}
 
 const sqlTownIdxIndexColumns = "town"
+
 var listOfTownIdxIndexColumns = []string{"town"}
 
 //--------------------------------------------------------------------------------
@@ -480,9 +481,21 @@ func (tbl AddressTable) Exec(req require.Requirement, query string, args ...inte
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl AddressTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
-	return support.Query(tbl, query, args...)
+// The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
+// use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
+func (tbl AddressTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Address, error) {
+	return tbl.doQueryAndScan(req, false, query, args)
+}
+
+func (tbl AddressTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
+	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	vv, n, err := ScanAddresses(query, rows, firstOnly)
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -658,17 +671,6 @@ func (tbl AddressTable) doQueryAndScanOne(req require.Requirement, query string,
 		return nil, err
 	}
 	return list[0], nil
-}
-
-func (tbl AddressTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	vv, n, err := ScanAddresses(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of Address based on a supplied query. This is mostly used for join queries that map its
@@ -915,7 +917,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 			}
 
 			v.Id = i64
-			}
+		}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -983,9 +985,9 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified 
-// key column(s). It must match either zero or one existing record. If it matches 
-// none, a new record is inserted; otherwise the matching record is updated. An 
+// This expression is used to search for an existing record based on some specified
+// key column(s). It must match either zero or one existing record. If it matches
+// none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
 func (tbl AddressTable) Upsert(v *Address, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

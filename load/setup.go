@@ -23,6 +23,7 @@ func PackagesToImport(flags FuncFlags, pgx bool) util.StringSet {
 		"context",
 		"database/sql",
 		"strings",
+		"github.com/pkg/errors",
 		"github.com/rickb777/sqlapi/dialect",
 		"github.com/rickb777/sqlapi/require",
 	)
@@ -47,9 +48,6 @@ func PackagesToImport(flags FuncFlags, pgx bool) util.StringSet {
 	}
 	if flags.Count || flags.Insert || flags.Select || flags.Slice || flags.Delete {
 		imports.Add("fmt")
-	}
-	if flags.Insert || flags.Select || flags.Update {
-		imports.Add("github.com/pkg/errors")
 	}
 	if flags.Count || flags.Select || flags.Slice || flags.Update || flags.Delete {
 		imports.Add("github.com/rickb777/where")
@@ -89,9 +87,6 @@ func SecondaryInterface(flags FuncFlags) string {
 }
 
 func secondaryInterface(flags FuncFlags) string {
-	if flags.Exec && flags.Select && flags.Insert && flags.Update && flags.Delete && flags.Slice {
-		return "TableWithCrud"
-	}
 	return "Table"
 }
 

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.49.0
+// sqlapi v0.29.0; sqlgen v0.49.0-1-g39873a0
 
 package demo
 
@@ -33,7 +33,6 @@ type HookTable struct {
 
 // Type conformance checks
 var _ sqlapi.TableCreator = &HookTable{}
-var _ sqlapi.TableWithCrud = &HookTable{}
 
 // NewHookTable returns a new table instance.
 // If a blank table name is supplied, the default name "hooks" will be used instead.
@@ -393,9 +392,21 @@ func (tbl HookTable) Exec(req require.Requirement, query string, args ...interfa
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl HookTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
-	return support.Query(tbl, query, args...)
+// The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
+// use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
+func (tbl HookTable) Query(req require.Requirement, query string, args ...interface{}) (HookList, error) {
+	return tbl.doQueryAndScan(req, false, query, args)
+}
+
+func (tbl HookTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) (HookList, error) {
+	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	vv, n, err := ScanHooks(query, rows, firstOnly)
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -592,17 +603,6 @@ func (tbl HookTable) doQueryAndScanOne(req require.Requirement, query string, ar
 		return nil, err
 	}
 	return list[0], nil
-}
-
-func (tbl HookTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) (HookList, error) {
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	vv, n, err := ScanHooks(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of Hook based on a supplied query. This is mostly used for join queries that map its
@@ -1092,7 +1092,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 			}
 
 			v.Id = uint64(i64)
-			}
+		}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -1160,9 +1160,9 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified 
-// key column(s). It must match either zero or one existing record. If it matches 
-// none, a new record is inserted; otherwise the matching record is updated. An 
+// This expression is used to search for an existing record based on some specified
+// key column(s). It must match either zero or one existing record. If it matches
+// none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
 func (tbl HookTable) Upsert(v *Hook, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

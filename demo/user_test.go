@@ -14,6 +14,7 @@ import (
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
 	"github.com/rickb777/where/quote"
 	"github.com/spf13/cast"
@@ -653,7 +654,7 @@ func xTestGetters_using_database(t *testing.T) {
 	}
 }
 
-func xTestRowsAsMaps_using_database(t *testing.T) {
+func TestRowsAsMaps_using_database(t *testing.T) {
 	g := NewGomegaWithT(t)
 	d := newDatabase(t)
 	defer cleanup(d.DB())
@@ -676,7 +677,7 @@ func xTestRowsAsMaps_using_database(t *testing.T) {
 	err = tbl.Insert(require.All, list...)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	rows, err := tbl.Query("SELECT * from users")
+	rows, err := support.Query(tbl, "SELECT * from users")
 	g.Expect(err).NotTo(HaveOccurred())
 
 	ram, err := sqlapi.WrapRows(rows)
@@ -806,6 +807,14 @@ func xTestNumericRanges_using_database(t *testing.T) {
 type mockExecer struct {
 	RowsAffected int64
 	Error        error
+}
+
+func (m mockExecer) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(sqlapi.SqlTx) error) error {
+	panic("implement me")
+}
+
+func (m mockExecer) Close() error {
+	panic("implement me")
 }
 
 func (m mockExecer) InsertContext(ctx context.Context, query string, args ...interface{}) (int64, error) {

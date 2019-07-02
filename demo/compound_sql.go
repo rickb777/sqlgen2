@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.49.0
+// sqlapi v0.29.0; sqlgen v0.49.0-1-g39873a0
 
 package demo
 
@@ -33,7 +33,6 @@ type DbCompoundTable struct {
 
 // Type conformance checks
 var _ sqlapi.TableWithIndexes = &DbCompoundTable{}
-var _ sqlapi.TableWithCrud = &DbCompoundTable{}
 
 // NewDbCompoundTable returns a new table instance.
 // If a blank table name is supplied, the default name "compounds" will be used instead.
@@ -405,9 +404,21 @@ func (tbl DbCompoundTable) Exec(req require.Requirement, query string, args ...i
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl DbCompoundTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
-	return support.Query(tbl, query, args...)
+// The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
+// use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
+func (tbl DbCompoundTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Compound, error) {
+	return tbl.doQueryAndScan(req, false, query, args)
+}
+
+func (tbl DbCompoundTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Compound, error) {
+	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	vv, n, err := ScanDbCompounds(query, rows, firstOnly)
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -537,17 +548,6 @@ func (tbl DbCompoundTable) doQueryAndScanOne(req require.Requirement, query stri
 		return nil, err
 	}
 	return list[0], nil
-}
-
-func (tbl DbCompoundTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Compound, error) {
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	vv, n, err := ScanDbCompounds(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of Compound based on a supplied query. This is mostly used for join queries that map its

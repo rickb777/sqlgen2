@@ -221,7 +221,6 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, g
 	view.Table = table
 	view.Thing = kind
 	view.Interface1 = api + "." + PrimaryInterface(table, flags.Schema)
-	view.Interface2 = api + "." + SecondaryInterface(flags)
 	if flags.Scan {
 		view.Scan = "Scan"
 	}
@@ -230,9 +229,7 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, g
 
 	importSet := PackagesToImport(flags, pgx)
 
-	if flags.Select || flags.Insert || flags.Update {
-		ImportsForFields(table, importSet)
-	}
+	ImportsForFields(table, importSet)
 	ImportsForSetters(setters, importSet)
 
 	buf := &bytes.Buffer{}
@@ -256,10 +253,7 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, g
 
 	WriteQueryRows(buf, view)
 	WriteQueryThings(buf, view)
-
-	if flags.Select || flags.Scan {
-		WriteScanRows(buf, view)
-	}
+	WriteScanRows(buf, view)
 
 	if flags.Select {
 		WriteGetRow(buf, view)

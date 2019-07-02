@@ -26,9 +26,21 @@ const sQueryRows = `
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *{{.Sqlapi}}.Rows if you need to access its data as a map.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(query string, args ...interface{}) ({{.Sqlapi}}.SqlRows, error) {
-	return support.Query(tbl, query, args...)
+// The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
+// use that function directly; wrap the result in *{{.Sqlapi}}.Rows if you need to access its data as a map.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(req require.Requirement, query string, args ...interface{}) ({{.List}}, error) {
+	return tbl.doQueryAndScan(req, false, query, args)
+}
+
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
+	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	vv, n, err := {{.Scan}}{{.Prefix}}{{.Types}}(query, rows, firstOnly)
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 `
 
@@ -164,17 +176,6 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryAndScanOne(req require.Requirem
 		return nil, err
 	}
 	return list[0], nil
-}
-
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	vv, n, err := {{.Scan}}{{.Prefix}}{{.Types}}(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of {{.Type}} based on a supplied query. This is mostly used for join queries that map its

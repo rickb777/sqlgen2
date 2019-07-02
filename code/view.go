@@ -19,7 +19,6 @@ type View struct {
 	DbName     string
 	Thing      string
 	Interface1 string
-	Interface2 string
 	List       string
 	Suffix     string
 	Sql        string
@@ -49,7 +48,6 @@ func NewView(name, prefix, tableName, list, sql, api string) View {
 		DbName:     tn,
 		Thing:      "Table",
 		Interface1: api + ".Table",
-		Interface2: api + ".Table",
 		List:       list,
 		Dialects:   dialect.AllDialects,
 		Sql:        sql,

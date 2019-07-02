@@ -730,7 +730,7 @@ func (m mockExecer) BeginTx(ctx context.Context, opts *pgx.TxOptions) (pgxapi.Sq
 	panic("implement me")
 }
 
-func (m mockExecer) Transact(ctx context.Context, txOptions *pgx.TxOptions, fn func(pgxapi.Execer) error) error {
+func (m mockExecer) Transact(ctx context.Context, txOptions *pgx.TxOptions, fn func(pgxapi.SqlTx) error) error {
 	panic("implement me")
 }
 

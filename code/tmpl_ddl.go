@@ -26,7 +26,6 @@ type {{.Prefix}}{{.Type}}{{.Thing}} struct {
 
 // Type conformance checks
 var _ {{.Interface1}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
-var _ {{.Interface2}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
 
 // New{{.Prefix}}{{.Type}}{{.Thing}} returns a new table instance.
 // If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.49.0
+// sqlapi v0.29.0; sqlgen v0.49.0-1-g39873a0
 
 package demo
 
@@ -34,7 +34,6 @@ type AUserTable struct {
 
 // Type conformance checks
 var _ sqlapi.TableWithIndexes = &AUserTable{}
-var _ sqlapi.TableWithCrud = &AUserTable{}
 
 // NewAUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
@@ -314,9 +313,11 @@ var sqlAUserTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlAEmailaddressIdxIndexColumns = "emailaddress"
+
 var listOfAEmailaddressIdxIndexColumns = []string{"emailaddress"}
 
 const sqlAUserLoginIndexColumns = "name"
+
 var listOfAUserLoginIndexColumns = []string{"name"}
 
 //--------------------------------------------------------------------------------
@@ -555,9 +556,21 @@ func (tbl AUserTable) Exec(req require.Requirement, query string, args ...interf
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl AUserTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
-	return support.Query(tbl, query, args...)
+// The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
+// use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
+func (tbl AUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return tbl.doQueryAndScan(req, false, query, args)
+}
+
+func (tbl AUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	vv, n, err := ScanAUsers(query, rows, firstOnly)
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -796,17 +809,6 @@ func (tbl AUserTable) doQueryAndScanOne(req require.Requirement, query string, a
 		return nil, err
 	}
 	return list[0], nil
-}
-
-func (tbl AUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	vv, n, err := ScanAUsers(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
@@ -1420,7 +1422,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 			}
 
 			v.Uid = i64
-			}
+		}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -1488,9 +1490,9 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified 
-// key column(s). It must match either zero or one existing record. If it matches 
-// none, a new record is inserted; otherwise the matching record is updated. An 
+// This expression is used to search for an existing record based on some specified
+// key column(s). It must match either zero or one existing record. If it matches
+// none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
 func (tbl AUserTable) Upsert(v *User, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.49.0
+// sqlapi v0.29.0; sqlgen v0.49.0-1-g39873a0
 
 package demo
 
@@ -32,7 +32,6 @@ type RUserTable struct {
 }
 
 // Type conformance checks
-var _ sqlapi.Table = &RUserTable{}
 var _ sqlapi.Table = &RUserTable{}
 
 // NewRUserTable returns a new table instance.
@@ -219,9 +218,21 @@ var listOfRUserTableColumnNames = strings.Split(RUserTableColumnNames, ",")
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl RUserTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
-	return support.Query(tbl, query, args...)
+// The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
+// use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
+func (tbl RUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return tbl.doQueryAndScan(req, false, query, args)
+}
+
+func (tbl RUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	vv, n, err := scanRUsers(query, rows, firstOnly)
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -460,17 +471,6 @@ func (tbl RUserTable) doQueryAndScanOne(req require.Requirement, query string, a
 		return nil, err
 	}
 	return list[0], nil
-}
-
-func (tbl RUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	vv, n, err := scanRUsers(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.49.0
+// sqlapi v0.29.0; sqlgen v0.49.0-1-g39873a0
 
 package demo
 
@@ -34,7 +34,6 @@ type IssueTable struct {
 
 // Type conformance checks
 var _ sqlapi.TableWithIndexes = &IssueTable{}
-var _ sqlapi.TableWithCrud = &IssueTable{}
 
 // NewIssueTable returns a new table instance.
 // If a blank table name is supplied, the default name "issues" will be used instead.
@@ -255,6 +254,7 @@ var sqlIssueTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlIssueAssigneeIndexColumns = "assignee"
+
 var listOfIssueAssigneeIndexColumns = []string{"assignee"}
 
 //--------------------------------------------------------------------------------
@@ -440,9 +440,21 @@ func (tbl IssueTable) Exec(req require.Requirement, query string, args ...interf
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl IssueTable) Query(query string, args ...interface{}) (sqlapi.SqlRows, error) {
-	return support.Query(tbl, query, args...)
+// The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
+// use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
+func (tbl IssueTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Issue, error) {
+	return tbl.doQueryAndScan(req, false, query, args)
+}
+
+func (tbl IssueTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Issue, error) {
+	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	vv, n, err := ScanIssues(query, rows, firstOnly)
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -621,17 +633,6 @@ func (tbl IssueTable) doQueryAndScanOne(req require.Requirement, query string, a
 		return nil, err
 	}
 	return list[0], nil
-}
-
-func (tbl IssueTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Issue, error) {
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	vv, n, err := ScanIssues(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of Issue based on a supplied query. This is mostly used for join queries that map its
@@ -932,7 +933,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 			}
 
 			v.Id = i64
-			}
+		}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -1000,9 +1001,9 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified 
-// key column(s). It must match either zero or one existing record. If it matches 
-// none, a new record is inserted; otherwise the matching record is updated. An 
+// This expression is used to search for an existing record based on some specified
+// key column(s). It must match either zero or one existing record. If it matches
+// none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
 func (tbl IssueTable) Upsert(v *Issue, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

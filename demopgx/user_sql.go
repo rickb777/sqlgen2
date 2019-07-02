@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.49.0
+// sqlapi v0.29.0; sqlgen v0.49.0-1-g39873a0
 
 package demopgx
 
@@ -36,7 +36,6 @@ type DbUserTable struct {
 
 // Type conformance checks
 var _ pgxapi.TableWithIndexes = &DbUserTable{}
-var _ pgxapi.TableWithCrud = &DbUserTable{}
 
 // NewDbUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "the_users" will be used instead.
@@ -559,9 +558,21 @@ func (tbl DbUserTable) Exec(req require.Requirement, query string, args ...inter
 //
 // The caller must call rows.Close() on the result.
 //
-// Wrap the result in *pgxapi.Rows if you need to access its data as a map.
-func (tbl DbUserTable) Query(query string, args ...interface{}) (pgxapi.SqlRows, error) {
-	return support.Query(tbl, query, args...)
+// The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
+// use that function directly; wrap the result in *pgxapi.Rows if you need to access its data as a map.
+func (tbl DbUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return tbl.doQueryAndScan(req, false, query, args)
+}
+
+func (tbl DbUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+	rows, err := support.Query(tbl, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	vv, n, err := ScanDbUsers(query, rows, firstOnly)
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -800,17 +811,6 @@ func (tbl DbUserTable) doQueryAndScanOne(req require.Requirement, query string, 
 		return nil, err
 	}
 	return list[0], nil
-}
-
-func (tbl DbUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	vv, n, err := ScanDbUsers(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 // Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
