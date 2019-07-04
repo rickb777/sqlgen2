@@ -7,8 +7,9 @@ import (
 )
 
 type SetterView struct {
-	Type   string
-	Setter *schema.Field
+	TypePkg string
+	Type    string
+	Setter  *schema.Field
 }
 
 func (v View) FilterSetters(genSetters string) schema.FieldList {
@@ -38,7 +39,10 @@ func WriteSetters(w io.Writer, view View, fields schema.FieldList) {
 	if len(fields) > 0 {
 		fmt.Fprintln(w, sectionBreak)
 
-		vm := SetterView{Type: view.Type}
+		vm := SetterView{
+			TypePkg: view.TypePkg,
+			Type:    view.Type,
+		}
 
 		for _, field := range fields {
 			vm.Setter = field

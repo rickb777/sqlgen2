@@ -691,10 +691,10 @@ func (tbl AssociationTable) sliceCategoryPtrList(req require.Requirement, sqlnam
 	}
 	defer rows.Close()
 
-	var v Category
 	list := make([]Category, 0, 10)
 
 	for rows.Next() {
+		var v Category
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
 			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
@@ -716,10 +716,10 @@ func (tbl AssociationTable) sliceQualNamePtrList(req require.Requirement, sqlnam
 	}
 	defer rows.Close()
 
-	var v QualName
 	list := make([]QualName, 0, 10)
 
 	for rows.Next() {
+		var v QualName
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
 			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))

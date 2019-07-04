@@ -635,10 +635,10 @@ func (tbl DatesTable) sliceDateList(req require.Requirement, sqlname string, wh 
 	}
 	defer rows.Close()
 
-	var v date.Date
 	list := make([]date.Date, 0, 10)
 
 	for rows.Next() {
+		var v date.Date
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
 			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
@@ -660,10 +660,10 @@ func (tbl DatesTable) sliceDateStringList(req require.Requirement, sqlname strin
 	}
 	defer rows.Close()
 
-	var v date.DateString
 	list := make([]date.DateString, 0, 10)
 
 	for rows.Next() {
+		var v date.DateString
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
 			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))

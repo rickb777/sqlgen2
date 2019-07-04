@@ -19,6 +19,10 @@ sqlgen -type demo.User -o user_ex_xxxxDx_sql.go -v -prefix D -schema=false -crea
 sqlgen -type demo.User -o user_ex_xxxxxS_sql.go -v -prefix S -schema=false -create=false -count=false -read=false -update=false -delete=false -slice=true  user.go role.go
 sqlgen -type demo.User -o user_ex_ICRUDS_sql.go -v -prefix A -schema=false -all user.go role.go
 
+# incomplete trial of sub-directory output
+#mkdir -p sub
+#sqlgen -type demo.Hook -pkg github.com/rickb777/sqlgen2/demo -o sub/xhook_sql.go -list demo.HookList -all -v .
+
 unset GO_DRIVER GO_DSN GO_QUOTER
 
 DBS=$@

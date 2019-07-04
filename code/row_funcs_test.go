@@ -33,7 +33,7 @@ func TestWriteRowsFunc1(t *testing.T) {
 		},
 	}
 
-	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = table
 
 	buf := &bytes.Buffer{}
@@ -101,7 +101,7 @@ func scanXExamples(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Exa
 func TestWriteRowFunc2(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Scan = "Scan"
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}

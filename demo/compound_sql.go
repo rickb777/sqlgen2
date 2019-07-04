@@ -677,10 +677,10 @@ func (tbl DbCompoundTable) sliceCategoryList(req require.Requirement, sqlname st
 	}
 	defer rows.Close()
 
-	var v Category
 	list := make([]Category, 0, 10)
 
 	for rows.Next() {
+		var v Category
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
 			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))

@@ -124,7 +124,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}
 
 // Get{{.Type}}By{{.Table.Primary.Name}} gets the record with a given primary key value.
 // If not found, *{{.Type}} will be nil.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.TypePkg}}{{.Type}}, error) {
 	return tbl.get{{.Type}}(req, tbl.pk, id)
 }
 {{- end}}
@@ -133,7 +133,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(
 
 // Get{{$.Type}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
 // If not found, *{{$.Type}} will be nil.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.Type}}, error) {
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.TypePkg}}{{$.Type}}, error) {
 	return tbl.SelectOne(req, where.And({{.Fields.WhereClauses.MkString ", "}}), nil)
 }
 {{- else }}
@@ -146,7 +146,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And
 {{- end}}
 {{- end}}
 
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Type}}(req require.Requirement, column string, arg interface{}) (*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Type}}(req require.Requirement, column string, arg interface{}) (*{{.TypePkg}}{{.Type}}, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
@@ -171,7 +171,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Types}}(req require.Requirement,
 	return list, err
 }
 
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error) {
 	list, err := tbl.doQueryAndScan(req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
@@ -200,7 +200,7 @@ const sSelectRows = `
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
 	v, err := tbl.doQueryAndScanOne(req, query, args...)
@@ -214,7 +214,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*{{.TypePkg}}{{.Type}}, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
@@ -326,10 +326,10 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) slice{{camel .Tag}}List(req require
 	}
 	defer rows.Close()
 
-	var v {{.Type}}
 	list := make([]{{.Type}}, 0, 10)
 
 	for rows.Next() {
+		var v {{.Type}}
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
 			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
@@ -347,7 +347,7 @@ var tSliceItem = template.Must(template.New("SliceItem").Funcs(funcMap).Parse(sS
 //-------------------------------------------------------------------------------------------------
 
 const sConstructInsert = `
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) construct{{.Prefix}}{{.Type}}Insert(w dialect.StringWriter, v *{{.Type}}, withPk bool) (s []interface{}, err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) construct{{.Prefix}}{{.Type}}Insert(w dialect.StringWriter, v *{{.TypePkg}}{{.Type}}, withPk bool) (s []interface{}, err error) {
 {{range .Body1}}{{.}}{{end}}
 {{range .Body2}}{{.}}{{end}}
 	return s, nil
@@ -359,7 +359,7 @@ var tConstructInsert = template.Must(template.New("ConstructInsert").Funcs(funcM
 //-------------------------------------------------------------------------------------------------
 
 const sConstructUpdate = `
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) construct{{.Prefix}}{{.Type}}Update(w dialect.StringWriter, v *{{.Type}}) (s []interface{}, err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) construct{{.Prefix}}{{.Type}}Update(w dialect.StringWriter, v *{{.TypePkg}}{{.Type}}) (s []interface{}, err error) {
 {{range .Body1}}{{.}}{{end}}
 {{range .Body2}}{{.}}{{end}}
 	return s, nil
@@ -376,7 +376,7 @@ const sInsert = `
 // Insert adds new records for the {{.Types}}.
 {{if .Table.HasLastInsertId}}// The {{.Types}} have their primary key fields set to the new record identifiers.{{end}}
 // The {{.Type}}.PreInsert() method will be called, if it exists.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...*{{.Type}}) error {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -487,7 +487,7 @@ const sUpdate = `
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The {{.Type}}.PreUpdate(Execer) method will be called, if it exists.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...*{{.Type}}) (int64, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) (int64, error) {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -546,7 +546,7 @@ const sUpsert = `
 // key column(s). It must match either zero or one existing record. If it matches 
 // none, a new record is inserted; otherwise the matching record is updated. An 
 // error results if these conditions are not met.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Upsert(v *{{.Type}}, wh where.Expression) error {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Upsert(v *{{.TypePkg}}{{.Type}}, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)
 	qName := tbl.quotedName()
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())

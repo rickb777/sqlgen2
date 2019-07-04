@@ -809,10 +809,10 @@ func (tbl HookTable) sliceCategoryList(req require.Requirement, sqlname string, 
 	}
 	defer rows.Close()
 
-	var v Category
 	list := make([]Category, 0, 10)
 
 	for rows.Next() {
+		var v Category
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
 			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
@@ -834,10 +834,10 @@ func (tbl HookTable) sliceEmailList(req require.Requirement, sqlname string, wh 
 	}
 	defer rows.Close()
 
-	var v Email
 	list := make([]Email, 0, 10)
 
 	for rows.Next() {
+		var v Email
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
 			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))

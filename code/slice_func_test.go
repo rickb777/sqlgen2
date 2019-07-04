@@ -9,7 +9,7 @@ import (
 func TestWriteConstructInsert(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
@@ -135,7 +135,7 @@ func (tbl XExampleTable) constructXExampleInsert(w dialect.StringWriter, v *Exam
 func TestWriteConstructUpdate(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 

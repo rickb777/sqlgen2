@@ -23,12 +23,15 @@ import (
 func main() {
 	start := time.Now()
 
-	var oFile, typeName, prefix, list, kind, tableName, tagsFile, genSetters string
+	var oFile, pkgImport, typeName, prefix, list, kind, tableName, tagsFile, genSetters string
 	var flags = FuncFlags{}
 	var pgx, all, read, create, gofmt, jsonFile, yamlFile, showVersion bool
 
 	flag.StringVar(&oFile, "o", "", "Output file name; optional. Use '-' for stdout.\n"+
 		"\tIf omitted, the first input filename is used with '_sql.go' suffix.")
+	flag.StringVar(&pkgImport, "pkg", "", "The package holding the model type.\n"+
+		"\tThis is expressed in the form 'github.com/owner/repo/foo/bar'\n"+
+		"\tIt is only required when the output file is in a different package.")
 	flag.StringVar(&typeName, "type", "", "The type to analyse; required.\n"+
 		"\tThis is expressed in the form 'pkg.Name'")
 	flag.StringVar(&prefix, "prefix", "", "Prefix for names of generated types; optional.\n"+
@@ -98,9 +101,11 @@ func main() {
 
 	output.Require(len(typeName) > 3, "-type is required. This must specify a type, qualified with its local package in the form 'pkg.Name'.\n", typeName)
 	words := strings.Split(typeName, ".")
-	output.Require(len(words) == 2, "type %q requires a package name prefix.\n", typeName)
+	output.Require(len(words) == 2, "type %q requires a package name prefix (as in 'time.Time').\n", typeName)
+
 	pkg, name := words[0], words[1]
-	mainPkg := pkg
+	typePkg := pkg
+	tablePkg := pkg
 
 	if oFile == "" {
 		oFile = flag.Args()[0]
@@ -108,8 +113,9 @@ func main() {
 		oFile = oFile[:len(oFile)-3] + "_sql.go"
 		parse.DevInfo("oFile: %s\n", oFile)
 	} else {
-		mainPkg = LastDirName(oFile)
-		parse.DevInfo("mainPkg: %s\n", mainPkg)
+		tablePkg = LastDirName(oFile)
+		output.Require(tablePkg == typePkg || pkgImport != "", typeName+": must be accompanied with -pkg if the output file is in a different directory")
+		parse.DevInfo("typePkg: %s, tablePkg: %s\n", typePkg, tablePkg)
 	}
 
 	o := output.NewOutput(oFile)
@@ -146,7 +152,7 @@ func main() {
 		}
 
 		// load the Tree into a schema Object
-		table, err = Load(pkgStore, parse.LType{PkgName: pkg, Name: name}, mainPkg, tags)
+		table, err = Load(pkgStore, parse.LType{PkgName: pkg, Name: name}, typePkg, tags)
 		if err != nil {
 			exit.Fail(1, "Go parser failed: %v.\n", err)
 		}
@@ -175,7 +181,12 @@ func main() {
 		writeTableJson(o.Derive(".json"), buf, enc, table)
 	}
 
-	writeSqlGo(o, name, prefix, tableName, kind, list, mainPkg, genSetters, table, flags, pgx, gofmt)
+	if typePkg == tablePkg {
+		typePkg = ""
+		pkgImport = "" // no import needed
+	}
+
+	writeSqlGo(o, name, prefix, tableName, kind, list, pkgImport, typePkg, tablePkg, genSetters, table, flags, pgx, gofmt)
 
 	output.Info("%s took %v\n", o.Path(), time.Now().Sub(start))
 }
@@ -210,14 +221,17 @@ func writeTableJson(o output.Output, buf io.ReadWriter, enc encoder, table *sche
 	}
 }
 
-func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, genSetters string, table *schema.TableDescription, flags FuncFlags, pgx, gofmt bool) {
+func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport, typePkg, tablePkg, genSetters string, table *schema.TableDescription, flags FuncFlags, pgx, gofmt bool) {
 	sql := "sql"
 	api := "sqlapi"
 	if pgx {
 		sql = "pgx"
 		api = "pgxapi"
 	}
-	view := NewView(name, prefix, tableName, list, sql, api)
+	if typePkg != "" {
+		typePkg += "."
+	}
+	view := NewView(typePkg, tablePkg, name, prefix, tableName, list, sql, api)
 	view.Table = table
 	view.Thing = kind
 	view.Interface1 = api + "." + PrimaryInterface(table, flags.Schema)
@@ -228,13 +242,16 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, mainPkg, g
 	setters := view.FilterSetters(genSetters)
 
 	importSet := PackagesToImport(flags, pgx)
+	if pkgImport != "" {
+		importSet.Add(pkgImport)
+	}
 
 	ImportsForFields(table, importSet)
 	ImportsForSetters(setters, importSet)
 
 	buf := &bytes.Buffer{}
 
-	WritePackageHeader(buf, mainPkg, appVersion)
+	WritePackageHeader(buf, tablePkg, appVersion)
 
 	WriteImports(buf, importSet)
 

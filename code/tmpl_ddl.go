@@ -214,7 +214,7 @@ func {{.Scan}}{{.Prefix}}{{.Types}}(query string, rows {{.Sqlapi}}.SqlRows, firs
 			return vv, n, errors.Wrap(err, query)
 		}
 
-		v := &{{.Type}}{}
+		v := &{{.TypePkg}}{{.Type}}{}
 {{range .Body3}}{{.}}{{end}}
 		var iv interface{} = v
 		if hook, ok := iv.({{.Sqlapi}}.CanPostGet); ok {
@@ -243,8 +243,8 @@ var tScanRows = template.Must(template.New("ScanRows").Funcs(funcMap).Parse(sSca
 //-------------------------------------------------------------------------------------------------
 
 const sSetter = `
-// Set{{.Setter.Name}} sets the {{.Setter.Name}} field and returns the modified {{.Type}}.
-func (v *{{.Type}}) Set{{.Setter.Name}}(x {{.Setter.Type.Type}}) *{{.Type}} {
+// Set{{.Setter.Name}} sets the {{.Setter.Name}} field and returns the modified {{.TypePkg}}{{.Type}}.
+func (v *{{.Type}}) Set{{.Setter.Name}}(x {{.Setter.Type.Type}}) *{{.TypePkg}}{{.Type}} {
 	{{if .Setter.Type.IsPtr -}}
 	v.{{.Setter.JoinParts 0 "."}} = &x
 {{- else -}}
@@ -254,7 +254,7 @@ func (v *{{.Type}}) Set{{.Setter.Name}}(x {{.Setter.Type.Type}}) *{{.Type}} {
 }
 `
 
-var tSetter = template.Must(template.New("SliceRow").Funcs(funcMap).Parse(sSetter))
+var tSetter = template.Must(template.New("Setter").Funcs(funcMap).Parse(sSetter))
 
 //-------------------------------------------------------------------------------------------------
 

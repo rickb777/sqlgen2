@@ -1038,10 +1038,10 @@ func (tbl DbUserTable) sliceRolePtrList(req require.Requirement, sqlname string,
 	}
 	defer rows.Close()
 
-	var v Role
 	list := make([]Role, 0, 10)
 
 	for rows.Next() {
+		var v Role
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
 			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
@@ -1063,10 +1063,10 @@ func (tbl DbUserTable) sliceFloat32List(req require.Requirement, sqlname string,
 	}
 	defer rows.Close()
 
-	var v float32
 	list := make([]float32, 0, 10)
 
 	for rows.Next() {
+		var v float32
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
 			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
@@ -1088,10 +1088,10 @@ func (tbl DbUserTable) sliceFloat64List(req require.Requirement, sqlname string,
 	}
 	defer rows.Close()
 
-	var v float64
 	list := make([]float64, 0, 10)
 
 	for rows.Next() {
+		var v float64
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
 			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))

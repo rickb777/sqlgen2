@@ -13,6 +13,8 @@ import (
 )
 
 type View struct {
+	TypePkg    string
+	TablePkg   string
 	Prefix     string
 	Type       string
 	Types      string
@@ -32,9 +34,9 @@ type View struct {
 	Setter     *schema.Field
 }
 
-func NewView(name, prefix, tableName, list, sql, api string) View {
+func NewView(typePkg, tablePkg, name, prefix, tableName, list, sql, api string) View {
 	if list == "" {
-		list = fmt.Sprintf("[]*%s", name)
+		list = fmt.Sprintf("[]*%s%s", typePkg, name)
 	}
 	pl := inflections.Pluralize(name)
 	tn := strings.ToLower(pl)
@@ -42,6 +44,8 @@ func NewView(name, prefix, tableName, list, sql, api string) View {
 		tn = tableName
 	}
 	return View{
+		TypePkg:    typePkg,
+		TablePkg:   tablePkg,
 		Prefix:     prefix,
 		Type:       name,
 		Types:      pl,

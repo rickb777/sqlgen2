@@ -9,7 +9,7 @@ import (
 func TestWriteSetters_all(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
@@ -131,7 +131,7 @@ func (v *Example) SetUpdated(x time.Time) *Example {
 func TestWriteSetters_exported(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
@@ -253,7 +253,7 @@ func (v *Example) SetUpdated(x time.Time) *Example {
 func TestWriteSetters_optional(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 
@@ -315,7 +315,7 @@ func (v *Example) SetFoo3(x Foo) *Example {
 func TestWriteSetters_none(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = fixtureTable()
 	buf := &bytes.Buffer{}
 

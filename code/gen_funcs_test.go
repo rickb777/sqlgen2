@@ -45,7 +45,7 @@ func simpleNoPKTable() *TableDescription {
 func TestWriteQueryRows(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = simpleFixtureTable()
 
 	buf := &bytes.Buffer{}
@@ -95,7 +95,7 @@ func (tbl XExampleTable) doQueryAndScan(req require.Requirement, firstOnly bool,
 func TestWriteQueryThings(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = simpleFixtureTable()
 
 	buf := &bytes.Buffer{}
@@ -154,7 +154,7 @@ func (tbl XExampleTable) QueryOneNullFloat64(req require.Requirement, query stri
 func TestWriteUpdateFunc_noPK(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = simpleNoPKTable()
 
 	buf := &bytes.Buffer{}
@@ -179,7 +179,7 @@ func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expressi
 func TestWriteExecFunc(t *testing.T) {
 	exit.TestableExit()
 
-	view := NewView("Example", "X", "", "", "sql", "sqlapi")
+	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = simpleFixtureTable()
 
 	buf := &bytes.Buffer{}
