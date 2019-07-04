@@ -526,15 +526,13 @@ func update_users_in_tx(g *GomegaWithT, tbl DbUserTable, user *User) {
 	user.EmailAddress = "dude@zzz.com"
 	//utter.Dump(user)
 
-	t2, err := tbl.BeginTx(nil)
-	g.Expect(err).NotTo(HaveOccurred())
-
-	n, err := t2.Update(require.One, user)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(n).To(BeEquivalentTo(1))
-	g.Expect(user.hash).To(Equal("PreUpdate"))
-
-	err = t2.Tx().Commit()
+	err := tbl.Transact(nil, func(t2 DbUserTable) error {
+		n, err := t2.Update(require.One, user)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(n).To(BeEquivalentTo(1))
+		g.Expect(user.hash).To(Equal("PreUpdate"))
+		return nil
+	})
 	g.Expect(err).NotTo(HaveOccurred())
 
 	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("uid", user.Uid), nil)

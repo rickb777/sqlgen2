@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.29.0; sqlgen v0.50.0
+// sqlapi v0.31.0; sqlgen v0.51.0
 
 package demo
 
@@ -156,29 +156,29 @@ func (tbl DatesTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// BeginTx starts a transaction using the table's context.
-// This context is used until the transaction is committed or rolled back.
-//
-// If this context is cancelled, the sql package will roll back the transaction.
-// In this case, Tx.Commit will then return an error.
-//
-// The provided TxOptions is optional and may be nil if defaults should be used.
-// If a non-default isolation level is used that the driver doesn't support,
-// an error will be returned.
-//
-// Panics if the Execer is not TxStarter.
-func (tbl DatesTable) BeginTx(opts *sql.TxOptions) (DatesTable, error) {
-	var err error
-	tbl.db, err = tbl.db.(sqlapi.SqlDB).BeginTx(tbl.ctx, opts)
-	return tbl, tbl.Logger().LogIfError(err)
-}
-
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DatesTable) Using(tx sqlapi.SqlTx) DatesTable {
 	tbl.db = tx
 	return tbl
+}
+
+// Transact runs the function provided withina transaction. If the function completes without error,
+// the transaction is committed. If there is an error or a panic, the transaction is rolled back.
+//
+// Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
+// Therefore they do not commit until the outermost transaction commits.
+func (tbl DatesTable) Transact(txOptions *sql.TxOptions, fn func(DatesTable) error) error {
+	var err error
+	if tbl.IsTx() {
+		err = fn(tbl) // nested transactions are inlined
+	} else {
+		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
+			return fn(tbl.Using(tx))
+		})
+	}
+	return tbl.Logger().LogIfError(err)
 }
 
 func (tbl DatesTable) quotedName() string {

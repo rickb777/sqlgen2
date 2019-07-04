@@ -14,7 +14,7 @@ require (
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1
 	github.com/rickb777/date v1.11.2
-	github.com/rickb777/sqlapi v0.30.0
+	github.com/rickb777/sqlapi v0.31.0
 	github.com/rickb777/where v0.6.0
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24 // indirect
