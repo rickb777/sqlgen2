@@ -18,6 +18,31 @@ import (
 	"strings"
 )
 
+// UUserTabler lists methods provided by UUserTable.
+type UUserTabler interface {
+	sqlapi.Table
+
+	Constraints() constraint.Constraints
+
+	SetPkColumn(pk string) UUserTabler
+	WithPrefix(pfx string) UUserTabler
+	WithContext(ctx context.Context) UUserTabler
+	WithConstraint(cc ...constraint.Constraint) UUserTabler
+	Using(tx sqlapi.SqlTx) UUserTabler
+	Transact(txOptions *sql.TxOptions, fn func(UUserTabler) error) error
+
+	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+
+	constructUUserUpdate(w dialect.StringWriter, v *User) (s []interface{}, err error)
+
+	Update(req require.Requirement, vv ...*User) (int64, error)
+}
+
 // UUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -72,14 +97,14 @@ func CopyTableAsUUserTable(origin sqlapi.Table) UUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl UUserTable) SetPkColumn(pk string) UUserTable {
+func (tbl UUserTable) SetPkColumn(pk string) UUserTabler {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl UUserTable) WithPrefix(pfx string) UUserTable {
+func (tbl UUserTable) WithPrefix(pfx string) UUserTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -89,7 +114,7 @@ func (tbl UUserTable) WithPrefix(pfx string) UUserTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl UUserTable) WithContext(ctx context.Context) UUserTable {
+func (tbl UUserTable) WithContext(ctx context.Context) UUserTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -105,7 +130,7 @@ func (tbl UUserTable) Logger() sqlapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl UUserTable) WithConstraint(cc ...constraint.Constraint) UUserTable {
+func (tbl UUserTable) WithConstraint(cc ...constraint.Constraint) UUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -160,7 +185,7 @@ func (tbl UUserTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl UUserTable) Using(tx sqlapi.SqlTx) UUserTable {
+func (tbl UUserTable) Using(tx sqlapi.SqlTx) UUserTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -169,8 +194,8 @@ func (tbl UUserTable) Using(tx sqlapi.SqlTx) UUserTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits. 
-func (tbl UUserTable) Transact(txOptions *sql.TxOptions, fn func(UUserTable) error) error {
+// Therefore they do not commit until the outermost transaction commits.
+func (tbl UUserTable) Transact(txOptions *sql.TxOptions, fn func(UUserTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

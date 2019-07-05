@@ -6,42 +6,49 @@ import (
 	"io"
 )
 
-func WriteType(w io.Writer, view View) {
-	must(tTable.Execute(w, view))
+func WriteType(w1, w2 io.Writer, view View) {
+	must(tTabler.Execute(w1, view))
+	must(tTable.Execute(w2, view))
 }
 
-func WriteQueryRows(w io.Writer, view View) {
-	fmt.Fprintln(w, sectionBreak)
+func WriteQueryRows(w1, w2 io.Writer, view View) {
+	fmt.Fprintln(w2, sectionBreak)
 
-	must(tQueryRows.Execute(w, view))
+	must(tQueryRowsDecl.Execute(w1, view))
+	must(tQueryRowsFunc.Execute(w2, view))
 }
 
-func WriteQueryThings(w io.Writer, view View) {
-	fmt.Fprintln(w, sectionBreak)
+func WriteQueryThings(w1, w2 io.Writer, view View) {
+	fmt.Fprintln(w2, sectionBreak)
 
-	must(tQueryThings.Execute(w, view))
+	must(tQueryThingsDecl.Execute(w1, view))
+	must(tQueryThingsFunc.Execute(w2, view))
 }
 
-func WriteGetRow(w io.Writer, view View) {
-	must(tGetRow.Execute(w, view))
+func WriteGetRow(w1, w2 io.Writer, view View) {
+	must(tGetRowDecl.Execute(w1, view))
+	must(tGetRowFunc.Execute(w2, view))
 }
 
-func WriteSelectRowsFuncs(w io.Writer, view View) {
-	fmt.Fprintln(w, sectionBreak)
-	must(tSelectRows.Execute(w, view))
+func WriteSelectRowsFuncs(w1, w2 io.Writer, view View) {
+	fmt.Fprintln(w2, sectionBreak)
+	must(tSelectRowsDecl.Execute(w1, view))
+	must(tSelectRowsFunc.Execute(w2, view))
 }
 
-func WriteCountRowsFuncs(w io.Writer, view View) {
-	fmt.Fprintln(w, sectionBreak)
-	must(tCountRows.Execute(w, view))
+func WriteCountRowsFuncs(w1, w2 io.Writer, view View) {
+	fmt.Fprintln(w2, sectionBreak)
+	must(tCountRowsDecl.Execute(w1, view))
+	must(tCountRowsFunc.Execute(w2, view))
 }
 
 func WriteSliceColumn(w io.Writer, view View) {
 	must(tSliceItem.Execute(w, view))
 }
 
-func WriteInsertFunc(w io.Writer, view View) {
-	must(tInsert.Execute(w, view))
+func WriteInsertFunc(w1, w2 io.Writer, view View) {
+	must(tInsertDecl.Execute(w1, view))
+	must(tInsertFunc.Execute(w2, view))
 }
 
 func WriteUpsertFunc(w io.Writer, view View) {
@@ -50,11 +57,13 @@ func WriteUpsertFunc(w io.Writer, view View) {
 	}
 }
 
-func WriteUpdateFunc(w io.Writer, view View) {
-	must(tUpdateFields.Execute(w, view))
+func WriteUpdateFunc(w1, w2 io.Writer, view View) {
+	must(tUpdateFieldsDecl.Execute(w1, view))
+	must(tUpdateFieldsFunc.Execute(w2, view))
 
 	if view.Table.HasPrimaryKey() {
-		must(tUpdate.Execute(w, view))
+		must(tUpdateDecl.Execute(w1, view))
+		must(tUpdateFunc.Execute(w2, view))
 
 		//tableName := view.CamelName()
 		//fmt.Fprintf(w, constStringWithTicks,

@@ -19,6 +19,48 @@ import (
 	"strings"
 )
 
+// AssociationTabler lists methods provided by AssociationTable.
+type AssociationTabler interface {
+	sqlapi.Table
+
+	Constraints() constraint.Constraints
+
+	SetPkColumn(pk string) AssociationTabler
+	WithPrefix(pfx string) AssociationTabler
+	WithContext(ctx context.Context) AssociationTabler
+	WithConstraint(cc ...constraint.Constraint) AssociationTabler
+	Using(tx sqlapi.SqlTx) AssociationTabler
+	Transact(txOptions *sql.TxOptions, fn func(AssociationTabler) error) error
+
+	CreateTable(ifNotExists bool) (int64, error)
+
+	Truncate(force bool) (err error)
+
+	Query(req require.Requirement, query string, args ...interface{}) ([]*Association, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Association, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+
+	GetAssociationsById(req require.Requirement, id ...int64) (list []*Association, err error)
+	GetAssociationById(req require.Requirement, id int64) (*Association, error)
+
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Association, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Association, error)
+
+	CountWhere(where string, args ...interface{}) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
+
+	constructAssociationUpdate(w dialect.StringWriter, v *Association) (s []interface{}, err error)
+
+	Insert(req require.Requirement, vv ...*Association) error
+
+	Update(req require.Requirement, vv ...*Association) (int64, error)
+}
+
 // AssociationTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -70,14 +112,14 @@ func CopyTableAsAssociationTable(origin sqlapi.Table) AssociationTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) SetPkColumn(pk string) AssociationTable {
+func (tbl AssociationTable) SetPkColumn(pk string) AssociationTabler {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) WithPrefix(pfx string) AssociationTable {
+func (tbl AssociationTable) WithPrefix(pfx string) AssociationTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -87,7 +129,7 @@ func (tbl AssociationTable) WithPrefix(pfx string) AssociationTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl AssociationTable) WithContext(ctx context.Context) AssociationTable {
+func (tbl AssociationTable) WithContext(ctx context.Context) AssociationTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -103,7 +145,7 @@ func (tbl AssociationTable) Logger() sqlapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl AssociationTable) WithConstraint(cc ...constraint.Constraint) AssociationTable {
+func (tbl AssociationTable) WithConstraint(cc ...constraint.Constraint) AssociationTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -158,7 +200,7 @@ func (tbl AssociationTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) Using(tx sqlapi.SqlTx) AssociationTable {
+func (tbl AssociationTable) Using(tx sqlapi.SqlTx) AssociationTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -167,8 +209,8 @@ func (tbl AssociationTable) Using(tx sqlapi.SqlTx) AssociationTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits. 
-func (tbl AssociationTable) Transact(txOptions *sql.TxOptions, fn func(AssociationTable) error) error {
+// Therefore they do not commit until the outermost transaction commits.
+func (tbl AssociationTable) Transact(txOptions *sql.TxOptions, fn func(AssociationTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -246,17 +288,17 @@ var sqlAssociationTableCreateColumnsPgx = []string{
 
 // CreateTable creates the table.
 func (tbl AssociationTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, createAssociationTableSql(tbl, ifNotExists))
 }
 
-func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
+func createAssociationTableSql(tbl AssociationTabler, ifNotExists bool) string {
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	q := tbl.Dialect().Quoter()
-	q.QuoteW(buf, tbl.name.String())
+	q.QuoteW(buf, tbl.Name().String())
 	buf.WriteString(" (\n ")
 
 	var columns []string
@@ -280,9 +322,9 @@ func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.constraints {
+	for i, c := range tbl.Constraints() {
 		buf.WriteString(",\n ")
-		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.name, i+1))
+		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}
 
 	buf.WriteString("\n)")
@@ -290,7 +332,7 @@ func (tbl AssociationTable) createTableSql(ifNotExists bool) string {
 	return buf.String()
 }
 
-func (tbl AssociationTable) ternary(flag bool, a, b string) string {
+func ternaryAssociationTable(flag bool, a, b string) string {
 	if flag {
 		return a
 	}
@@ -299,12 +341,13 @@ func (tbl AssociationTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl AssociationTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, dropAssociationTableSql(tbl, ifExists))
 }
 
-func (tbl AssociationTable) dropTableSql(ifExists bool) string {
-	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.quotedName())
+func dropAssociationTableSql(tbl AssociationTabler, ifExists bool) string {
+	ie := ternaryAssociationTable(ifExists, "IF EXISTS ", "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, quotedName)
 	return query
 }
 
@@ -508,10 +551,10 @@ func (tbl AssociationTable) GetAssociationsById(req require.Requirement, id ...i
 // GetAssociationById gets the record with a given primary key value.
 // If not found, *Association will be nil.
 func (tbl AssociationTable) GetAssociationById(req require.Requirement, id int64) (*Association, error) {
-	return tbl.getAssociation(req, tbl.pk, id)
+	return getAssociation(tbl, req, tbl.pk, id)
 }
 
-func (tbl AssociationTable) getAssociation(req require.Requirement, column string, arg interface{}) (*Association, error) {
+func getAssociation(tbl AssociationTable, req require.Requirement, column string, arg interface{}) (*Association, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
@@ -904,9 +947,8 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
-
 			v.Id = i64
-			}
+		}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -974,9 +1016,9 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified 
-// key column(s). It must match either zero or one existing record. If it matches 
-// none, a new record is inserted; otherwise the matching record is updated. An 
+// This expression is used to search for an existing record based on some specified
+// key column(s). It must match either zero or one existing record. If it matches
+// none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
 func (tbl AssociationTable) Upsert(v *Association, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

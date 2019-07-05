@@ -18,6 +18,27 @@ import (
 	"strings"
 )
 
+// DUserTabler lists methods provided by DUserTable.
+type DUserTabler interface {
+	sqlapi.Table
+
+	Constraints() constraint.Constraints
+
+	SetPkColumn(pk string) DUserTabler
+	WithPrefix(pfx string) DUserTabler
+	WithContext(ctx context.Context) DUserTabler
+	WithConstraint(cc ...constraint.Constraint) DUserTabler
+	Using(tx sqlapi.SqlTx) DUserTabler
+	Transact(txOptions *sql.TxOptions, fn func(DUserTabler) error) error
+
+	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+}
+
 // DUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -72,14 +93,14 @@ func CopyTableAsDUserTable(origin sqlapi.Table) DUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DUserTable) SetPkColumn(pk string) DUserTable {
+func (tbl DUserTable) SetPkColumn(pk string) DUserTabler {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DUserTable) WithPrefix(pfx string) DUserTable {
+func (tbl DUserTable) WithPrefix(pfx string) DUserTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -89,7 +110,7 @@ func (tbl DUserTable) WithPrefix(pfx string) DUserTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl DUserTable) WithContext(ctx context.Context) DUserTable {
+func (tbl DUserTable) WithContext(ctx context.Context) DUserTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -105,7 +126,7 @@ func (tbl DUserTable) Logger() sqlapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl DUserTable) WithConstraint(cc ...constraint.Constraint) DUserTable {
+func (tbl DUserTable) WithConstraint(cc ...constraint.Constraint) DUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -160,7 +181,7 @@ func (tbl DUserTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DUserTable) Using(tx sqlapi.SqlTx) DUserTable {
+func (tbl DUserTable) Using(tx sqlapi.SqlTx) DUserTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -169,8 +190,8 @@ func (tbl DUserTable) Using(tx sqlapi.SqlTx) DUserTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits. 
-func (tbl DUserTable) Transact(txOptions *sql.TxOptions, fn func(DUserTable) error) error {
+// Therefore they do not commit until the outermost transaction commits.
+func (tbl DUserTable) Transact(txOptions *sql.TxOptions, fn func(DUserTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

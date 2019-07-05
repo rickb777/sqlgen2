@@ -18,6 +18,27 @@ import (
 	"strings"
 )
 
+// SUserTabler lists methods provided by SUserTable.
+type SUserTabler interface {
+	sqlapi.Table
+
+	Constraints() constraint.Constraints
+
+	SetPkColumn(pk string) SUserTabler
+	WithPrefix(pfx string) SUserTabler
+	WithContext(ctx context.Context) SUserTabler
+	WithConstraint(cc ...constraint.Constraint) SUserTabler
+	Using(tx sqlapi.SqlTx) SUserTabler
+	Transact(txOptions *sql.TxOptions, fn func(SUserTabler) error) error
+
+	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+}
+
 // SUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -72,14 +93,14 @@ func CopyTableAsSUserTable(origin sqlapi.Table) SUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl SUserTable) SetPkColumn(pk string) SUserTable {
+func (tbl SUserTable) SetPkColumn(pk string) SUserTabler {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl SUserTable) WithPrefix(pfx string) SUserTable {
+func (tbl SUserTable) WithPrefix(pfx string) SUserTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -89,7 +110,7 @@ func (tbl SUserTable) WithPrefix(pfx string) SUserTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl SUserTable) WithContext(ctx context.Context) SUserTable {
+func (tbl SUserTable) WithContext(ctx context.Context) SUserTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -105,7 +126,7 @@ func (tbl SUserTable) Logger() sqlapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl SUserTable) WithConstraint(cc ...constraint.Constraint) SUserTable {
+func (tbl SUserTable) WithConstraint(cc ...constraint.Constraint) SUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -160,7 +181,7 @@ func (tbl SUserTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl SUserTable) Using(tx sqlapi.SqlTx) SUserTable {
+func (tbl SUserTable) Using(tx sqlapi.SqlTx) SUserTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -169,8 +190,8 @@ func (tbl SUserTable) Using(tx sqlapi.SqlTx) SUserTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits. 
-func (tbl SUserTable) Transact(txOptions *sql.TxOptions, fn func(SUserTable) error) error {
+// Therefore they do not commit until the outermost transaction commits.
+func (tbl SUserTable) Transact(txOptions *sql.TxOptions, fn func(SUserTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

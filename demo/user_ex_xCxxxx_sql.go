@@ -18,6 +18,30 @@ import (
 	"strings"
 )
 
+// CUserTabler lists methods provided by CUserTable.
+type CUserTabler interface {
+	sqlapi.Table
+
+	Constraints() constraint.Constraints
+
+	SetPkColumn(pk string) CUserTabler
+	WithPrefix(pfx string) CUserTabler
+	WithContext(ctx context.Context) CUserTabler
+	WithConstraint(cc ...constraint.Constraint) CUserTabler
+	Using(tx sqlapi.SqlTx) CUserTabler
+	Transact(txOptions *sql.TxOptions, fn func(CUserTabler) error) error
+
+	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+
+	CountWhere(where string, args ...interface{}) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
+}
+
 // CUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -72,14 +96,14 @@ func CopyTableAsCUserTable(origin sqlapi.Table) CUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl CUserTable) SetPkColumn(pk string) CUserTable {
+func (tbl CUserTable) SetPkColumn(pk string) CUserTabler {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl CUserTable) WithPrefix(pfx string) CUserTable {
+func (tbl CUserTable) WithPrefix(pfx string) CUserTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -89,7 +113,7 @@ func (tbl CUserTable) WithPrefix(pfx string) CUserTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl CUserTable) WithContext(ctx context.Context) CUserTable {
+func (tbl CUserTable) WithContext(ctx context.Context) CUserTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -105,7 +129,7 @@ func (tbl CUserTable) Logger() sqlapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl CUserTable) WithConstraint(cc ...constraint.Constraint) CUserTable {
+func (tbl CUserTable) WithConstraint(cc ...constraint.Constraint) CUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -160,7 +184,7 @@ func (tbl CUserTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl CUserTable) Using(tx sqlapi.SqlTx) CUserTable {
+func (tbl CUserTable) Using(tx sqlapi.SqlTx) CUserTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -169,8 +193,8 @@ func (tbl CUserTable) Using(tx sqlapi.SqlTx) CUserTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits. 
-func (tbl CUserTable) Transact(txOptions *sql.TxOptions, fn func(CUserTable) error) error {
+// Therefore they do not commit until the outermost transaction commits.
+func (tbl CUserTable) Transact(txOptions *sql.TxOptions, fn func(CUserTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

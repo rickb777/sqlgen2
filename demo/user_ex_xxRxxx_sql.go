@@ -19,6 +19,40 @@ import (
 	"strings"
 )
 
+// RUserTabler lists methods provided by RUserTable.
+type RUserTabler interface {
+	sqlapi.Table
+
+	Constraints() constraint.Constraints
+
+	SetPkColumn(pk string) RUserTabler
+	WithPrefix(pfx string) RUserTabler
+	WithContext(ctx context.Context) RUserTabler
+	WithConstraint(cc ...constraint.Constraint) RUserTabler
+	Using(tx sqlapi.SqlTx) RUserTabler
+	Transact(txOptions *sql.TxOptions, fn func(RUserTabler) error) error
+
+	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+
+	GetUsersByUid(req require.Requirement, id ...int64) (list []*User, err error)
+	GetUserByUid(req require.Requirement, id int64) (*User, error)
+	GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error)
+	GetUserByName(req require.Requirement, name string) (*User, error)
+
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error)
+
+	CountWhere(where string, args ...interface{}) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
+}
+
 // RUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -73,14 +107,14 @@ func CopyTableAsRUserTable(origin sqlapi.Table) RUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl RUserTable) SetPkColumn(pk string) RUserTable {
+func (tbl RUserTable) SetPkColumn(pk string) RUserTabler {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl RUserTable) WithPrefix(pfx string) RUserTable {
+func (tbl RUserTable) WithPrefix(pfx string) RUserTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -90,7 +124,7 @@ func (tbl RUserTable) WithPrefix(pfx string) RUserTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl RUserTable) WithContext(ctx context.Context) RUserTable {
+func (tbl RUserTable) WithContext(ctx context.Context) RUserTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -106,7 +140,7 @@ func (tbl RUserTable) Logger() sqlapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl RUserTable) WithConstraint(cc ...constraint.Constraint) RUserTable {
+func (tbl RUserTable) WithConstraint(cc ...constraint.Constraint) RUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -161,7 +195,7 @@ func (tbl RUserTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl RUserTable) Using(tx sqlapi.SqlTx) RUserTable {
+func (tbl RUserTable) Using(tx sqlapi.SqlTx) RUserTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -170,8 +204,8 @@ func (tbl RUserTable) Using(tx sqlapi.SqlTx) RUserTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits. 
-func (tbl RUserTable) Transact(txOptions *sql.TxOptions, fn func(RUserTable) error) error {
+// Therefore they do not commit until the outermost transaction commits.
+func (tbl RUserTable) Transact(txOptions *sql.TxOptions, fn func(RUserTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -426,7 +460,7 @@ func (tbl RUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list 
 // GetUserByUid gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl RUserTable) GetUserByUid(req require.Requirement, id int64) (*User, error) {
-	return tbl.getUser(req, tbl.pk, id)
+	return getRUser(tbl, req, tbl.pk, id)
 }
 
 // GetUserByEmailAddress gets the record with a given emailaddress value.
@@ -441,7 +475,7 @@ func (tbl RUserTable) GetUserByName(req require.Requirement, name string) (*User
 	return tbl.SelectOne(req, where.And(where.Eq("name", name)), nil)
 }
 
-func (tbl RUserTable) getUser(req require.Requirement, column string, arg interface{}) (*User, error) {
+func getRUser(tbl RUserTable, req require.Requirement, column string, arg interface{}) (*User, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",

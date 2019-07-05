@@ -18,6 +18,29 @@ import (
 	"strings"
 )
 
+// IUserTabler lists methods provided by IUserTable.
+type IUserTabler interface {
+	sqlapi.Table
+
+	Constraints() constraint.Constraints
+
+	SetPkColumn(pk string) IUserTabler
+	WithPrefix(pfx string) IUserTabler
+	WithContext(ctx context.Context) IUserTabler
+	WithConstraint(cc ...constraint.Constraint) IUserTabler
+	Using(tx sqlapi.SqlTx) IUserTabler
+	Transact(txOptions *sql.TxOptions, fn func(IUserTabler) error) error
+
+	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+
+	Insert(req require.Requirement, vv ...*User) error
+}
+
 // IUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -72,14 +95,14 @@ func CopyTableAsIUserTable(origin sqlapi.Table) IUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl IUserTable) SetPkColumn(pk string) IUserTable {
+func (tbl IUserTable) SetPkColumn(pk string) IUserTabler {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl IUserTable) WithPrefix(pfx string) IUserTable {
+func (tbl IUserTable) WithPrefix(pfx string) IUserTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -89,7 +112,7 @@ func (tbl IUserTable) WithPrefix(pfx string) IUserTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl IUserTable) WithContext(ctx context.Context) IUserTable {
+func (tbl IUserTable) WithContext(ctx context.Context) IUserTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -105,7 +128,7 @@ func (tbl IUserTable) Logger() sqlapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl IUserTable) WithConstraint(cc ...constraint.Constraint) IUserTable {
+func (tbl IUserTable) WithConstraint(cc ...constraint.Constraint) IUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -160,7 +183,7 @@ func (tbl IUserTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl IUserTable) Using(tx sqlapi.SqlTx) IUserTable {
+func (tbl IUserTable) Using(tx sqlapi.SqlTx) IUserTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -169,8 +192,8 @@ func (tbl IUserTable) Using(tx sqlapi.SqlTx) IUserTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits. 
-func (tbl IUserTable) Transact(txOptions *sql.TxOptions, fn func(IUserTable) error) error {
+// Therefore they do not commit until the outermost transaction commits.
+func (tbl IUserTable) Transact(txOptions *sql.TxOptions, fn func(IUserTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -556,9 +579,8 @@ func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
-
 			v.Uid = i64
-			}
+		}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)

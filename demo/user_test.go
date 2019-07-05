@@ -250,7 +250,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
 		tbl := NewDbUserTable("users", d).
 			WithPrefix("prefix_").
 			WithConstraint(constraint.CheckConstraint{"role < 3"})
-		s := tbl.createTableSql(true)
+		s := createDbUserTableSql(tbl, true)
 		expected := strings.Replace(c.expected, "¬", "`", -1)
 		if s != expected {
 			outputDiff(s, c.dialect.String()+".txt")
@@ -277,7 +277,7 @@ func TestCreateIndexSql(t *testing.T) {
 
 	d := sqlapi.NewDatabase(nil, dialect.Postgres, nil, nil)
 	tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
-	s := tbl.createDbEmailaddressIdxIndexSql("IF NOT EXISTS ")
+	s := createDbUserTableEmailaddressIdxSql(tbl, "IF NOT EXISTS ")
 	expected := `CREATE UNIQUE INDEX IF NOT EXISTS "prefix_emailaddress_idx" ON "prefix_users" ("emailaddress")`
 	g.Expect(s).To(Equal(expected))
 }
@@ -297,7 +297,7 @@ func TestDropIndexSql(t *testing.T) {
 	for _, c := range cases {
 		d := sqlapi.NewDatabase(nil, c.d, nil, nil)
 		tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
-		s := tbl.dropDbEmailaddressIdxIndexSql(true)
+		s := dropDbUserTableEmailaddressIdxSql(tbl, true)
 		g.Expect(s).To(Equal(c.expected))
 	}
 }
@@ -526,7 +526,7 @@ func update_users_in_tx(g *GomegaWithT, tbl DbUserTable, user *User) {
 	user.EmailAddress = "dude@zzz.com"
 	//utter.Dump(user)
 
-	err := tbl.Transact(nil, func(t2 DbUserTable) error {
+	err := tbl.Transact(nil, func(t2 DbUserTabler) error {
 		n, err := t2.Update(require.One, user)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(n).To(BeEquivalentTo(1))

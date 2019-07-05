@@ -11,11 +11,12 @@ func TestWriteSetters_all(t *testing.T) {
 
 	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = fixtureTable()
-	buf := &bytes.Buffer{}
+	buf1 := &bytes.Buffer{}
+	buf2 := &bytes.Buffer{}
 
-	WriteSetters(buf, view, view.FilterSetters("all"))
+	WriteSetters(buf1, buf2, view, view.FilterSetters("all"))
 
-	code := buf.String()
+	code := buf2.String()
 	expected := `
 //--------------------------------------------------------------------------------
 
@@ -133,11 +134,12 @@ func TestWriteSetters_exported(t *testing.T) {
 
 	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = fixtureTable()
-	buf := &bytes.Buffer{}
+	buf1 := &bytes.Buffer{}
+	buf2 := &bytes.Buffer{}
 
-	WriteSetters(buf, view, view.FilterSetters("exported"))
+	WriteSetters(buf1, buf2, view, view.FilterSetters("exported"))
 
-	code := buf.String()
+	code := buf2.String()
 	expected := `
 //--------------------------------------------------------------------------------
 
@@ -255,11 +257,12 @@ func TestWriteSetters_optional(t *testing.T) {
 
 	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = fixtureTable()
-	buf := &bytes.Buffer{}
+	buf1 := &bytes.Buffer{}
+	buf2 := &bytes.Buffer{}
 
-	WriteSetters(buf, view, view.FilterSetters("optional"))
+	WriteSetters(buf1, buf2, view, view.FilterSetters("optional"))
 
-	code := buf.String()
+	code := buf2.String()
 	expected := `
 //--------------------------------------------------------------------------------
 
@@ -317,11 +320,12 @@ func TestWriteSetters_none(t *testing.T) {
 
 	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = fixtureTable()
-	buf := &bytes.Buffer{}
+	buf1 := &bytes.Buffer{}
+	buf2 := &bytes.Buffer{}
 
-	WriteSetters(buf, view, view.FilterSetters("none"))
+	WriteSetters(buf1, buf2, view, view.FilterSetters("none"))
 
-	code := buf.String()
+	code := buf2.String()
 	expected := ""
 	if code != expected {
 		outputDiff(expected, "expected.txt")

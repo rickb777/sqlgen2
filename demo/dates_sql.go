@@ -20,6 +20,48 @@ import (
 	"strings"
 )
 
+// DatesTabler lists methods provided by DatesTable.
+type DatesTabler interface {
+	sqlapi.Table
+
+	Constraints() constraint.Constraints
+
+	SetPkColumn(pk string) DatesTabler
+	WithPrefix(pfx string) DatesTabler
+	WithContext(ctx context.Context) DatesTabler
+	WithConstraint(cc ...constraint.Constraint) DatesTabler
+	Using(tx sqlapi.SqlTx) DatesTabler
+	Transact(txOptions *sql.TxOptions, fn func(DatesTabler) error) error
+
+	CreateTable(ifNotExists bool) (int64, error)
+
+	Truncate(force bool) (err error)
+
+	Query(req require.Requirement, query string, args ...interface{}) ([]*Dates, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Dates, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+
+	GetDatessById(req require.Requirement, id ...uint64) (list []*Dates, err error)
+	GetDatesById(req require.Requirement, id uint64) (*Dates, error)
+
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Dates, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Dates, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Dates, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Dates, error)
+
+	CountWhere(where string, args ...interface{}) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
+
+	constructDatesUpdate(w dialect.StringWriter, v *Dates) (s []interface{}, err error)
+
+	Insert(req require.Requirement, vv ...*Dates) error
+
+	Update(req require.Requirement, vv ...*Dates) (int64, error)
+}
+
 // DatesTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -71,14 +113,14 @@ func CopyTableAsDatesTable(origin sqlapi.Table) DatesTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DatesTable) SetPkColumn(pk string) DatesTable {
+func (tbl DatesTable) SetPkColumn(pk string) DatesTabler {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DatesTable) WithPrefix(pfx string) DatesTable {
+func (tbl DatesTable) WithPrefix(pfx string) DatesTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -88,7 +130,7 @@ func (tbl DatesTable) WithPrefix(pfx string) DatesTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl DatesTable) WithContext(ctx context.Context) DatesTable {
+func (tbl DatesTable) WithContext(ctx context.Context) DatesTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -104,7 +146,7 @@ func (tbl DatesTable) Logger() sqlapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl DatesTable) WithConstraint(cc ...constraint.Constraint) DatesTable {
+func (tbl DatesTable) WithConstraint(cc ...constraint.Constraint) DatesTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -159,7 +201,7 @@ func (tbl DatesTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DatesTable) Using(tx sqlapi.SqlTx) DatesTable {
+func (tbl DatesTable) Using(tx sqlapi.SqlTx) DatesTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -168,8 +210,8 @@ func (tbl DatesTable) Using(tx sqlapi.SqlTx) DatesTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits. 
-func (tbl DatesTable) Transact(txOptions *sql.TxOptions, fn func(DatesTable) error) error {
+// Therefore they do not commit until the outermost transaction commits.
+func (tbl DatesTable) Transact(txOptions *sql.TxOptions, fn func(DatesTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -235,17 +277,17 @@ var sqlDatesTableCreateColumnsPgx = []string{
 
 // CreateTable creates the table.
 func (tbl DatesTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, createDatesTableSql(tbl, ifNotExists))
 }
 
-func (tbl DatesTable) createTableSql(ifNotExists bool) string {
+func createDatesTableSql(tbl DatesTabler, ifNotExists bool) string {
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	q := tbl.Dialect().Quoter()
-	q.QuoteW(buf, tbl.name.String())
+	q.QuoteW(buf, tbl.Name().String())
 	buf.WriteString(" (\n ")
 
 	var columns []string
@@ -269,9 +311,9 @@ func (tbl DatesTable) createTableSql(ifNotExists bool) string {
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.constraints {
+	for i, c := range tbl.Constraints() {
 		buf.WriteString(",\n ")
-		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.name, i+1))
+		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}
 
 	buf.WriteString("\n)")
@@ -279,7 +321,7 @@ func (tbl DatesTable) createTableSql(ifNotExists bool) string {
 	return buf.String()
 }
 
-func (tbl DatesTable) ternary(flag bool, a, b string) string {
+func ternaryDatesTable(flag bool, a, b string) string {
 	if flag {
 		return a
 	}
@@ -288,12 +330,13 @@ func (tbl DatesTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl DatesTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, dropDatesTableSql(tbl, ifExists))
 }
 
-func (tbl DatesTable) dropTableSql(ifExists bool) string {
-	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.quotedName())
+func dropDatesTableSql(tbl DatesTabler, ifExists bool) string {
+	ie := ternaryDatesTable(ifExists, "IF EXISTS ", "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, quotedName)
 	return query
 }
 
@@ -473,10 +516,10 @@ func (tbl DatesTable) GetDatessById(req require.Requirement, id ...uint64) (list
 // GetDatesById gets the record with a given primary key value.
 // If not found, *Dates will be nil.
 func (tbl DatesTable) GetDatesById(req require.Requirement, id uint64) (*Dates, error) {
-	return tbl.getDates(req, tbl.pk, id)
+	return getDates(tbl, req, tbl.pk, id)
 }
 
-func (tbl DatesTable) getDates(req require.Requirement, column string, arg interface{}) (*Dates, error) {
+func getDates(tbl DatesTable, req require.Requirement, column string, arg interface{}) (*Dates, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
@@ -777,9 +820,8 @@ func (tbl DatesTable) Insert(req require.Requirement, vv ...*Dates) error {
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
-
 			v.Id = uint64(i64)
-			}
+		}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -847,9 +889,9 @@ func (tbl DatesTable) Update(req require.Requirement, vv ...*Dates) (int64, erro
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified 
-// key column(s). It must match either zero or one existing record. If it matches 
-// none, a new record is inserted; otherwise the matching record is updated. An 
+// This expression is used to search for an existing record based on some specified
+// key column(s). It must match either zero or one existing record. If it matches
+// none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
 func (tbl DatesTable) Upsert(v *Dates, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

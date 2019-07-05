@@ -20,6 +20,7 @@ type View struct {
 	Types      string
 	DbName     string
 	Thing      string
+	Thinger    string
 	Interface1 string
 	List       string
 	Suffix     string
@@ -51,6 +52,7 @@ func NewView(typePkg, tablePkg, name, prefix, tableName, list, sql, api string) 
 		Types:      pl,
 		DbName:     tn,
 		Thing:      "Table",
+		Thinger:    "Tabler",
 		Interface1: api + ".Table",
 		List:       list,
 		Dialects:   dialect.AllDialects,

@@ -35,9 +35,9 @@ func (v View) FilterSetters(genSetters string) schema.FieldList {
 	return list
 }
 
-func WriteSetters(w io.Writer, view View, fields schema.FieldList) {
+func WriteSetters(w1, w2 io.Writer, view View, fields schema.FieldList) {
 	if len(fields) > 0 {
-		fmt.Fprintln(w, sectionBreak)
+		fmt.Fprintln(w2, sectionBreak)
 
 		vm := SetterView{
 			TypePkg: view.TypePkg,
@@ -46,7 +46,8 @@ func WriteSetters(w io.Writer, view View, fields schema.FieldList) {
 
 		for _, field := range fields {
 			vm.Setter = field
-			must(tSetter.Execute(w, vm))
+			must(tSetterDecl.Execute(w1, vm))
+			must(tSetterFunc.Execute(w2, vm))
 		}
 	}
 }

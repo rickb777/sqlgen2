@@ -16,7 +16,12 @@ var tExec = template.Must(template.New("Exec").Funcs(funcMap).Parse(sExec))
 
 //-------------------------------------------------------------------------------------------------
 
-const sQueryRows = `
+const sQueryRowsDecl = `
+	Query(req require.Requirement, query string, args ...interface{}) ({{.List}}, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error)
+`
+
+const sQueryRowsFunc = `
 // Query is the low-level request method for this table. The SQL query must return all the columns necessary for
 // {{.Type}} values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
 // the chosen dialect.
@@ -45,9 +50,16 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryAndScan(req require.Requirement
 }
 `
 
-var tQueryRows = template.Must(template.New("QueryRows").Funcs(funcMap).Parse(sQueryRows))
+var tQueryRowsDecl = template.Must(template.New("QueryRowsDecl").Funcs(funcMap).Parse(sQueryRowsDecl))
+var tQueryRowsFunc = template.Must(template.New("QueryRowsFunc").Funcs(funcMap).Parse(sQueryRowsFunc))
 
-const sQueryThings = `
+const sQueryThingsDecl = `
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+`
+
+const sQueryThingsFunc = `
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
 // If not found, the result will be invalid.
@@ -85,11 +97,26 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullFloat64(req require.Requir
 }
 `
 
-var tQueryThings = template.Must(template.New("QueryThings").Funcs(funcMap).Parse(sQueryThings))
+var tQueryThingsDecl = template.Must(template.New("QueryThingsDecl").Funcs(funcMap).Parse(sQueryThingsDecl))
+var tQueryThingsFunc = template.Must(template.New("QueryThingsFunc").Funcs(funcMap).Parse(sQueryThingsFunc))
 
 //-------------------------------------------------------------------------------------------------
 
-const sGetRow = `
+const sGetRowDecl = `
+{{- if .Table.Primary}}
+	Get{{.Types}}By{{.Table.Primary.Name}}(req require.Requirement, id ...{{.Table.Primary.Type.Type}}) (list {{.List}}, err error)
+	Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.TypePkg}}{{.Type}}, error)
+{{- end}}
+{{- range .Table.Index}}
+{{- if .Unique}}
+	Get{{$.Type}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.TypePkg}}{{$.Type}}, error)
+{{- else}}
+	Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error)
+{{- end}}
+{{- end}}
+`
+
+const sGetRowFunc = `
 //--------------------------------------------------------------------------------
 
 func all{{.CamelName}}ColumnNamesQuoted(q quote.Quoter) string {
@@ -125,7 +152,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}
 // Get{{.Type}}By{{.Table.Primary.Name}} gets the record with a given primary key value.
 // If not found, *{{.Type}} will be nil.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.TypePkg}}{{.Type}}, error) {
-	return tbl.get{{.Type}}(req, tbl.pk, id)
+	return get{{.Prefix}}{{.Type}}(tbl, req, tbl.pk, id)
 }
 {{- end}}
 {{- range .Table.Index}}
@@ -146,7 +173,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And
 {{- end}}
 {{- end}}
 
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Type}}(req require.Requirement, column string, arg interface{}) (*{{.TypePkg}}{{.Type}}, error) {
+func get{{.Prefix}}{{.Type}}(tbl {{.Prefix}}{{.Type}}{{.Thing}}, req require.Requirement, column string, arg interface{}) (*{{.TypePkg}}{{.Type}}, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
@@ -186,11 +213,19 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Fetch(req require.Requirement, query s
 }
 `
 
-var tGetRow = template.Must(template.New("GetRow").Funcs(funcMap).Parse(sGetRow))
+var tGetRowDecl = template.Must(template.New("GetRowDecl").Funcs(funcMap).Parse(sGetRowDecl))
+var tGetRowFunc = template.Must(template.New("GetRowFunc").Funcs(funcMap).Parse(sGetRowFunc))
 
 //-------------------------------------------------------------------------------------------------
 
-const sSelectRows = `
+const sSelectRowsDecl = `
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*{{.TypePkg}}{{.Type}}, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ({{.List}}, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ({{.List}}, error)
+`
+
+const sSelectRowsFunc = `
 // SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
@@ -250,11 +285,17 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Select(req require.Requirement, wh whe
 }
 `
 
-var tSelectRows = template.Must(template.New("SelectRows").Funcs(funcMap).Parse(sSelectRows))
+var tSelectRowsDecl = template.Must(template.New("SelectRowsDecl").Funcs(funcMap).Parse(sSelectRowsDecl))
+var tSelectRowsFunc = template.Must(template.New("SelectRowsFunc").Funcs(funcMap).Parse(sSelectRowsFunc))
 
 //-------------------------------------------------------------------------------------------------
 
-const sCountRows = `
+const sCountRowsDecl = `
+	CountWhere(where string, args ...interface{}) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
+`
+
+const sCountRowsFunc = `
 // CountWhere counts {{.Types}} in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
 //
@@ -280,7 +321,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Count(wh where.Expression) (count int6
 }
 `
 
-var tCountRows = template.Must(template.New("CountRows").Funcs(funcMap).Parse(sCountRows))
+var tCountRowsDecl = template.Must(template.New("CountRowsDecl").Funcs(funcMap).Parse(sCountRowsDecl))
+var tCountRowsFunc = template.Must(template.New("CountRowsFunc").Funcs(funcMap).Parse(sCountRowsFunc))
 
 //-------------------------------------------------------------------------------------------------
 
@@ -358,7 +400,11 @@ var tConstructInsert = template.Must(template.New("ConstructInsert").Funcs(funcM
 
 //-------------------------------------------------------------------------------------------------
 
-const sConstructUpdate = `
+const sConstructUpdateDecl = `
+	construct{{.Prefix}}{{.Type}}Update(w dialect.StringWriter, v *{{.TypePkg}}{{.Type}}) (s []interface{}, err error)
+`
+
+const sConstructUpdateFunc = `
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) construct{{.Prefix}}{{.Type}}Update(w dialect.StringWriter, v *{{.TypePkg}}{{.Type}}) (s []interface{}, err error) {
 {{range .Body1}}{{.}}{{end}}
 {{range .Body2}}{{.}}{{end}}
@@ -366,11 +412,16 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) construct{{.Prefix}}{{.Type}}Update(w 
 }
 `
 
-var tConstructUpdate = template.Must(template.New("ConstructUpdate").Funcs(funcMap).Parse(sConstructUpdate))
+var tConstructUpdateDecl = template.Must(template.New("ConstructUpdateDecl").Funcs(funcMap).Parse(sConstructUpdateDecl))
+var tConstructUpdateFunc = template.Must(template.New("ConstructUpdateFunc").Funcs(funcMap).Parse(sConstructUpdateFunc))
 
 //-------------------------------------------------------------------------------------------------
 
-const sInsert = `
+const sInsertDecl = `
+	Insert(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) error
+`
+
+const sInsertFunc = `
 //--------------------------------------------------------------------------------
 
 // Insert adds new records for the {{.Types}}.
@@ -433,24 +484,23 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 			{{- end}}
 
 		} else {
-			{{if .Table.HasLastInsertId -}}
+			{{- if .Table.HasLastInsertId}}
 			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
 
-			{{if eq .Table.Primary.Type.Name "int64" -}}
+			{{- if eq .Table.Primary.Type.Name "int64"}}
 			v.{{.Table.Primary.Name}} = i64
-			{{else -}}
+			{{- else}}
 			v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(i64)
-			{{end -}}
-			{{else -}}
+			{{- end}}
+			{{- else}}
 			_, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
-
-			{{end -}}
+			{{- end}}
 		}
 
 		if err != nil {
@@ -463,12 +513,15 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 }
 `
 
-var tInsert = template.Must(template.New("Insert").Funcs(funcMap).Parse(sInsert))
+var tInsertDecl = template.Must(template.New("InsertDecl").Funcs(funcMap).Parse(sInsertDecl))
+var tInsertFunc = template.Must(template.New("InsertFunc").Funcs(funcMap).Parse(sInsertFunc))
 
 //-------------------------------------------------------------------------------------------------
 
-// function template to update a single row.
-const sUpdateFields = `
+const sUpdateFieldsDecl = `
+`
+
+const sUpdateFieldsFunc = `
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
@@ -476,12 +529,16 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) UpdateFields(req require.Requirement, 
 }
 `
 
-var tUpdateFields = template.Must(template.New("UpdateFields").Funcs(funcMap).Parse(sUpdateFields))
+var tUpdateFieldsDecl = template.Must(template.New("UpdateFieldsDecl").Funcs(funcMap).Parse(sUpdateFieldsDecl))
+var tUpdateFieldsFunc = template.Must(template.New("UpdateFieldsFunc").Funcs(funcMap).Parse(sUpdateFieldsFunc))
 
 //-------------------------------------------------------------------------------------------------
 
-// function template to update rows.
-const sUpdate = `
+const sUpdateDecl = `
+	Update(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) (int64, error)
+`
+
+const sUpdateFunc = `
 {{- if .Table.Primary}}
 //--------------------------------------------------------------------------------
 
@@ -533,7 +590,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 {{- end}}
 `
 
-var tUpdate = template.Must(template.New("Update").Funcs(funcMap).Parse(sUpdate))
+var tUpdateDecl = template.Must(template.New("UpdateDecl").Funcs(funcMap).Parse(sUpdateDecl))
+var tUpdateFunc = template.Must(template.New("UpdateFunc").Funcs(funcMap).Parse(sUpdateFunc))
 
 //-------------------------------------------------------------------------------------------------
 

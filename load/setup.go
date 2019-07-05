@@ -100,8 +100,8 @@ var AllFuncFlags = FuncFlags{true, true, true, true, true, true, true, true, tru
 
 //-------------------------------------------------------------------------------------------------
 
-// Format formats a template using gofmt.
-func Format(in io.Reader) (io.Reader, error) {
+// GoFmt formats a template using gofmt.
+func GoFmt(in io.Reader) (io.Reader, error) {
 	var out bytes.Buffer
 
 	gofmt := exec.Command("gofmt", "-s")

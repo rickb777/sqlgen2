@@ -137,11 +137,12 @@ func TestWriteConstructUpdate(t *testing.T) {
 
 	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = fixtureTable()
-	buf := &bytes.Buffer{}
+	buf1 := &bytes.Buffer{}
+	buf2 := &bytes.Buffer{}
 
-	WriteConstructUpdate(buf, view)
+	WriteConstructUpdate(buf1, buf2, view)
 
-	code := buf.String()
+	code := buf2.String()
 	expected := `
 func (tbl XExampleTable) constructXExampleUpdate(w dialect.StringWriter, v *Example) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()

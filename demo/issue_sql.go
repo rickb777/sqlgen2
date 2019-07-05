@@ -20,6 +20,55 @@ import (
 	"strings"
 )
 
+// IssueTabler lists methods provided by IssueTable.
+type IssueTabler interface {
+	sqlapi.Table
+
+	Constraints() constraint.Constraints
+
+	SetPkColumn(pk string) IssueTabler
+	WithPrefix(pfx string) IssueTabler
+	WithContext(ctx context.Context) IssueTabler
+	WithConstraint(cc ...constraint.Constraint) IssueTabler
+	Using(tx sqlapi.SqlTx) IssueTabler
+	Transact(txOptions *sql.TxOptions, fn func(IssueTabler) error) error
+
+	CreateTable(ifNotExists bool) (int64, error)
+
+	CreateTableWithIndexes(ifNotExist bool) (err error)
+	CreateIndexes(ifNotExist bool) (err error)
+
+	CreateIssueAssigneeIndex(ifNotExist bool) error
+	DropIssueAssigneeIndex(ifExists bool) error
+
+	Truncate(force bool) (err error)
+
+	Query(req require.Requirement, query string, args ...interface{}) ([]*Issue, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Issue, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+
+	GetIssuesById(req require.Requirement, id ...int64) (list []*Issue, err error)
+	GetIssueById(req require.Requirement, id int64) (*Issue, error)
+	GetIssuesByAssignee(req require.Requirement, assignee string) ([]*Issue, error)
+
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Issue, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Issue, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Issue, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Issue, error)
+
+	CountWhere(where string, args ...interface{}) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
+
+	constructIssueUpdate(w dialect.StringWriter, v *Issue) (s []interface{}, err error)
+
+	Insert(req require.Requirement, vv ...*Issue) error
+
+	Update(req require.Requirement, vv ...*Issue) (int64, error)
+}
+
 // IssueTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -71,14 +120,14 @@ func CopyTableAsIssueTable(origin sqlapi.Table) IssueTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl IssueTable) SetPkColumn(pk string) IssueTable {
+func (tbl IssueTable) SetPkColumn(pk string) IssueTabler {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl IssueTable) WithPrefix(pfx string) IssueTable {
+func (tbl IssueTable) WithPrefix(pfx string) IssueTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -88,7 +137,7 @@ func (tbl IssueTable) WithPrefix(pfx string) IssueTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl IssueTable) WithContext(ctx context.Context) IssueTable {
+func (tbl IssueTable) WithContext(ctx context.Context) IssueTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -104,7 +153,7 @@ func (tbl IssueTable) Logger() sqlapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl IssueTable) WithConstraint(cc ...constraint.Constraint) IssueTable {
+func (tbl IssueTable) WithConstraint(cc ...constraint.Constraint) IssueTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -159,7 +208,7 @@ func (tbl IssueTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl IssueTable) Using(tx sqlapi.SqlTx) IssueTable {
+func (tbl IssueTable) Using(tx sqlapi.SqlTx) IssueTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -168,8 +217,8 @@ func (tbl IssueTable) Using(tx sqlapi.SqlTx) IssueTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits. 
-func (tbl IssueTable) Transact(txOptions *sql.TxOptions, fn func(IssueTable) error) error {
+// Therefore they do not commit until the outermost transaction commits.
+func (tbl IssueTable) Transact(txOptions *sql.TxOptions, fn func(IssueTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -254,23 +303,24 @@ var sqlIssueTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlIssueAssigneeIndexColumns = "assignee"
+
 var listOfIssueAssigneeIndexColumns = []string{"assignee"}
 
 //--------------------------------------------------------------------------------
 
 // CreateTable creates the table.
 func (tbl IssueTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, createIssueTableSql(tbl, ifNotExists))
 }
 
-func (tbl IssueTable) createTableSql(ifNotExists bool) string {
+func createIssueTableSql(tbl IssueTabler, ifNotExists bool) string {
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	q := tbl.Dialect().Quoter()
-	q.QuoteW(buf, tbl.name.String())
+	q.QuoteW(buf, tbl.Name().String())
 	buf.WriteString(" (\n ")
 
 	var columns []string
@@ -294,9 +344,9 @@ func (tbl IssueTable) createTableSql(ifNotExists bool) string {
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.constraints {
+	for i, c := range tbl.Constraints() {
 		buf.WriteString(",\n ")
-		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.name, i+1))
+		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}
 
 	buf.WriteString("\n)")
@@ -304,7 +354,7 @@ func (tbl IssueTable) createTableSql(ifNotExists bool) string {
 	return buf.String()
 }
 
-func (tbl IssueTable) ternary(flag bool, a, b string) string {
+func ternaryIssueTable(flag bool, a, b string) string {
 	if flag {
 		return a
 	}
@@ -313,12 +363,13 @@ func (tbl IssueTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl IssueTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, dropIssueTableSql(tbl, ifExists))
 }
 
-func (tbl IssueTable) dropTableSql(ifExists bool) string {
-	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.quotedName())
+func dropIssueTableSql(tbl IssueTabler, ifExists bool) string {
+	ie := ternaryIssueTable(ifExists, "IF EXISTS ", "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, quotedName)
 	return query
 }
 
@@ -347,44 +398,46 @@ func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreateIssueAssigneeIndex creates the issue_assignee index.
 func (tbl IssueTable) CreateIssueAssigneeIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryIssueTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, tbl.dropIssueAssigneeIndexSql(false))
+		tbl.Execer().ExecContext(tbl.ctx, dropIssueTableIssueAssigneeSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(nil, tbl.createIssueAssigneeIndexSql(ine))
+	_, err := tbl.Exec(nil, createIssueTableIssueAssigneeSql(tbl, ine))
 	return err
 }
 
-func (tbl IssueTable) createIssueAssigneeIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.name.PrefixWithoutDot()
+func createIssueTableIssueAssigneeSql(tbl IssueTabler, ifNotExists string) string {
+	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%sissue_assignee", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfIssueAssigneeIndexColumns), ",")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	return fmt.Sprintf("CREATE INDEX %s%s ON %s (%s)", ifNotExists,
-		q.Quote(id), tbl.quotedName(), cols)
+		q.Quote(id), quotedName, cols)
 }
 
 // DropIssueAssigneeIndex drops the issue_assignee index.
 func (tbl IssueTable) DropIssueAssigneeIndex(ifExists bool) error {
-	_, err := tbl.Exec(nil, tbl.dropIssueAssigneeIndexSql(ifExists))
+	_, err := tbl.Exec(nil, dropIssueTableIssueAssigneeSql(tbl, ifExists))
 	return err
 }
 
-func (tbl IssueTable) dropIssueAssigneeIndexSql(ifExists bool) string {
+func dropIssueTableIssueAssigneeSql(tbl IssueTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
-	indexPrefix := tbl.name.PrefixWithoutDot()
+	ie := ternaryIssueTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%sissue_assignee", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
-	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.quotedName()), "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	onTbl := ternaryIssueTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
@@ -593,7 +646,7 @@ func (tbl IssueTable) GetIssuesById(req require.Requirement, id ...int64) (list 
 // GetIssueById gets the record with a given primary key value.
 // If not found, *Issue will be nil.
 func (tbl IssueTable) GetIssueById(req require.Requirement, id int64) (*Issue, error) {
-	return tbl.getIssue(req, tbl.pk, id)
+	return getIssue(tbl, req, tbl.pk, id)
 }
 
 // GetIssuesByAssignee gets the records with a given assignee value.
@@ -602,7 +655,7 @@ func (tbl IssueTable) GetIssuesByAssignee(req require.Requirement, assignee stri
 	return tbl.Select(req, where.And(where.Eq("assignee", assignee)), nil)
 }
 
-func (tbl IssueTable) getIssue(req require.Requirement, column string, arg interface{}) (*Issue, error) {
+func getIssue(tbl IssueTable, req require.Requirement, column string, arg interface{}) (*Issue, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
@@ -931,9 +984,8 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
-
 			v.Id = i64
-			}
+		}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -1001,9 +1053,9 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified 
-// key column(s). It must match either zero or one existing record. If it matches 
-// none, a new record is inserted; otherwise the matching record is updated. An 
+// This expression is used to search for an existing record based on some specified
+// key column(s). It must match either zero or one existing record. If it matches
+// none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
 func (tbl IssueTable) Upsert(v *Issue, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

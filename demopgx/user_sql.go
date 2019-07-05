@@ -22,6 +22,59 @@ import (
 	"strings"
 )
 
+// DbUserTabler lists methods provided by DbUserTable.
+type DbUserTabler interface {
+	pgxapi.Table
+
+	Constraints() constraint.Constraints
+
+	SetPkColumn(pk string) DbUserTabler
+	WithPrefix(pfx string) DbUserTabler
+	WithContext(ctx context.Context) DbUserTabler
+	WithConstraint(cc ...constraint.Constraint) DbUserTabler
+	Using(tx pgxapi.SqlTx) DbUserTabler
+	Transact(txOptions *pgx.TxOptions, fn func(DbUserTabler) error) error
+
+	CreateTable(ifNotExists bool) (int64, error)
+
+	CreateTableWithIndexes(ifNotExist bool) (err error)
+	CreateIndexes(ifNotExist bool) (err error)
+
+	CreateEmailaddressIdxIndex(ifNotExist bool) error
+	DropEmailaddressIdxIndex(ifExists bool) error
+
+	CreateUserLoginIndex(ifNotExist bool) error
+	DropUserLoginIndex(ifExists bool) error
+
+	Truncate(force bool) (err error)
+
+	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+
+	GetUsersByUid(req require.Requirement, id ...int64) (list []*User, err error)
+	GetUserByUid(req require.Requirement, id int64) (*User, error)
+	GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error)
+	GetUserByName(req require.Requirement, name string) (*User, error)
+
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error)
+
+	CountWhere(where string, args ...interface{}) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
+
+	constructDbUserUpdate(w dialect.StringWriter, v *User) (s []interface{}, err error)
+
+	Insert(req require.Requirement, vv ...*User) error
+
+	Update(req require.Requirement, vv ...*User) (int64, error)
+}
+
 // DbUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -76,14 +129,14 @@ func CopyTableAsDbUserTable(origin pgxapi.Table) DbUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DbUserTable) SetPkColumn(pk string) DbUserTable {
+func (tbl DbUserTable) SetPkColumn(pk string) DbUserTabler {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DbUserTable) WithPrefix(pfx string) DbUserTable {
+func (tbl DbUserTable) WithPrefix(pfx string) DbUserTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -93,7 +146,7 @@ func (tbl DbUserTable) WithPrefix(pfx string) DbUserTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl DbUserTable) WithContext(ctx context.Context) DbUserTable {
+func (tbl DbUserTable) WithContext(ctx context.Context) DbUserTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -109,7 +162,7 @@ func (tbl DbUserTable) Logger() pgxapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl DbUserTable) WithConstraint(cc ...constraint.Constraint) DbUserTable {
+func (tbl DbUserTable) WithConstraint(cc ...constraint.Constraint) DbUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -164,7 +217,7 @@ func (tbl DbUserTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DbUserTable) Using(tx pgxapi.SqlTx) DbUserTable {
+func (tbl DbUserTable) Using(tx pgxapi.SqlTx) DbUserTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -174,7 +227,7 @@ func (tbl DbUserTable) Using(tx pgxapi.SqlTx) DbUserTable {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl DbUserTable) Transact(txOptions *pgx.TxOptions, fn func(DbUserTable) error) error {
+func (tbl DbUserTable) Transact(txOptions *pgx.TxOptions, fn func(DbUserTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -326,17 +379,17 @@ var listOfDbUserLoginIndexColumns = []string{"name"}
 
 // CreateTable creates the table.
 func (tbl DbUserTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, createDbUserTableSql(tbl, ifNotExists))
 }
 
-func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
+func createDbUserTableSql(tbl DbUserTabler, ifNotExists bool) string {
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	q := tbl.Dialect().Quoter()
-	q.QuoteW(buf, tbl.name.String())
+	q.QuoteW(buf, tbl.Name().String())
 	buf.WriteString(" (\n ")
 
 	var columns []string
@@ -360,9 +413,9 @@ func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.constraints {
+	for i, c := range tbl.Constraints() {
 		buf.WriteString(",\n ")
-		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.name, i+1))
+		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}
 
 	buf.WriteString("\n)")
@@ -370,7 +423,7 @@ func (tbl DbUserTable) createTableSql(ifNotExists bool) string {
 	return buf.String()
 }
 
-func (tbl DbUserTable) ternary(flag bool, a, b string) string {
+func ternaryDbUserTable(flag bool, a, b string) string {
 	if flag {
 		return a
 	}
@@ -379,12 +432,13 @@ func (tbl DbUserTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl DbUserTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, dropDbUserTableSql(tbl, ifExists))
 }
 
-func (tbl DbUserTable) dropTableSql(ifExists bool) string {
-	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.quotedName())
+func dropDbUserTableSql(tbl DbUserTabler, ifExists bool) string {
+	ie := ternaryDbUserTable(ifExists, "IF EXISTS ", "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, quotedName)
 	return query
 }
 
@@ -418,87 +472,91 @@ func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreateEmailaddressIdxIndex creates the emailaddress_idx index.
 func (tbl DbUserTable) CreateEmailaddressIdxIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryDbUserTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, tbl.dropDbEmailaddressIdxIndexSql(false))
+		tbl.Execer().ExecContext(tbl.ctx, dropDbUserTableEmailaddressIdxSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(nil, tbl.createDbEmailaddressIdxIndexSql(ine))
+	_, err := tbl.Exec(nil, createDbUserTableEmailaddressIdxSql(tbl, ine))
 	return err
 }
 
-func (tbl DbUserTable) createDbEmailaddressIdxIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.name.PrefixWithoutDot()
+func createDbUserTableEmailaddressIdxSql(tbl DbUserTabler, ifNotExists string) string {
+	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%semailaddress_idx", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfDbEmailaddressIdxIndexColumns), ",")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%s ON %s (%s)", ifNotExists,
-		q.Quote(id), tbl.quotedName(), cols)
+		q.Quote(id), quotedName, cols)
 }
 
 // DropEmailaddressIdxIndex drops the emailaddress_idx index.
 func (tbl DbUserTable) DropEmailaddressIdxIndex(ifExists bool) error {
-	_, err := tbl.Exec(nil, tbl.dropDbEmailaddressIdxIndexSql(ifExists))
+	_, err := tbl.Exec(nil, dropDbUserTableEmailaddressIdxSql(tbl, ifExists))
 	return err
 }
 
-func (tbl DbUserTable) dropDbEmailaddressIdxIndexSql(ifExists bool) string {
+func dropDbUserTableEmailaddressIdxSql(tbl DbUserTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
-	indexPrefix := tbl.name.PrefixWithoutDot()
+	ie := ternaryDbUserTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%semailaddress_idx", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
-	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.quotedName()), "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	onTbl := ternaryDbUserTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
 // CreateUserLoginIndex creates the user_login index.
 func (tbl DbUserTable) CreateUserLoginIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryDbUserTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, tbl.dropDbUserLoginIndexSql(false))
+		tbl.Execer().ExecContext(tbl.ctx, dropDbUserTableUserLoginSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(nil, tbl.createDbUserLoginIndexSql(ine))
+	_, err := tbl.Exec(nil, createDbUserTableUserLoginSql(tbl, ine))
 	return err
 }
 
-func (tbl DbUserTable) createDbUserLoginIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.name.PrefixWithoutDot()
+func createDbUserTableUserLoginSql(tbl DbUserTabler, ifNotExists string) string {
+	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%suser_login", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfDbUserLoginIndexColumns), ",")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%s ON %s (%s)", ifNotExists,
-		q.Quote(id), tbl.quotedName(), cols)
+		q.Quote(id), quotedName, cols)
 }
 
 // DropUserLoginIndex drops the user_login index.
 func (tbl DbUserTable) DropUserLoginIndex(ifExists bool) error {
-	_, err := tbl.Exec(nil, tbl.dropDbUserLoginIndexSql(ifExists))
+	_, err := tbl.Exec(nil, dropDbUserTableUserLoginSql(tbl, ifExists))
 	return err
 }
 
-func (tbl DbUserTable) dropDbUserLoginIndexSql(ifExists bool) string {
+func dropDbUserTableUserLoginSql(tbl DbUserTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
-	indexPrefix := tbl.name.PrefixWithoutDot()
+	ie := ternaryDbUserTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%suser_login", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
-	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.quotedName()), "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	onTbl := ternaryDbUserTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
@@ -766,7 +824,7 @@ func (tbl DbUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list
 // GetUserByUid gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl DbUserTable) GetUserByUid(req require.Requirement, id int64) (*User, error) {
-	return tbl.getUser(req, tbl.pk, id)
+	return getDbUser(tbl, req, tbl.pk, id)
 }
 
 // GetUserByEmailAddress gets the record with a given emailaddress value.
@@ -781,7 +839,7 @@ func (tbl DbUserTable) GetUserByName(req require.Requirement, name string) (*Use
 	return tbl.SelectOne(req, where.And(where.Eq("name", name)), nil)
 }
 
-func (tbl DbUserTable) getUser(req require.Requirement, column string, arg interface{}) (*User, error) {
+func getDbUser(tbl DbUserTable, req require.Requirement, column string, arg interface{}) (*User, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
@@ -1423,7 +1481,6 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
-
 			v.Uid = i64
 		}
 

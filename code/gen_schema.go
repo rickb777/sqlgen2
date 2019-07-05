@@ -76,16 +76,19 @@ func WriteSchemaDeclarations(w io.Writer, view View) {
 	}
 }
 
-func WriteSchemaFunctions(w io.Writer, view View) {
-	fmt.Fprintln(w, sectionBreak)
+func WriteSchemaFunctions(w1, w2 io.Writer, view View) {
+	fmt.Fprintln(w2, sectionBreak)
 
-	must(tCreateTableFunc.Execute(w, view))
+	must(tCreateTableDecl.Execute(w1, view))
+	must(tCreateTableFunc.Execute(w2, view))
 
 	if len(view.Table.Index) > 0 {
-		fmt.Fprintln(w, sectionBreak)
-		must(tCreateIndexesFunc.Execute(w, view))
+		fmt.Fprintln(w2, sectionBreak)
+		must(tCreateIndexesDecl.Execute(w1, view))
+		must(tCreateIndexesFunc.Execute(w2, view))
 	}
 
-	fmt.Fprintln(w, sectionBreak)
-	must(tTruncate.Execute(w, view))
+	fmt.Fprintln(w2, sectionBreak)
+	must(tTruncateDecl.Execute(w1, view))
+	must(tTruncateFunc.Execute(w2, view))
 }

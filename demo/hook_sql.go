@@ -19,6 +19,48 @@ import (
 	"strings"
 )
 
+// HookTabler lists methods provided by HookTable.
+type HookTabler interface {
+	sqlapi.Table
+
+	Constraints() constraint.Constraints
+
+	SetPkColumn(pk string) HookTabler
+	WithPrefix(pfx string) HookTabler
+	WithContext(ctx context.Context) HookTabler
+	WithConstraint(cc ...constraint.Constraint) HookTabler
+	Using(tx sqlapi.SqlTx) HookTabler
+	Transact(txOptions *sql.TxOptions, fn func(HookTabler) error) error
+
+	CreateTable(ifNotExists bool) (int64, error)
+
+	Truncate(force bool) (err error)
+
+	Query(req require.Requirement, query string, args ...interface{}) (HookList, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) (HookList, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+
+	GetHooksById(req require.Requirement, id ...uint64) (list HookList, err error)
+	GetHookById(req require.Requirement, id uint64) (*Hook, error)
+
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Hook, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Hook, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) (HookList, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (HookList, error)
+
+	CountWhere(where string, args ...interface{}) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
+
+	constructHookUpdate(w dialect.StringWriter, v *Hook) (s []interface{}, err error)
+
+	Insert(req require.Requirement, vv ...*Hook) error
+
+	Update(req require.Requirement, vv ...*Hook) (int64, error)
+}
+
 // HookTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -70,14 +112,14 @@ func CopyTableAsHookTable(origin sqlapi.Table) HookTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl HookTable) SetPkColumn(pk string) HookTable {
+func (tbl HookTable) SetPkColumn(pk string) HookTabler {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl HookTable) WithPrefix(pfx string) HookTable {
+func (tbl HookTable) WithPrefix(pfx string) HookTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -87,7 +129,7 @@ func (tbl HookTable) WithPrefix(pfx string) HookTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl HookTable) WithContext(ctx context.Context) HookTable {
+func (tbl HookTable) WithContext(ctx context.Context) HookTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -103,7 +145,7 @@ func (tbl HookTable) Logger() sqlapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl HookTable) WithConstraint(cc ...constraint.Constraint) HookTable {
+func (tbl HookTable) WithConstraint(cc ...constraint.Constraint) HookTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -158,7 +200,7 @@ func (tbl HookTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl HookTable) Using(tx sqlapi.SqlTx) HookTable {
+func (tbl HookTable) Using(tx sqlapi.SqlTx) HookTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -167,8 +209,8 @@ func (tbl HookTable) Using(tx sqlapi.SqlTx) HookTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits. 
-func (tbl HookTable) Transact(txOptions *sql.TxOptions, fn func(HookTable) error) error {
+// Therefore they do not commit until the outermost transaction commits.
+func (tbl HookTable) Transact(txOptions *sql.TxOptions, fn func(HookTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -290,17 +332,17 @@ var sqlHookTableCreateColumnsPgx = []string{
 
 // CreateTable creates the table.
 func (tbl HookTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, createHookTableSql(tbl, ifNotExists))
 }
 
-func (tbl HookTable) createTableSql(ifNotExists bool) string {
+func createHookTableSql(tbl HookTabler, ifNotExists bool) string {
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	q := tbl.Dialect().Quoter()
-	q.QuoteW(buf, tbl.name.String())
+	q.QuoteW(buf, tbl.Name().String())
 	buf.WriteString(" (\n ")
 
 	var columns []string
@@ -324,9 +366,9 @@ func (tbl HookTable) createTableSql(ifNotExists bool) string {
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.constraints {
+	for i, c := range tbl.Constraints() {
 		buf.WriteString(",\n ")
-		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.name, i+1))
+		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}
 
 	buf.WriteString("\n)")
@@ -334,7 +376,7 @@ func (tbl HookTable) createTableSql(ifNotExists bool) string {
 	return buf.String()
 }
 
-func (tbl HookTable) ternary(flag bool, a, b string) string {
+func ternaryHookTable(flag bool, a, b string) string {
 	if flag {
 		return a
 	}
@@ -343,12 +385,13 @@ func (tbl HookTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl HookTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, dropHookTableSql(tbl, ifExists))
 }
 
-func (tbl HookTable) dropTableSql(ifExists bool) string {
-	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.quotedName())
+func dropHookTableSql(tbl HookTabler, ifExists bool) string {
+	ie := ternaryHookTable(ifExists, "IF EXISTS ", "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, quotedName)
 	return query
 }
 
@@ -570,10 +613,10 @@ func (tbl HookTable) GetHooksById(req require.Requirement, id ...uint64) (list H
 // GetHookById gets the record with a given primary key value.
 // If not found, *Hook will be nil.
 func (tbl HookTable) GetHookById(req require.Requirement, id uint64) (*Hook, error) {
-	return tbl.getHook(req, tbl.pk, id)
+	return getHook(tbl, req, tbl.pk, id)
 }
 
-func (tbl HookTable) getHook(req require.Requirement, column string, arg interface{}) (*Hook, error) {
+func getHook(tbl HookTable, req require.Requirement, column string, arg interface{}) (*Hook, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
@@ -1091,9 +1134,8 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
-
 			v.Id = uint64(i64)
-			}
+		}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -1161,9 +1203,9 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified 
-// key column(s). It must match either zero or one existing record. If it matches 
-// none, a new record is inserted; otherwise the matching record is updated. An 
+// This expression is used to search for an existing record based on some specified
+// key column(s). It must match either zero or one existing record. If it matches
+// none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
 func (tbl HookTable) Upsert(v *Hook, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

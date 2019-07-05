@@ -234,6 +234,7 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 	view := NewView(typePkg, tablePkg, name, prefix, tableName, list, sql, api)
 	view.Table = table
 	view.Thing = kind
+	view.Thinger = ender(kind)
 	view.Interface1 = api + "." + PrimaryInterface(table, flags.Schema)
 	if flags.Scan {
 		view.Scan = "Scan"
@@ -249,77 +250,108 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 	ImportsForFields(table, importSet)
 	ImportsForSetters(setters, importSet)
 
-	buf := &bytes.Buffer{}
+	headerBuf := &bytes.Buffer{}
+	interfaceBuf := &bytes.Buffer{}
+	structBuf := &bytes.Buffer{}
 
-	WritePackageHeader(buf, tablePkg, appVersion)
+	WritePackageHeader(headerBuf, tablePkg, appVersion)
 
-	WriteImports(buf, importSet)
+	WriteImports(headerBuf, importSet)
 
-	WriteType(buf, view)
+	WriteType(interfaceBuf, structBuf, view)
 
-	WritePrimaryDeclarations(buf, view)
+	WritePrimaryDeclarations(structBuf, view)
 
 	if flags.Schema {
-		WriteSchemaDeclarations(buf, view)
-		WriteSchemaFunctions(buf, view)
+		WriteSchemaDeclarations(structBuf, view)
+		WriteSchemaFunctions(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Exec || flags.Update || flags.Delete {
-		WriteExecFunc(buf, view)
+		WriteExecFunc(structBuf, view)
 	}
 
-	WriteQueryRows(buf, view)
-	WriteQueryThings(buf, view)
-	WriteScanRows(buf, view)
+	WriteQueryRows(interfaceBuf, structBuf, view)
+	WriteQueryThings(interfaceBuf, structBuf, view)
+	WriteScanRows(structBuf, view)
 
 	if flags.Select {
-		WriteGetRow(buf, view)
-		WriteSelectRowsFuncs(buf, view)
+		WriteGetRow(interfaceBuf, structBuf, view)
+		WriteSelectRowsFuncs(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Count {
-		WriteCountRowsFuncs(buf, view)
+		WriteCountRowsFuncs(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Slice {
-		WriteSliceColumn(buf, view)
+		WriteSliceColumn(structBuf, view)
 	}
 
 	if flags.Insert {
-		WriteConstructInsert(buf, view)
+		WriteConstructInsert(structBuf, view)
 	}
 
 	if flags.Update {
-		WriteConstructUpdate(buf, view)
+		WriteConstructUpdate(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Insert {
-		WriteInsertFunc(buf, view)
+		WriteInsertFunc(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Update {
-		WriteUpdateFunc(buf, view)
+		WriteUpdateFunc(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Upsert {
-		WriteUpsertFunc(buf, view)
+		WriteUpsertFunc(structBuf, view)
 	}
 
 	if flags.Delete {
-		WriteDeleteFunc(buf, view)
+		WriteDeleteFunc(structBuf, view)
 	}
 
-	WriteSetters(buf, view, setters)
+	WriteSetters(interfaceBuf, structBuf, view, setters)
 
-	// formats the generated file using gofmt
+	io.WriteString(interfaceBuf, "}\n\n")
+
+	finishWriting(o, gofmt, constructFullBuffer(headerBuf, interfaceBuf, structBuf))
+}
+
+func constructFullBuffer(headerBuf, interfaceBuf, structBuf io.Reader) *bytes.Buffer {
+	whole := &bytes.Buffer{}
+	io.Copy(whole, headerBuf)
+	io.Copy(whole, interfaceBuf)
+	io.Copy(whole, structBuf)
+	return whole
+}
+
+func finishWriting(o output.Output, gofmt bool, buf *bytes.Buffer) {
 	var pretty io.Reader = buf
 	if gofmt {
 		var err error
-		pretty, err = Format(buf)
-		output.Require(err == nil, "%s\n%v\n", string(buf.Bytes()), err)
+		pretty, err = GoFmt(buf)
+		output.Require(err == nil, "%s\n%v\n", buf.String(), err)
 	}
 
 	o.Write(pretty)
+}
+
+func ender(s string) string {
+	last := lastLetter(s)
+	switch last {
+	case 'e', 'o':
+		return s + "r"
+	}
+	return s + "er"
+}
+
+func lastLetter(s string) byte {
+	if s == "" {
+		return 0
+	}
+	return s[len(s)-1]
 }
 
 type encoder interface {

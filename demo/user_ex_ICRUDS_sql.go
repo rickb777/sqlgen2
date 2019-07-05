@@ -20,6 +20,59 @@ import (
 	"strings"
 )
 
+// AUserTabler lists methods provided by AUserTable.
+type AUserTabler interface {
+	sqlapi.Table
+
+	Constraints() constraint.Constraints
+
+	SetPkColumn(pk string) AUserTabler
+	WithPrefix(pfx string) AUserTabler
+	WithContext(ctx context.Context) AUserTabler
+	WithConstraint(cc ...constraint.Constraint) AUserTabler
+	Using(tx sqlapi.SqlTx) AUserTabler
+	Transact(txOptions *sql.TxOptions, fn func(AUserTabler) error) error
+
+	CreateTable(ifNotExists bool) (int64, error)
+
+	CreateTableWithIndexes(ifNotExist bool) (err error)
+	CreateIndexes(ifNotExist bool) (err error)
+
+	CreateEmailaddressIdxIndex(ifNotExist bool) error
+	DropEmailaddressIdxIndex(ifExists bool) error
+
+	CreateUserLoginIndex(ifNotExist bool) error
+	DropUserLoginIndex(ifExists bool) error
+
+	Truncate(force bool) (err error)
+
+	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+
+	GetUsersByUid(req require.Requirement, id ...int64) (list []*User, err error)
+	GetUserByUid(req require.Requirement, id int64) (*User, error)
+	GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error)
+	GetUserByName(req require.Requirement, name string) (*User, error)
+
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error)
+
+	CountWhere(where string, args ...interface{}) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
+
+	constructAUserUpdate(w dialect.StringWriter, v *User) (s []interface{}, err error)
+
+	Insert(req require.Requirement, vv ...*User) error
+
+	Update(req require.Requirement, vv ...*User) (int64, error)
+}
+
 // AUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -74,14 +127,14 @@ func CopyTableAsAUserTable(origin sqlapi.Table) AUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AUserTable) SetPkColumn(pk string) AUserTable {
+func (tbl AUserTable) SetPkColumn(pk string) AUserTabler {
 	tbl.pk = pk
 	return tbl
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AUserTable) WithPrefix(pfx string) AUserTable {
+func (tbl AUserTable) WithPrefix(pfx string) AUserTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -91,7 +144,7 @@ func (tbl AUserTable) WithPrefix(pfx string) AUserTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl AUserTable) WithContext(ctx context.Context) AUserTable {
+func (tbl AUserTable) WithContext(ctx context.Context) AUserTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -107,7 +160,7 @@ func (tbl AUserTable) Logger() sqlapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl AUserTable) WithConstraint(cc ...constraint.Constraint) AUserTable {
+func (tbl AUserTable) WithConstraint(cc ...constraint.Constraint) AUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -162,7 +215,7 @@ func (tbl AUserTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AUserTable) Using(tx sqlapi.SqlTx) AUserTable {
+func (tbl AUserTable) Using(tx sqlapi.SqlTx) AUserTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -171,8 +224,8 @@ func (tbl AUserTable) Using(tx sqlapi.SqlTx) AUserTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits. 
-func (tbl AUserTable) Transact(txOptions *sql.TxOptions, fn func(AUserTable) error) error {
+// Therefore they do not commit until the outermost transaction commits.
+func (tbl AUserTable) Transact(txOptions *sql.TxOptions, fn func(AUserTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -313,26 +366,28 @@ var sqlAUserTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlAEmailaddressIdxIndexColumns = "emailaddress"
+
 var listOfAEmailaddressIdxIndexColumns = []string{"emailaddress"}
 
 const sqlAUserLoginIndexColumns = "name"
+
 var listOfAUserLoginIndexColumns = []string{"name"}
 
 //--------------------------------------------------------------------------------
 
 // CreateTable creates the table.
 func (tbl AUserTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, createAUserTableSql(tbl, ifNotExists))
 }
 
-func (tbl AUserTable) createTableSql(ifNotExists bool) string {
+func createAUserTableSql(tbl AUserTabler, ifNotExists bool) string {
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	q := tbl.Dialect().Quoter()
-	q.QuoteW(buf, tbl.name.String())
+	q.QuoteW(buf, tbl.Name().String())
 	buf.WriteString(" (\n ")
 
 	var columns []string
@@ -356,9 +411,9 @@ func (tbl AUserTable) createTableSql(ifNotExists bool) string {
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.constraints {
+	for i, c := range tbl.Constraints() {
 		buf.WriteString(",\n ")
-		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.name, i+1))
+		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}
 
 	buf.WriteString("\n)")
@@ -366,7 +421,7 @@ func (tbl AUserTable) createTableSql(ifNotExists bool) string {
 	return buf.String()
 }
 
-func (tbl AUserTable) ternary(flag bool, a, b string) string {
+func ternaryAUserTable(flag bool, a, b string) string {
 	if flag {
 		return a
 	}
@@ -375,12 +430,13 @@ func (tbl AUserTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl AUserTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, dropAUserTableSql(tbl, ifExists))
 }
 
-func (tbl AUserTable) dropTableSql(ifExists bool) string {
-	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.quotedName())
+func dropAUserTableSql(tbl AUserTabler, ifExists bool) string {
+	ie := ternaryAUserTable(ifExists, "IF EXISTS ", "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, quotedName)
 	return query
 }
 
@@ -414,87 +470,91 @@ func (tbl AUserTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreateEmailaddressIdxIndex creates the emailaddress_idx index.
 func (tbl AUserTable) CreateEmailaddressIdxIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryAUserTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, tbl.dropAEmailaddressIdxIndexSql(false))
+		tbl.Execer().ExecContext(tbl.ctx, dropAUserTableEmailaddressIdxSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(nil, tbl.createAEmailaddressIdxIndexSql(ine))
+	_, err := tbl.Exec(nil, createAUserTableEmailaddressIdxSql(tbl, ine))
 	return err
 }
 
-func (tbl AUserTable) createAEmailaddressIdxIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.name.PrefixWithoutDot()
+func createAUserTableEmailaddressIdxSql(tbl AUserTabler, ifNotExists string) string {
+	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%semailaddress_idx", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfAEmailaddressIdxIndexColumns), ",")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%s ON %s (%s)", ifNotExists,
-		q.Quote(id), tbl.quotedName(), cols)
+		q.Quote(id), quotedName, cols)
 }
 
 // DropEmailaddressIdxIndex drops the emailaddress_idx index.
 func (tbl AUserTable) DropEmailaddressIdxIndex(ifExists bool) error {
-	_, err := tbl.Exec(nil, tbl.dropAEmailaddressIdxIndexSql(ifExists))
+	_, err := tbl.Exec(nil, dropAUserTableEmailaddressIdxSql(tbl, ifExists))
 	return err
 }
 
-func (tbl AUserTable) dropAEmailaddressIdxIndexSql(ifExists bool) string {
+func dropAUserTableEmailaddressIdxSql(tbl AUserTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
-	indexPrefix := tbl.name.PrefixWithoutDot()
+	ie := ternaryAUserTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%semailaddress_idx", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
-	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.quotedName()), "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	onTbl := ternaryAUserTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
 // CreateUserLoginIndex creates the user_login index.
 func (tbl AUserTable) CreateUserLoginIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryAUserTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, tbl.dropAUserLoginIndexSql(false))
+		tbl.Execer().ExecContext(tbl.ctx, dropAUserTableUserLoginSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(nil, tbl.createAUserLoginIndexSql(ine))
+	_, err := tbl.Exec(nil, createAUserTableUserLoginSql(tbl, ine))
 	return err
 }
 
-func (tbl AUserTable) createAUserLoginIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.name.PrefixWithoutDot()
+func createAUserTableUserLoginSql(tbl AUserTabler, ifNotExists string) string {
+	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%suser_login", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfAUserLoginIndexColumns), ",")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%s ON %s (%s)", ifNotExists,
-		q.Quote(id), tbl.quotedName(), cols)
+		q.Quote(id), quotedName, cols)
 }
 
 // DropUserLoginIndex drops the user_login index.
 func (tbl AUserTable) DropUserLoginIndex(ifExists bool) error {
-	_, err := tbl.Exec(nil, tbl.dropAUserLoginIndexSql(ifExists))
+	_, err := tbl.Exec(nil, dropAUserTableUserLoginSql(tbl, ifExists))
 	return err
 }
 
-func (tbl AUserTable) dropAUserLoginIndexSql(ifExists bool) string {
+func dropAUserTableUserLoginSql(tbl AUserTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
-	indexPrefix := tbl.name.PrefixWithoutDot()
+	ie := ternaryAUserTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%suser_login", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
-	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.quotedName()), "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	onTbl := ternaryAUserTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
@@ -762,7 +822,7 @@ func (tbl AUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list 
 // GetUserByUid gets the record with a given primary key value.
 // If not found, *User will be nil.
 func (tbl AUserTable) GetUserByUid(req require.Requirement, id int64) (*User, error) {
-	return tbl.getUser(req, tbl.pk, id)
+	return getAUser(tbl, req, tbl.pk, id)
 }
 
 // GetUserByEmailAddress gets the record with a given emailaddress value.
@@ -777,7 +837,7 @@ func (tbl AUserTable) GetUserByName(req require.Requirement, name string) (*User
 	return tbl.SelectOne(req, where.And(where.Eq("name", name)), nil)
 }
 
-func (tbl AUserTable) getUser(req require.Requirement, column string, arg interface{}) (*User, error) {
+func getAUser(tbl AUserTable, req require.Requirement, column string, arg interface{}) (*User, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
@@ -1419,9 +1479,8 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
-
 			v.Uid = i64
-			}
+		}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -1489,9 +1548,9 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified 
-// key column(s). It must match either zero or one existing record. If it matches 
-// none, a new record is inserted; otherwise the matching record is updated. An 
+// This expression is used to search for an existing record based on some specified
+// key column(s). It must match either zero or one existing record. If it matches
+// none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
 func (tbl AUserTable) Upsert(v *User, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

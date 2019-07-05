@@ -27,8 +27,9 @@ generated files `*_sql.go` and the hand-crafted files (`hook.go`, `issue.go`, `u
 * Very flexible configuration.
 * Fast and easy to use.
 
-Currently, support is included for **MySQL**, **PostgreSQL** and **SQLite**. Other dialects can be added relatively easy - send a Pull Request!
+Currently, support is included for **MySQL**, **PostgreSQL** and **SQLite**. Other `database/sql` dialects can be added relatively easy - send a Pull Request!
 
+There is also direct support for `pgx`, which differs somewhat from the `database/sql` but is noteworthy and worth supporting here.
 
 ## Install
 

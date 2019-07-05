@@ -19,6 +19,50 @@ import (
 	"strings"
 )
 
+// DbCompoundTabler lists methods provided by DbCompoundTable.
+type DbCompoundTabler interface {
+	sqlapi.Table
+
+	Constraints() constraint.Constraints
+
+	WithPrefix(pfx string) DbCompoundTabler
+	WithContext(ctx context.Context) DbCompoundTabler
+	WithConstraint(cc ...constraint.Constraint) DbCompoundTabler
+	Using(tx sqlapi.SqlTx) DbCompoundTabler
+	Transact(txOptions *sql.TxOptions, fn func(DbCompoundTabler) error) error
+
+	CreateTable(ifNotExists bool) (int64, error)
+
+	CreateTableWithIndexes(ifNotExist bool) (err error)
+	CreateIndexes(ifNotExist bool) (err error)
+
+	CreateAlphaBetaIndex(ifNotExist bool) error
+	DropAlphaBetaIndex(ifExists bool) error
+
+	Truncate(force bool) (err error)
+
+	Query(req require.Requirement, query string, args ...interface{}) ([]*Compound, error)
+	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Compound, error)
+
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+
+	GetCompoundByAlphaAndBeta(req require.Requirement, alpha string, beta string) (*Compound, error)
+
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Compound, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Compound, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Compound, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Compound, error)
+
+	CountWhere(where string, args ...interface{}) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
+
+	constructDbCompoundUpdate(w dialect.StringWriter, v *Compound) (s []interface{}, err error)
+
+	Insert(req require.Requirement, vv ...*Compound) error
+}
+
 // DbCompoundTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
@@ -70,7 +114,7 @@ func CopyTableAsDbCompoundTable(origin sqlapi.Table) DbCompoundTable {
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DbCompoundTable) WithPrefix(pfx string) DbCompoundTable {
+func (tbl DbCompoundTable) WithPrefix(pfx string) DbCompoundTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -80,7 +124,7 @@ func (tbl DbCompoundTable) WithPrefix(pfx string) DbCompoundTable {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl DbCompoundTable) WithContext(ctx context.Context) DbCompoundTable {
+func (tbl DbCompoundTable) WithContext(ctx context.Context) DbCompoundTabler {
 	tbl.ctx = ctx
 	return tbl
 }
@@ -96,7 +140,7 @@ func (tbl DbCompoundTable) Logger() sqlapi.Logger {
 }
 
 // WithConstraint returns a modified Table with added data consistency constraints.
-func (tbl DbCompoundTable) WithConstraint(cc ...constraint.Constraint) DbCompoundTable {
+func (tbl DbCompoundTable) WithConstraint(cc ...constraint.Constraint) DbCompoundTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
@@ -146,7 +190,7 @@ func (tbl DbCompoundTable) IsTx() bool {
 // Using returns a modified Table using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DbCompoundTable) Using(tx sqlapi.SqlTx) DbCompoundTable {
+func (tbl DbCompoundTable) Using(tx sqlapi.SqlTx) DbCompoundTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -156,7 +200,7 @@ func (tbl DbCompoundTable) Using(tx sqlapi.SqlTx) DbCompoundTable {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl DbCompoundTable) Transact(txOptions *sql.TxOptions, fn func(DbCompoundTable) error) error {
+func (tbl DbCompoundTable) Transact(txOptions *sql.TxOptions, fn func(DbCompoundTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -225,17 +269,17 @@ var listOfDbAlphaBetaIndexColumns = strings.Split(sqlDbAlphaBetaIndexColumns, ",
 
 // CreateTable creates the table.
 func (tbl DbCompoundTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.createTableSql(ifNotExists))
+	return support.Exec(tbl, nil, createDbCompoundTableSql(tbl, ifNotExists))
 }
 
-func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
+func createDbCompoundTableSql(tbl DbCompoundTabler, ifNotExists bool) string {
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
 		buf.WriteString("IF NOT EXISTS ")
 	}
 	q := tbl.Dialect().Quoter()
-	q.QuoteW(buf, tbl.name.String())
+	q.QuoteW(buf, tbl.Name().String())
 	buf.WriteString(" (\n ")
 
 	var columns []string
@@ -259,9 +303,9 @@ func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.constraints {
+	for i, c := range tbl.Constraints() {
 		buf.WriteString(",\n ")
-		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.name, i+1))
+		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}
 
 	buf.WriteString("\n)")
@@ -269,7 +313,7 @@ func (tbl DbCompoundTable) createTableSql(ifNotExists bool) string {
 	return buf.String()
 }
 
-func (tbl DbCompoundTable) ternary(flag bool, a, b string) string {
+func ternaryDbCompoundTable(flag bool, a, b string) string {
 	if flag {
 		return a
 	}
@@ -278,12 +322,13 @@ func (tbl DbCompoundTable) ternary(flag bool, a, b string) string {
 
 // DropTable drops the table, destroying all its data.
 func (tbl DbCompoundTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, tbl.dropTableSql(ifExists))
+	return support.Exec(tbl, nil, dropDbCompoundTableSql(tbl, ifExists))
 }
 
-func (tbl DbCompoundTable) dropTableSql(ifExists bool) string {
-	ie := tbl.ternary(ifExists, "IF EXISTS ", "")
-	query := fmt.Sprintf("DROP TABLE %s%s", ie, tbl.quotedName())
+func dropDbCompoundTableSql(tbl DbCompoundTabler, ifExists bool) string {
+	ie := ternaryDbCompoundTable(ifExists, "IF EXISTS ", "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DROP TABLE %s%s", ie, quotedName)
 	return query
 }
 
@@ -312,44 +357,46 @@ func (tbl DbCompoundTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreateAlphaBetaIndex creates the alpha_beta index.
 func (tbl DbCompoundTable) CreateAlphaBetaIndex(ifNotExist bool) error {
-	ine := tbl.ternary(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryDbCompoundTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, tbl.dropDbAlphaBetaIndexSql(false))
+		tbl.Execer().ExecContext(tbl.ctx, dropDbCompoundTableAlphaBetaSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(nil, tbl.createDbAlphaBetaIndexSql(ine))
+	_, err := tbl.Exec(nil, createDbCompoundTableAlphaBetaSql(tbl, ine))
 	return err
 }
 
-func (tbl DbCompoundTable) createDbAlphaBetaIndexSql(ifNotExists string) string {
-	indexPrefix := tbl.name.PrefixWithoutDot()
+func createDbCompoundTableAlphaBetaSql(tbl DbCompoundTabler, ifNotExists string) string {
+	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%salpha_beta", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfDbAlphaBetaIndexColumns), ",")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%s ON %s (%s)", ifNotExists,
-		q.Quote(id), tbl.quotedName(), cols)
+		q.Quote(id), quotedName, cols)
 }
 
 // DropAlphaBetaIndex drops the alpha_beta index.
 func (tbl DbCompoundTable) DropAlphaBetaIndex(ifExists bool) error {
-	_, err := tbl.Exec(nil, tbl.dropDbAlphaBetaIndexSql(ifExists))
+	_, err := tbl.Exec(nil, dropDbCompoundTableAlphaBetaSql(tbl, ifExists))
 	return err
 }
 
-func (tbl DbCompoundTable) dropDbAlphaBetaIndexSql(ifExists bool) string {
+func dropDbCompoundTableAlphaBetaSql(tbl DbCompoundTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := tbl.ternary(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
-	indexPrefix := tbl.name.PrefixWithoutDot()
+	ie := ternaryDbCompoundTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%salpha_beta", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
-	onTbl := tbl.ternary(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", tbl.quotedName()), "")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	onTbl := ternaryDbCompoundTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
@@ -518,7 +565,7 @@ func (tbl DbCompoundTable) GetCompoundByAlphaAndBeta(req require.Requirement, al
 	return tbl.SelectOne(req, where.And(where.Eq("alpha", alpha), where.Eq("beta", beta)), nil)
 }
 
-func (tbl DbCompoundTable) getCompound(req require.Requirement, column string, arg interface{}) (*Compound, error) {
+func getDbCompound(tbl DbCompoundTable, req require.Requirement, column string, arg interface{}) (*Compound, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
@@ -793,7 +840,6 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
-
 		}
 
 		if err != nil {

@@ -48,11 +48,12 @@ func TestWriteQueryRows(t *testing.T) {
 	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = simpleFixtureTable()
 
-	buf := &bytes.Buffer{}
+	buf1 := &bytes.Buffer{}
+	buf2 := &bytes.Buffer{}
 
-	WriteQueryRows(buf, view)
+	WriteQueryRows(buf1, buf2, view)
 
-	code := buf.String()
+	code := buf2.String()
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
@@ -98,11 +99,12 @@ func TestWriteQueryThings(t *testing.T) {
 	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = simpleFixtureTable()
 
-	buf := &bytes.Buffer{}
+	buf1 := &bytes.Buffer{}
+	buf2 := &bytes.Buffer{}
 
-	WriteQueryThings(buf, view)
+	WriteQueryThings(buf1, buf2, view)
 
-	code := buf.String()
+	code := buf2.String()
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 
@@ -157,11 +159,12 @@ func TestWriteUpdateFunc_noPK(t *testing.T) {
 	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = simpleNoPKTable()
 
-	buf := &bytes.Buffer{}
+	buf1 := &bytes.Buffer{}
+	buf2 := &bytes.Buffer{}
 
-	WriteUpdateFunc(buf, view)
+	WriteUpdateFunc(buf1, buf2, view)
 
-	code := buf.String()
+	code := buf2.String()
 	expected := strings.Replace(`
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).

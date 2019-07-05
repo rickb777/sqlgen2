@@ -10,7 +10,7 @@ go generate .
 # also...
 
 # These demonstrate the various filters that control what methods are generated
-sqlgen -json -type demo.User -o user_ex_xxxxxx_sql.go -v -prefix X -schema=false                                                                    user.go role.go
+sqlgen -json -type demo.User -o user_ex_xxxxxx_sql.go -v -prefix X -schema=false user.go role.go
 sqlgen -type demo.User -o user_ex_Ixxxxx_sql.go -v -prefix I -schema=false -create=true  -count=false -read=false -update=false -delete=false -slice=false user.go role.go
 sqlgen -type demo.User -o user_ex_xCxxxx_sql.go -v -prefix C -schema=false -create=false -count=true  -read=false -update=false -delete=false -slice=false user.go role.go
 sqlgen -type demo.User -o user_ex_xxRxxx_sql.go -v -prefix R -schema=false -create=false -count=false -read=true  -update=false -delete=false -slice=false user.go role.go
