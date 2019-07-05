@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.31.0; sqlgen v0.51.0
+// sqlapi v0.32.0; sqlgen v0.52.0
 
 package demo
 
@@ -169,7 +169,7 @@ func (tbl IUserTable) Using(tx sqlapi.SqlTx) IUserTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits.
+// Therefore they do not commit until the outermost transaction commits. 
 func (tbl IUserTable) Transact(txOptions *sql.TxOptions, fn func(IUserTable) error) error {
 	var err error
 	if tbl.IsTx() {
@@ -558,7 +558,7 @@ func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 			}
 
 			v.Uid = i64
-		}
+			}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)

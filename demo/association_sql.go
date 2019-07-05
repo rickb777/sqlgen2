@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.31.0; sqlgen v0.51.0
+// sqlapi v0.32.0; sqlgen v0.52.0
 
 package demo
 
@@ -167,7 +167,7 @@ func (tbl AssociationTable) Using(tx sqlapi.SqlTx) AssociationTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits.
+// Therefore they do not commit until the outermost transaction commits. 
 func (tbl AssociationTable) Transact(txOptions *sql.TxOptions, fn func(AssociationTable) error) error {
 	var err error
 	if tbl.IsTx() {
@@ -906,7 +906,7 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 			}
 
 			v.Id = i64
-		}
+			}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -974,9 +974,9 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified
-// key column(s). It must match either zero or one existing record. If it matches
-// none, a new record is inserted; otherwise the matching record is updated. An
+// This expression is used to search for an existing record based on some specified 
+// key column(s). It must match either zero or one existing record. If it matches 
+// none, a new record is inserted; otherwise the matching record is updated. An 
 // error results if these conditions are not met.
 func (tbl AssociationTable) Upsert(v *Association, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

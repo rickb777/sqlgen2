@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.31.0; sqlgen v0.51.0
+// sqlapi v0.32.0; sqlgen v0.52.0
 
 package demo
 
@@ -171,7 +171,7 @@ func (tbl AUserTable) Using(tx sqlapi.SqlTx) AUserTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits.
+// Therefore they do not commit until the outermost transaction commits. 
 func (tbl AUserTable) Transact(txOptions *sql.TxOptions, fn func(AUserTable) error) error {
 	var err error
 	if tbl.IsTx() {
@@ -313,11 +313,9 @@ var sqlAUserTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlAEmailaddressIdxIndexColumns = "emailaddress"
-
 var listOfAEmailaddressIdxIndexColumns = []string{"emailaddress"}
 
 const sqlAUserLoginIndexColumns = "name"
-
 var listOfAUserLoginIndexColumns = []string{"name"}
 
 //--------------------------------------------------------------------------------
@@ -1423,7 +1421,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 			}
 
 			v.Uid = i64
-		}
+			}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -1491,9 +1489,9 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified
-// key column(s). It must match either zero or one existing record. If it matches
-// none, a new record is inserted; otherwise the matching record is updated. An
+// This expression is used to search for an existing record based on some specified 
+// key column(s). It must match either zero or one existing record. If it matches 
+// none, a new record is inserted; otherwise the matching record is updated. An 
 // error results if these conditions are not met.
 func (tbl AUserTable) Upsert(v *User, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

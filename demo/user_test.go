@@ -70,12 +70,12 @@ func connect(t *testing.T) (*sql.DB, dialect.Dialect) {
 
 	db, err := sql.Open(dbDriver, dsn)
 	if err != nil {
-		t.Fatalf("Warning: Unable to connect to %s (%v); test is only partially complete.\n\n", dbDriver, err)
+		t.Fatalf("Error: Unable to connect to %s (%v); test is only partially complete.\n\n", dbDriver, err)
 	}
 
 	err = db.Ping()
 	if err != nil {
-		t.Fatalf("Warning: Unable to ping %s (%v); test is only partially complete.\n\n", dbDriver, err)
+		t.Fatalf("Error: Unable to ping %s (%v); test is only partially complete.\n\n", dbDriver, err)
 	}
 
 	fmt.Printf("Successfully connected to %s.\n", dbDriver)
@@ -807,34 +807,6 @@ type mockExecer struct {
 	Error        error
 }
 
-func (m mockExecer) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(sqlapi.SqlTx) error) error {
-	panic("implement me")
-}
-
-func (m mockExecer) Close() error {
-	panic("implement me")
-}
-
-func (m mockExecer) InsertContext(ctx context.Context, query string, args ...interface{}) (int64, error) {
-	panic("implement me")
-}
-
-func (m mockExecer) IsTx() bool {
-	panic("implement me")
-}
-
-func (m mockExecer) BeginTx(ctx context.Context, opts *sql.TxOptions) (sqlapi.SqlTx, error) {
-	panic("implement me")
-}
-
-func (m mockExecer) ExecContext(ctx context.Context, query string, args ...interface{}) (int64, error) {
-	return m.RowsAffected, m.Error
-}
-
-func (m mockExecer) PrepareContext(ctx context.Context, name, query string) (sqlapi.SqlStmt, error) {
-	return nil, nil
-}
-
 func (m mockExecer) QueryContext(ctx context.Context, query string, args ...interface{}) (sqlapi.SqlRows, error) {
 	return nil, nil
 }
@@ -843,10 +815,38 @@ func (m mockExecer) QueryRowContext(ctx context.Context, query string, args ...i
 	return nil
 }
 
+func (m mockExecer) ExecContext(ctx context.Context, query string, args ...interface{}) (int64, error) {
+	return m.RowsAffected, m.Error
+}
+
+func (m mockExecer) InsertContext(ctx context.Context, query string, args ...interface{}) (int64, error) {
+	panic("implement me")
+}
+
+func (m mockExecer) PrepareContext(ctx context.Context, name, query string) (sqlapi.SqlStmt, error) {
+	return nil, nil
+}
+
+func (m mockExecer) IsTx() bool {
+	panic("implement me")
+}
+
+func (m mockExecer) SingleConn(ctx context.Context, fn func(conn *sql.Conn) error) error {
+	panic("implement me")
+}
+
+func (m mockExecer) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(sqlapi.SqlTx) error) error {
+	panic("implement me")
+}
+
 func (m mockExecer) PingContext(ctx context.Context) error {
 	panic("implement me")
 }
 
 func (m mockExecer) Stats() sql.DBStats {
+	panic("implement me")
+}
+
+func (m mockExecer) Close() error {
 	panic("implement me")
 }

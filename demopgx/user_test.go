@@ -52,6 +52,8 @@ func connect(t *testing.T) (pgxapi.SqlDB, dialect.Dialect) {
 		if op, x := errors.Cause(err).(*net.OpError); x {
 			t.Log("ignored", op)
 			t.Skip()
+		} else {
+			t.Fatal(err)
 		}
 	}
 	return db, di
@@ -749,7 +751,7 @@ func (m mockExecer) Logger() pgxapi.Logger {
 	return m
 }
 
-func (m mockExecer) BeginTx(ctx context.Context, opts *pgx.TxOptions) (pgxapi.SqlTx, error) {
+func (m mockExecer) SingleConn(ctx context.Context, fn func(conn *pgx.Conn) error) error {
 	panic("implement me")
 }
 

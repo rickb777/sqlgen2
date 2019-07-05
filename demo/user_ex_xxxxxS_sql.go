@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.31.0; sqlgen v0.51.0
+// sqlapi v0.32.0; sqlgen v0.52.0
 
 package demo
 
@@ -169,7 +169,7 @@ func (tbl SUserTable) Using(tx sqlapi.SqlTx) SUserTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits.
+// Therefore they do not commit until the outermost transaction commits. 
 func (tbl SUserTable) Transact(txOptions *sql.TxOptions, fn func(SUserTable) error) error {
 	var err error
 	if tbl.IsTx() {

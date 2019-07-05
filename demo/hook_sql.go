@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.31.0; sqlgen v0.51.0
+// sqlapi v0.32.0; sqlgen v0.52.0
 
 package demo
 
@@ -167,7 +167,7 @@ func (tbl HookTable) Using(tx sqlapi.SqlTx) HookTable {
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
-// Therefore they do not commit until the outermost transaction commits.
+// Therefore they do not commit until the outermost transaction commits. 
 func (tbl HookTable) Transact(txOptions *sql.TxOptions, fn func(HookTable) error) error {
 	var err error
 	if tbl.IsTx() {
@@ -1093,7 +1093,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 			}
 
 			v.Id = uint64(i64)
-		}
+			}
 
 		if err != nil {
 			return tbl.Logger().LogError(err)
@@ -1161,9 +1161,9 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified
-// key column(s). It must match either zero or one existing record. If it matches
-// none, a new record is inserted; otherwise the matching record is updated. An
+// This expression is used to search for an existing record based on some specified 
+// key column(s). It must match either zero or one existing record. If it matches 
+// none, a new record is inserted; otherwise the matching record is updated. An 
 // error results if these conditions are not met.
 func (tbl HookTable) Upsert(v *Hook, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)
