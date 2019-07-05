@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0
+// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
 
 package demo
 
@@ -61,6 +61,13 @@ type IssueTabler interface {
 
 	CountWhere(where string, args ...interface{}) (count int64, err error)
 	Count(wh where.Expression) (count int64, err error)
+
+	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceNumber(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int, error)
+	SliceTitle(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceBigbody(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceAssignee(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceState(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	constructIssueUpdate(w dialect.StringWriter, v *Issue) (s []interface{}, err error)
 

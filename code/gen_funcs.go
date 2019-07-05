@@ -42,8 +42,9 @@ func WriteCountRowsFuncs(w1, w2 io.Writer, view View) {
 	must(tCountRowsFunc.Execute(w2, view))
 }
 
-func WriteSliceColumn(w io.Writer, view View) {
-	must(tSliceItem.Execute(w, view))
+func WriteSliceColumn(w1, w2 io.Writer, view View) {
+	must(tSliceItemDecl.Execute(w1, view))
+	must(tSliceItemFunc.Execute(w2, view))
 }
 
 func WriteInsertFunc(w1, w2 io.Writer, view View) {

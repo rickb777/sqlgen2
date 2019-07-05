@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0
+// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
 
 package demopgx
 
@@ -66,6 +66,10 @@ type AddressTabler interface {
 
 	CountWhere(where string, args ...interface{}) (count int64, err error)
 	Count(wh where.Expression) (count int64, err error)
+
+	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceTown(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SlicePostcode(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	constructAddressUpdate(w dialect.StringWriter, v *Address) (s []interface{}, err error)
 

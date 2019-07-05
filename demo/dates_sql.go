@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0
+// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
 
 package demo
 
@@ -54,6 +54,10 @@ type DatesTabler interface {
 
 	CountWhere(where string, args ...interface{}) (count int64, err error)
 	Count(wh where.Expression) (count int64, err error)
+
+	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
+	SliceInteger(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error)
+	SliceString(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error)
 
 	constructDatesUpdate(w dialect.StringWriter, v *Dates) (s []interface{}, err error)
 
@@ -657,17 +661,17 @@ func (tbl DatesTable) SliceId(req require.Requirement, wh where.Expression, qc w
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DatesTable) SliceInteger(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error) {
-	return tbl.sliceDateList(req, "integer", wh, qc)
+	return sliceDatesTableDateList(tbl, req, "integer", wh, qc)
 }
 
 // SliceString gets the string column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DatesTable) SliceString(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error) {
-	return tbl.sliceDateStringList(req, "string", wh, qc)
+	return sliceDatesTableDateStringList(tbl, req, "string", wh, qc)
 }
 
-func (tbl DatesTable) sliceDateList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error) {
+func sliceDatesTableDateList(tbl DatesTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
@@ -692,7 +696,7 @@ func (tbl DatesTable) sliceDateList(req require.Requirement, sqlname string, wh 
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl DatesTable) sliceDateStringList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error) {
+func sliceDatesTableDateStringList(tbl DatesTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)

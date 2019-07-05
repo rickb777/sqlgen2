@@ -285,7 +285,7 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 	}
 
 	if flags.Slice {
-		WriteSliceColumn(structBuf, view)
+		WriteSliceColumn(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Insert {

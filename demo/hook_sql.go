@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0
+// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
 
 package demo
 
@@ -53,6 +53,21 @@ type HookTabler interface {
 
 	CountWhere(where string, args ...interface{}) (count int64, err error)
 	Count(wh where.Expression) (count int64, err error)
+
+	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
+	SliceSha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceAfter(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceBefore(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceCommitId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceMessage(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceTimestamp(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceHeadCommitAuthorName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceHeadCommitAuthorUsername(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceHeadCommitCommitterName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceHeadCommitCommitterUsername(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
+	SliceHeadCommitAuthorEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error)
+	SliceHeadCommitCommitterEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error)
 
 	constructHookUpdate(w dialect.StringWriter, v *Hook) (s []interface{}, err error)
 
@@ -824,24 +839,24 @@ func (tbl HookTable) SliceHeadCommitCommitterUsername(req require.Requirement, w
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return tbl.sliceCategoryList(req, "category", wh, qc)
+	return sliceHookTableCategoryList(tbl, req, "category", wh, qc)
 }
 
 // SliceHeadCommitAuthorEmail gets the head_commit_author_email column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitAuthorEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
-	return tbl.sliceEmailList(req, "head_commit_author_email", wh, qc)
+	return sliceHookTableEmailList(tbl, req, "head_commit_author_email", wh, qc)
 }
 
 // SliceHeadCommitCommitterEmail gets the head_commit_committer_email column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl HookTable) SliceHeadCommitCommitterEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
-	return tbl.sliceEmailList(req, "head_commit_committer_email", wh, qc)
+	return sliceHookTableEmailList(tbl, req, "head_commit_committer_email", wh, qc)
 }
 
-func (tbl HookTable) sliceCategoryList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+func sliceHookTableCategoryList(tbl HookTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
@@ -866,7 +881,7 @@ func (tbl HookTable) sliceCategoryList(req require.Requirement, sqlname string, 
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl HookTable) sliceEmailList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+func sliceHookTableEmailList(tbl HookTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)

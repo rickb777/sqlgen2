@@ -326,7 +326,19 @@ var tCountRowsFunc = template.Must(template.New("CountRowsFunc").Funcs(funcMap).
 
 //-------------------------------------------------------------------------------------------------
 
-const sSliceItem = `
+const sSliceItemDecl = `
+{{- if .Table.HasPrimaryKey}}
+	Slice{{camel .Table.Primary.SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Table.Primary.Type.Type}}, error)
+{{- end}}
+{{- range .Table.SimpleFields.NoSkips.NoPrimary.BasicType}}
+	Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error)
+{{- end}}
+{{- range .Table.SimpleFields.NoSkips.NoPrimary.DerivedType}}
+	Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error)
+{{- end}}
+`
+
+const sSliceItemFunc = `
 //--------------------------------------------------------------------------------
 {{- if .Table.HasPrimaryKey}}
 
@@ -352,12 +364,12 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error) {
-	return tbl.slice{{camel .Type.Tag}}List(req, "{{.SqlName}}", wh, qc)
+	return slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Type.Tag}}List(tbl, req, "{{.SqlName}}", wh, qc)
 }
 {{- end}}
 {{- range .Table.SimpleFields.NoSkips.NoPrimary.DerivedType.DistinctTypes}}
 
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) slice{{camel .Tag}}List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
+func slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Tag}}List(tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
@@ -384,7 +396,8 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) slice{{camel .Tag}}List(req require
 {{- end}}
 `
 
-var tSliceItem = template.Must(template.New("SliceItem").Funcs(funcMap).Parse(sSliceItem))
+var tSliceItemDecl = template.Must(template.New("SliceItemDecl").Funcs(funcMap).Parse(sSliceItemDecl))
+var tSliceItemFunc = template.Must(template.New("SliceItemFunc").Funcs(funcMap).Parse(sSliceItemFunc))
 
 //-------------------------------------------------------------------------------------------------
 

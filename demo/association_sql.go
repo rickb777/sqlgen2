@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0
+// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
 
 package demo
 
@@ -53,6 +53,13 @@ type AssociationTabler interface {
 
 	CountWhere(where string, args ...interface{}) (count int64, err error)
 	Count(wh where.Expression) (count int64, err error)
+
+	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceRef1(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceRef2(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]QualName, error)
+	SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
 
 	constructAssociationUpdate(w dialect.StringWriter, v *Association) (s []interface{}, err error)
 
@@ -713,17 +720,17 @@ func (tbl AssociationTable) SliceRef2(req require.Requirement, wh where.Expressi
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
-	return tbl.sliceQualNamePtrList(req, "quality", wh, qc)
+	return sliceAssociationTableQualNamePtrList(tbl, req, "quality", wh, qc)
 }
 
 // SliceCategory gets the category column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl AssociationTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return tbl.sliceCategoryPtrList(req, "category", wh, qc)
+	return sliceAssociationTableCategoryPtrList(tbl, req, "category", wh, qc)
 }
 
-func (tbl AssociationTable) sliceCategoryPtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+func sliceAssociationTableCategoryPtrList(tbl AssociationTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
@@ -748,7 +755,7 @@ func (tbl AssociationTable) sliceCategoryPtrList(req require.Requirement, sqlnam
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl AssociationTable) sliceQualNamePtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
+func sliceAssociationTableQualNamePtrList(tbl AssociationTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)

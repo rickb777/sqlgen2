@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0
+// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
 
 package demo
 
@@ -57,6 +57,10 @@ type DbCompoundTabler interface {
 
 	CountWhere(where string, args ...interface{}) (count int64, err error)
 	Count(wh where.Expression) (count int64, err error)
+
+	SliceAlpha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceBeta(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
 
 	constructDbCompoundUpdate(w dialect.StringWriter, v *Compound) (s []interface{}, err error)
 
@@ -710,10 +714,10 @@ func (tbl DbCompoundTable) SliceBeta(req require.Requirement, wh where.Expressio
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbCompoundTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return tbl.sliceCategoryList(req, "category", wh, qc)
+	return sliceDbCompoundTableCategoryList(tbl, req, "category", wh, qc)
 }
 
-func (tbl DbCompoundTable) sliceCategoryList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+func sliceDbCompoundTableCategoryList(tbl DbCompoundTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)

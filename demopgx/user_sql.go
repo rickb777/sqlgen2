@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0
+// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
 
 package demopgx
 
@@ -67,6 +67,24 @@ type DbUserTabler interface {
 
 	CountWhere(where string, args ...interface{}) (count int64, err error)
 	Count(wh where.Expression) (count int64, err error)
+
+	SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceAvatar(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceLastupdated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error)
+	SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error)
+	SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error)
+	SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error)
+	SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error)
+	SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error)
+	SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
+	SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error)
+	SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error)
+	SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error)
 
 	constructDbUserUpdate(w dialect.StringWriter, v *User) (s []interface{}, err error)
 
@@ -1068,24 +1086,24 @@ func (tbl DbUserTable) SliceU64(req require.Requirement, wh where.Expression, qc
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
-	return tbl.sliceRolePtrList(req, "role", wh, qc)
+	return sliceDbUserTableRolePtrList(tbl, req, "role", wh, qc)
 }
 
 // SliceF32 gets the f32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
-	return tbl.sliceFloat32List(req, "f32", wh, qc)
+	return sliceDbUserTableFloat32List(tbl, req, "f32", wh, qc)
 }
 
 // SliceF64 gets the f64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 func (tbl DbUserTable) SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
-	return tbl.sliceFloat64List(req, "f64", wh, qc)
+	return sliceDbUserTableFloat64List(tbl, req, "f64", wh, qc)
 }
 
-func (tbl DbUserTable) sliceRolePtrList(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
+func sliceDbUserTableRolePtrList(tbl DbUserTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
@@ -1110,7 +1128,7 @@ func (tbl DbUserTable) sliceRolePtrList(req require.Requirement, sqlname string,
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl DbUserTable) sliceFloat32List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+func sliceDbUserTableFloat32List(tbl DbUserTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
@@ -1135,7 +1153,7 @@ func (tbl DbUserTable) sliceFloat32List(req require.Requirement, sqlname string,
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl DbUserTable) sliceFloat64List(req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+func sliceDbUserTableFloat64List(tbl DbUserTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
