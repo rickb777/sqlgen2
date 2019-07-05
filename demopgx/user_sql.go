@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
+// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
 
 package demopgx
 
@@ -49,7 +49,6 @@ type DbUserTabler interface {
 	Truncate(force bool) (err error)
 
 	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
-	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
 
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
@@ -636,10 +635,10 @@ func (tbl DbUserTable) Exec(req require.Requirement, query string, args ...inter
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *pgxapi.Rows if you need to access its data as a map.
 func (tbl DbUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return tbl.doQueryAndScan(req, false, query, args)
+	return doDbUserTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func (tbl DbUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func doDbUserTableQueryAndScan(tbl DbUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -831,7 +830,7 @@ func (tbl DbUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list
 			args[i] = v
 		}
 
-		list, err = tbl.getUsers(req, tbl.pk, args...)
+		list, err = getDbUserTableUsers(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -858,13 +857,14 @@ func (tbl DbUserTable) GetUserByName(req require.Requirement, name string) (*Use
 func getDbUser(tbl DbUserTable, req require.Requirement, column string, arg interface{}) (*User, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allDbUserColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
-	v, err := tbl.doQueryAndScanOne(req, query, arg)
+		allDbUserColumnNamesQuoted(q), quotedName, q.Quote(column))
+	v, err := doDbUserTableQueryAndScanOne(tbl, req, query, arg)
 	return v, err
 }
 
-func (tbl DbUserTable) getUsers(req require.Requirement, column string, args ...interface{}) (list []*User, err error) {
+func getDbUserTableUsers(tbl DbUserTabler, req require.Requirement, column string, args ...interface{}) (list []*User, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -872,16 +872,17 @@ func (tbl DbUserTable) getUsers(req require.Requirement, column string, args ...
 		d := tbl.Dialect()
 		q := d.Quoter()
 		pl := d.Placeholders(len(args))
+		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allDbUserColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
-		list, err = tbl.doQueryAndScan(req, false, query, args...)
+			allDbUserColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
+		list, err = doDbUserTableQueryAndScan(tbl, req, false, query, args...)
 	}
 
 	return list, err
 }
 
-func (tbl DbUserTable) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*User, error) {
-	list, err := tbl.doQueryAndScan(req, true, query, args...)
+func doDbUserTableQueryAndScanOne(tbl DbUserTabler, req require.Requirement, query string, args ...interface{}) (*User, error) {
+	list, err := doDbUserTableQueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -891,7 +892,7 @@ func (tbl DbUserTable) doQueryAndScanOne(req require.Requirement, query string, 
 // Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of User. Other queries might be better handled by GetXxx or Select methods.
 func (tbl DbUserTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return tbl.doQueryAndScan(req, false, query, args...)
+	return doDbUserTableQueryAndScan(tbl, req, false, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -906,9 +907,10 @@ func (tbl DbUserTable) Fetch(req require.Requirement, query string, args ...inte
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbUserTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allDbUserColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	v, err := tbl.doQueryAndScanOne(req, query, args...)
+		allDbUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	v, err := doDbUserTableQueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -935,9 +937,10 @@ func (tbl DbUserTable) SelectOne(req require.Requirement, wh where.Expression, q
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbUserTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allDbUserColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	vv, err := tbl.doQueryAndScan(req, false, query, args...)
+		allDbUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	vv, err := doDbUserTableQueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -961,7 +964,8 @@ func (tbl DbUserTable) Select(req require.Requirement, wh where.Expression, qc w
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err
@@ -1101,11 +1105,12 @@ func (tbl DbUserTable) SliceF64(req require.Requirement, wh where.Expression, qc
 	return sliceDbUserTableFloat64List(tbl, req, "f64", wh, qc)
 }
 
-func sliceDbUserTableRolePtrList(tbl DbUserTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
+func sliceDbUserTableRolePtrList(tbl DbUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -1126,11 +1131,12 @@ func sliceDbUserTableRolePtrList(tbl DbUserTable, req require.Requirement, sqlna
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceDbUserTableFloat32List(tbl DbUserTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+func sliceDbUserTableFloat32List(tbl DbUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -1151,11 +1157,12 @@ func sliceDbUserTableFloat32List(tbl DbUserTable, req require.Requirement, sqlna
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceDbUserTableFloat64List(tbl DbUserTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+func sliceDbUserTableFloat64List(tbl DbUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -1661,13 +1668,14 @@ func (tbl DbUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64,
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl DbUserTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := tbl.deleteRows(wh)
+	query, args := sqlDbUserTableDeleteRows(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func (tbl DbUserTable) deleteRows(wh where.Expression) (string, []interface{}) {
+func sqlDbUserTableDeleteRows(tbl DbUserTabler, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s %s", tbl.quotedName(), whs)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)
 	return query, args
 }
 

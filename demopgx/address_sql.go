@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
+// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
 
 package demopgx
 
@@ -48,7 +48,6 @@ type AddressTabler interface {
 	Truncate(force bool) (err error)
 
 	Query(req require.Requirement, query string, args ...interface{}) ([]*Address, error)
-	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error)
 
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
@@ -546,10 +545,10 @@ func (tbl AddressTable) Exec(req require.Requirement, query string, args ...inte
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *pgxapi.Rows if you need to access its data as a map.
 func (tbl AddressTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Address, error) {
-	return tbl.doQueryAndScan(req, false, query, args)
+	return doAddressTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func (tbl AddressTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
+func doAddressTableQueryAndScan(tbl AddressTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -678,7 +677,7 @@ func (tbl AddressTable) GetAddressesById(req require.Requirement, id ...int64) (
 			args[i] = v
 		}
 
-		list, err = tbl.getAddresses(req, tbl.pk, args...)
+		list, err = getAddressTableAddresses(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -705,13 +704,14 @@ func (tbl AddressTable) GetAddressesByTown(req require.Requirement, town string)
 func getAddress(tbl AddressTable, req require.Requirement, column string, arg interface{}) (*Address, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allAddressColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
-	v, err := tbl.doQueryAndScanOne(req, query, arg)
+		allAddressColumnNamesQuoted(q), quotedName, q.Quote(column))
+	v, err := doAddressTableQueryAndScanOne(tbl, req, query, arg)
 	return v, err
 }
 
-func (tbl AddressTable) getAddresses(req require.Requirement, column string, args ...interface{}) (list []*Address, err error) {
+func getAddressTableAddresses(tbl AddressTabler, req require.Requirement, column string, args ...interface{}) (list []*Address, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -719,16 +719,17 @@ func (tbl AddressTable) getAddresses(req require.Requirement, column string, arg
 		d := tbl.Dialect()
 		q := d.Quoter()
 		pl := d.Placeholders(len(args))
+		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allAddressColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
-		list, err = tbl.doQueryAndScan(req, false, query, args...)
+			allAddressColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
+		list, err = doAddressTableQueryAndScan(tbl, req, false, query, args...)
 	}
 
 	return list, err
 }
 
-func (tbl AddressTable) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*Address, error) {
-	list, err := tbl.doQueryAndScan(req, true, query, args...)
+func doAddressTableQueryAndScanOne(tbl AddressTabler, req require.Requirement, query string, args ...interface{}) (*Address, error) {
+	list, err := doAddressTableQueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -738,7 +739,7 @@ func (tbl AddressTable) doQueryAndScanOne(req require.Requirement, query string,
 // Fetch fetches a list of Address based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of Address. Other queries might be better handled by GetXxx or Select methods.
 func (tbl AddressTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Address, error) {
-	return tbl.doQueryAndScan(req, false, query, args...)
+	return doAddressTableQueryAndScan(tbl, req, false, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -753,9 +754,10 @@ func (tbl AddressTable) Fetch(req require.Requirement, query string, args ...int
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	v, err := tbl.doQueryAndScanOne(req, query, args...)
+		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	v, err := doAddressTableQueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -782,9 +784,10 @@ func (tbl AddressTable) SelectOne(req require.Requirement, wh where.Expression, 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Address, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	vv, err := tbl.doQueryAndScan(req, false, query, args...)
+		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	vv, err := doAddressTableQueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -808,7 +811,8 @@ func (tbl AddressTable) Select(req require.Requirement, wh where.Expression, qc 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AddressTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err
@@ -1141,13 +1145,14 @@ func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (i
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl AddressTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := tbl.deleteRows(wh)
+	query, args := sqlAddressTableDeleteRows(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func (tbl AddressTable) deleteRows(wh where.Expression) (string, []interface{}) {
+func sqlAddressTableDeleteRows(tbl AddressTabler, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s %s", tbl.quotedName(), whs)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)
 	return query, args
 }
 

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
+// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
 
 package demo
 
@@ -42,7 +42,6 @@ type DbCompoundTabler interface {
 	Truncate(force bool) (err error)
 
 	Query(req require.Requirement, query string, args ...interface{}) ([]*Compound, error)
-	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Compound, error)
 
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
@@ -457,10 +456,10 @@ func (tbl DbCompoundTable) Exec(req require.Requirement, query string, args ...i
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl DbCompoundTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Compound, error) {
-	return tbl.doQueryAndScan(req, false, query, args)
+	return doDbCompoundTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func (tbl DbCompoundTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Compound, error) {
+func doDbCompoundTableQueryAndScan(tbl DbCompoundTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Compound, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -570,13 +569,14 @@ func (tbl DbCompoundTable) GetCompoundByAlphaAndBeta(req require.Requirement, al
 func getDbCompound(tbl DbCompoundTable, req require.Requirement, column string, arg interface{}) (*Compound, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allDbCompoundColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
-	v, err := tbl.doQueryAndScanOne(req, query, arg)
+		allDbCompoundColumnNamesQuoted(q), quotedName, q.Quote(column))
+	v, err := doDbCompoundTableQueryAndScanOne(tbl, req, query, arg)
 	return v, err
 }
 
-func (tbl DbCompoundTable) getCompounds(req require.Requirement, column string, args ...interface{}) (list []*Compound, err error) {
+func getDbCompoundTableCompounds(tbl DbCompoundTabler, req require.Requirement, column string, args ...interface{}) (list []*Compound, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -584,16 +584,17 @@ func (tbl DbCompoundTable) getCompounds(req require.Requirement, column string, 
 		d := tbl.Dialect()
 		q := d.Quoter()
 		pl := d.Placeholders(len(args))
+		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allDbCompoundColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
-		list, err = tbl.doQueryAndScan(req, false, query, args...)
+			allDbCompoundColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
+		list, err = doDbCompoundTableQueryAndScan(tbl, req, false, query, args...)
 	}
 
 	return list, err
 }
 
-func (tbl DbCompoundTable) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*Compound, error) {
-	list, err := tbl.doQueryAndScan(req, true, query, args...)
+func doDbCompoundTableQueryAndScanOne(tbl DbCompoundTabler, req require.Requirement, query string, args ...interface{}) (*Compound, error) {
+	list, err := doDbCompoundTableQueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -603,7 +604,7 @@ func (tbl DbCompoundTable) doQueryAndScanOne(req require.Requirement, query stri
 // Fetch fetches a list of Compound based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of Compound. Other queries might be better handled by GetXxx or Select methods.
 func (tbl DbCompoundTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Compound, error) {
-	return tbl.doQueryAndScan(req, false, query, args...)
+	return doDbCompoundTableQueryAndScan(tbl, req, false, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -618,9 +619,10 @@ func (tbl DbCompoundTable) Fetch(req require.Requirement, query string, args ...
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Compound, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allDbCompoundColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	v, err := tbl.doQueryAndScanOne(req, query, args...)
+		allDbCompoundColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	v, err := doDbCompoundTableQueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -647,9 +649,10 @@ func (tbl DbCompoundTable) SelectOne(req require.Requirement, wh where.Expressio
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Compound, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allDbCompoundColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	vv, err := tbl.doQueryAndScan(req, false, query, args...)
+		allDbCompoundColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	vv, err := doDbCompoundTableQueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -673,7 +676,8 @@ func (tbl DbCompoundTable) Select(req require.Requirement, wh where.Expression, 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl DbCompoundTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err
@@ -715,11 +719,12 @@ func (tbl DbCompoundTable) SliceCategory(req require.Requirement, wh where.Expre
 	return sliceDbCompoundTableCategoryList(tbl, req, "category", wh, qc)
 }
 
-func sliceDbCompoundTableCategoryList(tbl DbCompoundTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+func sliceDbCompoundTableCategoryList(tbl DbCompoundTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -864,13 +869,14 @@ func (tbl DbCompoundTable) UpdateFields(req require.Requirement, wh where.Expres
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl DbCompoundTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := tbl.deleteRows(wh)
+	query, args := sqlDbCompoundTableDeleteRows(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func (tbl DbCompoundTable) deleteRows(wh where.Expression) (string, []interface{}) {
+func sqlDbCompoundTableDeleteRows(tbl DbCompoundTabler, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s %s", tbl.quotedName(), whs)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)
 	return query, args
 }
 

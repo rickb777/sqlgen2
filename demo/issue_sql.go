@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
+// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
 
 package demo
 
@@ -44,7 +44,6 @@ type IssueTabler interface {
 	Truncate(force bool) (err error)
 
 	Query(req require.Requirement, query string, args ...interface{}) ([]*Issue, error)
-	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Issue, error)
 
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
@@ -501,10 +500,10 @@ func (tbl IssueTable) Exec(req require.Requirement, query string, args ...interf
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl IssueTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Issue, error) {
-	return tbl.doQueryAndScan(req, false, query, args)
+	return doIssueTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func (tbl IssueTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Issue, error) {
+func doIssueTableQueryAndScan(tbl IssueTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Issue, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -642,7 +641,7 @@ func (tbl IssueTable) GetIssuesById(req require.Requirement, id ...int64) (list 
 			args[i] = v
 		}
 
-		list, err = tbl.getIssues(req, tbl.pk, args...)
+		list, err = getIssueTableIssues(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -663,13 +662,14 @@ func (tbl IssueTable) GetIssuesByAssignee(req require.Requirement, assignee stri
 func getIssue(tbl IssueTable, req require.Requirement, column string, arg interface{}) (*Issue, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allIssueColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
-	v, err := tbl.doQueryAndScanOne(req, query, arg)
+		allIssueColumnNamesQuoted(q), quotedName, q.Quote(column))
+	v, err := doIssueTableQueryAndScanOne(tbl, req, query, arg)
 	return v, err
 }
 
-func (tbl IssueTable) getIssues(req require.Requirement, column string, args ...interface{}) (list []*Issue, err error) {
+func getIssueTableIssues(tbl IssueTabler, req require.Requirement, column string, args ...interface{}) (list []*Issue, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -677,16 +677,17 @@ func (tbl IssueTable) getIssues(req require.Requirement, column string, args ...
 		d := tbl.Dialect()
 		q := d.Quoter()
 		pl := d.Placeholders(len(args))
+		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allIssueColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
-		list, err = tbl.doQueryAndScan(req, false, query, args...)
+			allIssueColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
+		list, err = doIssueTableQueryAndScan(tbl, req, false, query, args...)
 	}
 
 	return list, err
 }
 
-func (tbl IssueTable) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*Issue, error) {
-	list, err := tbl.doQueryAndScan(req, true, query, args...)
+func doIssueTableQueryAndScanOne(tbl IssueTabler, req require.Requirement, query string, args ...interface{}) (*Issue, error) {
+	list, err := doIssueTableQueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -696,7 +697,7 @@ func (tbl IssueTable) doQueryAndScanOne(req require.Requirement, query string, a
 // Fetch fetches a list of Issue based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of Issue. Other queries might be better handled by GetXxx or Select methods.
 func (tbl IssueTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Issue, error) {
-	return tbl.doQueryAndScan(req, false, query, args...)
+	return doIssueTableQueryAndScan(tbl, req, false, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -711,9 +712,10 @@ func (tbl IssueTable) Fetch(req require.Requirement, query string, args ...inter
 //
 // The args are for any placeholder parameters in the query.
 func (tbl IssueTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Issue, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allIssueColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	v, err := tbl.doQueryAndScanOne(req, query, args...)
+		allIssueColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	v, err := doIssueTableQueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -740,9 +742,10 @@ func (tbl IssueTable) SelectOne(req require.Requirement, wh where.Expression, qc
 //
 // The args are for any placeholder parameters in the query.
 func (tbl IssueTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Issue, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allIssueColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	vv, err := tbl.doQueryAndScan(req, false, query, args...)
+		allIssueColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	vv, err := doIssueTableQueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -766,7 +769,8 @@ func (tbl IssueTable) Select(req require.Requirement, wh where.Expression, qc wh
 //
 // The args are for any placeholder parameters in the query.
 func (tbl IssueTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err
@@ -1153,13 +1157,14 @@ func (tbl IssueTable) DeleteIssues(req require.Requirement, id ...int64) (int64,
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl IssueTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := tbl.deleteRows(wh)
+	query, args := sqlIssueTableDeleteRows(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func (tbl IssueTable) deleteRows(wh where.Expression) (string, []interface{}) {
+func sqlIssueTableDeleteRows(tbl IssueTabler, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s %s", tbl.quotedName(), whs)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)
 	return query, args
 }
 

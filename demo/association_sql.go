@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
+// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
 
 package demo
 
@@ -37,7 +37,6 @@ type AssociationTabler interface {
 	Truncate(force bool) (err error)
 
 	Query(req require.Requirement, query string, args ...interface{}) ([]*Association, error)
-	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Association, error)
 
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
@@ -400,10 +399,10 @@ func (tbl AssociationTable) Exec(req require.Requirement, query string, args ...
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl AssociationTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Association, error) {
-	return tbl.doQueryAndScan(req, false, query, args)
+	return doAssociationTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func (tbl AssociationTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Association, error) {
+func doAssociationTableQueryAndScan(tbl AssociationTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Association, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -547,7 +546,7 @@ func (tbl AssociationTable) GetAssociationsById(req require.Requirement, id ...i
 			args[i] = v
 		}
 
-		list, err = tbl.getAssociations(req, tbl.pk, args...)
+		list, err = getAssociationTableAssociations(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -562,13 +561,14 @@ func (tbl AssociationTable) GetAssociationById(req require.Requirement, id int64
 func getAssociation(tbl AssociationTable, req require.Requirement, column string, arg interface{}) (*Association, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allAssociationColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
-	v, err := tbl.doQueryAndScanOne(req, query, arg)
+		allAssociationColumnNamesQuoted(q), quotedName, q.Quote(column))
+	v, err := doAssociationTableQueryAndScanOne(tbl, req, query, arg)
 	return v, err
 }
 
-func (tbl AssociationTable) getAssociations(req require.Requirement, column string, args ...interface{}) (list []*Association, err error) {
+func getAssociationTableAssociations(tbl AssociationTabler, req require.Requirement, column string, args ...interface{}) (list []*Association, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -576,16 +576,17 @@ func (tbl AssociationTable) getAssociations(req require.Requirement, column stri
 		d := tbl.Dialect()
 		q := d.Quoter()
 		pl := d.Placeholders(len(args))
+		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allAssociationColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
-		list, err = tbl.doQueryAndScan(req, false, query, args...)
+			allAssociationColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
+		list, err = doAssociationTableQueryAndScan(tbl, req, false, query, args...)
 	}
 
 	return list, err
 }
 
-func (tbl AssociationTable) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*Association, error) {
-	list, err := tbl.doQueryAndScan(req, true, query, args...)
+func doAssociationTableQueryAndScanOne(tbl AssociationTabler, req require.Requirement, query string, args ...interface{}) (*Association, error) {
+	list, err := doAssociationTableQueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -595,7 +596,7 @@ func (tbl AssociationTable) doQueryAndScanOne(req require.Requirement, query str
 // Fetch fetches a list of Association based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of Association. Other queries might be better handled by GetXxx or Select methods.
 func (tbl AssociationTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Association, error) {
-	return tbl.doQueryAndScan(req, false, query, args...)
+	return doAssociationTableQueryAndScan(tbl, req, false, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -610,9 +611,10 @@ func (tbl AssociationTable) Fetch(req require.Requirement, query string, args ..
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	v, err := tbl.doQueryAndScanOne(req, query, args...)
+		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	v, err := doAssociationTableQueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -639,9 +641,10 @@ func (tbl AssociationTable) SelectOne(req require.Requirement, wh where.Expressi
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	vv, err := tbl.doQueryAndScan(req, false, query, args...)
+		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	vv, err := doAssociationTableQueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -665,7 +668,8 @@ func (tbl AssociationTable) Select(req require.Requirement, wh where.Expression,
 //
 // The args are for any placeholder parameters in the query.
 func (tbl AssociationTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err
@@ -728,11 +732,12 @@ func (tbl AssociationTable) SliceCategory(req require.Requirement, wh where.Expr
 	return sliceAssociationTableCategoryPtrList(tbl, req, "category", wh, qc)
 }
 
-func sliceAssociationTableCategoryPtrList(tbl AssociationTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+func sliceAssociationTableCategoryPtrList(tbl AssociationTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -753,11 +758,12 @@ func sliceAssociationTableCategoryPtrList(tbl AssociationTable, req require.Requ
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceAssociationTableQualNamePtrList(tbl AssociationTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
+func sliceAssociationTableQualNamePtrList(tbl AssociationTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -1116,13 +1122,14 @@ func (tbl AssociationTable) DeleteAssociations(req require.Requirement, id ...in
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl AssociationTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := tbl.deleteRows(wh)
+	query, args := sqlAssociationTableDeleteRows(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func (tbl AssociationTable) deleteRows(wh where.Expression) (string, []interface{}) {
+func sqlAssociationTableDeleteRows(tbl AssociationTabler, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s %s", tbl.quotedName(), whs)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)
 	return query, args
 }
 

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
+// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
 
 package demo
 
@@ -32,7 +32,6 @@ type DUserTabler interface {
 	Transact(txOptions *sql.TxOptions, fn func(DUserTabler) error) error
 
 	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
-	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
 
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
@@ -252,10 +251,10 @@ func (tbl DUserTable) Exec(req require.Requirement, query string, args ...interf
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl DUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return tbl.doQueryAndScan(req, false, query, args)
+	return doDUserTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func (tbl DUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func doDUserTableQueryAndScan(tbl DUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -482,13 +481,14 @@ func (tbl DUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl DUserTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := tbl.deleteRows(wh)
+	query, args := sqlDUserTableDeleteRows(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func (tbl DUserTable) deleteRows(wh where.Expression) (string, []interface{}) {
+func sqlDUserTableDeleteRows(tbl DUserTabler, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s %s", tbl.quotedName(), whs)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)
 	return query, args
 }
 

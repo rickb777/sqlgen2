@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
+// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
 
 package demo
 
@@ -32,7 +32,6 @@ type CUserTabler interface {
 	Transact(txOptions *sql.TxOptions, fn func(CUserTabler) error) error
 
 	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
-	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
 
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
@@ -245,10 +244,10 @@ var listOfCUserTableColumnNames = strings.Split(CUserTableColumnNames, ",")
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl CUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return tbl.doQueryAndScan(req, false, query, args)
+	return doCUserTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func (tbl CUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func doCUserTableQueryAndScan(tbl CUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -422,7 +421,8 @@ func scanCUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl CUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err

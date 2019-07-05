@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
+// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
 
 package demo
 
@@ -32,7 +32,6 @@ type UUserTabler interface {
 	Transact(txOptions *sql.TxOptions, fn func(UUserTabler) error) error
 
 	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
-	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
 
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
@@ -254,10 +253,10 @@ func (tbl UUserTable) Exec(req require.Requirement, query string, args ...interf
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl UUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return tbl.doQueryAndScan(req, false, query, args)
+	return doUUserTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func (tbl UUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func doUUserTableQueryAndScan(tbl UUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err

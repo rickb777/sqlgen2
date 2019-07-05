@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
+// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
 
 package demo
 
@@ -32,7 +32,6 @@ type SUserTabler interface {
 	Transact(txOptions *sql.TxOptions, fn func(SUserTabler) error) error
 
 	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
-	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
 
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
@@ -260,10 +259,10 @@ var listOfSUserTableColumnNames = strings.Split(SUserTableColumnNames, ",")
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl SUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return tbl.doQueryAndScan(req, false, query, args)
+	return doSUserTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func (tbl SUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func doSUserTableQueryAndScan(tbl SUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -551,11 +550,12 @@ func (tbl SUserTable) SliceF64(req require.Requirement, wh where.Expression, qc 
 	return sliceSUserTableFloat64List(tbl, req, "f64", wh, qc)
 }
 
-func sliceSUserTableRolePtrList(tbl SUserTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
+func sliceSUserTableRolePtrList(tbl SUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -576,11 +576,12 @@ func sliceSUserTableRolePtrList(tbl SUserTable, req require.Requirement, sqlname
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceSUserTableFloat32List(tbl SUserTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+func sliceSUserTableFloat32List(tbl SUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -601,11 +602,12 @@ func sliceSUserTableFloat32List(tbl SUserTable, req require.Requirement, sqlname
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceSUserTableFloat64List(tbl SUserTable, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+func sliceSUserTableFloat64List(tbl SUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err

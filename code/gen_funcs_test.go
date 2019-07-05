@@ -70,10 +70,10 @@ func TestWriteQueryRows(t *testing.T) {
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl XExampleTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Example, error) {
-	return tbl.doQueryAndScan(req, false, query, args)
+	return doXExampleTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func (tbl XExampleTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Example, error) {
+func doXExampleTableQueryAndScan(tbl XExampleTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Example, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
+// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
 
 package demo
 
@@ -33,7 +33,6 @@ type RUserTabler interface {
 	Transact(txOptions *sql.TxOptions, fn func(RUserTabler) error) error
 
 	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
-	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error)
 
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
@@ -256,10 +255,10 @@ var listOfRUserTableColumnNames = strings.Split(RUserTableColumnNames, ",")
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl RUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return tbl.doQueryAndScan(req, false, query, args)
+	return doRUserTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func (tbl RUserTable) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func doRUserTableQueryAndScan(tbl RUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -451,7 +450,7 @@ func (tbl RUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list 
 			args[i] = v
 		}
 
-		list, err = tbl.getUsers(req, tbl.pk, args...)
+		list, err = getRUserTableUsers(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -478,13 +477,14 @@ func (tbl RUserTable) GetUserByName(req require.Requirement, name string) (*User
 func getRUser(tbl RUserTable, req require.Requirement, column string, arg interface{}) (*User, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allRUserColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
-	v, err := tbl.doQueryAndScanOne(req, query, arg)
+		allRUserColumnNamesQuoted(q), quotedName, q.Quote(column))
+	v, err := doRUserTableQueryAndScanOne(tbl, req, query, arg)
 	return v, err
 }
 
-func (tbl RUserTable) getUsers(req require.Requirement, column string, args ...interface{}) (list []*User, err error) {
+func getRUserTableUsers(tbl RUserTabler, req require.Requirement, column string, args ...interface{}) (list []*User, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -492,16 +492,17 @@ func (tbl RUserTable) getUsers(req require.Requirement, column string, args ...i
 		d := tbl.Dialect()
 		q := d.Quoter()
 		pl := d.Placeholders(len(args))
+		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allRUserColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
-		list, err = tbl.doQueryAndScan(req, false, query, args...)
+			allRUserColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
+		list, err = doRUserTableQueryAndScan(tbl, req, false, query, args...)
 	}
 
 	return list, err
 }
 
-func (tbl RUserTable) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*User, error) {
-	list, err := tbl.doQueryAndScan(req, true, query, args...)
+func doRUserTableQueryAndScanOne(tbl RUserTabler, req require.Requirement, query string, args ...interface{}) (*User, error) {
+	list, err := doRUserTableQueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -511,7 +512,7 @@ func (tbl RUserTable) doQueryAndScanOne(req require.Requirement, query string, a
 // Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of User. Other queries might be better handled by GetXxx or Select methods.
 func (tbl RUserTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return tbl.doQueryAndScan(req, false, query, args...)
+	return doRUserTableQueryAndScan(tbl, req, false, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -526,9 +527,10 @@ func (tbl RUserTable) Fetch(req require.Requirement, query string, args ...inter
 //
 // The args are for any placeholder parameters in the query.
 func (tbl RUserTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allRUserColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	v, err := tbl.doQueryAndScanOne(req, query, args...)
+		allRUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	v, err := doRUserTableQueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -555,9 +557,10 @@ func (tbl RUserTable) SelectOne(req require.Requirement, wh where.Expression, qc
 //
 // The args are for any placeholder parameters in the query.
 func (tbl RUserTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allRUserColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	vv, err := tbl.doQueryAndScan(req, false, query, args...)
+		allRUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	vv, err := doRUserTableQueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -581,7 +584,8 @@ func (tbl RUserTable) Select(req require.Requirement, wh where.Expression, qc wh
 //
 // The args are for any placeholder parameters in the query.
 func (tbl RUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err

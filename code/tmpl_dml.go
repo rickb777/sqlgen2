@@ -18,7 +18,6 @@ var tExec = template.Must(template.New("Exec").Funcs(funcMap).Parse(sExec))
 
 const sQueryRowsDecl = `
 	Query(req require.Requirement, query string, args ...interface{}) ({{.List}}, error)
-	doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error)
 `
 
 const sQueryRowsFunc = `
@@ -35,10 +34,10 @@ const sQueryRowsFunc = `
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *{{.Sqlapi}}.Rows if you need to access its data as a map.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(req require.Requirement, query string, args ...interface{}) ({{.List}}, error) {
-	return tbl.doQueryAndScan(req, false, query, args)
+	return do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl, req, false, query, args)
 }
 
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryAndScan(req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
+func do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -143,7 +142,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}
 			args[i] = v
 		}
 
-		list, err = tbl.get{{.Types}}(req, tbl.pk, args...)
+		list, err = get{{.Prefix}}{{.Type}}{{.Thing}}{{.Types}}(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -176,13 +175,14 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And
 func get{{.Prefix}}{{.Type}}(tbl {{.Prefix}}{{.Type}}{{.Thing}}, req require.Requirement, column string, arg interface{}) (*{{.TypePkg}}{{.Type}}, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		all{{.CamelName}}ColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column))
-	v, err := tbl.doQueryAndScanOne(req, query, arg)
+		all{{.CamelName}}ColumnNamesQuoted(q), quotedName, q.Quote(column))
+	v, err := do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScanOne(tbl, req, query, arg)
 	return v, err
 }
 
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Types}}(req require.Requirement, column string, args ...interface{}) (list {{.List}}, err error) {
+func get{{.Prefix}}{{.Type}}{{.Thing}}{{.Types}}(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, column string, args ...interface{}) (list {{.List}}, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -190,16 +190,17 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) get{{.Types}}(req require.Requirement,
 		d := tbl.Dialect()
 		q := d.Quoter()
 		pl := d.Placeholders(len(args))
+		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			all{{.CamelName}}ColumnNamesQuoted(q), tbl.quotedName(), q.Quote(column), pl)
-		list, err = tbl.doQueryAndScan(req, false, query, args...)
+			all{{.CamelName}}ColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
+		list, err = do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl, req, false, query, args...)
 	}
 
 	return list, err
 }
 
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryAndScanOne(req require.Requirement, query string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error) {
-	list, err := tbl.doQueryAndScan(req, true, query, args...)
+func do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScanOne(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, query string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error) {
+	list, err := do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -209,7 +210,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) doQueryAndScanOne(req require.Requirem
 // Fetch fetches a list of {{.Type}} based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of {{.Type}}. Other queries might be better handled by GetXxx or Select methods.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Fetch(req require.Requirement, query string, args ...interface{}) ({{.List}}, error) {
-	return tbl.doQueryAndScan(req, false, query, args...)
+	return do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl, req, false, query, args...)
 }
 `
 
@@ -236,9 +237,10 @@ const sSelectRowsFunc = `
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	v, err := tbl.doQueryAndScanOne(req, query, args...)
+		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	v, err := do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -265,9 +267,10 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(req require.Requirement, wh 
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ({{.List}}, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), tbl.quotedName(), where, orderBy)
-	vv, err := tbl.doQueryAndScan(req, false, query, args...)
+		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	vv, err := do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -301,7 +304,8 @@ const sCountRowsFunc = `
 //
 // The args are for any placeholder parameters in the query.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", tbl.quotedName(), where)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err
@@ -369,11 +373,12 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require
 {{- end}}
 {{- range .Table.SimpleFields.NoSkips.NoPrimary.DerivedType.DistinctTypes}}
 
-func slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Tag}}List(tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
+func slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Tag}}List(tbl {{$.Prefix}}{{$.Type}}{{$.Thinger}}, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), tbl.quotedName(), whs, orderBy)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -706,13 +711,14 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := tbl.deleteRows(wh)
+	query, args := sql{{.Prefix}}{{.Type}}{{.Thing}}DeleteRows(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) deleteRows(wh where.Expression) (string, []interface{}) {
+func sql{{.Prefix}}{{.Type}}{{.Thing}}DeleteRows(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	query := fmt.Sprintf("DELETE FROM %s %s", tbl.quotedName(), whs)
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)
 	return query, args
 }
 `
