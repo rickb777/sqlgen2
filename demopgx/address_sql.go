@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
+// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
 
 package demopgx
 
@@ -70,8 +70,6 @@ type AddressTabler interface {
 	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 	SliceTown(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 	SlicePostcode(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
-
-	constructAddressUpdate(w dialect.StringWriter, v *Address) (s []interface{}, err error)
 
 	Insert(req require.Requirement, vv ...*Address) error
 
@@ -852,7 +850,7 @@ func (tbl AddressTable) SlicePostcode(req require.Requirement, wh where.Expressi
 	return support.SliceStringList(tbl, req, "postcode", wh, qc)
 }
 
-func (tbl AddressTable) constructAddressInsert(w dialect.StringWriter, v *Address, withPk bool) (s []interface{}, err error) {
+func constructAddressTableInsert(tbl AddressTable, w dialect.StringWriter, v *Address, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 4)
 
@@ -888,7 +886,7 @@ func (tbl AddressTable) constructAddressInsert(w dialect.StringWriter, v *Addres
 	return s, nil
 }
 
-func (tbl AddressTable) constructAddressUpdate(w dialect.StringWriter, v *Address) (s []interface{}, err error) {
+func constructAddressTableUpdate(tbl AddressTable, w dialect.StringWriter, v *Address) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 3)
@@ -956,7 +954,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
-		fields, err := tbl.constructAddressInsert(b, v, false)
+		fields, err := constructAddressTableInsert(tbl, b, v, false)
 		if err != nil {
 			return tbl.Logger().LogError(err)
 		}
@@ -1024,7 +1022,7 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
-		args, err := tbl.constructAddressUpdate(b, v)
+		args, err := constructAddressTableUpdate(tbl, b, v)
 		if err != nil {
 			return count, err
 		}

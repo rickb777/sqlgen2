@@ -17,7 +17,7 @@ func TestWriteConstructInsert(t *testing.T) {
 
 	code := buf.String()
 	expected := `
-func (tbl XExampleTable) constructXExampleInsert(w dialect.StringWriter, v *Example, withPk bool) (s []interface{}, err error) {
+func constructXExampleTableInsert(tbl XExampleTable, w dialect.StringWriter, v *Example, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 17)
 
@@ -137,14 +137,13 @@ func TestWriteConstructUpdate(t *testing.T) {
 
 	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = fixtureTable()
-	buf1 := &bytes.Buffer{}
 	buf2 := &bytes.Buffer{}
 
-	WriteConstructUpdate(buf1, buf2, view)
+	WriteConstructUpdate(buf2, view)
 
 	code := buf2.String()
 	expected := `
-func (tbl XExampleTable) constructXExampleUpdate(w dialect.StringWriter, v *Example) (s []interface{}, err error) {
+func constructXExampleTableUpdate(tbl XExampleTable, w dialect.StringWriter, v *Example) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 16)

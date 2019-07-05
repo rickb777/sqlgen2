@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
+// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
 
 package demo
 
@@ -68,8 +68,6 @@ type HookTabler interface {
 	SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
 	SliceHeadCommitAuthorEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error)
 	SliceHeadCommitCommitterEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error)
-
-	constructHookUpdate(w dialect.StringWriter, v *Hook) (s []interface{}, err error)
 
 	Insert(req require.Requirement, vv ...*Hook) error
 
@@ -906,7 +904,7 @@ func sliceHookTableEmailList(tbl HookTable, req require.Requirement, sqlname str
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl HookTable) constructHookInsert(w dialect.StringWriter, v *Hook, withPk bool) (s []interface{}, err error) {
+func constructHookTableInsert(tbl HookTable, w dialect.StringWriter, v *Hook, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 17)
 
@@ -988,7 +986,7 @@ func (tbl HookTable) constructHookInsert(w dialect.StringWriter, v *Hook, withPk
 	return s, nil
 }
 
-func (tbl HookTable) constructHookUpdate(w dialect.StringWriter, v *Hook) (s []interface{}, err error) {
+func constructHookTableUpdate(tbl HookTable, w dialect.StringWriter, v *Hook) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 16)
@@ -1124,7 +1122,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
-		fields, err := tbl.constructHookInsert(b, v, false)
+		fields, err := constructHookTableInsert(tbl, b, v, false)
 		if err != nil {
 			return tbl.Logger().LogError(err)
 		}
@@ -1194,7 +1192,7 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
-		args, err := tbl.constructHookUpdate(b, v)
+		args, err := constructHookTableUpdate(tbl, b, v)
 		if err != nil {
 			return count, err
 		}

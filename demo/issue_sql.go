@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
+// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
 
 package demo
 
@@ -68,8 +68,6 @@ type IssueTabler interface {
 	SliceBigbody(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 	SliceAssignee(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 	SliceState(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
-
-	constructIssueUpdate(w dialect.StringWriter, v *Issue) (s []interface{}, err error)
 
 	Insert(req require.Requirement, vv ...*Issue) error
 
@@ -831,7 +829,7 @@ func (tbl IssueTable) SliceState(req require.Requirement, wh where.Expression, q
 	return support.SliceStringList(tbl, req, "state", wh, qc)
 }
 
-func (tbl IssueTable) constructIssueInsert(w dialect.StringWriter, v *Issue, withPk bool) (s []interface{}, err error) {
+func constructIssueTableInsert(tbl IssueTable, w dialect.StringWriter, v *Issue, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 8)
 
@@ -881,7 +879,7 @@ func (tbl IssueTable) constructIssueInsert(w dialect.StringWriter, v *Issue, wit
 	return s, nil
 }
 
-func (tbl IssueTable) constructIssueUpdate(w dialect.StringWriter, v *Issue) (s []interface{}, err error) {
+func constructIssueTableUpdate(tbl IssueTable, w dialect.StringWriter, v *Issue) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 7)
@@ -968,7 +966,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
-		fields, err := tbl.constructIssueInsert(b, v, false)
+		fields, err := constructIssueTableInsert(tbl, b, v, false)
 		if err != nil {
 			return tbl.Logger().LogError(err)
 		}
@@ -1036,7 +1034,7 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
-		args, err := tbl.constructIssueUpdate(b, v)
+		args, err := constructIssueTableUpdate(tbl, b, v)
 		if err != nil {
 			return count, err
 		}

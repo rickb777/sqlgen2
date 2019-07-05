@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
+// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
 
 package demo
 
@@ -58,8 +58,6 @@ type DatesTabler interface {
 	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
 	SliceInteger(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error)
 	SliceString(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error)
-
-	constructDatesUpdate(w dialect.StringWriter, v *Dates) (s []interface{}, err error)
 
 	Insert(req require.Requirement, vv ...*Dates) error
 
@@ -721,7 +719,7 @@ func sliceDatesTableDateStringList(tbl DatesTable, req require.Requirement, sqln
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl DatesTable) constructDatesInsert(w dialect.StringWriter, v *Dates, withPk bool) (s []interface{}, err error) {
+func constructDatesTableInsert(tbl DatesTable, w dialect.StringWriter, v *Dates, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 3)
 
@@ -747,7 +745,7 @@ func (tbl DatesTable) constructDatesInsert(w dialect.StringWriter, v *Dates, wit
 	return s, nil
 }
 
-func (tbl DatesTable) constructDatesUpdate(w dialect.StringWriter, v *Dates) (s []interface{}, err error) {
+func constructDatesTableUpdate(tbl DatesTable, w dialect.StringWriter, v *Dates) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 2)
@@ -799,7 +797,7 @@ func (tbl DatesTable) Insert(req require.Requirement, vv ...*Dates) error {
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
-		fields, err := tbl.constructDatesInsert(b, v, false)
+		fields, err := constructDatesTableInsert(tbl, b, v, false)
 		if err != nil {
 			return tbl.Logger().LogError(err)
 		}
@@ -869,7 +867,7 @@ func (tbl DatesTable) Update(req require.Requirement, vv ...*Dates) (int64, erro
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
-		args, err := tbl.constructDatesUpdate(b, v)
+		args, err := constructDatesTableUpdate(tbl, b, v)
 		if err != nil {
 			return count, err
 		}

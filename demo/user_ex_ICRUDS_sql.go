@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
+// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
 
 package demo
 
@@ -83,8 +83,6 @@ type AUserTabler interface {
 	SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error)
 	SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error)
 	SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error)
-
-	constructAUserUpdate(w dialect.StringWriter, v *User) (s []interface{}, err error)
 
 	Insert(req require.Requirement, vv ...*User) error
 
@@ -1176,7 +1174,7 @@ func sliceAUserTableFloat64List(tbl AUserTable, req require.Requirement, sqlname
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl AUserTable) constructAUserInsert(w dialect.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
+func constructAUserTableInsert(tbl AUserTable, w dialect.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 22)
 
@@ -1288,7 +1286,7 @@ func (tbl AUserTable) constructAUserInsert(w dialect.StringWriter, v *User, with
 	return s, nil
 }
 
-func (tbl AUserTable) constructAUserUpdate(w dialect.StringWriter, v *User) (s []interface{}, err error) {
+func constructAUserTableUpdate(tbl AUserTable, w dialect.StringWriter, v *User) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 21)
@@ -1474,7 +1472,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
-		fields, err := tbl.constructAUserInsert(b, v, false)
+		fields, err := constructAUserTableInsert(tbl, b, v, false)
 		if err != nil {
 			return tbl.Logger().LogError(err)
 		}
@@ -1542,7 +1540,7 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
-		args, err := tbl.constructAUserUpdate(b, v)
+		args, err := constructAUserTableUpdate(tbl, b, v)
 		if err != nil {
 			return count, err
 		}

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
+// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
 
 package demo
 
@@ -37,8 +37,6 @@ type UUserTabler interface {
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
-
-	constructUUserUpdate(w dialect.StringWriter, v *User) (s []interface{}, err error)
 
 	Update(req require.Requirement, vv ...*User) (int64, error)
 }
@@ -426,7 +424,7 @@ func scanUUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 	return vv, n, errors.Wrap(rows.Err(), query)
 }
 
-func (tbl UUserTable) constructUUserUpdate(w dialect.StringWriter, v *User) (s []interface{}, err error) {
+func constructUUserTableUpdate(tbl UUserTable, w dialect.StringWriter, v *User) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 21)
@@ -615,7 +613,7 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
-		args, err := tbl.constructUUserUpdate(b, v)
+		args, err := constructUUserTableUpdate(tbl, b, v)
 		if err != nil {
 			return count, err
 		}

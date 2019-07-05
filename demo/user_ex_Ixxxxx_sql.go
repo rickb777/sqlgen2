@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
+// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
 
 package demo
 
@@ -414,7 +414,7 @@ func scanIUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 	return vv, n, errors.Wrap(rows.Err(), query)
 }
 
-func (tbl IUserTable) constructIUserInsert(w dialect.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
+func constructIUserTableInsert(tbl IUserTable, w dialect.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 22)
 
@@ -556,7 +556,7 @@ func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
-		fields, err := tbl.constructIUserInsert(b, v, false)
+		fields, err := constructIUserTableInsert(tbl, b, v, false)
 		if err != nil {
 			return tbl.Logger().LogError(err)
 		}

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
+// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
 
 package demo
 
@@ -61,8 +61,6 @@ type DbCompoundTabler interface {
 	SliceAlpha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 	SliceBeta(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 	SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
-
-	constructDbCompoundUpdate(w dialect.StringWriter, v *Compound) (s []interface{}, err error)
 
 	Insert(req require.Requirement, vv ...*Compound) error
 }
@@ -742,7 +740,7 @@ func sliceDbCompoundTableCategoryList(tbl DbCompoundTable, req require.Requireme
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl DbCompoundTable) constructDbCompoundInsert(w dialect.StringWriter, v *Compound, withPk bool) (s []interface{}, err error) {
+func constructDbCompoundTableInsert(tbl DbCompoundTable, w dialect.StringWriter, v *Compound, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 3)
 
@@ -766,7 +764,7 @@ func (tbl DbCompoundTable) constructDbCompoundInsert(w dialect.StringWriter, v *
 	return s, nil
 }
 
-func (tbl DbCompoundTable) constructDbCompoundUpdate(w dialect.StringWriter, v *Compound) (s []interface{}, err error) {
+func constructDbCompoundTableUpdate(tbl DbCompoundTable, w dialect.StringWriter, v *Compound) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 3)
@@ -820,7 +818,7 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
-		fields, err := tbl.constructDbCompoundInsert(b, v, true)
+		fields, err := constructDbCompoundTableInsert(tbl, b, v, true)
 		if err != nil {
 			return tbl.Logger().LogError(err)
 		}

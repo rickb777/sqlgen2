@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-1-g3e70ca6
+// sqlapi v0.32.0; sqlgen v0.52.0-2-gc4fd167
 
 package demo
 
@@ -60,8 +60,6 @@ type AssociationTabler interface {
 	SliceRef2(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 	SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]QualName, error)
 	SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
-
-	constructAssociationUpdate(w dialect.StringWriter, v *Association) (s []interface{}, err error)
 
 	Insert(req require.Requirement, vv ...*Association) error
 
@@ -780,7 +778,7 @@ func sliceAssociationTableQualNamePtrList(tbl AssociationTable, req require.Requ
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func (tbl AssociationTable) constructAssociationInsert(w dialect.StringWriter, v *Association, withPk bool) (s []interface{}, err error) {
+func constructAssociationTableInsert(tbl AssociationTable, w dialect.StringWriter, v *Association, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 6)
 
@@ -832,7 +830,7 @@ func (tbl AssociationTable) constructAssociationInsert(w dialect.StringWriter, v
 	return s, nil
 }
 
-func (tbl AssociationTable) constructAssociationUpdate(w dialect.StringWriter, v *Association) (s []interface{}, err error) {
+func constructAssociationTableUpdate(tbl AssociationTable, w dialect.StringWriter, v *Association) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 5)
@@ -931,7 +929,7 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
-		fields, err := tbl.constructAssociationInsert(b, v, false)
+		fields, err := constructAssociationTableInsert(tbl, b, v, false)
 		if err != nil {
 			return tbl.Logger().LogError(err)
 		}
@@ -999,7 +997,7 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
-		args, err := tbl.constructAssociationUpdate(b, v)
+		args, err := constructAssociationTableUpdate(tbl, b, v)
 		if err != nil {
 			return count, err
 		}

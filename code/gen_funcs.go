@@ -59,7 +59,6 @@ func WriteUpsertFunc(w io.Writer, view View) {
 }
 
 func WriteUpdateFunc(w1, w2 io.Writer, view View) {
-	must(tUpdateFieldsDecl.Execute(w1, view))
 	must(tUpdateFieldsFunc.Execute(w2, view))
 
 	if view.Table.HasPrimaryKey() {

@@ -402,7 +402,7 @@ var tSliceItemFunc = template.Must(template.New("SliceItemFunc").Funcs(funcMap).
 //-------------------------------------------------------------------------------------------------
 
 const sConstructInsert = `
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) construct{{.Prefix}}{{.Type}}Insert(w dialect.StringWriter, v *{{.TypePkg}}{{.Type}}, withPk bool) (s []interface{}, err error) {
+func construct{{.Prefix}}{{.Type}}{{.Thing}}Insert(tbl {{.Prefix}}{{.Type}}{{.Thing}}, w dialect.StringWriter, v *{{.TypePkg}}{{.Type}}, withPk bool) (s []interface{}, err error) {
 {{range .Body1}}{{.}}{{end}}
 {{range .Body2}}{{.}}{{end}}
 	return s, nil
@@ -413,19 +413,14 @@ var tConstructInsert = template.Must(template.New("ConstructInsert").Funcs(funcM
 
 //-------------------------------------------------------------------------------------------------
 
-const sConstructUpdateDecl = `
-	construct{{.Prefix}}{{.Type}}Update(w dialect.StringWriter, v *{{.TypePkg}}{{.Type}}) (s []interface{}, err error)
-`
-
 const sConstructUpdateFunc = `
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) construct{{.Prefix}}{{.Type}}Update(w dialect.StringWriter, v *{{.TypePkg}}{{.Type}}) (s []interface{}, err error) {
+func construct{{.Prefix}}{{.Type}}{{.Thing}}Update(tbl {{.Prefix}}{{.Type}}{{.Thing}}, w dialect.StringWriter, v *{{.TypePkg}}{{.Type}}) (s []interface{}, err error) {
 {{range .Body1}}{{.}}{{end}}
 {{range .Body2}}{{.}}{{end}}
 	return s, nil
 }
 `
 
-var tConstructUpdateDecl = template.Must(template.New("ConstructUpdateDecl").Funcs(funcMap).Parse(sConstructUpdateDecl))
 var tConstructUpdateFunc = template.Must(template.New("ConstructUpdateFunc").Funcs(funcMap).Parse(sConstructUpdateFunc))
 
 //-------------------------------------------------------------------------------------------------
@@ -467,7 +462,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
-		fields, err := tbl.construct{{.Prefix}}{{.Type}}Insert(b, v, {{not .Table.HasLastInsertId}})
+		fields, err := construct{{.Prefix}}{{.Type}}{{.Thing}}Insert(tbl, b, v, {{not .Table.HasLastInsertId}})
 		if err != nil {
 			return tbl.Logger().LogError(err)
 		}
@@ -531,9 +526,6 @@ var tInsertFunc = template.Must(template.New("InsertFunc").Funcs(funcMap).Parse(
 
 //-------------------------------------------------------------------------------------------------
 
-const sUpdateFieldsDecl = `
-`
-
 const sUpdateFieldsFunc = `
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
@@ -542,7 +534,6 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) UpdateFields(req require.Requirement, 
 }
 `
 
-var tUpdateFieldsDecl = template.Must(template.New("UpdateFieldsDecl").Funcs(funcMap).Parse(sUpdateFieldsDecl))
 var tUpdateFieldsFunc = template.Must(template.New("UpdateFieldsFunc").Funcs(funcMap).Parse(sUpdateFieldsFunc))
 
 //-------------------------------------------------------------------------------------------------
@@ -580,7 +571,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
-		args, err := tbl.construct{{.Prefix}}{{.Type}}Update(b, v)
+		args, err := construct{{.Prefix}}{{.Type}}{{.Thing}}Update(tbl, b, v)
 		if err != nil {
 			return count, err
 		}

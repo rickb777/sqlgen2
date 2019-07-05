@@ -87,7 +87,7 @@ func WriteConstructInsert(w io.Writer, view View) {
 	must(tConstructInsert.Execute(w, view))
 }
 
-func WriteConstructUpdate(w1, w2 io.Writer, view View) {
+func WriteConstructUpdate(w io.Writer, view View) {
 	commaNeededAgain := true
 
 	list := view.Table.Fields.NoPrimary().NoSkips()
@@ -164,8 +164,7 @@ func WriteConstructUpdate(w1, w2 io.Writer, view View) {
 		}
 	}
 
-	must(tConstructUpdateDecl.Execute(w1, view))
-	must(tConstructUpdateFunc.Execute(w2, view))
+	must(tConstructUpdateFunc.Execute(w, view))
 }
 
 const nltab = "\n\t"

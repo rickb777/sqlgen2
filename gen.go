@@ -293,7 +293,7 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 	}
 
 	if flags.Update {
-		WriteConstructUpdate(interfaceBuf, structBuf, view)
+		WriteConstructUpdate(structBuf, view)
 	}
 
 	if flags.Insert {
