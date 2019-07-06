@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
+// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
 
 package demo
 
@@ -23,44 +23,89 @@ import (
 type DbCompoundTabler interface {
 	sqlapi.Table
 
+	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
 
-	WithPrefix(pfx string) DbCompoundTabler
-	WithContext(ctx context.Context) DbCompoundTabler
+	// WithConstraint returns a modified DbCompoundTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) DbCompoundTabler
+
+	// WithPrefix returns a modified DbCompoundTabler with a given table name prefix.
+	WithPrefix(pfx string) DbCompoundTabler
+
+	// WithContext returns a modified DbCompoundTabler with a given context.
+	WithContext(ctx context.Context) DbCompoundTabler
+
+	// Using returns a modified DbCompoundTabler using the transaction supplied.
 	Using(tx sqlapi.SqlTx) DbCompoundTabler
+
+	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(DbCompoundTabler) error) error
 
+	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
 
+	// DropTable drops the table, destroying all its data.
+	DropTable(ifExists bool) (int64, error)
+
+	// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 	CreateTableWithIndexes(ifNotExist bool) (err error)
+
+	// CreateIndexes executes queries that create the indexes needed by the Compound table.
 	CreateIndexes(ifNotExist bool) (err error)
 
+	// CreateAlphaBetaIndex creates the alpha_beta index.
 	CreateAlphaBetaIndex(ifNotExist bool) error
+
+	// DropAlphaBetaIndex drops the alpha_beta index.
 	DropAlphaBetaIndex(ifExists bool) error
 
+	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 
+	// Query is the low-level request method for this table using an SQL query that must return all the columns
+	// necessary for Compound values.
 	Query(req require.Requirement, query string, args ...interface{}) ([]*Compound, error)
 
+	// QueryOneNullString is a low-level access method for one string, returning the first match.
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+
+	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+
+	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
+	// GetCompoundByAlphaAndBeta gets the record with given alpha+beta values.
 	GetCompoundByAlphaAndBeta(req require.Requirement, alpha string, beta string) (*Compound, error)
 
+	// SelectOneWhere allows a single Compound to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Compound, error)
+
+	// SelectOne allows a single Compound to be obtained from the table that matches a 'where' clause.
 	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Compound, error)
+
+	// SelectWhere allows Compounds to be obtained from the table that match a 'where' clause.
 	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Compound, error)
+
+	// Select allows Compounds to be obtained from the table that match a 'where' clause.
 	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Compound, error)
 
+	// CountWhere counts Compounds in the table that match a 'where' clause.
 	CountWhere(where string, args ...interface{}) (count int64, err error)
+
+	// Count counts the Compounds in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 
+	// SliceAlpha gets the alpha column for all rows that match the 'where' condition.
 	SliceAlpha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+
+	// SliceBeta gets the beta column for all rows that match the 'where' condition.
 	SliceBeta(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+
+	// SliceCategory gets the category column for all rows that match the 'where' condition.
 	SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
 
+	// Insert adds new records for the Compounds.
 	Insert(req require.Requirement, vv ...*Compound) error
 }
 
@@ -140,7 +185,7 @@ func (tbl DbCompoundTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
-// WithConstraint returns a modified Table with added data consistency constraints.
+// WithConstraint returns a modified DbCompoundTabler with added data consistency constraints.
 func (tbl DbCompoundTable) WithConstraint(cc ...constraint.Constraint) DbCompoundTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
@@ -188,7 +233,7 @@ func (tbl DbCompoundTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified Table using the transaction supplied. This is needed
+// Using returns a modified DbCompoundTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DbCompoundTable) Using(tx sqlapi.SqlTx) DbCompoundTabler {
@@ -196,7 +241,7 @@ func (tbl DbCompoundTable) Using(tx sqlapi.SqlTx) DbCompoundTabler {
 	return tbl
 }
 
-// Transact runs the function provided withina transaction. If the function completes without error,
+// Transact runs the function provided within a transaction. If the function completes without error,
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
@@ -609,7 +654,7 @@ func (tbl DbCompoundTable) Fetch(req require.Requirement, query string, args ...
 
 //--------------------------------------------------------------------------------
 
-// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
+// SelectOneWhere allows a single Compound to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -626,7 +671,7 @@ func (tbl DbCompoundTable) SelectOneWhere(req require.Requirement, where, orderB
 	return v, err
 }
 
-// SelectOne allows a single Compound to be obtained from the database.
+// SelectOne allows a single Compound to be obtained from the table that matches a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.

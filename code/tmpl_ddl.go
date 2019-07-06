@@ -16,14 +16,22 @@ const sTabler = `
 type {{.Prefix}}{{.Type}}{{.Thinger}} interface {
 	{{.Sqlapi}}.Table
 
+	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
-{{if .Table.HasPrimaryKey}}
-	SetPkColumn(pk string) {{.Prefix}}{{.Type}}{{.Thinger}}
-{{- end}}
-	WithPrefix(pfx string) {{.Prefix}}{{.Type}}{{.Thinger}}
-	WithContext(ctx context.Context) {{.Prefix}}{{.Type}}{{.Thinger}}
+
+	// WithConstraint returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) {{.Prefix}}{{.Type}}{{.Thinger}}
+
+	// WithPrefix returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with a given table name prefix.
+	WithPrefix(pfx string) {{.Prefix}}{{.Type}}{{.Thinger}}
+
+	// WithContext returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with a given context.
+	WithContext(ctx context.Context) {{.Prefix}}{{.Type}}{{.Thinger}}
+
+	// Using returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} using the transaction supplied.
 	Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}}{{.Type}}{{.Thinger}}
+
+	// Transact runs the function provided within a transaction.
 	Transact(txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}{{.Thinger}}) error) error
 `
 
@@ -89,10 +97,10 @@ func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin {{.Sqlapi}}.Ta
 
 // SetPkColumn sets the name of the primary key column. It defaults to "{{.Table.Primary.SqlName}}".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SetPkColumn(pk string) {{.Prefix}}{{.Type}}{{.Thinger}} {
-	tbl.pk = pk
-	return tbl
-}
+//func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SetPkColumn(pk string) {{.Prefix}}{{.Type}}{{.Thinger}} {
+//	tbl.pk = pk
+//	return tbl
+//}
 {{- end}}
 
 // WithPrefix sets the table name prefix for subsequent queries.
@@ -122,7 +130,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Logger() {{.Sqlapi}}.Logger {
 	return tbl.database.Logger()
 }
 
-// WithConstraint returns a modified Table with added data consistency constraints.
+// WithConstraint returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with added data consistency constraints.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithConstraint(cc ...constraint.Constraint) {{.Prefix}}{{.Type}}{{.Thinger}} {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
@@ -177,7 +185,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified Table using the transaction supplied. This is needed
+// Using returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}}{{.Type}}{{.Thinger}} {
@@ -185,7 +193,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}
 	return tbl
 }
 
-// Transact runs the function provided withina transaction. If the function completes without error,
+// Transact runs the function provided within a transaction. If the function completes without error,
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
@@ -282,6 +290,7 @@ var tSetterFunc = template.Must(template.New("SetterFunc").Funcs(funcMap).Parse(
 //-------------------------------------------------------------------------------------------------
 
 const sTruncateDecl = `
+	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 `
 
@@ -310,7 +319,11 @@ var tTruncateFunc = template.Must(template.New("TruncateFunc").Funcs(funcMap).Pa
 //-------------------------------------------------------------------------------------------------
 
 const sCreateTableDecl = `
+	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
+
+	// DropTable drops the table, destroying all its data.
+	DropTable(ifExists bool) (int64, error)
 `
 
 // function template to create a table
@@ -381,12 +394,19 @@ var tCreateTableDecl = template.Must(template.New("CreateTableDecl").Funcs(funcM
 var tCreateTableFunc = template.Must(template.New("CreateTableFunc").Funcs(funcMap).Parse(sCreateTableFunc))
 
 const sCreateIndexesDecl = `
+	// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 	CreateTableWithIndexes(ifNotExist bool) (err error)
+
+	// CreateIndexes executes queries that create the indexes needed by the {{.Type}} table.
 	CreateIndexes(ifNotExist bool) (err error)
-{{range .Table.Index}}
+{{- range .Table.Index}}
+
+	// Create{{camel .Name}}Index creates the {{.Name}} index.
 	Create{{camel .Name}}Index(ifNotExist bool) error
+
+	// Drop{{camel .Name}}Index drops the {{.Name}} index.
 	Drop{{camel .Name}}Index(ifExists bool) error
-{{end}}
+{{- end}}
 `
 
 // function template to create DDL for indexes

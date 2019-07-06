@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
+// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
 
 package demo
 
@@ -22,19 +22,35 @@ import (
 type DUserTabler interface {
 	sqlapi.Table
 
+	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
 
-	SetPkColumn(pk string) DUserTabler
-	WithPrefix(pfx string) DUserTabler
-	WithContext(ctx context.Context) DUserTabler
+	// WithConstraint returns a modified DUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) DUserTabler
+
+	// WithPrefix returns a modified DUserTabler with a given table name prefix.
+	WithPrefix(pfx string) DUserTabler
+
+	// WithContext returns a modified DUserTabler with a given context.
+	WithContext(ctx context.Context) DUserTabler
+
+	// Using returns a modified DUserTabler using the transaction supplied.
 	Using(tx sqlapi.SqlTx) DUserTabler
+
+	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(DUserTabler) error) error
 
+	// Query is the low-level request method for this table using an SQL query that must return all the columns
+	// necessary for User values.
 	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
 
+	// QueryOneNullString is a low-level access method for one string, returning the first match.
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+
+	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+
+	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 }
 
@@ -92,10 +108,10 @@ func CopyTableAsDUserTable(origin sqlapi.Table) DUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DUserTable) SetPkColumn(pk string) DUserTabler {
-	tbl.pk = pk
-	return tbl
-}
+//func (tbl DUserTable) SetPkColumn(pk string) DUserTabler {
+//	tbl.pk = pk
+//	return tbl
+//}
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -124,7 +140,7 @@ func (tbl DUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
-// WithConstraint returns a modified Table with added data consistency constraints.
+// WithConstraint returns a modified DUserTabler with added data consistency constraints.
 func (tbl DUserTable) WithConstraint(cc ...constraint.Constraint) DUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
@@ -177,7 +193,7 @@ func (tbl DUserTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified Table using the transaction supplied. This is needed
+// Using returns a modified DUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DUserTable) Using(tx sqlapi.SqlTx) DUserTabler {
@@ -185,7 +201,7 @@ func (tbl DUserTable) Using(tx sqlapi.SqlTx) DUserTabler {
 	return tbl
 }
 
-// Transact runs the function provided withina transaction. If the function completes without error,
+// Transact runs the function provided within a transaction. If the function completes without error,
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.

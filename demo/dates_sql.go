@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
+// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
 
 package demo
 
@@ -24,42 +24,83 @@ import (
 type DatesTabler interface {
 	sqlapi.Table
 
+	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
 
-	SetPkColumn(pk string) DatesTabler
-	WithPrefix(pfx string) DatesTabler
-	WithContext(ctx context.Context) DatesTabler
+	// WithConstraint returns a modified DatesTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) DatesTabler
+
+	// WithPrefix returns a modified DatesTabler with a given table name prefix.
+	WithPrefix(pfx string) DatesTabler
+
+	// WithContext returns a modified DatesTabler with a given context.
+	WithContext(ctx context.Context) DatesTabler
+
+	// Using returns a modified DatesTabler using the transaction supplied.
 	Using(tx sqlapi.SqlTx) DatesTabler
+
+	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(DatesTabler) error) error
 
+	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
 
+	// DropTable drops the table, destroying all its data.
+	DropTable(ifExists bool) (int64, error)
+
+	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 
+	// Query is the low-level request method for this table using an SQL query that must return all the columns
+	// necessary for Dates values.
 	Query(req require.Requirement, query string, args ...interface{}) ([]*Dates, error)
 
+	// QueryOneNullString is a low-level access method for one string, returning the first match.
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+
+	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+
+	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
+	// GetDatessById gets records from the table according to a list of primary keys.
 	GetDatessById(req require.Requirement, id ...uint64) (list []*Dates, err error)
+
+	// GetDatesById gets the record with a given primary key value.
 	GetDatesById(req require.Requirement, id uint64) (*Dates, error)
 
+	// SelectOneWhere allows a single Dates to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Dates, error)
+
+	// SelectOne allows a single Dates to be obtained from the table that matches a 'where' clause.
 	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Dates, error)
+
+	// SelectWhere allows Datess to be obtained from the table that match a 'where' clause.
 	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Dates, error)
+
+	// Select allows Datess to be obtained from the table that match a 'where' clause.
 	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Dates, error)
 
+	// CountWhere counts Datess in the table that match a 'where' clause.
 	CountWhere(where string, args ...interface{}) (count int64, err error)
+
+	// Count counts the Datess in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 
+	// SliceId gets the id column for all rows that match the 'where' condition.
 	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
+
+	// SliceInteger gets the integer column for all rows that match the 'where' condition.
 	SliceInteger(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error)
+
+	// SliceString gets the string column for all rows that match the 'where' condition.
 	SliceString(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error)
 
+	// Insert adds new records for the Datess, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Dates) error
 
+	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Dates) (int64, error)
 }
 
@@ -114,10 +155,10 @@ func CopyTableAsDatesTable(origin sqlapi.Table) DatesTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DatesTable) SetPkColumn(pk string) DatesTabler {
-	tbl.pk = pk
-	return tbl
-}
+//func (tbl DatesTable) SetPkColumn(pk string) DatesTabler {
+//	tbl.pk = pk
+//	return tbl
+//}
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -146,7 +187,7 @@ func (tbl DatesTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
-// WithConstraint returns a modified Table with added data consistency constraints.
+// WithConstraint returns a modified DatesTabler with added data consistency constraints.
 func (tbl DatesTable) WithConstraint(cc ...constraint.Constraint) DatesTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
@@ -199,7 +240,7 @@ func (tbl DatesTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified Table using the transaction supplied. This is needed
+// Using returns a modified DatesTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DatesTable) Using(tx sqlapi.SqlTx) DatesTabler {
@@ -207,7 +248,7 @@ func (tbl DatesTable) Using(tx sqlapi.SqlTx) DatesTabler {
 	return tbl
 }
 
-// Transact runs the function provided withina transaction. If the function completes without error,
+// Transact runs the function provided within a transaction. If the function completes without error,
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
@@ -563,7 +604,7 @@ func (tbl DatesTable) Fetch(req require.Requirement, query string, args ...inter
 
 //--------------------------------------------------------------------------------
 
-// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
+// SelectOneWhere allows a single Dates to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -580,7 +621,7 @@ func (tbl DatesTable) SelectOneWhere(req require.Requirement, where, orderBy str
 	return v, err
 }
 
-// SelectOne allows a single Dates to be obtained from the database.
+// SelectOne allows a single Dates to be obtained from the table that matches a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.

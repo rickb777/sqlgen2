@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
+// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
 
 package demo
 
@@ -24,52 +24,107 @@ import (
 type IssueTabler interface {
 	sqlapi.Table
 
+	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
 
-	SetPkColumn(pk string) IssueTabler
-	WithPrefix(pfx string) IssueTabler
-	WithContext(ctx context.Context) IssueTabler
+	// WithConstraint returns a modified IssueTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) IssueTabler
+
+	// WithPrefix returns a modified IssueTabler with a given table name prefix.
+	WithPrefix(pfx string) IssueTabler
+
+	// WithContext returns a modified IssueTabler with a given context.
+	WithContext(ctx context.Context) IssueTabler
+
+	// Using returns a modified IssueTabler using the transaction supplied.
 	Using(tx sqlapi.SqlTx) IssueTabler
+
+	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(IssueTabler) error) error
 
+	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
 
+	// DropTable drops the table, destroying all its data.
+	DropTable(ifExists bool) (int64, error)
+
+	// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 	CreateTableWithIndexes(ifNotExist bool) (err error)
+
+	// CreateIndexes executes queries that create the indexes needed by the Issue table.
 	CreateIndexes(ifNotExist bool) (err error)
 
+	// CreateIssueAssigneeIndex creates the issue_assignee index.
 	CreateIssueAssigneeIndex(ifNotExist bool) error
+
+	// DropIssueAssigneeIndex drops the issue_assignee index.
 	DropIssueAssigneeIndex(ifExists bool) error
 
+	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 
+	// Query is the low-level request method for this table using an SQL query that must return all the columns
+	// necessary for Issue values.
 	Query(req require.Requirement, query string, args ...interface{}) ([]*Issue, error)
 
+	// QueryOneNullString is a low-level access method for one string, returning the first match.
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+
+	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+
+	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
+	// GetIssuesById gets records from the table according to a list of primary keys.
 	GetIssuesById(req require.Requirement, id ...int64) (list []*Issue, err error)
+
+	// GetIssueById gets the record with a given primary key value.
 	GetIssueById(req require.Requirement, id int64) (*Issue, error)
+
+	// GetIssuesByAssignee gets the records with a given assignee value.
 	GetIssuesByAssignee(req require.Requirement, assignee string) ([]*Issue, error)
 
+	// SelectOneWhere allows a single Issue to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Issue, error)
+
+	// SelectOne allows a single Issue to be obtained from the table that matches a 'where' clause.
 	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Issue, error)
+
+	// SelectWhere allows Issues to be obtained from the table that match a 'where' clause.
 	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Issue, error)
+
+	// Select allows Issues to be obtained from the table that match a 'where' clause.
 	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Issue, error)
 
+	// CountWhere counts Issues in the table that match a 'where' clause.
 	CountWhere(where string, args ...interface{}) (count int64, err error)
+
+	// Count counts the Issues in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 
+	// SliceId gets the id column for all rows that match the 'where' condition.
 	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+
+	// SliceNumber gets the number column for all rows that match the 'where' condition.
 	SliceNumber(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int, error)
+
+	// SliceTitle gets the title column for all rows that match the 'where' condition.
 	SliceTitle(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+
+	// SliceBigbody gets the bigbody column for all rows that match the 'where' condition.
 	SliceBigbody(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+
+	// SliceAssignee gets the assignee column for all rows that match the 'where' condition.
 	SliceAssignee(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+
+	// SliceState gets the state column for all rows that match the 'where' condition.
 	SliceState(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
+	// Insert adds new records for the Issues, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Issue) error
 
+	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Issue) (int64, error)
 }
 
@@ -124,10 +179,10 @@ func CopyTableAsIssueTable(origin sqlapi.Table) IssueTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl IssueTable) SetPkColumn(pk string) IssueTabler {
-	tbl.pk = pk
-	return tbl
-}
+//func (tbl IssueTable) SetPkColumn(pk string) IssueTabler {
+//	tbl.pk = pk
+//	return tbl
+//}
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -156,7 +211,7 @@ func (tbl IssueTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
-// WithConstraint returns a modified Table with added data consistency constraints.
+// WithConstraint returns a modified IssueTabler with added data consistency constraints.
 func (tbl IssueTable) WithConstraint(cc ...constraint.Constraint) IssueTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
@@ -209,7 +264,7 @@ func (tbl IssueTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified Table using the transaction supplied. This is needed
+// Using returns a modified IssueTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl IssueTable) Using(tx sqlapi.SqlTx) IssueTabler {
@@ -217,7 +272,7 @@ func (tbl IssueTable) Using(tx sqlapi.SqlTx) IssueTabler {
 	return tbl
 }
 
-// Transact runs the function provided withina transaction. If the function completes without error,
+// Transact runs the function provided within a transaction. If the function completes without error,
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
@@ -702,7 +757,7 @@ func (tbl IssueTable) Fetch(req require.Requirement, query string, args ...inter
 
 //--------------------------------------------------------------------------------
 
-// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
+// SelectOneWhere allows a single Issue to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -719,7 +774,7 @@ func (tbl IssueTable) SelectOneWhere(req require.Requirement, where, orderBy str
 	return v, err
 }
 
-// SelectOne allows a single Issue to be obtained from the database.
+// SelectOne allows a single Issue to be obtained from the table that matches a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.

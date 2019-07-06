@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
+// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
 
 package demo
 
@@ -23,45 +23,92 @@ import (
 type AssociationTabler interface {
 	sqlapi.Table
 
+	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
 
-	SetPkColumn(pk string) AssociationTabler
-	WithPrefix(pfx string) AssociationTabler
-	WithContext(ctx context.Context) AssociationTabler
+	// WithConstraint returns a modified AssociationTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) AssociationTabler
+
+	// WithPrefix returns a modified AssociationTabler with a given table name prefix.
+	WithPrefix(pfx string) AssociationTabler
+
+	// WithContext returns a modified AssociationTabler with a given context.
+	WithContext(ctx context.Context) AssociationTabler
+
+	// Using returns a modified AssociationTabler using the transaction supplied.
 	Using(tx sqlapi.SqlTx) AssociationTabler
+
+	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(AssociationTabler) error) error
 
+	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
 
+	// DropTable drops the table, destroying all its data.
+	DropTable(ifExists bool) (int64, error)
+
+	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 
+	// Query is the low-level request method for this table using an SQL query that must return all the columns
+	// necessary for Association values.
 	Query(req require.Requirement, query string, args ...interface{}) ([]*Association, error)
 
+	// QueryOneNullString is a low-level access method for one string, returning the first match.
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+
+	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+
+	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
+	// GetAssociationsById gets records from the table according to a list of primary keys.
 	GetAssociationsById(req require.Requirement, id ...int64) (list []*Association, err error)
+
+	// GetAssociationById gets the record with a given primary key value.
 	GetAssociationById(req require.Requirement, id int64) (*Association, error)
 
+	// SelectOneWhere allows a single Association to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error)
+
+	// SelectOne allows a single Association to be obtained from the table that matches a 'where' clause.
 	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Association, error)
+
+	// SelectWhere allows Associations to be obtained from the table that match a 'where' clause.
 	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error)
+
+	// Select allows Associations to be obtained from the table that match a 'where' clause.
 	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Association, error)
 
+	// CountWhere counts Associations in the table that match a 'where' clause.
 	CountWhere(where string, args ...interface{}) (count int64, err error)
+
+	// Count counts the Associations in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 
+	// SliceId gets the id column for all rows that match the 'where' condition.
 	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+
+	// SliceName gets the name column for all rows that match the 'where' condition.
 	SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+
+	// SliceRef1 gets the ref1 column for all rows that match the 'where' condition.
 	SliceRef1(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+
+	// SliceRef2 gets the ref2 column for all rows that match the 'where' condition.
 	SliceRef2(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+
+	// SliceQuality gets the quality column for all rows that match the 'where' condition.
 	SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]QualName, error)
+
+	// SliceCategory gets the category column for all rows that match the 'where' condition.
 	SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
 
+	// Insert adds new records for the Associations, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Association) error
 
+	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Association) (int64, error)
 }
 
@@ -116,10 +163,10 @@ func CopyTableAsAssociationTable(origin sqlapi.Table) AssociationTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AssociationTable) SetPkColumn(pk string) AssociationTabler {
-	tbl.pk = pk
-	return tbl
-}
+//func (tbl AssociationTable) SetPkColumn(pk string) AssociationTabler {
+//	tbl.pk = pk
+//	return tbl
+//}
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -148,7 +195,7 @@ func (tbl AssociationTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
-// WithConstraint returns a modified Table with added data consistency constraints.
+// WithConstraint returns a modified AssociationTabler with added data consistency constraints.
 func (tbl AssociationTable) WithConstraint(cc ...constraint.Constraint) AssociationTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
@@ -201,7 +248,7 @@ func (tbl AssociationTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified Table using the transaction supplied. This is needed
+// Using returns a modified AssociationTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AssociationTable) Using(tx sqlapi.SqlTx) AssociationTabler {
@@ -209,7 +256,7 @@ func (tbl AssociationTable) Using(tx sqlapi.SqlTx) AssociationTabler {
 	return tbl
 }
 
-// Transact runs the function provided withina transaction. If the function completes without error,
+// Transact runs the function provided within a transaction. If the function completes without error,
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
@@ -601,7 +648,7 @@ func (tbl AssociationTable) Fetch(req require.Requirement, query string, args ..
 
 //--------------------------------------------------------------------------------
 
-// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
+// SelectOneWhere allows a single Association to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -618,7 +665,7 @@ func (tbl AssociationTable) SelectOneWhere(req require.Requirement, where, order
 	return v, err
 }
 
-// SelectOne allows a single Association to be obtained from the database.
+// SelectOne allows a single Association to be obtained from the table that matches a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.

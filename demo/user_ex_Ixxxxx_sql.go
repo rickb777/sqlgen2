@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
+// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
 
 package demo
 
@@ -22,21 +22,38 @@ import (
 type IUserTabler interface {
 	sqlapi.Table
 
+	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
 
-	SetPkColumn(pk string) IUserTabler
-	WithPrefix(pfx string) IUserTabler
-	WithContext(ctx context.Context) IUserTabler
+	// WithConstraint returns a modified IUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) IUserTabler
+
+	// WithPrefix returns a modified IUserTabler with a given table name prefix.
+	WithPrefix(pfx string) IUserTabler
+
+	// WithContext returns a modified IUserTabler with a given context.
+	WithContext(ctx context.Context) IUserTabler
+
+	// Using returns a modified IUserTabler using the transaction supplied.
 	Using(tx sqlapi.SqlTx) IUserTabler
+
+	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(IUserTabler) error) error
 
+	// Query is the low-level request method for this table using an SQL query that must return all the columns
+	// necessary for User values.
 	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
 
+	// QueryOneNullString is a low-level access method for one string, returning the first match.
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+
+	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+
+	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
+	// Insert adds new records for the Users, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*User) error
 }
 
@@ -94,10 +111,10 @@ func CopyTableAsIUserTable(origin sqlapi.Table) IUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl IUserTable) SetPkColumn(pk string) IUserTabler {
-	tbl.pk = pk
-	return tbl
-}
+//func (tbl IUserTable) SetPkColumn(pk string) IUserTabler {
+//	tbl.pk = pk
+//	return tbl
+//}
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -126,7 +143,7 @@ func (tbl IUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
-// WithConstraint returns a modified Table with added data consistency constraints.
+// WithConstraint returns a modified IUserTabler with added data consistency constraints.
 func (tbl IUserTable) WithConstraint(cc ...constraint.Constraint) IUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
@@ -179,7 +196,7 @@ func (tbl IUserTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified Table using the transaction supplied. This is needed
+// Using returns a modified IUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl IUserTable) Using(tx sqlapi.SqlTx) IUserTabler {
@@ -187,7 +204,7 @@ func (tbl IUserTable) Using(tx sqlapi.SqlTx) IUserTabler {
 	return tbl
 }
 
-// Transact runs the function provided withina transaction. If the function completes without error,
+// Transact runs the function provided within a transaction. If the function completes without error,
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.

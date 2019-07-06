@@ -17,6 +17,8 @@ var tExec = template.Must(template.New("Exec").Funcs(funcMap).Parse(sExec))
 //-------------------------------------------------------------------------------------------------
 
 const sQueryRowsDecl = `
+	// Query is the low-level request method for this table using an SQL query that must return all the columns 
+	// necessary for {{.Type}} values.
 	Query(req require.Requirement, query string, args ...interface{}) ({{.List}}, error)
 `
 
@@ -53,8 +55,13 @@ var tQueryRowsDecl = template.Must(template.New("QueryRowsDecl").Funcs(funcMap).
 var tQueryRowsFunc = template.Must(template.New("QueryRowsFunc").Funcs(funcMap).Parse(sQueryRowsFunc))
 
 const sQueryThingsDecl = `
+	// QueryOneNullString is a low-level access method for one string, returning the first match.
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+
+	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+
+	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 `
 
@@ -103,13 +110,20 @@ var tQueryThingsFunc = template.Must(template.New("QueryThingsFunc").Funcs(funcM
 
 const sGetRowDecl = `
 {{- if .Table.Primary}}
+	// Get{{.Types}}By{{.Table.Primary.Name}} gets records from the table according to a list of primary keys.
 	Get{{.Types}}By{{.Table.Primary.Name}}(req require.Requirement, id ...{{.Table.Primary.Type.Type}}) (list {{.List}}, err error)
+
+	// Get{{.Type}}By{{.Table.Primary.Name}} gets the record with a given primary key value.
 	Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.TypePkg}}{{.Type}}, error)
 {{- end}}
 {{- range .Table.Index}}
 {{- if .Unique}}
+
+	// Get{{$.Type}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
 	Get{{$.Type}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.TypePkg}}{{$.Type}}, error)
 {{- else}}
+
+	// Get{{$.Types}}By{{.JoinedNames "And"}} gets the records with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
 	Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error)
 {{- end}}
 {{- end}}
@@ -220,14 +234,21 @@ var tGetRowFunc = template.Must(template.New("GetRowFunc").Funcs(funcMap).Parse(
 //-------------------------------------------------------------------------------------------------
 
 const sSelectRowsDecl = `
+	// SelectOneWhere allows a single {{.Type}} to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error)
+
+	// SelectOne allows a single {{.Type}} to be obtained from the table that matches a 'where' clause.
 	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*{{.TypePkg}}{{.Type}}, error)
+
+	// SelectWhere allows {{.Types}} to be obtained from the table that match a 'where' clause.
 	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ({{.List}}, error)
+
+	// Select allows {{.Types}} to be obtained from the table that match a 'where' clause.
 	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ({{.List}}, error)
 `
 
 const sSelectRowsFunc = `
-// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
+// SelectOneWhere allows a single {{.Type}} to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -244,7 +265,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement
 	return v, err
 }
 
-// SelectOne allows a single {{.Type}} to be obtained from the database.
+// SelectOne allows a single {{.Type}} to be obtained from the table that matches a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -294,7 +315,10 @@ var tSelectRowsFunc = template.Must(template.New("SelectRowsFunc").Funcs(funcMap
 //-------------------------------------------------------------------------------------------------
 
 const sCountRowsDecl = `
+	// CountWhere counts {{.Types}} in the table that match a 'where' clause.
 	CountWhere(where string, args ...interface{}) (count int64, err error)
+
+	// Count counts the {{.Types}} in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 `
 
@@ -332,12 +356,17 @@ var tCountRowsFunc = template.Must(template.New("CountRowsFunc").Funcs(funcMap).
 
 const sSliceItemDecl = `
 {{- if .Table.HasPrimaryKey}}
+	// Slice{{camel .Table.Primary.SqlName}} gets the {{.Table.Primary.SqlName}} column for all rows that match the 'where' condition.
 	Slice{{camel .Table.Primary.SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Table.Primary.Type.Type}}, error)
 {{- end}}
 {{- range .Table.SimpleFields.NoSkips.NoPrimary.BasicType}}
+
+	// Slice{{camel .SqlName}} gets the {{.SqlName}} column for all rows that match the 'where' condition.
 	Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error)
 {{- end}}
 {{- range .Table.SimpleFields.NoSkips.NoPrimary.DerivedType}}
+
+	// Slice{{camel .SqlName}} gets the {{.SqlName}} column for all rows that match the 'where' condition.
 	Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error)
 {{- end}}
 `
@@ -431,6 +460,7 @@ var tConstructUpdateFunc = template.Must(template.New("ConstructUpdateFunc").Fun
 //-------------------------------------------------------------------------------------------------
 
 const sInsertDecl = `
+	// Insert adds new records for the {{.Types}}{{if .Table.HasLastInsertId}}, setting the primary key field for each one{{end}}.
 	Insert(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) error
 `
 
@@ -544,6 +574,7 @@ var tUpdateFieldsFunc = template.Must(template.New("UpdateFieldsFunc").Funcs(fun
 //-------------------------------------------------------------------------------------------------
 
 const sUpdateDecl = `
+	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) (int64, error)
 `
 

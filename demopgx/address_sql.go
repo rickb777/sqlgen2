@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
+// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
 
 package demopgx
 
@@ -25,53 +25,107 @@ import (
 type AddressTabler interface {
 	pgxapi.Table
 
+	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
 
-	SetPkColumn(pk string) AddressTabler
-	WithPrefix(pfx string) AddressTabler
-	WithContext(ctx context.Context) AddressTabler
+	// WithConstraint returns a modified AddressTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) AddressTabler
+
+	// WithPrefix returns a modified AddressTabler with a given table name prefix.
+	WithPrefix(pfx string) AddressTabler
+
+	// WithContext returns a modified AddressTabler with a given context.
+	WithContext(ctx context.Context) AddressTabler
+
+	// Using returns a modified AddressTabler using the transaction supplied.
 	Using(tx pgxapi.SqlTx) AddressTabler
+
+	// Transact runs the function provided within a transaction.
 	Transact(txOptions *pgx.TxOptions, fn func(AddressTabler) error) error
 
+	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
 
+	// DropTable drops the table, destroying all its data.
+	DropTable(ifExists bool) (int64, error)
+
+	// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 	CreateTableWithIndexes(ifNotExist bool) (err error)
+
+	// CreateIndexes executes queries that create the indexes needed by the Address table.
 	CreateIndexes(ifNotExist bool) (err error)
 
+	// CreatePostcodeIdxIndex creates the postcodeIdx index.
 	CreatePostcodeIdxIndex(ifNotExist bool) error
+
+	// DropPostcodeIdxIndex drops the postcodeIdx index.
 	DropPostcodeIdxIndex(ifExists bool) error
 
+	// CreateTownIdxIndex creates the townIdx index.
 	CreateTownIdxIndex(ifNotExist bool) error
+
+	// DropTownIdxIndex drops the townIdx index.
 	DropTownIdxIndex(ifExists bool) error
 
+	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 
+	// Query is the low-level request method for this table using an SQL query that must return all the columns
+	// necessary for Address values.
 	Query(req require.Requirement, query string, args ...interface{}) ([]*Address, error)
 
+	// QueryOneNullString is a low-level access method for one string, returning the first match.
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+
+	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+
+	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
+	// GetAddressesById gets records from the table according to a list of primary keys.
 	GetAddressesById(req require.Requirement, id ...int64) (list []*Address, err error)
+
+	// GetAddressById gets the record with a given primary key value.
 	GetAddressById(req require.Requirement, id int64) (*Address, error)
+
+	// GetAddressesByPostcode gets the records with a given postcode value.
 	GetAddressesByPostcode(req require.Requirement, postcode string) ([]*Address, error)
+
+	// GetAddressesByTown gets the records with a given town value.
 	GetAddressesByTown(req require.Requirement, town string) ([]*Address, error)
 
+	// SelectOneWhere allows a single Address to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error)
+
+	// SelectOne allows a single Address to be obtained from the table that matches a 'where' clause.
 	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Address, error)
+
+	// SelectWhere allows Addresses to be obtained from the table that match a 'where' clause.
 	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Address, error)
+
+	// Select allows Addresses to be obtained from the table that match a 'where' clause.
 	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Address, error)
 
+	// CountWhere counts Addresses in the table that match a 'where' clause.
 	CountWhere(where string, args ...interface{}) (count int64, err error)
+
+	// Count counts the Addresses in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 
+	// SliceId gets the id column for all rows that match the 'where' condition.
 	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+
+	// SliceTown gets the town column for all rows that match the 'where' condition.
 	SliceTown(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+
+	// SlicePostcode gets the postcode column for all rows that match the 'where' condition.
 	SlicePostcode(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
+	// Insert adds new records for the Addresses, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Address) error
 
+	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Address) (int64, error)
 }
 
@@ -126,10 +180,10 @@ func CopyTableAsAddressTable(origin pgxapi.Table) AddressTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "id".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AddressTable) SetPkColumn(pk string) AddressTabler {
-	tbl.pk = pk
-	return tbl
-}
+//func (tbl AddressTable) SetPkColumn(pk string) AddressTabler {
+//	tbl.pk = pk
+//	return tbl
+//}
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -158,7 +212,7 @@ func (tbl AddressTable) Logger() pgxapi.Logger {
 	return tbl.database.Logger()
 }
 
-// WithConstraint returns a modified Table with added data consistency constraints.
+// WithConstraint returns a modified AddressTabler with added data consistency constraints.
 func (tbl AddressTable) WithConstraint(cc ...constraint.Constraint) AddressTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
@@ -211,7 +265,7 @@ func (tbl AddressTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified Table using the transaction supplied. This is needed
+// Using returns a modified AddressTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AddressTable) Using(tx pgxapi.SqlTx) AddressTabler {
@@ -219,7 +273,7 @@ func (tbl AddressTable) Using(tx pgxapi.SqlTx) AddressTabler {
 	return tbl
 }
 
-// Transact runs the function provided withina transaction. If the function completes without error,
+// Transact runs the function provided within a transaction. If the function completes without error,
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
@@ -744,7 +798,7 @@ func (tbl AddressTable) Fetch(req require.Requirement, query string, args ...int
 
 //--------------------------------------------------------------------------------
 
-// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
+// SelectOneWhere allows a single Address to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -761,7 +815,7 @@ func (tbl AddressTable) SelectOneWhere(req require.Requirement, where, orderBy s
 	return v, err
 }
 
-// SelectOne allows a single Address to be obtained from the database.
+// SelectOne allows a single Address to be obtained from the table that matches a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.

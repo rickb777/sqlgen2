@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
+// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
 
 package demo
 
@@ -22,22 +22,41 @@ import (
 type CUserTabler interface {
 	sqlapi.Table
 
+	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
 
-	SetPkColumn(pk string) CUserTabler
-	WithPrefix(pfx string) CUserTabler
-	WithContext(ctx context.Context) CUserTabler
+	// WithConstraint returns a modified CUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) CUserTabler
+
+	// WithPrefix returns a modified CUserTabler with a given table name prefix.
+	WithPrefix(pfx string) CUserTabler
+
+	// WithContext returns a modified CUserTabler with a given context.
+	WithContext(ctx context.Context) CUserTabler
+
+	// Using returns a modified CUserTabler using the transaction supplied.
 	Using(tx sqlapi.SqlTx) CUserTabler
+
+	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(CUserTabler) error) error
 
+	// Query is the low-level request method for this table using an SQL query that must return all the columns
+	// necessary for User values.
 	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
 
+	// QueryOneNullString is a low-level access method for one string, returning the first match.
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+
+	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+
+	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
+	// CountWhere counts Users in the table that match a 'where' clause.
 	CountWhere(where string, args ...interface{}) (count int64, err error)
+
+	// Count counts the Users in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 }
 
@@ -95,10 +114,10 @@ func CopyTableAsCUserTable(origin sqlapi.Table) CUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl CUserTable) SetPkColumn(pk string) CUserTabler {
-	tbl.pk = pk
-	return tbl
-}
+//func (tbl CUserTable) SetPkColumn(pk string) CUserTabler {
+//	tbl.pk = pk
+//	return tbl
+//}
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -127,7 +146,7 @@ func (tbl CUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
-// WithConstraint returns a modified Table with added data consistency constraints.
+// WithConstraint returns a modified CUserTabler with added data consistency constraints.
 func (tbl CUserTable) WithConstraint(cc ...constraint.Constraint) CUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
@@ -180,7 +199,7 @@ func (tbl CUserTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified Table using the transaction supplied. This is needed
+// Using returns a modified CUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl CUserTable) Using(tx sqlapi.SqlTx) CUserTabler {
@@ -188,7 +207,7 @@ func (tbl CUserTable) Using(tx sqlapi.SqlTx) CUserTabler {
 	return tbl
 }
 
-// Transact runs the function provided withina transaction. If the function completes without error,
+// Transact runs the function provided within a transaction. If the function completes without error,
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.

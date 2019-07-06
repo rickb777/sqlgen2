@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
+// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
 
 package demo
 
@@ -25,67 +25,149 @@ import (
 type DbUserTabler interface {
 	sqlapi.Table
 
+	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
 
-	SetPkColumn(pk string) DbUserTabler
-	WithPrefix(pfx string) DbUserTabler
-	WithContext(ctx context.Context) DbUserTabler
+	// WithConstraint returns a modified DbUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) DbUserTabler
+
+	// WithPrefix returns a modified DbUserTabler with a given table name prefix.
+	WithPrefix(pfx string) DbUserTabler
+
+	// WithContext returns a modified DbUserTabler with a given context.
+	WithContext(ctx context.Context) DbUserTabler
+
+	// Using returns a modified DbUserTabler using the transaction supplied.
 	Using(tx sqlapi.SqlTx) DbUserTabler
+
+	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(DbUserTabler) error) error
 
+	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
 
+	// DropTable drops the table, destroying all its data.
+	DropTable(ifExists bool) (int64, error)
+
+	// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 	CreateTableWithIndexes(ifNotExist bool) (err error)
+
+	// CreateIndexes executes queries that create the indexes needed by the User table.
 	CreateIndexes(ifNotExist bool) (err error)
 
+	// CreateEmailaddressIdxIndex creates the emailaddress_idx index.
 	CreateEmailaddressIdxIndex(ifNotExist bool) error
+
+	// DropEmailaddressIdxIndex drops the emailaddress_idx index.
 	DropEmailaddressIdxIndex(ifExists bool) error
 
+	// CreateUserLoginIndex creates the user_login index.
 	CreateUserLoginIndex(ifNotExist bool) error
+
+	// DropUserLoginIndex drops the user_login index.
 	DropUserLoginIndex(ifExists bool) error
 
+	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 
+	// Query is the low-level request method for this table using an SQL query that must return all the columns
+	// necessary for User values.
 	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
 
+	// QueryOneNullString is a low-level access method for one string, returning the first match.
 	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+
+	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
 	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+
+	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
+	// GetUsersByUid gets records from the table according to a list of primary keys.
 	GetUsersByUid(req require.Requirement, id ...int64) (list []*User, err error)
+
+	// GetUserByUid gets the record with a given primary key value.
 	GetUserByUid(req require.Requirement, id int64) (*User, error)
+
+	// GetUserByEmailAddress gets the record with a given emailaddress value.
 	GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error)
+
+	// GetUserByName gets the record with a given name value.
 	GetUserByName(req require.Requirement, name string) (*User, error)
 
+	// SelectOneWhere allows a single User to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error)
+
+	// SelectOne allows a single User to be obtained from the table that matches a 'where' clause.
 	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error)
+
+	// SelectWhere allows Users to be obtained from the table that match a 'where' clause.
 	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error)
+
+	// Select allows Users to be obtained from the table that match a 'where' clause.
 	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error)
 
+	// CountWhere counts Users in the table that match a 'where' clause.
 	CountWhere(where string, args ...interface{}) (count int64, err error)
+
+	// Count counts the Users in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 
+	// SliceUid gets the uid column for all rows that match the 'where' condition.
 	SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+
+	// SliceName gets the name column for all rows that match the 'where' condition.
 	SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+
+	// SliceEmailaddress gets the emailaddress column for all rows that match the 'where' condition.
 	SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+
+	// SliceAddressid gets the addressid column for all rows that match the 'where' condition.
 	SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+
+	// SliceAvatar gets the avatar column for all rows that match the 'where' condition.
 	SliceAvatar(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+
+	// SliceLastupdated gets the lastupdated column for all rows that match the 'where' condition.
 	SliceLastupdated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+
+	// SliceI8 gets the i8 column for all rows that match the 'where' condition.
 	SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error)
+
+	// SliceU8 gets the u8 column for all rows that match the 'where' condition.
 	SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error)
+
+	// SliceI16 gets the i16 column for all rows that match the 'where' condition.
 	SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error)
+
+	// SliceU16 gets the u16 column for all rows that match the 'where' condition.
 	SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error)
+
+	// SliceI32 gets the i32 column for all rows that match the 'where' condition.
 	SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error)
+
+	// SliceU32 gets the u32 column for all rows that match the 'where' condition.
 	SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error)
+
+	// SliceI64 gets the i64 column for all rows that match the 'where' condition.
 	SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+
+	// SliceU64 gets the u64 column for all rows that match the 'where' condition.
 	SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
+
+	// SliceRole gets the role column for all rows that match the 'where' condition.
 	SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error)
+
+	// SliceF32 gets the f32 column for all rows that match the 'where' condition.
 	SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error)
+
+	// SliceF64 gets the f64 column for all rows that match the 'where' condition.
 	SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error)
 
+	// Insert adds new records for the Users, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*User) error
 
+	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*User) (int64, error)
 }
 
@@ -143,10 +225,10 @@ func CopyTableAsDbUserTable(origin sqlapi.Table) DbUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DbUserTable) SetPkColumn(pk string) DbUserTabler {
-	tbl.pk = pk
-	return tbl
-}
+//func (tbl DbUserTable) SetPkColumn(pk string) DbUserTabler {
+//	tbl.pk = pk
+//	return tbl
+//}
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
@@ -175,7 +257,7 @@ func (tbl DbUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
-// WithConstraint returns a modified Table with added data consistency constraints.
+// WithConstraint returns a modified DbUserTabler with added data consistency constraints.
 func (tbl DbUserTable) WithConstraint(cc ...constraint.Constraint) DbUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
@@ -228,7 +310,7 @@ func (tbl DbUserTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified Table using the transaction supplied. This is needed
+// Using returns a modified DbUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DbUserTable) Using(tx sqlapi.SqlTx) DbUserTabler {
@@ -236,7 +318,7 @@ func (tbl DbUserTable) Using(tx sqlapi.SqlTx) DbUserTabler {
 	return tbl
 }
 
-// Transact runs the function provided withina transaction. If the function completes without error,
+// Transact runs the function provided within a transaction. If the function completes without error,
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
@@ -896,7 +978,7 @@ func (tbl DbUserTable) Fetch(req require.Requirement, query string, args ...inte
 
 //--------------------------------------------------------------------------------
 
-// SelectOneWhere allows a single Example to be obtained from the table that match a 'where' clause
+// SelectOneWhere allows a single User to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 // If not found, *Example will be nil.
@@ -913,7 +995,7 @@ func (tbl DbUserTable) SelectOneWhere(req require.Requirement, where, orderBy st
 	return v, err
 }
 
-// SelectOne allows a single User to be obtained from the database.
+// SelectOne allows a single User to be obtained from the table that matches a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 // If not found, *Example will be nil.
