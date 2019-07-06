@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
+// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
 
 package demopgx
 
@@ -677,7 +677,7 @@ func (tbl AddressTable) GetAddressesById(req require.Requirement, id ...int64) (
 			args[i] = v
 		}
 
-		list, err = getAddressTableAddresses(tbl, req, tbl.pk, args...)
+		list, err = getAddresses(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -711,7 +711,7 @@ func getAddress(tbl AddressTable, req require.Requirement, column string, arg in
 	return v, err
 }
 
-func getAddressTableAddresses(tbl AddressTabler, req require.Requirement, column string, args ...interface{}) (list []*Address, err error) {
+func getAddresses(tbl AddressTabler, req require.Requirement, column string, args ...interface{}) (list []*Address, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -1145,11 +1145,11 @@ func (tbl AddressTable) DeleteAddresses(req require.Requirement, id ...int64) (i
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl AddressTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := sqlAddressTableDeleteRows(tbl, wh)
+	query, args := deleteRowsAddressTableSql(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func sqlAddressTableDeleteRows(tbl AddressTabler, wh where.Expression) (string, []interface{}) {
+func deleteRowsAddressTableSql(tbl AddressTabler, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)

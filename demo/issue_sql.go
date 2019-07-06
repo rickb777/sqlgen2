@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
+// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
 
 package demo
 
@@ -641,7 +641,7 @@ func (tbl IssueTable) GetIssuesById(req require.Requirement, id ...int64) (list 
 			args[i] = v
 		}
 
-		list, err = getIssueTableIssues(tbl, req, tbl.pk, args...)
+		list, err = getIssues(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -669,7 +669,7 @@ func getIssue(tbl IssueTable, req require.Requirement, column string, arg interf
 	return v, err
 }
 
-func getIssueTableIssues(tbl IssueTabler, req require.Requirement, column string, args ...interface{}) (list []*Issue, err error) {
+func getIssues(tbl IssueTabler, req require.Requirement, column string, args ...interface{}) (list []*Issue, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -1157,11 +1157,11 @@ func (tbl IssueTable) DeleteIssues(req require.Requirement, id ...int64) (int64,
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl IssueTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := sqlIssueTableDeleteRows(tbl, wh)
+	query, args := deleteRowsIssueTableSql(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func sqlIssueTableDeleteRows(tbl IssueTabler, wh where.Expression) (string, []interface{}) {
+func deleteRowsIssueTableSql(tbl IssueTabler, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)

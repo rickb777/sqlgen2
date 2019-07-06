@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
+// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
 
 package demo
 
@@ -450,7 +450,7 @@ func (tbl RUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list 
 			args[i] = v
 		}
 
-		list, err = getRUserTableUsers(tbl, req, tbl.pk, args...)
+		list, err = getRUsers(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -484,7 +484,7 @@ func getRUser(tbl RUserTable, req require.Requirement, column string, arg interf
 	return v, err
 }
 
-func getRUserTableUsers(tbl RUserTabler, req require.Requirement, column string, args ...interface{}) (list []*User, err error) {
+func getRUsers(tbl RUserTabler, req require.Requirement, column string, args ...interface{}) (list []*User, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))

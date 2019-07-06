@@ -142,7 +142,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}
 			args[i] = v
 		}
 
-		list, err = get{{.Prefix}}{{.Type}}{{.Thing}}{{.Types}}(tbl, req, tbl.pk, args...)
+		list, err = get{{.Prefix}}{{.Types}}(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -182,7 +182,7 @@ func get{{.Prefix}}{{.Type}}(tbl {{.Prefix}}{{.Type}}{{.Thing}}, req require.Req
 	return v, err
 }
 
-func get{{.Prefix}}{{.Type}}{{.Thing}}{{.Types}}(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, column string, args ...interface{}) (list {{.List}}, err error) {
+func get{{.Prefix}}{{.Types}}(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, column string, args ...interface{}) (list {{.List}}, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -711,11 +711,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}(req require.Requireme
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := sql{{.Prefix}}{{.Type}}{{.Thing}}DeleteRows(tbl, wh)
+	query, args := deleteRows{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func sql{{.Prefix}}{{.Type}}{{.Thing}}DeleteRows(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, wh where.Expression) (string, []interface{}) {
+func deleteRows{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)

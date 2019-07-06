@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
+// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
 
 package demo
 
@@ -481,11 +481,11 @@ func (tbl DUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl DUserTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := sqlDUserTableDeleteRows(tbl, wh)
+	query, args := deleteRowsDUserTableSql(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func sqlDUserTableDeleteRows(tbl DUserTabler, wh where.Expression) (string, []interface{}) {
+func deleteRowsDUserTableSql(tbl DUserTabler, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
+// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
 
 package demo
 
@@ -828,7 +828,7 @@ func (tbl AUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list 
 			args[i] = v
 		}
 
-		list, err = getAUserTableUsers(tbl, req, tbl.pk, args...)
+		list, err = getAUsers(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -862,7 +862,7 @@ func getAUser(tbl AUserTable, req require.Requirement, column string, arg interf
 	return v, err
 }
 
-func getAUserTableUsers(tbl AUserTabler, req require.Requirement, column string, args ...interface{}) (list []*User, err error) {
+func getAUsers(tbl AUserTabler, req require.Requirement, column string, args ...interface{}) (list []*User, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -1666,11 +1666,11 @@ func (tbl AUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl AUserTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := sqlAUserTableDeleteRows(tbl, wh)
+	query, args := deleteRowsAUserTableSql(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func sqlAUserTableDeleteRows(tbl AUserTabler, wh where.Expression) (string, []interface{}) {
+func deleteRowsAUserTableSql(tbl AUserTabler, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)

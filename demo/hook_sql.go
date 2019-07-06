@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-3-gc936e66
+// sqlapi v0.32.0; sqlgen v0.52.0-4-g94306c0
 
 package demo
 
@@ -616,7 +616,7 @@ func (tbl HookTable) GetHooksById(req require.Requirement, id ...uint64) (list H
 			args[i] = v
 		}
 
-		list, err = getHookTableHooks(tbl, req, tbl.pk, args...)
+		list, err = getHooks(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -638,7 +638,7 @@ func getHook(tbl HookTable, req require.Requirement, column string, arg interfac
 	return v, err
 }
 
-func getHookTableHooks(tbl HookTabler, req require.Requirement, column string, args ...interface{}) (list HookList, err error) {
+func getHooks(tbl HookTabler, req require.Requirement, column string, args ...interface{}) (list HookList, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -1317,11 +1317,11 @@ func (tbl HookTable) DeleteHooks(req require.Requirement, id ...uint64) (int64, 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
 func (tbl HookTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := sqlHookTableDeleteRows(tbl, wh)
+	query, args := deleteRowsHookTableSql(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func sqlHookTableDeleteRows(tbl HookTabler, wh where.Expression) (string, []interface{}) {
+func deleteRowsHookTableSql(tbl HookTabler, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)
