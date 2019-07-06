@@ -2,7 +2,11 @@ package code
 
 import "text/template"
 
-const sExec = `
+const sExecDecl = `
+// Exec executes a query without returning any rows.
+`
+
+const sExecFunc = `
 // Exec executes a query without returning any rows.
 // It returns the number of rows affected (if the database driver supports this).
 //
@@ -12,7 +16,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Exec(req require.Requirement, query st
 }
 `
 
-var tExec = template.Must(template.New("Exec").Funcs(funcMap).Parse(sExec))
+var tExecDecl = template.Must(template.New("ExecDecl").Funcs(funcMap).Parse(sExecDecl))
+var tExecFunc = template.Must(template.New("ExecFunc").Funcs(funcMap).Parse(sExecFunc))
 
 //-------------------------------------------------------------------------------------------------
 

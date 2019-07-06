@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
+// sqlapi v0.32.0; sqlgen v0.52.0-6-gb058954
 
 package demo
 
@@ -7,38 +7,36 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
-	"github.com/rickb777/where"
 	"strings"
 )
 
-// CUserTabler lists methods provided by CUserTable.
-type CUserTabler interface {
+// QUserTabler lists methods provided by QUserTable.
+type QUserTabler interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
 
-	// WithConstraint returns a modified CUserTabler with added data consistency constraints.
-	WithConstraint(cc ...constraint.Constraint) CUserTabler
+	// WithConstraint returns a modified QUserTabler with added data consistency constraints.
+	WithConstraint(cc ...constraint.Constraint) QUserTabler
 
-	// WithPrefix returns a modified CUserTabler with a given table name prefix.
-	WithPrefix(pfx string) CUserTabler
+	// WithPrefix returns a modified QUserTabler with a given table name prefix.
+	WithPrefix(pfx string) QUserTabler
 
-	// WithContext returns a modified CUserTabler with a given context.
-	WithContext(ctx context.Context) CUserTabler
+	// WithContext returns a modified QUserTabler with a given context.
+	WithContext(ctx context.Context) QUserTabler
 
-	// Using returns a modified CUserTabler using the transaction supplied.
-	Using(tx sqlapi.SqlTx) CUserTabler
+	// Using returns a modified QUserTabler using the transaction supplied.
+	Using(tx sqlapi.SqlTx) QUserTabler
 
 	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(CUserTabler) error) error
+	Transact(txOptions *sql.TxOptions, fn func(QUserTabler) error) error
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for User values.
@@ -52,18 +50,12 @@ type CUserTabler interface {
 
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
-
-	// CountWhere counts Users in the table that match a 'where' clause.
-	CountWhere(where string, args ...interface{}) (count int64, err error)
-
-	// Count counts the Users in the table that match a 'where' clause.
-	Count(wh where.Expression) (count int64, err error)
 }
 
-// CUserTable holds a given table name with the database reference, providing access methods below.
+// QUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
-type CUserTable struct {
+type QUserTable struct {
 	name        sqlapi.TableName
 	database    sqlapi.Database
 	db          sqlapi.Execer
@@ -73,12 +65,12 @@ type CUserTable struct {
 }
 
 // Type conformance checks
-var _ sqlapi.Table = &CUserTable{}
+var _ sqlapi.Table = &QUserTable{}
 
-// NewCUserTable returns a new table instance.
+// NewQUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewCUserTable(name string, d sqlapi.Database) CUserTable {
+func NewQUserTable(name string, d sqlapi.Database) QUserTable {
 	if name == "" {
 		name = "users"
 	}
@@ -86,7 +78,7 @@ func NewCUserTable(name string, d sqlapi.Database) CUserTable {
 	constraints = append(constraints,
 		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 
-	return CUserTable{
+	return QUserTable{
 		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
@@ -96,13 +88,13 @@ func NewCUserTable(name string, d sqlapi.Database) CUserTable {
 	}
 }
 
-// CopyTableAsCUserTable copies a table instance, retaining the name etc but
+// CopyTableAsQUserTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'User'. It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for 'User'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsCUserTable(origin sqlapi.Table) CUserTable {
-	return CUserTable{
+func CopyTableAsQUserTable(origin sqlapi.Table) QUserTable {
+	return QUserTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
 		db:          origin.DB(),
@@ -114,14 +106,14 @@ func CopyTableAsCUserTable(origin sqlapi.Table) CUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-//func (tbl CUserTable) SetPkColumn(pk string) CUserTabler {
+//func (tbl QUserTable) SetPkColumn(pk string) QUserTabler {
 //	tbl.pk = pk
 //	return tbl
 //}
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl CUserTable) WithPrefix(pfx string) CUserTabler {
+func (tbl QUserTable) WithPrefix(pfx string) QUserTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -131,78 +123,78 @@ func (tbl CUserTable) WithPrefix(pfx string) CUserTabler {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl CUserTable) WithContext(ctx context.Context) CUserTabler {
+func (tbl QUserTable) WithContext(ctx context.Context) QUserTabler {
 	tbl.ctx = ctx
 	return tbl
 }
 
 // Database gets the shared database information.
-func (tbl CUserTable) Database() sqlapi.Database {
+func (tbl QUserTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
 // Logger gets the trace logger.
-func (tbl CUserTable) Logger() sqlapi.Logger {
+func (tbl QUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
-// WithConstraint returns a modified CUserTabler with added data consistency constraints.
-func (tbl CUserTable) WithConstraint(cc ...constraint.Constraint) CUserTabler {
+// WithConstraint returns a modified QUserTabler with added data consistency constraints.
+func (tbl QUserTable) WithConstraint(cc ...constraint.Constraint) QUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
 
 // Constraints returns the table's constraints.
-func (tbl CUserTable) Constraints() constraint.Constraints {
+func (tbl QUserTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
 // Ctx gets the current request context.
-func (tbl CUserTable) Ctx() context.Context {
+func (tbl QUserTable) Ctx() context.Context {
 	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
-func (tbl CUserTable) Dialect() dialect.Dialect {
+func (tbl QUserTable) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
 // Name gets the table name.
-func (tbl CUserTable) Name() sqlapi.TableName {
+func (tbl QUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
 // PkColumn gets the column name used as a primary key.
-func (tbl CUserTable) PkColumn() string {
+func (tbl QUserTable) PkColumn() string {
 	return tbl.pk
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl CUserTable) DB() sqlapi.SqlDB {
+func (tbl QUserTable) DB() sqlapi.SqlDB {
 	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl CUserTable) Execer() sqlapi.Execer {
+func (tbl QUserTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl CUserTable) Tx() sqlapi.SqlTx {
+func (tbl QUserTable) Tx() sqlapi.SqlTx {
 	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
-func (tbl CUserTable) IsTx() bool {
+func (tbl QUserTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified CUserTabler using the transaction supplied. This is needed
+// Using returns a modified QUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl CUserTable) Using(tx sqlapi.SqlTx) CUserTabler {
+func (tbl QUserTable) Using(tx sqlapi.SqlTx) QUserTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -212,7 +204,7 @@ func (tbl CUserTable) Using(tx sqlapi.SqlTx) CUserTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl CUserTable) Transact(txOptions *sql.TxOptions, fn func(CUserTabler) error) error {
+func (tbl QUserTable) Transact(txOptions *sql.TxOptions, fn func(QUserTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -224,29 +216,29 @@ func (tbl CUserTable) Transact(txOptions *sql.TxOptions, fn func(CUserTabler) er
 	return tbl.Logger().LogIfError(err)
 }
 
-func (tbl CUserTable) quotedName() string {
+func (tbl QUserTable) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.name.String())
 }
 
-func (tbl CUserTable) quotedNameW(w dialect.StringWriter) {
+func (tbl QUserTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
 //--------------------------------------------------------------------------------
 
-// NumCUserTableColumns is the total number of columns in CUserTable.
-const NumCUserTableColumns = 22
+// NumQUserTableColumns is the total number of columns in QUserTable.
+const NumQUserTableColumns = 22
 
-// NumCUserTableDataColumns is the number of columns in CUserTable not including the auto-increment key.
-const NumCUserTableDataColumns = 21
+// NumQUserTableDataColumns is the number of columns in QUserTable not including the auto-increment key.
+const NumQUserTableDataColumns = 21
 
-// CUserTableColumnNames is the list of columns in CUserTable.
-const CUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// QUserTableColumnNames is the list of columns in QUserTable.
+const QUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-// CUserTableDataColumnNames is the list of data columns in CUserTable.
-const CUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// QUserTableDataColumnNames is the list of data columns in QUserTable.
+const QUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-var listOfCUserTableColumnNames = strings.Split(CUserTableColumnNames, ",")
+var listOfQUserTableColumnNames = strings.Split(QUserTableColumnNames, ",")
 
 //--------------------------------------------------------------------------------
 
@@ -262,18 +254,18 @@ var listOfCUserTableColumnNames = strings.Split(CUserTableColumnNames, ",")
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl CUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return doCUserTableQueryAndScan(tbl, req, false, query, args)
+func (tbl QUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return doQUserTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func doCUserTableQueryAndScan(tbl CUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func doQUserTableQueryAndScan(tbl QUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	vv, n, err := scanCUsers(query, rows, firstOnly)
+	vv, n, err := scanQUsers(query, rows, firstOnly)
 	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
@@ -286,7 +278,7 @@ func doCUserTableQueryAndScan(tbl CUserTabler, req require.Requirement, firstOnl
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl CUserTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+func (tbl QUserTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
 	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
@@ -298,7 +290,7 @@ func (tbl CUserTable) QueryOneNullString(req require.Requirement, query string, 
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl CUserTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+func (tbl QUserTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
 	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
@@ -310,15 +302,15 @@ func (tbl CUserTable) QueryOneNullInt64(req require.Requirement, query string, a
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl CUserTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+func (tbl QUserTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
 	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
-// scanCUsers reads rows from the database and returns a slice of corresponding values.
+// scanQUsers reads rows from the database and returns a slice of corresponding values.
 // It also returns a number indicating how many rows were read; this will be larger than the length of the
 // slice if reading stopped after the first row.
-func scanCUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, n int64, err error) {
+func scanQUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -431,31 +423,4 @@ func scanCUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 	}
 
 	return vv, n, errors.Wrap(rows.Err(), query)
-}
-
-//--------------------------------------------------------------------------------
-
-// CountWhere counts Users in the table that match a 'where' clause.
-// Use a blank string for the 'where' argument if it is not needed.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl CUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
-	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return 0, err
-	}
-	defer rows.Close()
-	if rows.Next() {
-		err = rows.Scan(&count)
-	}
-	return count, tbl.Logger().LogIfError(err)
-}
-
-// Count counts the Users in the table that match a 'where' clause.
-// Use a nil value for the 'wh' argument if it is not needed.
-func (tbl CUserTable) Count(wh where.Expression) (count int64, err error) {
-	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	return tbl.CountWhere(whs, args...)
 }

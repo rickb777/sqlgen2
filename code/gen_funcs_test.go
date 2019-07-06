@@ -185,11 +185,12 @@ func TestWriteExecFunc(t *testing.T) {
 	view := NewView("", "", "Example", "X", "", "", "sql", "sqlapi")
 	view.Table = simpleFixtureTable()
 
-	buf := &bytes.Buffer{}
+	buf1 := &bytes.Buffer{}
+	buf2 := &bytes.Buffer{}
 
-	WriteExecFunc(buf, view)
+	WriteExecFunc(buf1, buf2, view)
 
-	code := buf.String()
+	code := buf2.String()
 	expected := strings.Replace(`
 //--------------------------------------------------------------------------------
 

@@ -25,22 +25,28 @@ func PackagesToImport(flags FuncFlags, pgx bool) util.StringSet {
 		"strings",
 		"github.com/pkg/errors",
 		"github.com/rickb777/sqlapi/dialect",
-		"github.com/rickb777/sqlapi/require",
 	)
 
+	base := ""
+
 	if pgx {
-		imports.Add(
-			"github.com/jackc/pgx",
-			"github.com/rickb777/sqlapi/pgxapi",
-			"github.com/rickb777/sqlapi/pgxapi/constraint",
-			"github.com/rickb777/sqlapi/pgxapi/support",
-		)
+		base = "github.com/rickb777/sqlapi/pgxapi"
+		imports.Add("github.com/jackc/pgx")
 	} else {
-		imports.Add(
-			"github.com/rickb777/sqlapi",
-			"github.com/rickb777/sqlapi/constraint",
-			"github.com/rickb777/sqlapi/support",
-		)
+		base = "github.com/rickb777/sqlapi"
+	}
+
+	imports.Add(
+		base,
+		base+"/constraint",
+	)
+
+	if flags.Exec || flags.Query || flags.Count || flags.Update || flags.Delete || flags.Slice {
+		imports.Add(base + "/support")
+	}
+
+	if flags.Exec || flags.Query || flags.Insert || flags.Update || flags.Delete || flags.Slice {
+		imports.Add("github.com/rickb777/sqlapi/require")
 	}
 
 	if flags.Insert || flags.Update || flags.Schema {
@@ -93,10 +99,10 @@ func secondaryInterface(flags FuncFlags) string {
 //-------------------------------------------------------------------------------------------------
 
 type FuncFlags struct {
-	Schema, Exec, Select, Count, Insert, Update, Upsert, Delete, Slice, Scan bool
+	Schema, Query, Exec, Select, Count, Insert, Update, Upsert, Delete, Slice, Scan bool
 }
 
-var AllFuncFlags = FuncFlags{true, true, true, true, true, true, true, true, true, true}
+var AllFuncFlags = FuncFlags{true, true, true, true, true, true, true, true, true, true, true}
 
 //-------------------------------------------------------------------------------------------------
 

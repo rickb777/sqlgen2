@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
+// sqlapi v0.32.0; sqlgen v0.52.0-6-gb058954
 
 package demo
 
@@ -40,18 +40,7 @@ type DUserTabler interface {
 	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(DUserTabler) error) error
 
-	// Query is the low-level request method for this table using an SQL query that must return all the columns
-	// necessary for User values.
-	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
-
-	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
-
-	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
-
-	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+	// Exec executes a query without returning any rows.
 }
 
 // DUserTable holds a given table name with the database reference, providing access methods below.
@@ -250,73 +239,6 @@ var listOfDUserTableColumnNames = strings.Split(DUserTableColumnNames, ",")
 // The args are for any placeholder parameters in the query.
 func (tbl DUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
 	return support.Exec(tbl, req, query, args...)
-}
-
-//--------------------------------------------------------------------------------
-
-// Query is the low-level request method for this table. The SQL query must return all the columns necessary for
-// User values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
-// the chosen dialect.
-//
-// The query is logged using whatever logger is configured. If an error arises, this too is logged.
-//
-// If you need a context other than the background, use WithContext before calling Query.
-//
-// The args are for any placeholder parameters in the query.
-//
-// The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
-// use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl DUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return doDUserTableQueryAndScan(tbl, req, false, query, args)
-}
-
-func doDUserTableQueryAndScan(tbl DUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	vv, n, err := scanDUsers(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
-}
-
-//--------------------------------------------------------------------------------
-
-// QueryOneNullString is a low-level access method for one string. This can be used for function queries and
-// such like. If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, the result will be invalid.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl DUserTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
-	return result, err
-}
-
-// QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-// such like. If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, the result will be invalid.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl DUserTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
-	return result, err
-}
-
-// QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-// such like. If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, the result will be invalid.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl DUserTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
-	return result, err
 }
 
 // scanDUsers reads rows from the database and returns a slice of corresponding values.

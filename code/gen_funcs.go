@@ -80,9 +80,10 @@ func WriteDeleteFunc(w io.Writer, view View) {
 	fmt.Fprintln(w, sectionBreak)
 }
 
-func WriteExecFunc(w io.Writer, view View) {
-	fmt.Fprintln(w, sectionBreak)
-	must(tExec.Execute(w, view))
+func WriteExecFunc(w1, w2 io.Writer, view View) {
+	fmt.Fprintln(w2, sectionBreak)
+	must(tExecDecl.Execute(w1, view))
+	must(tExecFunc.Execute(w2, view))
 }
 
 // join is a helper function that joins nodes

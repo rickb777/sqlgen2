@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
+// sqlapi v0.32.0; sqlgen v0.52.0-6-gb058954
 
 package demo
 
@@ -68,6 +68,8 @@ type AddressTabler interface {
 
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
+
+	// Exec executes a query without returning any rows.
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for Address values.
@@ -674,15 +676,15 @@ func ScanAddresses(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Add
 
 		v := &Address{}
 		v.Id = v0
-		err = json.Unmarshal(v1, &v.Lines)
+		err = json.Unmarshal(v1, &v.AddressFields.Lines)
 		if err != nil {
 			return nil, n, errors.Wrap(err, query)
 		}
 		if v2.Valid {
 			a := v2.String
-			v.Town = &a
+			v.AddressFields.Town = &a
 		}
-		v.Postcode = v3
+		v.AddressFields.Postcode = v3
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlapi.CanPostGet); ok {
@@ -923,21 +925,21 @@ func constructAddressTableInsert(tbl AddressTable, w dialect.StringWriter, v *Ad
 	w.WriteString(comma)
 	q.QuoteW(w, "lines")
 	comma = ","
-	x, err := json.Marshal(&v.Lines)
+	x, err := json.Marshal(&v.AddressFields.Lines)
 	if err != nil {
 		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
-	if v.Town != nil {
+	if v.AddressFields.Town != nil {
 		w.WriteString(comma)
 		q.QuoteW(w, "town")
-		s = append(s, v.Town)
+		s = append(s, v.AddressFields.Town)
 	}
 
 	w.WriteString(comma)
 	q.QuoteW(w, "postcode")
-	s = append(s, v.Postcode)
+	s = append(s, v.AddressFields.Postcode)
 
 	w.WriteString(")")
 	return s, nil
@@ -956,17 +958,17 @@ func constructAddressTableUpdate(tbl AddressTable, w dialect.StringWriter, v *Ad
 	comma = ", "
 	j++
 
-	x, err := json.Marshal(&v.Lines)
+	x, err := json.Marshal(&v.AddressFields.Lines)
 	if err != nil {
 		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
 	w.WriteString(comma)
-	if v.Town != nil {
+	if v.AddressFields.Town != nil {
 		q.QuoteW(w, "town")
 		w.WriteString("=?")
-		s = append(s, v.Town)
+		s = append(s, v.AddressFields.Town)
 		j++
 	} else {
 		q.QuoteW(w, "town")
@@ -976,7 +978,7 @@ func constructAddressTableUpdate(tbl AddressTable, w dialect.StringWriter, v *Ad
 	w.WriteString(comma)
 	q.QuoteW(w, "postcode")
 	w.WriteString("=?")
-	s = append(s, v.Postcode)
+	s = append(s, v.AddressFields.Postcode)
 	j++
 	return s, nil
 }

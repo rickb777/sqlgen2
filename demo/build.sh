@@ -10,14 +10,17 @@ go generate .
 # also...
 
 # These demonstrate the various filters that control what methods are generated
-sqlgen -json -type demo.User -o user_ex_xxxxxx_sql.go -v -prefix X -schema=false user.go role.go
-sqlgen -type demo.User -o user_ex_Ixxxxx_sql.go -v -prefix I -schema=false -create=true  -count=false -read=false -update=false -delete=false -slice=false user.go role.go
-sqlgen -type demo.User -o user_ex_xCxxxx_sql.go -v -prefix C -schema=false -create=false -count=true  -read=false -update=false -delete=false -slice=false user.go role.go
-sqlgen -type demo.User -o user_ex_xxRxxx_sql.go -v -prefix R -schema=false -create=false -count=false -read=true  -update=false -delete=false -slice=false user.go role.go
-sqlgen -type demo.User -o user_ex_xxxUxx_sql.go -v -prefix U -schema=false -create=false -count=false -read=false -update=true  -delete=false -slice=false user.go role.go
-sqlgen -type demo.User -o user_ex_xxxxDx_sql.go -v -prefix D -schema=false -create=false -count=false -read=false -update=false -delete=true  -slice=false user.go role.go
-sqlgen -type demo.User -o user_ex_xxxxxS_sql.go -v -prefix S -schema=false -create=false -count=false -read=false -update=false -delete=false -slice=true  user.go role.go
-sqlgen -type demo.User -o user_ex_ICRUDS_sql.go -v -prefix A -schema=false -all user.go role.go
+sqlgen -type demo.User -o user_ex_xxxxxxxxx_sql.go -v -prefix X -json         user.go role.go
+sqlgen -type demo.User -o user_ex_Exxxxxxxx_sql.go -v -prefix E -exec=true    user.go role.go
+sqlgen -type demo.User -o user_ex_xQxxxxxxx_sql.go -v -prefix Q -query=true   user.go role.go
+sqlgen -type demo.User -o user_ex_xxIxxxxxx_sql.go -v -prefix I -create=true  user.go role.go
+sqlgen -type demo.User -o user_ex_xxxCxxxxx_sql.go -v -prefix C -count=true   user.go role.go
+sqlgen -type demo.User -o user_ex_xxxxSxxxx_sql.go -v -prefix S -select=true  user.go role.go
+sqlgen -type demo.User -o user_ex_xxxxxUxxx_sql.go -v -prefix U -update=true  user.go role.go
+sqlgen -type demo.User -o user_ex_xxxxxxPxx_sql.go -v -prefix P -upsert=true  user.go role.go
+sqlgen -type demo.User -o user_ex_xxxxxxxDx_sql.go -v -prefix D -delete=true  user.go role.go
+sqlgen -type demo.User -o user_ex_xxxxxxxxL_sql.go -v -prefix L -slice=true   user.go role.go
+sqlgen -type demo.User -o user_ex_EQICRUPDL_sql.go -v -prefix A -all          user.go role.go
 
 # incomplete trial of sub-directory output
 #mkdir -p sub

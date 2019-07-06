@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
+// sqlapi v0.32.0; sqlgen v0.52.0-6-gb058954
 
 package demo
 
@@ -15,6 +15,7 @@ import (
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
+	"github.com/rickb777/where/quote"
 	"strings"
 )
 
@@ -53,56 +54,35 @@ type SUserTabler interface {
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
-	// SliceUid gets the uid column for all rows that match the 'where' condition.
-	SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	// GetUsersByUid gets records from the table according to a list of primary keys.
+	GetUsersByUid(req require.Requirement, id ...int64) (list []*User, err error)
 
-	// SliceName gets the name column for all rows that match the 'where' condition.
-	SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	// GetUserByUid gets the record with a given primary key value.
+	GetUserByUid(req require.Requirement, id int64) (*User, error)
 
-	// SliceEmailaddress gets the emailaddress column for all rows that match the 'where' condition.
-	SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	// GetUserByEmailAddress gets the record with a given emailaddress value.
+	GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error)
 
-	// SliceAddressid gets the addressid column for all rows that match the 'where' condition.
-	SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	// GetUserByName gets the record with a given name value.
+	GetUserByName(req require.Requirement, name string) (*User, error)
 
-	// SliceAvatar gets the avatar column for all rows that match the 'where' condition.
-	SliceAvatar(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	// SelectOneWhere allows a single User to be obtained from the table that matches a 'where' clause.
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error)
 
-	// SliceLastupdated gets the lastupdated column for all rows that match the 'where' condition.
-	SliceLastupdated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	// SelectOne allows a single User to be obtained from the table that matches a 'where' clause.
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error)
 
-	// SliceI8 gets the i8 column for all rows that match the 'where' condition.
-	SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error)
+	// SelectWhere allows Users to be obtained from the table that match a 'where' clause.
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error)
 
-	// SliceU8 gets the u8 column for all rows that match the 'where' condition.
-	SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error)
+	// Select allows Users to be obtained from the table that match a 'where' clause.
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error)
 
-	// SliceI16 gets the i16 column for all rows that match the 'where' condition.
-	SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error)
+	// CountWhere counts Users in the table that match a 'where' clause.
+	CountWhere(where string, args ...interface{}) (count int64, err error)
 
-	// SliceU16 gets the u16 column for all rows that match the 'where' condition.
-	SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error)
-
-	// SliceI32 gets the i32 column for all rows that match the 'where' condition.
-	SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error)
-
-	// SliceU32 gets the u32 column for all rows that match the 'where' condition.
-	SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error)
-
-	// SliceI64 gets the i64 column for all rows that match the 'where' condition.
-	SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
-
-	// SliceU64 gets the u64 column for all rows that match the 'where' condition.
-	SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
-
-	// SliceRole gets the role column for all rows that match the 'where' condition.
-	SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error)
-
-	// SliceF32 gets the f32 column for all rows that match the 'where' condition.
-	SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error)
-
-	// SliceF64 gets the f64 column for all rows that match the 'where' condition.
-	SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error)
+	// Count counts the Users in the table that match a 'where' clause.
+	Count(wh where.Expression) (count int64, err error)
 }
 
 // SUserTable holds a given table name with the database reference, providing access methods below.
@@ -480,199 +460,179 @@ func scanSUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 
 //--------------------------------------------------------------------------------
 
-// SliceUid gets the uid column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
+func allSUserColumnNamesQuoted(q quote.Quoter) string {
+	return strings.Join(q.QuoteN(listOfSUserTableColumnNames), ",")
 }
 
-// SliceName gets the name column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "name", wh, qc)
+//--------------------------------------------------------------------------------
+
+// GetUsersByUid gets records from the table according to a list of primary keys.
+// Although the list of ids can be arbitrarily long, there are practical limits;
+// note that Oracle DB has a limit of 1000.
+//
+// It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
+// controls whether an error is generated not all the ids produce a result.
+func (tbl SUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list []*User, err error) {
+	if len(id) > 0 {
+		if req == require.All {
+			req = require.Exactly(len(id))
+		}
+		args := make([]interface{}, len(id))
+
+		for i, v := range id {
+			args[i] = v
+		}
+
+		list, err = getSUsers(tbl, req, tbl.pk, args...)
+	}
+
+	return list, err
 }
 
-// SliceEmailaddress gets the emailaddress column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "emailaddress", wh, qc)
+// GetUserByUid gets the record with a given primary key value.
+// If not found, *User will be nil.
+func (tbl SUserTable) GetUserByUid(req require.Requirement, id int64) (*User, error) {
+	return getSUser(tbl, req, tbl.pk, id)
 }
 
-// SliceAddressid gets the addressid column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64PtrList(tbl, req, "addressid", wh, qc)
+// GetUserByEmailAddress gets the record with a given emailaddress value.
+// If not found, *User will be nil.
+func (tbl SUserTable) GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error) {
+	return tbl.SelectOne(req, where.And(where.Eq("emailaddress", emailaddress)), nil)
 }
 
-// SliceAvatar gets the avatar column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceAvatar(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringPtrList(tbl, req, "avatar", wh, qc)
+// GetUserByName gets the record with a given name value.
+// If not found, *User will be nil.
+func (tbl SUserTable) GetUserByName(req require.Requirement, name string) (*User, error) {
+	return tbl.SelectOne(req, where.And(where.Eq("name", name)), nil)
 }
 
-// SliceLastupdated gets the lastupdated column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceLastupdated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(tbl, req, "lastupdated", wh, qc)
+func getSUser(tbl SUserTable, req require.Requirement, column string, arg interface{}) (*User, error) {
+	d := tbl.Dialect()
+	q := d.Quoter()
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
+		allSUserColumnNamesQuoted(q), quotedName, q.Quote(column))
+	v, err := doSUserTableQueryAndScanOne(tbl, req, query, arg)
+	return v, err
 }
 
-// SliceI8 gets the i8 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
-	return support.SliceInt8List(tbl, req, "i8", wh, qc)
+func getSUsers(tbl SUserTabler, req require.Requirement, column string, args ...interface{}) (list []*User, err error) {
+	if len(args) > 0 {
+		if req == require.All {
+			req = require.Exactly(len(args))
+		}
+		d := tbl.Dialect()
+		q := d.Quoter()
+		pl := d.Placeholders(len(args))
+		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
+			allSUserColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
+		list, err = doSUserTableQueryAndScan(tbl, req, false, query, args...)
+	}
+
+	return list, err
 }
 
-// SliceU8 gets the u8 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
-	return support.SliceUint8List(tbl, req, "u8", wh, qc)
+func doSUserTableQueryAndScanOne(tbl SUserTabler, req require.Requirement, query string, args ...interface{}) (*User, error) {
+	list, err := doSUserTableQueryAndScan(tbl, req, true, query, args...)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
 }
 
-// SliceI16 gets the i16 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
-	return support.SliceInt16List(tbl, req, "i16", wh, qc)
+// Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
+// result columns to the fields of User. Other queries might be better handled by GetXxx or Select methods.
+func (tbl SUserTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return doSUserTableQueryAndScan(tbl, req, false, query, args...)
 }
 
-// SliceU16 gets the u16 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
-	return support.SliceUint16List(tbl, req, "u16", wh, qc)
+//--------------------------------------------------------------------------------
+
+// SelectOneWhere allows a single User to be obtained from the table that matches a 'where' clause
+// and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
+// If not found, *Example will be nil.
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.One
+// controls whether an error is generated when no result is found.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl SUserTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
+		allSUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	v, err := doSUserTableQueryAndScanOne(tbl, req, query, args...)
+	return v, err
 }
 
-// SliceI32 gets the i32 column for all rows that match the 'where' condition.
+// SelectOne allows a single User to be obtained from the table that matches a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
-	return support.SliceInt32List(tbl, req, "i32", wh, qc)
-}
-
-// SliceU32 gets the u32 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
-	return support.SliceUint32List(tbl, req, "u32", wh, qc)
-}
-
-// SliceI64 gets the i64 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(tbl, req, "i64", wh, qc)
-}
-
-// SliceU64 gets the u64 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
-	return support.SliceUint64List(tbl, req, "u64", wh, qc)
-}
-
-// SliceRole gets the role column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
-	return sliceSUserTableRolePtrList(tbl, req, "role", wh, qc)
-}
-
-// SliceF32 gets the f32 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
-	return sliceSUserTableFloat32List(tbl, req, "f32", wh, qc)
-}
-
-// SliceF64 gets the f64 column for all rows that match the 'where' condition.
-// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
-// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl SUserTable) SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
-	return sliceSUserTableFloat64List(tbl, req, "f64", wh, qc)
-}
-
-func sliceSUserTableRolePtrList(tbl SUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
+// If not found, *Example will be nil.
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.One
+// controls whether an error is generated when no result is found.
+func (tbl SUserTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	list := make([]Role, 0, 10)
-
-	for rows.Next() {
-		var v Role
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
-func sliceSUserTableFloat32List(tbl SUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+// SelectWhere allows Users to be obtained from the table that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in 'orderBy'.
+// Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
+// controls whether an error is generated when no result is found.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl SUserTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
+		allSUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	vv, err := doSUserTableQueryAndScan(tbl, req, false, query, args...)
+	return vv, err
+}
+
+// Select allows Users to be obtained from the table that match a 'where' clause.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+//
+// It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
+// controls whether an error is generated when no result is found.
+func (tbl SUserTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	list := make([]float32, 0, 10)
-
-	for rows.Next() {
-		var v float32
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
-	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
-func sliceSUserTableFloat64List(tbl SUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+//--------------------------------------------------------------------------------
+
+// CountWhere counts Users in the table that match a 'where' clause.
+// Use a blank string for the 'where' argument if it is not needed.
+//
+// The args are for any placeholder parameters in the query.
+func (tbl SUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	defer rows.Close()
-
-	list := make([]float64, 0, 10)
-
-	for rows.Next() {
-		var v float64
-		err = rows.Scan(&v)
-		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
-		} else {
-			list = append(list, v)
-		}
+	if rows.Next() {
+		err = rows.Scan(&count)
 	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return count, tbl.Logger().LogIfError(err)
+}
+
+// Count counts the Users in the table that match a 'where' clause.
+// Use a nil value for the 'wh' argument if it is not needed.
+func (tbl SUserTable) Count(wh where.Expression) (count int64, err error) {
+	whs, args := where.Where(wh, tbl.Dialect().Quoter())
+	return tbl.CountWhere(whs, args...)
 }

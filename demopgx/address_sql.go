@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
+// sqlapi v0.32.0; sqlgen v0.52.0-6-gb058954
 
 package demopgx
 
@@ -69,6 +69,8 @@ type AddressTabler interface {
 
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
+
+	// Exec executes a query without returning any rows.
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for Address values.

@@ -25,7 +25,7 @@ func main() {
 
 	var oFile, pkgImport, typeName, prefix, list, kind, tableName, tagsFile, genSetters string
 	var flags = FuncFlags{}
-	var pgx, all, read, create, gofmt, jsonFile, yamlFile, showVersion bool
+	var pgx, all, join, read, create, gofmt, jsonFile, yamlFile, showVersion bool
 
 	flag.StringVar(&oFile, "o", "", "Output file name; optional. Use '-' for stdout.\n"+
 		"\tIf omitted, the first input filename is used with '_sql.go' suffix.")
@@ -44,14 +44,17 @@ func main() {
 
 	// filters for what gets generated
 	flag.BoolVar(&pgx, "pgx", false, "Generates code for github.com/jackc/pgx.")
-	flag.BoolVar(&all, "all", false, "Shorthand for '-schema -read -count -insert -update -upsert -delete -slice'; recommended.\n"+
+	flag.BoolVar(&all, "all", false, "Shorthand for '-schema -exec -query -select -count -insert -update -upsert -delete -slice'; recommended for normal tables.\n"+
+		"\tThis does not affect -setters.")
+	flag.BoolVar(&join, "join", false, "Shorthand for '-query'; recommended for joins.\n"+
 		"\tThis does not affect -setters.")
 	flag.BoolVar(&read, "read", false, "Alias for -select")
 	flag.BoolVar(&create, "create", false, "Alias for -insert")
 	flag.BoolVar(&flags.Schema, "schema", false, "Generate SQL schema create/drop methods.")
 	flag.BoolVar(&flags.Insert, "insert", false, "Generate SQL insert (create) methods.")
 	flag.BoolVar(&flags.Exec, "exec", false, "Generate Exec method. This is also provided with -update or -delete.")
-	flag.BoolVar(&flags.Select, "select", false, "Generate SQL select (read) methods; also enables -count.")
+	flag.BoolVar(&flags.Query, "query", false, "Generate basic SQL query methods.")
+	flag.BoolVar(&flags.Select, "select", false, "Generate SQL select (read) methods; also enables -query, -count.")
 	flag.BoolVar(&flags.Count, "count", false, "Generate SQL count methods.")
 	flag.BoolVar(&flags.Update, "update", false, "Generate SQL update methods.")
 	flag.BoolVar(&flags.Upsert, "upsert", false, "Generate SQL upsert methods; ignored if there is no primary key.")
@@ -84,6 +87,7 @@ func main() {
 
 	if flags.Select {
 		flags.Count = true
+		flags.Query = true
 	}
 
 	if create {
@@ -97,6 +101,8 @@ func main() {
 
 	if all {
 		flags = AllFuncFlags
+	} else if join {
+		flags = FuncFlags{Query: true}
 	}
 
 	output.Require(len(typeName) > 3, "-type is required. This must specify a type, qualified with its local package in the form 'pkg.Name'.\n", typeName)
@@ -268,11 +274,14 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 	}
 
 	if flags.Exec || flags.Update || flags.Delete {
-		WriteExecFunc(structBuf, view)
+		WriteExecFunc(interfaceBuf, structBuf, view)
 	}
 
-	WriteQueryRows(interfaceBuf, structBuf, view)
-	WriteQueryThings(interfaceBuf, structBuf, view)
+	if flags.Query {
+		WriteQueryRows(interfaceBuf, structBuf, view)
+		WriteQueryThings(interfaceBuf, structBuf, view)
+	}
+
 	WriteScanRows(structBuf, view)
 
 	if flags.Select {

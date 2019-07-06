@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-5-g5fa1575
+// sqlapi v0.32.0; sqlgen v0.52.0-6-gb058954
 
 package demo
 
@@ -11,8 +11,6 @@ import (
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/dialect"
-	"github.com/rickb777/sqlapi/require"
-	"github.com/rickb777/sqlapi/support"
 	"strings"
 )
 
@@ -37,19 +35,6 @@ type XUserTabler interface {
 
 	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(XUserTabler) error) error
-
-	// Query is the low-level request method for this table using an SQL query that must return all the columns
-	// necessary for User values.
-	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
-
-	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
-
-	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
-
-	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 }
 
 // XUserTable holds a given table name with the database reference, providing access methods below.
@@ -239,73 +224,6 @@ const XUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,activ
 const XUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
 var listOfXUserTableColumnNames = strings.Split(XUserTableColumnNames, ",")
-
-//--------------------------------------------------------------------------------
-
-// Query is the low-level request method for this table. The SQL query must return all the columns necessary for
-// User values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
-// the chosen dialect.
-//
-// The query is logged using whatever logger is configured. If an error arises, this too is logged.
-//
-// If you need a context other than the background, use WithContext before calling Query.
-//
-// The args are for any placeholder parameters in the query.
-//
-// The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
-// use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl XUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return doXUserTableQueryAndScan(tbl, req, false, query, args)
-}
-
-func doXUserTableQueryAndScan(tbl XUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
-	rows, err := support.Query(tbl, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	vv, n, err := scanXUsers(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
-}
-
-//--------------------------------------------------------------------------------
-
-// QueryOneNullString is a low-level access method for one string. This can be used for function queries and
-// such like. If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, the result will be invalid.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XUserTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
-	return result, err
-}
-
-// QueryOneNullInt64 is a low-level access method for one int64. This can be used for 'COUNT(1)' queries and
-// such like. If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, the result will be invalid.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XUserTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
-	return result, err
-}
-
-// QueryOneNullFloat64 is a low-level access method for one float64. This can be used for 'AVG(...)' queries and
-// such like. If the query selected many rows, only the first is returned; the rest are discarded.
-// If not found, the result will be invalid.
-//
-// Note that this applies ReplaceTableName to the query string.
-//
-// The args are for any placeholder parameters in the query.
-func (tbl XUserTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
-	return result, err
-}
 
 // scanXUsers reads rows from the database and returns a slice of corresponding values.
 // It also returns a number indicating how many rows were read; this will be larger than the length of the
