@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-6-gb058954
+// sqlapi v0.32.0; sqlgen v0.53.0
 
 package demo
 
@@ -41,7 +41,7 @@ type PUserTabler interface {
 	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(PUserTabler) error) error
 
-	// Exec executes a query without returning any rows.
+// Exec executes a query without returning any rows.
 
 	// Insert adds new records for the Users, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*User) error
@@ -49,6 +49,7 @@ type PUserTabler interface {
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*User) (int64, error)
 }
+
 
 // PUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -756,9 +757,9 @@ func (tbl PUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified
-// key column(s). It must match either zero or one existing record. If it matches
-// none, a new record is inserted; otherwise the matching record is updated. An
+// This expression is used to search for an existing record based on some specified 
+// key column(s). It must match either zero or one existing record. If it matches 
+// none, a new record is inserted; otherwise the matching record is updated. An 
 // error results if these conditions are not met.
 func (tbl PUserTable) Upsert(v *User, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

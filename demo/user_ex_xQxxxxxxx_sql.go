@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-6-gb058954
+// sqlapi v0.32.0; sqlgen v0.53.0
 
 package demo
 
@@ -38,7 +38,7 @@ type QUserTabler interface {
 	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(QUserTabler) error) error
 
-	// Query is the low-level request method for this table using an SQL query that must return all the columns
+	// Query is the low-level request method for this table using an SQL query that must return all the columns 
 	// necessary for User values.
 	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
 
@@ -51,6 +51,7 @@ type QUserTabler interface {
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 }
+
 
 // QUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can

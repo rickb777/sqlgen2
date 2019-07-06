@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-6-gb058954
+// sqlapi v0.32.0; sqlgen v0.53.0
 
 package demo
 
@@ -41,7 +41,7 @@ type SUserTabler interface {
 	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(SUserTabler) error) error
 
-	// Query is the low-level request method for this table using an SQL query that must return all the columns
+	// Query is the low-level request method for this table using an SQL query that must return all the columns 
 	// necessary for User values.
 	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
 
@@ -84,6 +84,7 @@ type SUserTabler interface {
 	// Count counts the Users in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 }
+
 
 // SUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can

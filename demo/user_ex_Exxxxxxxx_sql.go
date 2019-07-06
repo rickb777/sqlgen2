@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-6-gb058954
+// sqlapi v0.32.0; sqlgen v0.53.0
 
 package demo
 
@@ -38,8 +38,9 @@ type EUserTabler interface {
 	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(EUserTabler) error) error
 
-	// Exec executes a query without returning any rows.
+// Exec executes a query without returning any rows.
 }
+
 
 // EUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can

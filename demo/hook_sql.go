@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.52.0-6-gb058954
+// sqlapi v0.32.0; sqlgen v0.53.0
 
 package demo
 
@@ -50,9 +50,9 @@ type HookTabler interface {
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 
-	// Exec executes a query without returning any rows.
+// Exec executes a query without returning any rows.
 
-	// Query is the low-level request method for this table using an SQL query that must return all the columns
+	// Query is the low-level request method for this table using an SQL query that must return all the columns 
 	// necessary for Hook values.
 	Query(req require.Requirement, query string, args ...interface{}) (HookList, error)
 
@@ -137,6 +137,7 @@ type HookTabler interface {
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Hook) (int64, error)
 }
+
 
 // HookTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -1287,9 +1288,9 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified
-// key column(s). It must match either zero or one existing record. If it matches
-// none, a new record is inserted; otherwise the matching record is updated. An
+// This expression is used to search for an existing record based on some specified 
+// key column(s). It must match either zero or one existing record. If it matches 
+// none, a new record is inserted; otherwise the matching record is updated. An 
 // error results if these conditions are not met.
 func (tbl HookTable) Upsert(v *Hook, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)
