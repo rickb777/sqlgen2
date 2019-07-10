@@ -84,11 +84,8 @@ func doXExampleTableQueryAndScan(tbl XExampleTabler, req require.Requirement, fi
 	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 `, "¬", "`", -1)
-	if code != expected {
-		outputDiff(expected, "expected.txt")
-		outputDiff(code, "got.txt")
-		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
+	expectCodeEqual(t, code, expected)
+	disallowTrailingWhitespace(t, code)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -144,11 +141,8 @@ func (tbl XExampleTable) QueryOneNullFloat64(req require.Requirement, query stri
 	return result, err
 }
 `, "¬", "`", -1)
-	if code != expected {
-		outputDiff(expected, "expected.txt")
-		outputDiff(code, "got.txt")
-		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
+	expectCodeEqual(t, code, expected)
+	disallowTrailingWhitespace(t, code)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -172,11 +166,8 @@ func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expressi
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
 `, "¬", "`", -1)
-	if code != expected {
-		outputDiff(expected, "expected.txt")
-		outputDiff(code, "got.txt")
-		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
+	expectCodeEqual(t, code, expected)
+	disallowTrailingWhitespace(t, code)
 }
 
 func TestWriteExecFunc(t *testing.T) {
@@ -202,9 +193,22 @@ func (tbl XExampleTable) Exec(req require.Requirement, query string, args ...int
 	return support.Exec(tbl, req, query, args...)
 }
 `, "¬", "`", -1)
+	expectCodeEqual(t, code, expected)
+	disallowTrailingWhitespace(t, code)
+}
+
+func expectCodeEqual(t *testing.T, code, expected string) {
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
 		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
+	}
+}
+
+func disallowTrailingWhitespace(t *testing.T, code string) {
+	for i, line := range strings.Split(code, "\n") {
+		if line != strings.TrimRight(line, " \t") {
+			t.Errorf("disallowed whitespace on line %d\n%q", i+1, line)
+		}
 	}
 }

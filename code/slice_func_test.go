@@ -125,11 +125,8 @@ func constructXExampleTableInsert(tbl XExampleTable, w dialect.StringWriter, v *
 	return s, nil
 }
 `
-	if code != expected {
-		outputDiff(expected, "expected.txt")
-		outputDiff(code, "got.txt")
-		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
+	expectCodeEqual(t, code, expected)
+	disallowTrailingWhitespace(t, code)
 }
 
 func TestWriteConstructUpdate(t *testing.T) {
@@ -299,9 +296,6 @@ func constructXExampleTableUpdate(tbl XExampleTable, w dialect.StringWriter, v *
 	return s, nil
 }
 `
-	if code != expected {
-		outputDiff(expected, "expected.txt")
-		outputDiff(code, "got.txt")
-		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
+	expectCodeEqual(t, code, expected)
+	disallowTrailingWhitespace(t, code)
 }

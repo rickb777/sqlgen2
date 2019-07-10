@@ -122,11 +122,8 @@ func (v *Example) SetUpdated(x time.Time) *Example {
 	return v
 }
 `
-	if code != expected {
-		outputDiff(expected, "expected.txt")
-		outputDiff(code, "got.txt")
-		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
+	expectCodeEqual(t, code, expected)
+	disallowTrailingWhitespace(t, code)
 }
 
 func TestWriteSetters_exported(t *testing.T) {
@@ -245,11 +242,8 @@ func (v *Example) SetUpdated(x time.Time) *Example {
 	return v
 }
 `
-	if code != expected {
-		outputDiff(expected, "expected.txt")
-		outputDiff(code, "got.txt")
-		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
+	expectCodeEqual(t, code, expected)
+	disallowTrailingWhitespace(t, code)
 }
 
 func TestWriteSetters_optional(t *testing.T) {
@@ -308,11 +302,8 @@ func (v *Example) SetFoo3(x Foo) *Example {
 	return v
 }
 `
-	if code != expected {
-		outputDiff(expected, "expected.txt")
-		outputDiff(code, "got.txt")
-		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
+	expectCodeEqual(t, code, expected)
+	disallowTrailingWhitespace(t, code)
 }
 
 func TestWriteSetters_none(t *testing.T) {
@@ -327,9 +318,5 @@ func TestWriteSetters_none(t *testing.T) {
 
 	code := buf2.String()
 	expected := ""
-	if code != expected {
-		outputDiff(expected, "expected.txt")
-		outputDiff(code, "got.txt")
-		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
+	expectCodeEqual(t, code, expected)
 }

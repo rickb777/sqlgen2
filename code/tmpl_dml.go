@@ -22,7 +22,7 @@ var tExecFunc = template.Must(template.New("ExecFunc").Funcs(funcMap).Parse(sExe
 //-------------------------------------------------------------------------------------------------
 
 const sQueryRowsDecl = `
-	// Query is the low-level request method for this table using an SQL query that must return all the columns 
+	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for {{.Type}} values.
 	Query(req require.Requirement, query string, args ...interface{}) ({{.List}}, error)
 `
@@ -473,7 +473,7 @@ const sInsertFunc = `
 //--------------------------------------------------------------------------------
 
 // Insert adds new records for the {{.Types}}.
-{{if .Table.HasLastInsertId}}// The {{.Types}} have their primary key fields set to the new record identifiers.{{end}}
+{{- if .Table.HasLastInsertId}}// The {{.Types}} have their primary key fields set to the new record identifiers.{{end}}
 // The {{.Type}}.PreInsert() method will be called, if it exists.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) error {
 	if req == require.All {
@@ -645,9 +645,9 @@ const sUpsert = `
 //--------------------------------------------------------------------------------
 
 // Upsert inserts or updates a record, matching it using the expression supplied.
-// This expression is used to search for an existing record based on some specified 
-// key column(s). It must match either zero or one existing record. If it matches 
-// none, a new record is inserted; otherwise the matching record is updated. An 
+// This expression is used to search for an existing record based on some specified
+// key column(s). It must match either zero or one existing record. If it matches
+// none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Upsert(v *{{.TypePkg}}{{.Type}}, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)

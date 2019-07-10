@@ -1537,8 +1537,7 @@ func constructDbUserTableUpdate(tbl DbUserTable, w dialect.StringWriter, v *User
 
 //--------------------------------------------------------------------------------
 
-// Insert adds new records for the Users.
-// The Users have their primary key fields set to the new record identifiers.
+// Insert adds new records for the Users.// The Users have their primary key fields set to the new record identifiers.
 // The User.PreInsert() method will be called, if it exists.
 func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 	if req == require.All {

@@ -91,11 +91,8 @@ func scanXExamples(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Exa
 	return vv, n, errors.Wrap(rows.Err(), query)
 }
 `
-	if code != expected {
-		outputDiff(expected, "expected.txt")
-		outputDiff(code, "got.txt")
-		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
+	expectCodeEqual(t, code, expected)
+	disallowTrailingWhitespace(t, code)
 }
 
 func TestWriteRowFunc2(t *testing.T) {
@@ -234,11 +231,8 @@ func ScanXExamples(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Exa
 	return vv, n, errors.Wrap(rows.Err(), query)
 }
 `
-	if code != expected {
-		outputDiff(expected, "expected.txt")
-		outputDiff(code, "got.txt")
-		t.Errorf("expected | got\n%s\n", sideBySideDiff(expected, code))
-	}
+	expectCodeEqual(t, code, expected)
+	disallowTrailingWhitespace(t, code)
 }
 
 func outputDiff(a, name string) {
