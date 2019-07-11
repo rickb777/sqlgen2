@@ -16,6 +16,7 @@ import (
 )
 
 const demoPath = "github.com/rickb777/sqlgen2/demo"
+const datePath = "github.com/rickb777/date"
 
 func TestParseAndLoad_types_with_all_fields_unexported_but_not_ScannerValuer(t *testing.T) {
 	exit.TestableExit()
@@ -531,13 +532,17 @@ func TestParseAndLoad_embedded_types_in_different_packages(t *testing.T) {
 	parse.Debug = true
 	code := strings.Replace(`package pkg1
 
-import "github.com/rickb777/sqlgen2/demo"
+import (
+	"github.com/rickb777/date"
+	"github.com/rickb777/sqlgen2/demo"
+)
 
 type Example struct {
 	Cat1     demo.Category
 	Cat2     *demo.Category
 	demo.Bounds
 	Name     string
+	Date     date.DateString
 }
 `, "|", "`", -1)
 
@@ -562,6 +567,7 @@ type Example struct {
 	after := &Field{Node{"After", Type{Name: "string", Base: String}, p1}, "after", ENCNONE, &Tag{Size: 20}}
 	before := &Field{Node{"Before", Type{Name: "string", Base: String}, p1}, "before", ENCNONE, &Tag{Size: 20}}
 	name := &Field{Node{"Name", Type{Name: "string", Base: String}, nil}, "name", ENCNONE, nil}
+	date := &Field{Node{"Date", Type{PkgPath: datePath, PkgName: "date", Name: "DateString", Base: Struct, IsScanner: true, IsValuer: true}, nil}, "date", ENCNONE, nil}
 
 	expected := &TableDescription{
 		Type: "Example",
@@ -572,6 +578,7 @@ type Example struct {
 			after,
 			before,
 			name,
+			date,
 		},
 	}
 

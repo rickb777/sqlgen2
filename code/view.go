@@ -2,13 +2,13 @@ package code
 
 import (
 	"fmt"
-	"github.com/rickb777/sqlapi/dialect"
 	"strings"
 	"text/template"
 
 	"bitbucket.org/pkg/inflect"
 	"github.com/acsellers/inflections"
 	"github.com/rickb777/sqlapi/constraint"
+	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/schema"
 )
 

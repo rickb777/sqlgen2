@@ -1,7 +1,7 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
 // sqlapi v0.32.0; sqlgen v0.53.0-1-gaa4fbac
 
-package demopgx
+package demo
 
 import (
 	"bytes"
@@ -9,13 +9,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/jackc/pgx"
 	"github.com/pkg/errors"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/dialect"
-	"github.com/rickb777/sqlapi/pgxapi"
-	"github.com/rickb777/sqlapi/pgxapi/constraint"
-	"github.com/rickb777/sqlapi/pgxapi/support"
 	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
 	"github.com/rickb777/where/quote"
 	"strings"
@@ -23,7 +22,7 @@ import (
 
 // AddressTabler lists methods provided by AddressTable.
 type AddressTabler interface {
-	pgxapi.Table
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
@@ -38,10 +37,10 @@ type AddressTabler interface {
 	WithContext(ctx context.Context) AddressTabler
 
 	// Using returns a modified AddressTabler using the transaction supplied.
-	Using(tx pgxapi.SqlTx) AddressTabler
+	Using(tx sqlapi.SqlTx) AddressTabler
 
 	// Transact runs the function provided within a transaction.
-	Transact(txOptions *pgx.TxOptions, fn func(AddressTabler) error) error
+	Transact(txOptions *sql.TxOptions, fn func(AddressTabler) error) error
 
 	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
@@ -136,27 +135,27 @@ type AddressTabler interface {
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type AddressTable struct {
-	name        pgxapi.TableName
-	database    pgxapi.Database
-	db          pgxapi.Execer
+	name        sqlapi.TableName
+	database    sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
 	pk          string
 }
 
 // Type conformance checks
-var _ pgxapi.TableWithIndexes = &AddressTable{}
+var _ sqlapi.TableWithIndexes = &AddressTable{}
 
 // NewAddressTable returns a new table instance.
 // If a blank table name is supplied, the default name "addresses" will be used instead.
 // The request context is initialised with the background.
-func NewAddressTable(name string, d pgxapi.Database) AddressTable {
+func NewAddressTable(name string, d sqlapi.Database) AddressTable {
 	if name == "" {
 		name = "addresses"
 	}
 	var constraints constraint.Constraints
 	return AddressTable{
-		name:        pgxapi.TableName{Prefix: "", Name: name},
+		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -170,7 +169,7 @@ func NewAddressTable(name string, d pgxapi.Database) AddressTable {
 //
 // It serves to provide methods appropriate for 'Address'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsAddressTable(origin pgxapi.Table) AddressTable {
+func CopyTableAsAddressTable(origin sqlapi.Table) AddressTable {
 	return AddressTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -206,12 +205,12 @@ func (tbl AddressTable) WithContext(ctx context.Context) AddressTabler {
 }
 
 // Database gets the shared database information.
-func (tbl AddressTable) Database() pgxapi.Database {
+func (tbl AddressTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
 // Logger gets the trace logger.
-func (tbl AddressTable) Logger() pgxapi.Logger {
+func (tbl AddressTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
@@ -237,7 +236,7 @@ func (tbl AddressTable) Dialect() dialect.Dialect {
 }
 
 // Name gets the table name.
-func (tbl AddressTable) Name() pgxapi.TableName {
+func (tbl AddressTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
@@ -248,19 +247,19 @@ func (tbl AddressTable) PkColumn() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AddressTable) DB() pgxapi.SqlDB {
-	return tbl.db.(pgxapi.SqlDB)
+func (tbl AddressTable) DB() sqlapi.SqlDB {
+	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl AddressTable) Execer() pgxapi.Execer {
+func (tbl AddressTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AddressTable) Tx() pgxapi.SqlTx {
-	return tbl.db.(pgxapi.SqlTx)
+func (tbl AddressTable) Tx() sqlapi.SqlTx {
+	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
@@ -271,7 +270,7 @@ func (tbl AddressTable) IsTx() bool {
 // Using returns a modified AddressTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AddressTable) Using(tx pgxapi.SqlTx) AddressTabler {
+func (tbl AddressTable) Using(tx sqlapi.SqlTx) AddressTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -281,12 +280,12 @@ func (tbl AddressTable) Using(tx pgxapi.SqlTx) AddressTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl AddressTable) Transact(txOptions *pgx.TxOptions, fn func(AddressTabler) error) error {
+func (tbl AddressTable) Transact(txOptions *sql.TxOptions, fn func(AddressTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx pgxapi.SqlTx) error {
+		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -598,7 +597,7 @@ func (tbl AddressTable) Exec(req require.Requirement, query string, args ...inte
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
-// use that function directly; wrap the result in *pgxapi.Rows if you need to access its data as a map.
+// use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl AddressTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Address, error) {
 	return doAddressTableQueryAndScan(tbl, req, false, query, args)
 }
@@ -655,7 +654,7 @@ func (tbl AddressTable) QueryOneNullFloat64(req require.Requirement, query strin
 // ScanAddresses reads rows from the database and returns a slice of corresponding values.
 // It also returns a number indicating how many rows were read; this will be larger than the length of the
 // slice if reading stopped after the first row.
-func ScanAddresses(query string, rows pgxapi.SqlRows, firstOnly bool) (vv []*Address, n int64, err error) {
+func ScanAddresses(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Address, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -676,18 +675,18 @@ func ScanAddresses(query string, rows pgxapi.SqlRows, firstOnly bool) (vv []*Add
 
 		v := &Address{}
 		v.Id = v0
-		err = json.Unmarshal(v1, &v.Lines)
+		err = json.Unmarshal(v1, &v.AddressFields.Lines)
 		if err != nil {
 			return nil, n, errors.Wrap(err, query)
 		}
 		if v2.Valid {
 			a := v2.String
-			v.Town = &a
+			v.AddressFields.Town = &a
 		}
-		v.Postcode = v3
+		v.AddressFields.Postcode = v3
 
 		var iv interface{} = v
-		if hook, ok := iv.(pgxapi.CanPostGet); ok {
+		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, errors.Wrap(err, query)
@@ -925,21 +924,21 @@ func constructAddressTableInsert(tbl AddressTable, w dialect.StringWriter, v *Ad
 	w.WriteString(comma)
 	q.QuoteW(w, "lines")
 	comma = ","
-	x, err := json.Marshal(&v.Lines)
+	x, err := json.Marshal(&v.AddressFields.Lines)
 	if err != nil {
 		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
-	if v.Town != nil {
+	if v.AddressFields.Town != nil {
 		w.WriteString(comma)
 		q.QuoteW(w, "town")
-		s = append(s, v.Town)
+		s = append(s, v.AddressFields.Town)
 	}
 
 	w.WriteString(comma)
 	q.QuoteW(w, "postcode")
-	s = append(s, v.Postcode)
+	s = append(s, v.AddressFields.Postcode)
 
 	w.WriteString(")")
 	return s, nil
@@ -958,17 +957,17 @@ func constructAddressTableUpdate(tbl AddressTable, w dialect.StringWriter, v *Ad
 	comma = ", "
 	j++
 
-	x, err := json.Marshal(&v.Lines)
+	x, err := json.Marshal(&v.AddressFields.Lines)
 	if err != nil {
 		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
 	w.WriteString(comma)
-	if v.Town != nil {
+	if v.AddressFields.Town != nil {
 		q.QuoteW(w, "town")
 		w.WriteString("=?")
-		s = append(s, v.Town)
+		s = append(s, v.AddressFields.Town)
 		j++
 	} else {
 		q.QuoteW(w, "town")
@@ -978,7 +977,7 @@ func constructAddressTableUpdate(tbl AddressTable, w dialect.StringWriter, v *Ad
 	w.WriteString(comma)
 	q.QuoteW(w, "postcode")
 	w.WriteString("=?")
-	s = append(s, v.Postcode)
+	s = append(s, v.AddressFields.Postcode)
 	j++
 	return s, nil
 }
@@ -1001,7 +1000,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(pgxapi.CanPreInsert); ok {
+		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
 				return tbl.Logger().LogError(err)
@@ -1068,7 +1067,7 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(pgxapi.CanPreUpdate); ok {
+		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
 				return count, tbl.Logger().LogError(err)

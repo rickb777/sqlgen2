@@ -1,7 +1,7 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
 // sqlapi v0.32.0; sqlgen v0.53.0-1-gaa4fbac
 
-package demopgx
+package demo
 
 import (
 	"bytes"
@@ -9,13 +9,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/jackc/pgx"
 	"github.com/pkg/errors"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/dialect"
-	"github.com/rickb777/sqlapi/pgxapi"
-	"github.com/rickb777/sqlapi/pgxapi/constraint"
-	"github.com/rickb777/sqlapi/pgxapi/support"
 	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
 	"github.com/rickb777/where/quote"
 	"math/big"
@@ -24,7 +23,7 @@ import (
 
 // DbUserTabler lists methods provided by DbUserTable.
 type DbUserTabler interface {
-	pgxapi.Table
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
@@ -39,10 +38,10 @@ type DbUserTabler interface {
 	WithContext(ctx context.Context) DbUserTabler
 
 	// Using returns a modified DbUserTabler using the transaction supplied.
-	Using(tx pgxapi.SqlTx) DbUserTabler
+	Using(tx sqlapi.SqlTx) DbUserTabler
 
 	// Transact runs the function provided within a transaction.
-	Transact(txOptions *pgx.TxOptions, fn func(DbUserTabler) error) error
+	Transact(txOptions *sql.TxOptions, fn func(DbUserTabler) error) error
 
 	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
@@ -178,21 +177,21 @@ type DbUserTabler interface {
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DbUserTable struct {
-	name        pgxapi.TableName
-	database    pgxapi.Database
-	db          pgxapi.Execer
+	name        sqlapi.TableName
+	database    sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
 	pk          string
 }
 
 // Type conformance checks
-var _ pgxapi.TableWithIndexes = &DbUserTable{}
+var _ sqlapi.TableWithIndexes = &DbUserTable{}
 
 // NewDbUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "the_users" will be used instead.
 // The request context is initialised with the background.
-func NewDbUserTable(name string, d pgxapi.Database) DbUserTable {
+func NewDbUserTable(name string, d sqlapi.Database) DbUserTable {
 	if name == "" {
 		name = "the_users"
 	}
@@ -201,7 +200,7 @@ func NewDbUserTable(name string, d pgxapi.Database) DbUserTable {
 		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 
 	return DbUserTable{
-		name:        pgxapi.TableName{Prefix: "", Name: name},
+		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -215,7 +214,7 @@ func NewDbUserTable(name string, d pgxapi.Database) DbUserTable {
 //
 // It serves to provide methods appropriate for 'User'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsDbUserTable(origin pgxapi.Table) DbUserTable {
+func CopyTableAsDbUserTable(origin sqlapi.Table) DbUserTable {
 	return DbUserTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
@@ -251,12 +250,12 @@ func (tbl DbUserTable) WithContext(ctx context.Context) DbUserTabler {
 }
 
 // Database gets the shared database information.
-func (tbl DbUserTable) Database() pgxapi.Database {
+func (tbl DbUserTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
 // Logger gets the trace logger.
-func (tbl DbUserTable) Logger() pgxapi.Logger {
+func (tbl DbUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
@@ -282,7 +281,7 @@ func (tbl DbUserTable) Dialect() dialect.Dialect {
 }
 
 // Name gets the table name.
-func (tbl DbUserTable) Name() pgxapi.TableName {
+func (tbl DbUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
@@ -293,19 +292,19 @@ func (tbl DbUserTable) PkColumn() string {
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl DbUserTable) DB() pgxapi.SqlDB {
-	return tbl.db.(pgxapi.SqlDB)
+func (tbl DbUserTable) DB() sqlapi.SqlDB {
+	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl DbUserTable) Execer() pgxapi.Execer {
+func (tbl DbUserTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl DbUserTable) Tx() pgxapi.SqlTx {
-	return tbl.db.(pgxapi.SqlTx)
+func (tbl DbUserTable) Tx() sqlapi.SqlTx {
+	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
@@ -316,7 +315,7 @@ func (tbl DbUserTable) IsTx() bool {
 // Using returns a modified DbUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DbUserTable) Using(tx pgxapi.SqlTx) DbUserTabler {
+func (tbl DbUserTable) Using(tx sqlapi.SqlTx) DbUserTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -326,12 +325,12 @@ func (tbl DbUserTable) Using(tx pgxapi.SqlTx) DbUserTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl DbUserTable) Transact(txOptions *pgx.TxOptions, fn func(DbUserTabler) error) error {
+func (tbl DbUserTable) Transact(txOptions *sql.TxOptions, fn func(DbUserTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx pgxapi.SqlTx) error {
+		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -717,7 +716,7 @@ func (tbl DbUserTable) Exec(req require.Requirement, query string, args ...inter
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
-// use that function directly; wrap the result in *pgxapi.Rows if you need to access its data as a map.
+// use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
 func (tbl DbUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
 	return doDbUserTableQueryAndScan(tbl, req, false, query, args)
 }
@@ -774,7 +773,7 @@ func (tbl DbUserTable) QueryOneNullFloat64(req require.Requirement, query string
 // ScanDbUsers reads rows from the database and returns a slice of corresponding values.
 // It also returns a number indicating how many rows were read; this will be larger than the length of the
 // slice if reading stopped after the first row.
-func ScanDbUsers(query string, rows pgxapi.SqlRows, firstOnly bool) (vv []*User, n int64, err error) {
+func ScanDbUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -869,7 +868,7 @@ func ScanDbUsers(query string, rows pgxapi.SqlRows, firstOnly bool) (vv []*User,
 		v.secret = v21
 
 		var iv interface{} = v
-		if hook, ok := iv.(pgxapi.CanPostGet); ok {
+		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, errors.Wrap(err, query)
@@ -1553,7 +1552,7 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(pgxapi.CanPreInsert); ok {
+		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
 				return tbl.Logger().LogError(err)
@@ -1620,7 +1619,7 @@ func (tbl DbUserTable) Update(req require.Requirement, vv ...*User) (int64, erro
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(pgxapi.CanPreUpdate); ok {
+		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
 				return count, tbl.Logger().LogError(err)

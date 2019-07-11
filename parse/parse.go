@@ -2,6 +2,7 @@ package parse
 
 import (
 	"fmt"
+	"github.com/rickb777/sqlgen2/parse/exit"
 	"go/ast"
 	"go/importer"
 	"go/parser"
@@ -60,7 +61,7 @@ func Parse(paths []string) (PackageStore, error) {
 
 			for i, name := range goFiles {
 				path := p + "/" + name
-				DevInfo("Reading %s (%d of %d paths, %d of %d go files)\n", path, j, len(paths), i, len(goFiles))
+				DevInfo("Reading %s (%d of %d paths, %d of %d go files)\n", path, j+1, len(paths), i+1, len(goFiles))
 				f, err := os.Open(path)
 				if err != nil {
 					return nil, err
@@ -86,7 +87,7 @@ func Parse(paths []string) (PackageStore, error) {
 			}
 
 			if !s.IsDir() {
-				DevInfo("Reading %s (%d of %d paths)\n", p, j, len(paths))
+				DevInfo("Reading %s (%d of %d paths)\n", p, j+1, len(paths))
 				f, err := os.Open(p)
 				if err != nil {
 					return nil, err
@@ -138,8 +139,15 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 			gFiles = append(gFiles, file)
 		}
 
+		DevInfo("parsing complete\n")
+
 		//sourceImporter := importer.Default()
-		sourceImporter := importer.For("source", nil)
+		//lookup := func(path string) (io.ReadCloser, error) {
+		//	DevInfo("lookup %s\n", path)
+		//	exit.Fail(9, "")
+		//	return nil, nil
+		//}
+		sourceImporter := importer.ForCompiler(fset, "source", nil)
 
 		// A Config controls various options of the type checker.
 		// The defaults work fine except for one setting:
@@ -150,14 +158,19 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 			},
 			IgnoreFuncBodies:         true,
 			DisableUnusedImportCheck: true,
-			FakeImportC:              true,
+			//FakeImportC:              true,
+			Error: func(err error) {
+				DevInfo("%v\n", err)
+			},
 		}
+
+		DevInfo("type-checking...\n")
 
 		// Type-check the package containing gFiles.
 		pkg, err := conf.Check(group.Owner, fset, gFiles, nil)
 		if err != nil {
-			//exit.Fail(3, "%s\n", err) // type error
-			fmt.Fprintf(os.Stderr, "Warning: %s\n", err)
+			exit.Fail(3, "%s\n", err) // type error
+			//fmt.Fprintf(os.Stderr, "Warning: %s\n", err)
 		}
 
 		pStore.store(pkg, gFiles)

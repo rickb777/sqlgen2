@@ -1,7 +1,7 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
 // sqlapi v0.32.0; sqlgen v0.53.0-1-gaa4fbac
 
-package demopgx
+package demo
 
 import (
 	"bytes"
@@ -9,40 +9,38 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/jackc/pgx"
 	"github.com/pkg/errors"
+	"github.com/rickb777/sqlapi"
+	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/dialect"
-	"github.com/rickb777/sqlapi/pgxapi"
-	"github.com/rickb777/sqlapi/pgxapi/constraint"
-	"github.com/rickb777/sqlapi/pgxapi/support"
 	"github.com/rickb777/sqlapi/require"
+	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
 	"github.com/rickb777/where/quote"
-	"math/big"
 	"strings"
 )
 
-// DbUserTabler lists methods provided by DbUserTable.
-type DbUserTabler interface {
-	pgxapi.Table
+// AUserTabler lists methods provided by AUserTable.
+type AUserTabler interface {
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
 
-	// WithConstraint returns a modified DbUserTabler with added data consistency constraints.
-	WithConstraint(cc ...constraint.Constraint) DbUserTabler
+	// WithConstraint returns a modified AUserTabler with added data consistency constraints.
+	WithConstraint(cc ...constraint.Constraint) AUserTabler
 
-	// WithPrefix returns a modified DbUserTabler with a given table name prefix.
-	WithPrefix(pfx string) DbUserTabler
+	// WithPrefix returns a modified AUserTabler with a given table name prefix.
+	WithPrefix(pfx string) AUserTabler
 
-	// WithContext returns a modified DbUserTabler with a given context.
-	WithContext(ctx context.Context) DbUserTabler
+	// WithContext returns a modified AUserTabler with a given context.
+	WithContext(ctx context.Context) AUserTabler
 
-	// Using returns a modified DbUserTabler using the transaction supplied.
-	Using(tx pgxapi.SqlTx) DbUserTabler
+	// Using returns a modified AUserTabler using the transaction supplied.
+	Using(tx sqlapi.SqlTx) AUserTabler
 
 	// Transact runs the function provided within a transaction.
-	Transact(txOptions *pgx.TxOptions, fn func(DbUserTabler) error) error
+	Transact(txOptions *sql.TxOptions, fn func(AUserTabler) error) error
 
 	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
@@ -71,7 +69,7 @@ type DbUserTabler interface {
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 
-	// Exec executes a query without returning any rows.
+// Exec executes a query without returning any rows.
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for User values.
@@ -174,34 +172,35 @@ type DbUserTabler interface {
 	Update(req require.Requirement, vv ...*User) (int64, error)
 }
 
-// DbUserTable holds a given table name with the database reference, providing access methods below.
+
+// AUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
-type DbUserTable struct {
-	name        pgxapi.TableName
-	database    pgxapi.Database
-	db          pgxapi.Execer
+type AUserTable struct {
+	name        sqlapi.TableName
+	database    sqlapi.Database
+	db          sqlapi.Execer
 	constraints constraint.Constraints
 	ctx         context.Context
 	pk          string
 }
 
 // Type conformance checks
-var _ pgxapi.TableWithIndexes = &DbUserTable{}
+var _ sqlapi.TableWithIndexes = &AUserTable{}
 
-// NewDbUserTable returns a new table instance.
-// If a blank table name is supplied, the default name "the_users" will be used instead.
+// NewAUserTable returns a new table instance.
+// If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewDbUserTable(name string, d pgxapi.Database) DbUserTable {
+func NewAUserTable(name string, d sqlapi.Database) AUserTable {
 	if name == "" {
-		name = "the_users"
+		name = "users"
 	}
 	var constraints constraint.Constraints
 	constraints = append(constraints,
 		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 
-	return DbUserTable{
-		name:        pgxapi.TableName{Prefix: "", Name: name},
+	return AUserTable{
+		name:        sqlapi.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
@@ -210,13 +209,13 @@ func NewDbUserTable(name string, d pgxapi.Database) DbUserTable {
 	}
 }
 
-// CopyTableAsDbUserTable copies a table instance, retaining the name etc but
+// CopyTableAsAUserTable copies a table instance, retaining the name etc but
 // providing methods appropriate for 'User'. It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for 'User'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
-func CopyTableAsDbUserTable(origin pgxapi.Table) DbUserTable {
-	return DbUserTable{
+func CopyTableAsAUserTable(origin sqlapi.Table) AUserTable {
+	return AUserTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
 		db:          origin.DB(),
@@ -228,14 +227,14 @@ func CopyTableAsDbUserTable(origin pgxapi.Table) DbUserTable {
 
 // SetPkColumn sets the name of the primary key column. It defaults to "uid".
 // The result is a modified copy of the table; the original is unchanged.
-//func (tbl DbUserTable) SetPkColumn(pk string) DbUserTabler {
+//func (tbl AUserTable) SetPkColumn(pk string) AUserTabler {
 //	tbl.pk = pk
 //	return tbl
 //}
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DbUserTable) WithPrefix(pfx string) DbUserTabler {
+func (tbl AUserTable) WithPrefix(pfx string) AUserTabler {
 	tbl.name.Prefix = pfx
 	return tbl
 }
@@ -245,78 +244,78 @@ func (tbl DbUserTable) WithPrefix(pfx string) DbUserTabler {
 //
 // The shared context in the *Database is not altered by this method. So it
 // is possible to use different contexts for different (groups of) queries.
-func (tbl DbUserTable) WithContext(ctx context.Context) DbUserTabler {
+func (tbl AUserTable) WithContext(ctx context.Context) AUserTabler {
 	tbl.ctx = ctx
 	return tbl
 }
 
 // Database gets the shared database information.
-func (tbl DbUserTable) Database() pgxapi.Database {
+func (tbl AUserTable) Database() sqlapi.Database {
 	return tbl.database
 }
 
 // Logger gets the trace logger.
-func (tbl DbUserTable) Logger() pgxapi.Logger {
+func (tbl AUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
 }
 
-// WithConstraint returns a modified DbUserTabler with added data consistency constraints.
-func (tbl DbUserTable) WithConstraint(cc ...constraint.Constraint) DbUserTabler {
+// WithConstraint returns a modified AUserTabler with added data consistency constraints.
+func (tbl AUserTable) WithConstraint(cc ...constraint.Constraint) AUserTabler {
 	tbl.constraints = append(tbl.constraints, cc...)
 	return tbl
 }
 
 // Constraints returns the table's constraints.
-func (tbl DbUserTable) Constraints() constraint.Constraints {
+func (tbl AUserTable) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 
 // Ctx gets the current request context.
-func (tbl DbUserTable) Ctx() context.Context {
+func (tbl AUserTable) Ctx() context.Context {
 	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
-func (tbl DbUserTable) Dialect() dialect.Dialect {
+func (tbl AUserTable) Dialect() dialect.Dialect {
 	return tbl.database.Dialect()
 }
 
 // Name gets the table name.
-func (tbl DbUserTable) Name() pgxapi.TableName {
+func (tbl AUserTable) Name() sqlapi.TableName {
 	return tbl.name
 }
 
 // PkColumn gets the column name used as a primary key.
-func (tbl DbUserTable) PkColumn() string {
+func (tbl AUserTable) PkColumn() string {
 	return tbl.pk
 }
 
 // DB gets the wrapped database handle, provided this is not within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl DbUserTable) DB() pgxapi.SqlDB {
-	return tbl.db.(pgxapi.SqlDB)
+func (tbl AUserTable) DB() sqlapi.SqlDB {
+	return tbl.db.(sqlapi.SqlDB)
 }
 
 // Execer gets the wrapped database or transaction handle.
-func (tbl DbUserTable) Execer() pgxapi.Execer {
+func (tbl AUserTable) Execer() sqlapi.Execer {
 	return tbl.db
 }
 
 // Tx gets the wrapped transaction handle, provided this is within a transaction.
 // Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl DbUserTable) Tx() pgxapi.SqlTx {
-	return tbl.db.(pgxapi.SqlTx)
+func (tbl AUserTable) Tx() sqlapi.SqlTx {
+	return tbl.db.(sqlapi.SqlTx)
 }
 
 // IsTx tests whether this is within a transaction.
-func (tbl DbUserTable) IsTx() bool {
+func (tbl AUserTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified DbUserTabler using the transaction supplied. This is needed
+// Using returns a modified AUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DbUserTable) Using(tx pgxapi.SqlTx) DbUserTabler {
+func (tbl AUserTable) Using(tx sqlapi.SqlTx) AUserTabler {
 	tbl.db = tx
 	return tbl
 }
@@ -326,45 +325,45 @@ func (tbl DbUserTable) Using(tx pgxapi.SqlTx) DbUserTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl DbUserTable) Transact(txOptions *pgx.TxOptions, fn func(DbUserTabler) error) error {
+func (tbl AUserTable) Transact(txOptions *sql.TxOptions, fn func(AUserTabler) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx pgxapi.SqlTx) error {
+		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
 	return tbl.Logger().LogIfError(err)
 }
 
-func (tbl DbUserTable) quotedName() string {
+func (tbl AUserTable) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.name.String())
 }
 
-func (tbl DbUserTable) quotedNameW(w dialect.StringWriter) {
+func (tbl AUserTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
 //--------------------------------------------------------------------------------
 
-// NumDbUserTableColumns is the total number of columns in DbUserTable.
-const NumDbUserTableColumns = 22
+// NumAUserTableColumns is the total number of columns in AUserTable.
+const NumAUserTableColumns = 22
 
-// NumDbUserTableDataColumns is the number of columns in DbUserTable not including the auto-increment key.
-const NumDbUserTableDataColumns = 21
+// NumAUserTableDataColumns is the number of columns in AUserTable not including the auto-increment key.
+const NumAUserTableDataColumns = 21
 
-// DbUserTableColumnNames is the list of columns in DbUserTable.
-const DbUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// AUserTableColumnNames is the list of columns in AUserTable.
+const AUserTableColumnNames = "uid,name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-// DbUserTableDataColumnNames is the list of data columns in DbUserTable.
-const DbUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
+// AUserTableDataColumnNames is the list of data columns in AUserTable.
+const AUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,active,admin,fave,lastupdated,i8,u8,i16,u16,i32,u32,i64,u64,f32,f64,token,secret"
 
-var listOfDbUserTableColumnNames = strings.Split(DbUserTableColumnNames, ",")
+var listOfAUserTableColumnNames = strings.Split(AUserTableColumnNames, ",")
 
 //--------------------------------------------------------------------------------
 
-var sqlDbUserTableCreateColumnsSqlite = []string{
+var sqlAUserTableCreateColumnsSqlite = []string{
 	"integer not null primary key autoincrement",
 	"text not null",
 	"text not null",
@@ -389,7 +388,7 @@ var sqlDbUserTableCreateColumnsSqlite = []string{
 	"text not null",
 }
 
-var sqlDbUserTableCreateColumnsMysql = []string{
+var sqlAUserTableCreateColumnsMysql = []string{
 	"bigint not null primary key auto_increment",
 	"varchar(255) not null",
 	"varchar(255) not null",
@@ -414,7 +413,7 @@ var sqlDbUserTableCreateColumnsMysql = []string{
 	"text not null",
 }
 
-var sqlDbUserTableCreateColumnsPostgres = []string{
+var sqlAUserTableCreateColumnsPostgres = []string{
 	"bigserial not null primary key",
 	"text not null",
 	"text not null",
@@ -439,7 +438,7 @@ var sqlDbUserTableCreateColumnsPostgres = []string{
 	"text not null",
 }
 
-var sqlDbUserTableCreateColumnsPgx = []string{
+var sqlAUserTableCreateColumnsPgx = []string{
 	"bigserial not null primary key",
 	"text not null",
 	"text not null",
@@ -466,22 +465,20 @@ var sqlDbUserTableCreateColumnsPgx = []string{
 
 //--------------------------------------------------------------------------------
 
-const sqlDbEmailaddressIdxIndexColumns = "emailaddress"
+const sqlAEmailaddressIdxIndexColumns = "emailaddress"
+var listOfAEmailaddressIdxIndexColumns = []string{"emailaddress"}
 
-var listOfDbEmailaddressIdxIndexColumns = []string{"emailaddress"}
-
-const sqlDbUserLoginIndexColumns = "name"
-
-var listOfDbUserLoginIndexColumns = []string{"name"}
+const sqlAUserLoginIndexColumns = "name"
+var listOfAUserLoginIndexColumns = []string{"name"}
 
 //--------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl DbUserTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, createDbUserTableSql(tbl, ifNotExists))
+func (tbl AUserTable) CreateTable(ifNotExists bool) (int64, error) {
+	return support.Exec(tbl, nil, createAUserTableSql(tbl, ifNotExists))
 }
 
-func createDbUserTableSql(tbl DbUserTabler, ifNotExists bool) string {
+func createAUserTableSql(tbl AUserTabler, ifNotExists bool) string {
 	buf := &bytes.Buffer{}
 	buf.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -494,17 +491,17 @@ func createDbUserTableSql(tbl DbUserTabler, ifNotExists bool) string {
 	var columns []string
 	switch tbl.Dialect().Index() {
 	case dialect.SqliteIndex:
-		columns = sqlDbUserTableCreateColumnsSqlite
+		columns = sqlAUserTableCreateColumnsSqlite
 	case dialect.MysqlIndex:
-		columns = sqlDbUserTableCreateColumnsMysql
+		columns = sqlAUserTableCreateColumnsMysql
 	case dialect.PostgresIndex:
-		columns = sqlDbUserTableCreateColumnsPostgres
+		columns = sqlAUserTableCreateColumnsPostgres
 	case dialect.PgxIndex:
-		columns = sqlDbUserTableCreateColumnsPgx
+		columns = sqlAUserTableCreateColumnsPgx
 	}
 
 	comma := ""
-	for i, n := range listOfDbUserTableColumnNames {
+	for i, n := range listOfAUserTableColumnNames {
 		buf.WriteString(comma)
 		q.QuoteW(buf, n)
 		buf.WriteString(" ")
@@ -522,7 +519,7 @@ func createDbUserTableSql(tbl DbUserTabler, ifNotExists bool) string {
 	return buf.String()
 }
 
-func ternaryDbUserTable(flag bool, a, b string) string {
+func ternaryAUserTable(flag bool, a, b string) string {
 	if flag {
 		return a
 	}
@@ -530,12 +527,12 @@ func ternaryDbUserTable(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl DbUserTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, dropDbUserTableSql(tbl, ifExists))
+func (tbl AUserTable) DropTable(ifExists bool) (int64, error) {
+	return support.Exec(tbl, nil, dropAUserTableSql(tbl, ifExists))
 }
 
-func dropDbUserTableSql(tbl DbUserTabler, ifExists bool) string {
-	ie := ternaryDbUserTable(ifExists, "IF EXISTS ", "")
+func dropAUserTableSql(tbl AUserTabler, ifExists bool) string {
+	ie := ternaryAUserTable(ifExists, "IF EXISTS ", "")
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("DROP TABLE %s%s", ie, quotedName)
 	return query
@@ -544,7 +541,7 @@ func dropDbUserTableSql(tbl DbUserTabler, ifExists bool) string {
 //--------------------------------------------------------------------------------
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+func (tbl AUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 	_, err = tbl.CreateTable(ifNotExist)
 	if err != nil {
 		return err
@@ -554,7 +551,7 @@ func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
 }
 
 // CreateIndexes executes queries that create the indexes needed by the User table.
-func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
+func (tbl AUserTable) CreateIndexes(ifNotExist bool) (err error) {
 
 	err = tbl.CreateEmailaddressIdxIndex(ifNotExist)
 	if err != nil {
@@ -570,97 +567,97 @@ func (tbl DbUserTable) CreateIndexes(ifNotExist bool) (err error) {
 }
 
 // CreateEmailaddressIdxIndex creates the emailaddress_idx index.
-func (tbl DbUserTable) CreateEmailaddressIdxIndex(ifNotExist bool) error {
-	ine := ternaryDbUserTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+func (tbl AUserTable) CreateEmailaddressIdxIndex(ifNotExist bool) error {
+	ine := ternaryAUserTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, dropDbUserTableEmailaddressIdxSql(tbl, false))
+		tbl.Execer().ExecContext(tbl.ctx, dropAUserTableEmailaddressIdxSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(nil, createDbUserTableEmailaddressIdxSql(tbl, ine))
+	_, err := tbl.Exec(nil, createAUserTableEmailaddressIdxSql(tbl, ine))
 	return err
 }
 
-func createDbUserTableEmailaddressIdxSql(tbl DbUserTabler, ifNotExists string) string {
+func createAUserTableEmailaddressIdxSql(tbl AUserTabler, ifNotExists string) string {
 	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%semailaddress_idx", indexPrefix)
 	q := tbl.Dialect().Quoter()
-	cols := strings.Join(q.QuoteN(listOfDbEmailaddressIdxIndexColumns), ",")
+	cols := strings.Join(q.QuoteN(listOfAEmailaddressIdxIndexColumns), ",")
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%s ON %s (%s)", ifNotExists,
 		q.Quote(id), quotedName, cols)
 }
 
 // DropEmailaddressIdxIndex drops the emailaddress_idx index.
-func (tbl DbUserTable) DropEmailaddressIdxIndex(ifExists bool) error {
-	_, err := tbl.Exec(nil, dropDbUserTableEmailaddressIdxSql(tbl, ifExists))
+func (tbl AUserTable) DropEmailaddressIdxIndex(ifExists bool) error {
+	_, err := tbl.Exec(nil, dropAUserTableEmailaddressIdxSql(tbl, ifExists))
 	return err
 }
 
-func dropDbUserTableEmailaddressIdxSql(tbl DbUserTabler, ifExists bool) string {
+func dropAUserTableEmailaddressIdxSql(tbl AUserTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := ternaryDbUserTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	ie := ternaryAUserTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%semailaddress_idx", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	onTbl := ternaryDbUserTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
+	onTbl := ternaryAUserTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
 // CreateUserLoginIndex creates the user_login index.
-func (tbl DbUserTable) CreateUserLoginIndex(ifNotExist bool) error {
-	ine := ternaryDbUserTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+func (tbl AUserTable) CreateUserLoginIndex(ifNotExist bool) error {
+	ine := ternaryAUserTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, dropDbUserTableUserLoginSql(tbl, false))
+		tbl.Execer().ExecContext(tbl.ctx, dropAUserTableUserLoginSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(nil, createDbUserTableUserLoginSql(tbl, ine))
+	_, err := tbl.Exec(nil, createAUserTableUserLoginSql(tbl, ine))
 	return err
 }
 
-func createDbUserTableUserLoginSql(tbl DbUserTabler, ifNotExists string) string {
+func createAUserTableUserLoginSql(tbl AUserTabler, ifNotExists string) string {
 	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%suser_login", indexPrefix)
 	q := tbl.Dialect().Quoter()
-	cols := strings.Join(q.QuoteN(listOfDbUserLoginIndexColumns), ",")
+	cols := strings.Join(q.QuoteN(listOfAUserLoginIndexColumns), ",")
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	return fmt.Sprintf("CREATE UNIQUE INDEX %s%s ON %s (%s)", ifNotExists,
 		q.Quote(id), quotedName, cols)
 }
 
 // DropUserLoginIndex drops the user_login index.
-func (tbl DbUserTable) DropUserLoginIndex(ifExists bool) error {
-	_, err := tbl.Exec(nil, dropDbUserTableUserLoginSql(tbl, ifExists))
+func (tbl AUserTable) DropUserLoginIndex(ifExists bool) error {
+	_, err := tbl.Exec(nil, dropAUserTableUserLoginSql(tbl, ifExists))
 	return err
 }
 
-func dropDbUserTableUserLoginSql(tbl DbUserTabler, ifExists bool) string {
+func dropAUserTableUserLoginSql(tbl AUserTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := ternaryDbUserTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	ie := ternaryAUserTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%suser_login", indexPrefix)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	onTbl := ternaryDbUserTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
+	onTbl := ternaryAUserTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
 // DropIndexes executes queries that drop the indexes on by the User table.
-func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
+func (tbl AUserTable) DropIndexes(ifExist bool) (err error) {
 
 	err = tbl.DropEmailaddressIdxIndex(ifExist)
 	if err != nil {
@@ -684,7 +681,7 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl DbUserTable) Truncate(force bool) (err error) {
+func (tbl AUserTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
 		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
@@ -700,7 +697,7 @@ func (tbl DbUserTable) Truncate(force bool) (err error) {
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
+func (tbl AUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
 	return support.Exec(tbl, req, query, args...)
 }
 
@@ -717,19 +714,19 @@ func (tbl DbUserTable) Exec(req require.Requirement, query string, args ...inter
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
-// use that function directly; wrap the result in *pgxapi.Rows if you need to access its data as a map.
-func (tbl DbUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return doDbUserTableQueryAndScan(tbl, req, false, query, args)
+// use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
+func (tbl AUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return doAUserTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func doDbUserTableQueryAndScan(tbl DbUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+func doAUserTableQueryAndScan(tbl AUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	vv, n, err := ScanDbUsers(query, rows, firstOnly)
+	vv, n, err := ScanAUsers(query, rows, firstOnly)
 	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
@@ -742,7 +739,7 @@ func doDbUserTableQueryAndScan(tbl DbUserTabler, req require.Requirement, firstO
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbUserTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+func (tbl AUserTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
 	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
@@ -754,7 +751,7 @@ func (tbl DbUserTable) QueryOneNullString(req require.Requirement, query string,
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbUserTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+func (tbl AUserTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
 	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
@@ -766,15 +763,15 @@ func (tbl DbUserTable) QueryOneNullInt64(req require.Requirement, query string, 
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbUserTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+func (tbl AUserTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
 	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
-// ScanDbUsers reads rows from the database and returns a slice of corresponding values.
+// ScanAUsers reads rows from the database and returns a slice of corresponding values.
 // It also returns a number indicating how many rows were read; this will be larger than the length of the
 // slice if reading stopped after the first row.
-func ScanDbUsers(query string, rows pgxapi.SqlRows, firstOnly bool) (vv []*User, n int64, err error) {
+func ScanAUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -869,7 +866,7 @@ func ScanDbUsers(query string, rows pgxapi.SqlRows, firstOnly bool) (vv []*User,
 		v.secret = v21
 
 		var iv interface{} = v
-		if hook, ok := iv.(pgxapi.CanPostGet); ok {
+		if hook, ok := iv.(sqlapi.CanPostGet); ok {
 			err = hook.PostGet()
 			if err != nil {
 				return vv, n, errors.Wrap(err, query)
@@ -891,8 +888,8 @@ func ScanDbUsers(query string, rows pgxapi.SqlRows, firstOnly bool) (vv []*User,
 
 //--------------------------------------------------------------------------------
 
-func allDbUserColumnNamesQuoted(q quote.Quoter) string {
-	return strings.Join(q.QuoteN(listOfDbUserTableColumnNames), ",")
+func allAUserColumnNamesQuoted(q quote.Quoter) string {
+	return strings.Join(q.QuoteN(listOfAUserTableColumnNames), ",")
 }
 
 //--------------------------------------------------------------------------------
@@ -903,7 +900,7 @@ func allDbUserColumnNamesQuoted(q quote.Quoter) string {
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl DbUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list []*User, err error) {
+func (tbl AUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list []*User, err error) {
 	if len(id) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(id))
@@ -914,7 +911,7 @@ func (tbl DbUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list
 			args[i] = v
 		}
 
-		list, err = getDbUsers(tbl, req, tbl.pk, args...)
+		list, err = getAUsers(tbl, req, tbl.pk, args...)
 	}
 
 	return list, err
@@ -922,33 +919,33 @@ func (tbl DbUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list
 
 // GetUserByUid gets the record with a given primary key value.
 // If not found, *User will be nil.
-func (tbl DbUserTable) GetUserByUid(req require.Requirement, id int64) (*User, error) {
-	return getDbUser(tbl, req, tbl.pk, id)
+func (tbl AUserTable) GetUserByUid(req require.Requirement, id int64) (*User, error) {
+	return getAUser(tbl, req, tbl.pk, id)
 }
 
 // GetUserByEmailAddress gets the record with a given emailaddress value.
 // If not found, *User will be nil.
-func (tbl DbUserTable) GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error) {
+func (tbl AUserTable) GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error) {
 	return tbl.SelectOne(req, where.And(where.Eq("emailaddress", emailaddress)), nil)
 }
 
 // GetUserByName gets the record with a given name value.
 // If not found, *User will be nil.
-func (tbl DbUserTable) GetUserByName(req require.Requirement, name string) (*User, error) {
+func (tbl AUserTable) GetUserByName(req require.Requirement, name string) (*User, error) {
 	return tbl.SelectOne(req, where.And(where.Eq("name", name)), nil)
 }
 
-func getDbUser(tbl DbUserTable, req require.Requirement, column string, arg interface{}) (*User, error) {
+func getAUser(tbl AUserTable, req require.Requirement, column string, arg interface{}) (*User, error) {
 	d := tbl.Dialect()
 	q := d.Quoter()
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allDbUserColumnNamesQuoted(q), quotedName, q.Quote(column))
-	v, err := doDbUserTableQueryAndScanOne(tbl, req, query, arg)
+		allAUserColumnNamesQuoted(q), quotedName, q.Quote(column))
+	v, err := doAUserTableQueryAndScanOne(tbl, req, query, arg)
 	return v, err
 }
 
-func getDbUsers(tbl DbUserTabler, req require.Requirement, column string, args ...interface{}) (list []*User, err error) {
+func getAUsers(tbl AUserTabler, req require.Requirement, column string, args ...interface{}) (list []*User, err error) {
 	if len(args) > 0 {
 		if req == require.All {
 			req = require.Exactly(len(args))
@@ -958,15 +955,15 @@ func getDbUsers(tbl DbUserTabler, req require.Requirement, column string, args .
 		pl := d.Placeholders(len(args))
 		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allDbUserColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
-		list, err = doDbUserTableQueryAndScan(tbl, req, false, query, args...)
+			allAUserColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
+		list, err = doAUserTableQueryAndScan(tbl, req, false, query, args...)
 	}
 
 	return list, err
 }
 
-func doDbUserTableQueryAndScanOne(tbl DbUserTabler, req require.Requirement, query string, args ...interface{}) (*User, error) {
-	list, err := doDbUserTableQueryAndScan(tbl, req, true, query, args...)
+func doAUserTableQueryAndScanOne(tbl AUserTabler, req require.Requirement, query string, args ...interface{}) (*User, error) {
+	list, err := doAUserTableQueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -975,8 +972,8 @@ func doDbUserTableQueryAndScanOne(tbl DbUserTabler, req require.Requirement, que
 
 // Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of User. Other queries might be better handled by GetXxx or Select methods.
-func (tbl DbUserTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return doDbUserTableQueryAndScan(tbl, req, false, query, args...)
+func (tbl AUserTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return doAUserTableQueryAndScan(tbl, req, false, query, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -990,11 +987,11 @@ func (tbl DbUserTable) Fetch(req require.Requirement, query string, args ...inte
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbUserTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
+func (tbl AUserTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
-		allDbUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	v, err := doDbUserTableQueryAndScanOne(tbl, req, query, args...)
+		allAUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	v, err := doAUserTableQueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -1005,7 +1002,7 @@ func (tbl DbUserTable) SelectOneWhere(req require.Requirement, where, orderBy st
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl DbUserTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
+func (tbl AUserTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
@@ -1020,11 +1017,11 @@ func (tbl DbUserTable) SelectOne(req require.Requirement, wh where.Expression, q
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbUserTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
+func (tbl AUserTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
-		allDbUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	vv, err := doDbUserTableQueryAndScan(tbl, req, false, query, args...)
+		allAUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
+	vv, err := doAUserTableQueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -1034,7 +1031,7 @@ func (tbl DbUserTable) SelectWhere(req require.Requirement, where, orderBy strin
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
-func (tbl DbUserTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
+func (tbl AUserTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
@@ -1047,7 +1044,7 @@ func (tbl DbUserTable) Select(req require.Requirement, wh where.Expression, qc w
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
+func (tbl AUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
 	rows, err := support.Query(tbl, query, args...)
@@ -1063,7 +1060,7 @@ func (tbl DbUserTable) CountWhere(where string, args ...interface{}) (count int6
 
 // Count counts the Users in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl DbUserTable) Count(wh where.Expression) (count int64, err error) {
+func (tbl AUserTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	return tbl.CountWhere(whs, args...)
 }
@@ -1073,123 +1070,123 @@ func (tbl DbUserTable) Count(wh where.Expression) (count int64, err error) {
 // SliceUid gets the uid column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl AUserTable) SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
 }
 
 // SliceName gets the name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl AUserTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return support.SliceStringList(tbl, req, "name", wh, qc)
 }
 
 // SliceEmailaddress gets the emailaddress column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl AUserTable) SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return support.SliceStringList(tbl, req, "emailaddress", wh, qc)
 }
 
 // SliceAddressid gets the addressid column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl AUserTable) SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return support.SliceInt64PtrList(tbl, req, "addressid", wh, qc)
 }
 
 // SliceAvatar gets the avatar column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceAvatar(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+func (tbl AUserTable) SliceAvatar(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
 	return support.SliceStringPtrList(tbl, req, "avatar", wh, qc)
 }
 
 // SliceLastupdated gets the lastupdated column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceLastupdated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl AUserTable) SliceLastupdated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return support.SliceInt64List(tbl, req, "lastupdated", wh, qc)
 }
 
 // SliceI8 gets the i8 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
+func (tbl AUserTable) SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
 	return support.SliceInt8List(tbl, req, "i8", wh, qc)
 }
 
 // SliceU8 gets the u8 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
+func (tbl AUserTable) SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
 	return support.SliceUint8List(tbl, req, "u8", wh, qc)
 }
 
 // SliceI16 gets the i16 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
+func (tbl AUserTable) SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
 	return support.SliceInt16List(tbl, req, "i16", wh, qc)
 }
 
 // SliceU16 gets the u16 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
+func (tbl AUserTable) SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
 	return support.SliceUint16List(tbl, req, "u16", wh, qc)
 }
 
 // SliceI32 gets the i32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
+func (tbl AUserTable) SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
 	return support.SliceInt32List(tbl, req, "i32", wh, qc)
 }
 
 // SliceU32 gets the u32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
+func (tbl AUserTable) SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
 	return support.SliceUint32List(tbl, req, "u32", wh, qc)
 }
 
 // SliceI64 gets the i64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl AUserTable) SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return support.SliceInt64List(tbl, req, "i64", wh, qc)
 }
 
 // SliceU64 gets the u64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+func (tbl AUserTable) SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
 	return support.SliceUint64List(tbl, req, "u64", wh, qc)
 }
 
 // SliceRole gets the role column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
-	return sliceDbUserTableRolePtrList(tbl, req, "role", wh, qc)
+func (tbl AUserTable) SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
+	return sliceAUserTableRolePtrList(tbl, req, "role", wh, qc)
 }
 
 // SliceF32 gets the f32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
-	return sliceDbUserTableFloat32List(tbl, req, "f32", wh, qc)
+func (tbl AUserTable) SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+	return sliceAUserTableFloat32List(tbl, req, "f32", wh, qc)
 }
 
 // SliceF64 gets the f64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbUserTable) SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
-	return sliceDbUserTableFloat64List(tbl, req, "f64", wh, qc)
+func (tbl AUserTable) SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+	return sliceAUserTableFloat64List(tbl, req, "f64", wh, qc)
 }
 
-func sliceDbUserTableRolePtrList(tbl DbUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
+func sliceAUserTableRolePtrList(tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
@@ -1215,7 +1212,7 @@ func sliceDbUserTableRolePtrList(tbl DbUserTabler, req require.Requirement, sqln
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceDbUserTableFloat32List(tbl DbUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+func sliceAUserTableFloat32List(tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
@@ -1241,7 +1238,7 @@ func sliceDbUserTableFloat32List(tbl DbUserTabler, req require.Requirement, sqln
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceDbUserTableFloat64List(tbl DbUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+func sliceAUserTableFloat64List(tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
@@ -1267,7 +1264,7 @@ func sliceDbUserTableFloat64List(tbl DbUserTabler, req require.Requirement, sqln
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func constructDbUserTableInsert(tbl DbUserTable, w dialect.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
+func constructAUserTableInsert(tbl AUserTable, w dialect.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 22)
 
@@ -1379,7 +1376,7 @@ func constructDbUserTableInsert(tbl DbUserTable, w dialect.StringWriter, v *User
 	return s, nil
 }
 
-func constructDbUserTableUpdate(tbl DbUserTable, w dialect.StringWriter, v *User) (s []interface{}, err error) {
+func constructAUserTableUpdate(tbl AUserTable, w dialect.StringWriter, v *User) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 21)
@@ -1539,7 +1536,7 @@ func constructDbUserTableUpdate(tbl DbUserTable, w dialect.StringWriter, v *User
 
 // Insert adds new records for the Users.// The Users have their primary key fields set to the new record identifiers.
 // The User.PreInsert() method will be called, if it exists.
-func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
+func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -1553,7 +1550,7 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(pgxapi.CanPreInsert); ok {
+		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
 				return tbl.Logger().LogError(err)
@@ -1564,7 +1561,7 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
-		fields, err := constructDbUserTableInsert(tbl, b, v, false)
+		fields, err := constructAUserTableInsert(tbl, b, v, false)
 		if err != nil {
 			return tbl.Logger().LogError(err)
 		}
@@ -1601,7 +1598,7 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl DbUserTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+func (tbl AUserTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
@@ -1609,7 +1606,7 @@ func (tbl DbUserTable) UpdateFields(req require.Requirement, wh where.Expression
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The User.PreUpdate(Execer) method will be called, if it exists.
-func (tbl DbUserTable) Update(req require.Requirement, vv ...*User) (int64, error) {
+func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error) {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -1620,7 +1617,7 @@ func (tbl DbUserTable) Update(req require.Requirement, vv ...*User) (int64, erro
 
 	for _, v := range vv {
 		var iv interface{} = v
-		if hook, ok := iv.(pgxapi.CanPreUpdate); ok {
+		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
 				return count, tbl.Logger().LogError(err)
@@ -1632,7 +1629,7 @@ func (tbl DbUserTable) Update(req require.Requirement, vv ...*User) (int64, erro
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")
 
-		args, err := constructDbUserTableUpdate(tbl, b, v)
+		args, err := constructAUserTableUpdate(tbl, b, v)
 		if err != nil {
 			return count, err
 		}
@@ -1660,7 +1657,7 @@ func (tbl DbUserTable) Update(req require.Requirement, vv ...*User) (int64, erro
 // key column(s). It must match either zero or one existing record. If it matches
 // none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
-func (tbl DbUserTable) Upsert(v *User, wh where.Expression) error {
+func (tbl AUserTable) Upsert(v *User, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)
 	qName := tbl.quotedName()
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
@@ -1695,7 +1692,7 @@ func (tbl DbUserTable) Upsert(v *User, wh where.Expression) error {
 
 // DeleteUsers deletes rows from the table, given some primary keys.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, error) {
+func (tbl AUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, error) {
 	const batch = 1000 // limited by Oracle DB
 	const qt = "DELETE FROM %s WHERE %s IN (%s)"
 	qName := tbl.quotedName()
@@ -1750,12 +1747,12 @@ func (tbl DbUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64,
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl DbUserTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
-	query, args := deleteRowsDbUserTableSql(tbl, wh)
+func (tbl AUserTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
+	query, args := deleteRowsAUserTableSql(tbl, wh)
 	return tbl.Exec(req, query, args...)
 }
 
-func deleteRowsDbUserTableSql(tbl DbUserTabler, wh where.Expression) (string, []interface{}) {
+func deleteRowsAUserTableSql(tbl AUserTabler, wh where.Expression) (string, []interface{}) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("DELETE FROM %s %s", quotedName, whs)
@@ -1763,137 +1760,3 @@ func deleteRowsDbUserTableSql(tbl DbUserTabler, wh where.Expression) (string, []
 }
 
 //--------------------------------------------------------------------------------
-
-//--------------------------------------------------------------------------------
-
-// SetUid sets the Uid field and returns the modified User.
-func (v *User) SetUid(x int64) *User {
-	v.Uid = x
-	return v
-}
-
-// SetName sets the Name field and returns the modified User.
-func (v *User) SetName(x string) *User {
-	v.Name = x
-	return v
-}
-
-// SetEmailAddress sets the EmailAddress field and returns the modified User.
-func (v *User) SetEmailAddress(x string) *User {
-	v.EmailAddress = x
-	return v
-}
-
-// SetAddressId sets the AddressId field and returns the modified User.
-func (v *User) SetAddressId(x int64) *User {
-	v.AddressId = &x
-	return v
-}
-
-// SetAvatar sets the Avatar field and returns the modified User.
-func (v *User) SetAvatar(x string) *User {
-	v.Avatar = &x
-	return v
-}
-
-// SetRole sets the Role field and returns the modified User.
-func (v *User) SetRole(x Role) *User {
-	v.Role = &x
-	return v
-}
-
-// SetActive sets the Active field and returns the modified User.
-func (v *User) SetActive(x bool) *User {
-	v.Active = x
-	return v
-}
-
-// SetAdmin sets the Admin field and returns the modified User.
-func (v *User) SetAdmin(x bool) *User {
-	v.Admin = x
-	return v
-}
-
-// SetFave sets the Fave field and returns the modified User.
-func (v *User) SetFave(x big.Int) *User {
-	v.Fave = &x
-	return v
-}
-
-// SetLastUpdated sets the LastUpdated field and returns the modified User.
-func (v *User) SetLastUpdated(x int64) *User {
-	v.LastUpdated = x
-	return v
-}
-
-// SetI8 sets the I8 field and returns the modified User.
-func (v *User) SetI8(x int8) *User {
-	v.Numbers.I8 = x
-	return v
-}
-
-// SetU8 sets the U8 field and returns the modified User.
-func (v *User) SetU8(x uint8) *User {
-	v.Numbers.U8 = x
-	return v
-}
-
-// SetI16 sets the I16 field and returns the modified User.
-func (v *User) SetI16(x int16) *User {
-	v.Numbers.I16 = x
-	return v
-}
-
-// SetU16 sets the U16 field and returns the modified User.
-func (v *User) SetU16(x uint16) *User {
-	v.Numbers.U16 = x
-	return v
-}
-
-// SetI32 sets the I32 field and returns the modified User.
-func (v *User) SetI32(x int32) *User {
-	v.Numbers.I32 = x
-	return v
-}
-
-// SetU32 sets the U32 field and returns the modified User.
-func (v *User) SetU32(x uint32) *User {
-	v.Numbers.U32 = x
-	return v
-}
-
-// SetI64 sets the I64 field and returns the modified User.
-func (v *User) SetI64(x int64) *User {
-	v.Numbers.I64 = x
-	return v
-}
-
-// SetU64 sets the U64 field and returns the modified User.
-func (v *User) SetU64(x uint64) *User {
-	v.Numbers.U64 = x
-	return v
-}
-
-// SetF32 sets the F32 field and returns the modified User.
-func (v *User) SetF32(x float32) *User {
-	v.Numbers.F32 = x
-	return v
-}
-
-// SetF64 sets the F64 field and returns the modified User.
-func (v *User) SetF64(x float64) *User {
-	v.Numbers.F64 = x
-	return v
-}
-
-// Settoken sets the token field and returns the modified User.
-func (v *User) Settoken(x string) *User {
-	v.token = x
-	return v
-}
-
-// Setsecret sets the secret field and returns the modified User.
-func (v *User) Setsecret(x string) *User {
-	v.secret = x
-	return v
-}

@@ -5,26 +5,27 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/kortschak/utter"
-	"github.com/rickb777/sqlapi/schema"
-	"github.com/rickb777/sqlapi/types"
-	. "github.com/rickb777/sqlgen2/code"
-	. "github.com/rickb777/sqlgen2/load"
-	"github.com/rickb777/sqlgen2/output"
-	"github.com/rickb777/sqlgen2/parse"
-	"github.com/rickb777/sqlgen2/parse/exit"
-	"gopkg.in/yaml.v2"
 	"io"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/kortschak/utter"
+	"github.com/rickb777/sqlapi/schema"
+	"github.com/rickb777/sqlapi/types"
+	"github.com/rickb777/sqlgen2/code"
+	"github.com/rickb777/sqlgen2/load"
+	"github.com/rickb777/sqlgen2/output"
+	"github.com/rickb777/sqlgen2/parse"
+	"github.com/rickb777/sqlgen2/parse/exit"
+	"gopkg.in/yaml.v2"
 )
 
 func main() {
 	start := time.Now()
 
 	var oFile, pkgImport, typeName, prefix, list, kind, tableName, tagsFile, genSetters string
-	var flags = FuncFlags{}
+	var flags = load.FuncFlags{}
 	var pgx, all, join, read, create, gofmt, jsonFile, yamlFile, showVersion bool
 
 	flag.StringVar(&oFile, "o", "", "Output file name; optional. Use '-' for stdout.\n"+
@@ -100,9 +101,9 @@ func main() {
 	}
 
 	if all {
-		flags = AllFuncFlags
+		flags = load.AllFuncFlags
 	} else if join {
-		flags = FuncFlags{Query: true}
+		flags = load.FuncFlags{Query: true}
 	}
 
 	output.Require(len(typeName) > 3, "-type is required. This must specify a type, qualified with its local package in the form 'pkg.Name'.\n", typeName)
@@ -119,7 +120,7 @@ func main() {
 		oFile = oFile[:len(oFile)-3] + "_sql.go"
 		parse.DevInfo("oFile: %s\n", oFile)
 	} else {
-		tablePkg = LastDirName(oFile)
+		tablePkg = load.LastDirName(oFile)
 		output.Require(tablePkg == typePkg || pkgImport != "", typeName+": must be accompanied with -pkg if the output file is in a different directory")
 		parse.DevInfo("typePkg: %s, tablePkg: %s\n", typePkg, tablePkg)
 	}
@@ -157,8 +158,10 @@ func main() {
 			exit.Fail(1, "tags file %s failed: %s.\n", tagsFile, err)
 		}
 
+		output.Info("loading %s\n", strings.Join(flag.Args(), ", "))
+
 		// load the Tree into a schema Object
-		table, err = Load(pkgStore, parse.LType{PkgName: pkg, Name: name}, typePkg, tags)
+		table, err = load.Load(pkgStore, parse.LType{PkgName: pkg, Name: name}, typePkg, tags)
 		if err != nil {
 			exit.Fail(1, "Go parser failed: %v.\n", err)
 		}
@@ -227,7 +230,7 @@ func writeTableJson(o output.Output, buf io.ReadWriter, enc encoder, table *sche
 	}
 }
 
-func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport, typePkg, tablePkg, genSetters string, table *schema.TableDescription, flags FuncFlags, pgx, gofmt bool) {
+func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport, typePkg, tablePkg, genSetters string, table *schema.TableDescription, flags load.FuncFlags, pgx, gofmt bool) {
 	sql := "sql"
 	api := "sqlapi"
 	if pgx {
@@ -237,91 +240,91 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 	if typePkg != "" {
 		typePkg += "."
 	}
-	view := NewView(typePkg, tablePkg, name, prefix, tableName, list, sql, api)
+	view := code.NewView(typePkg, tablePkg, name, prefix, tableName, list, sql, api)
 	view.Table = table
 	view.Thing = kind
 	view.Thinger = ender(kind)
-	view.Interface1 = api + "." + PrimaryInterface(table, flags.Schema)
+	view.Interface1 = api + "." + load.PrimaryInterface(table, flags.Schema)
 	if flags.Scan {
 		view.Scan = "Scan"
 	}
 
 	setters := view.FilterSetters(genSetters)
 
-	importSet := PackagesToImport(flags, pgx)
+	importSet := load.PackagesToImport(flags, pgx)
 	if pkgImport != "" {
 		importSet.Add(pkgImport)
 	}
 
-	ImportsForFields(table, importSet)
-	ImportsForSetters(setters, importSet)
+	code.ImportsForFields(table, importSet)
+	code.ImportsForSetters(setters, importSet)
 
 	headerBuf := &bytes.Buffer{}
 	interfaceBuf := &bytes.Buffer{}
 	structBuf := &bytes.Buffer{}
 
-	WritePackageHeader(headerBuf, tablePkg, appVersion)
+	code.WritePackageHeader(headerBuf, tablePkg, appVersion)
 
-	WriteImports(headerBuf, importSet)
+	code.WriteImports(headerBuf, importSet)
 
-	WriteType(interfaceBuf, structBuf, view)
+	code.WriteType(interfaceBuf, structBuf, view)
 
-	WritePrimaryDeclarations(structBuf, view)
+	code.WritePrimaryDeclarations(structBuf, view)
 
 	if flags.Schema {
-		WriteSchemaDeclarations(structBuf, view)
-		WriteSchemaFunctions(interfaceBuf, structBuf, view)
+		code.WriteSchemaDeclarations(structBuf, view)
+		code.WriteSchemaFunctions(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Exec || flags.Update || flags.Delete {
-		WriteExecFunc(interfaceBuf, structBuf, view)
+		code.WriteExecFunc(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Query {
-		WriteQueryRows(interfaceBuf, structBuf, view)
-		WriteQueryThings(interfaceBuf, structBuf, view)
+		code.WriteQueryRows(interfaceBuf, structBuf, view)
+		code.WriteQueryThings(interfaceBuf, structBuf, view)
 	}
 
-	WriteScanRows(structBuf, view)
+	code.WriteScanRows(structBuf, view)
 
 	if flags.Select {
-		WriteGetRow(interfaceBuf, structBuf, view)
-		WriteSelectRowsFuncs(interfaceBuf, structBuf, view)
+		code.WriteGetRow(interfaceBuf, structBuf, view)
+		code.WriteSelectRowsFuncs(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Count {
-		WriteCountRowsFuncs(interfaceBuf, structBuf, view)
+		code.WriteCountRowsFuncs(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Slice {
-		WriteSliceColumn(interfaceBuf, structBuf, view)
+		code.WriteSliceColumn(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Insert {
-		WriteConstructInsert(structBuf, view)
+		code.WriteConstructInsert(structBuf, view)
 	}
 
 	if flags.Update {
-		WriteConstructUpdate(structBuf, view)
+		code.WriteConstructUpdate(structBuf, view)
 	}
 
 	if flags.Insert {
-		WriteInsertFunc(interfaceBuf, structBuf, view)
+		code.WriteInsertFunc(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Update {
-		WriteUpdateFunc(interfaceBuf, structBuf, view)
+		code.WriteUpdateFunc(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Upsert {
-		WriteUpsertFunc(structBuf, view)
+		code.WriteUpsertFunc(structBuf, view)
 	}
 
 	if flags.Delete {
-		WriteDeleteFunc(structBuf, view)
+		code.WriteDeleteFunc(structBuf, view)
 	}
 
-	WriteSetters(interfaceBuf, structBuf, view, setters)
+	code.WriteSetters(interfaceBuf, structBuf, view, setters)
 
 	io.WriteString(interfaceBuf, "}\n\n")
 
@@ -340,7 +343,7 @@ func finishWriting(o output.Output, gofmt bool, buf *bytes.Buffer) {
 	var pretty io.Reader = buf
 	if gofmt {
 		var err error
-		pretty, err = GoFmt(buf)
+		pretty, err = load.GoFmt(buf)
 		output.Require(err == nil, "%s\n%v\n", buf.String(), err)
 	}
 
