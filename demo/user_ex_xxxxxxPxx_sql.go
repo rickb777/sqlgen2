@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.53.0-1-gaa4fbac
+// sqlapi v0.32.0; sqlgen v0.54.0
 
 package demo
 
@@ -41,7 +41,7 @@ type PUserTabler interface {
 	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(PUserTabler) error) error
 
-// Exec executes a query without returning any rows.
+	// Exec executes a query without returning any rows.
 
 	// Insert adds new records for the Users, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*User) error
@@ -49,7 +49,6 @@ type PUserTabler interface {
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*User) (int64, error)
 }
-
 
 // PUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can

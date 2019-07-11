@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.53.0-1-gaa4fbac
+// sqlapi v0.32.0; sqlgen v0.54.0
 
 package demo
 
@@ -63,7 +63,7 @@ type IssueTabler interface {
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 
-// Exec executes a query without returning any rows.
+	// Exec executes a query without returning any rows.
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for Issue values.
@@ -129,7 +129,6 @@ type IssueTabler interface {
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Issue) (int64, error)
 }
-
 
 // IssueTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -365,6 +364,7 @@ var sqlIssueTableCreateColumnsPgx = []string{
 //--------------------------------------------------------------------------------
 
 const sqlIssueAssigneeIndexColumns = "assignee"
+
 var listOfIssueAssigneeIndexColumns = []string{"assignee"}
 
 //--------------------------------------------------------------------------------

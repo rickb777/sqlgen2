@@ -148,6 +148,7 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 		//	return nil, nil
 		//}
 		sourceImporter := importer.ForCompiler(fset, "source", nil)
+		var errors []error
 
 		// A Config controls various options of the type checker.
 		// The defaults work fine except for one setting:
@@ -161,6 +162,7 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 			//FakeImportC:              true,
 			Error: func(err error) {
 				DevInfo("%v\n", err)
+				errors = append(errors, err)
 			},
 		}
 
@@ -169,8 +171,13 @@ func ParseGroups(fset *token.FileSet, groups ...Group) (PackageStore, error) {
 		// Type-check the package containing gFiles.
 		pkg, err := conf.Check(group.Owner, fset, gFiles, nil)
 		if err != nil {
-			exit.Fail(3, "%s\n", err) // type error
-			//fmt.Fprintf(os.Stderr, "Warning: %s\n", err)
+			if pkg == nil || !pkg.Complete() {
+				fmt.Fprintln(os.Stderr, "Syntax errors occurred:")
+				for i, err := range errors {
+					fmt.Fprintf(os.Stderr, "%d: %v\n", i+1, err)
+				}
+				exit.Fail(3, "Failed.\n", err) // type error
+			}
 		}
 
 		pStore.store(pkg, gFiles)

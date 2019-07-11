@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.32.0; sqlgen v0.53.0-1-gaa4fbac
+// sqlapi v0.32.0; sqlgen v0.54.0
 
 package demo
 
@@ -91,7 +91,6 @@ type LUserTabler interface {
 	// SliceF64 gets the f64 column for all rows that match the 'where' condition.
 	SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error)
 }
-
 
 // LUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
