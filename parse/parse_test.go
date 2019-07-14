@@ -412,7 +412,7 @@ import (
 //		files[i] = Source{fmt.Sprintf("issue%d.go", i), bytes.NewBufferString(source)}
 //	}
 //
-//	err := ParseGroups(files)
+//	err := TypeCheck(files)
 //	if err != nil {
 //		t.Errorf("Error parsing: %s", err)
 //	}

@@ -67,9 +67,9 @@ func WriteSchemaDeclarations(w io.Writer, view View) {
 			name := view.Prefix + inflect.Camelize(ix.Name)
 			fmt.Fprintf(w, "%sconst sql%sIndexColumns = %q\n", before, name, colsStr)
 			if len(cols) == 1 {
-				fmt.Fprintf(w, "var listOf%sIndexColumns = []string{%q}\n", name, cols[0])
+				fmt.Fprintf(w, "\nvar listOf%sIndexColumns = []string{%q}\n", name, cols[0])
 			} else {
-				fmt.Fprintf(w, "var listOf%sIndexColumns = strings.Split(sql%sIndexColumns, \",\")\n", name, name)
+				fmt.Fprintf(w, "\nvar listOf%sIndexColumns = strings.Split(sql%sIndexColumns, \",\")\n", name, name)
 			}
 			before = "\n"
 		}

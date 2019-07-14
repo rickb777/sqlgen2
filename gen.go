@@ -326,7 +326,7 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 
 	code.WriteSetters(interfaceBuf, structBuf, view, setters)
 
-	io.WriteString(interfaceBuf, "}\n\n")
+	io.WriteString(interfaceBuf, "}\n")
 
 	finishWriting(o, gofmt, constructFullBuffer(headerBuf, interfaceBuf, structBuf))
 }

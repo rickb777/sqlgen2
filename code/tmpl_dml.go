@@ -3,7 +3,7 @@ package code
 import "text/template"
 
 const sExecDecl = `
-// Exec executes a query without returning any rows.
+	// Exec executes a query without returning any rows.
 `
 
 const sExecFunc = `
