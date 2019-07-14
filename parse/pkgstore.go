@@ -63,33 +63,6 @@ func (st PackageStore) FindNamed(name LType) *types.Named {
 	return nil
 }
 
-func (st PackageStore) FindStruct(name LType) (*types.Struct, Tags) {
-	DevInfo("FindStruct %v\n", name)
-	t := st.FindNamed(name)
-	if t == nil {
-		return nil, nil
-	}
-
-	o := t.Obj()
-	ot := o.Type()
-	otu := ot.Underlying()
-	DevInfo("  %T %v\n", o, o)
-	DevInfo("  %T %v\n", ot, ot)
-	DevInfo("  %T %v\n", otu, otu)
-	s, ok := otu.(*types.Struct)
-	if !ok {
-		return nil, nil
-	}
-
-	tags, err := findTags(st[name.PkgName].Files, name)
-	if err != nil {
-		exit.Fail(4, "%s: tag error: %s\n", name, err)
-		return nil, nil
-	}
-
-	return s, tags
-}
-
 func (st PackageStore) FindTags(name LType) Tags {
 	tags, err := findTags(st[name.PkgName].Files, name)
 	if err != nil {
