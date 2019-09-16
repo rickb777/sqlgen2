@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/acsellers/inflections"
+	"github.com/rickb777/collection"
 	"github.com/rickb777/sqlapi/schema"
 	stypes "github.com/rickb777/sqlapi/types"
-	"github.com/rickb777/sqlapi/util"
 	"github.com/rickb777/sqlgen2/output"
 	"github.com/rickb777/sqlgen2/parse"
 	"github.com/rickb777/sqlgen2/parse/exit"
@@ -18,8 +18,8 @@ import (
 	"strings"
 )
 
-func PackagesToImport(flags FuncFlags, pgx bool) util.StringSet {
-	imports := util.NewStringSet(
+func PackagesToImport(flags FuncFlags, pgx bool) collection.StringSet {
+	imports := collection.NewStringSet(
 		"context",
 		"database/sql",
 		"strings",
@@ -297,7 +297,8 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags sty
 	}
 
 	if tag.Index != "" {
-		index, ok := ctx.indices[tag.Index]
+		var index *schema.Index
+		index, ok = ctx.indices[tag.Index]
 		if !ok {
 			index = &schema.Index{
 				Name: tag.Index,
@@ -312,7 +313,8 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags sty
 	}
 
 	if tag.Unique != "" {
-		index, ok := ctx.indices[tag.Unique]
+		var index *schema.Index
+		index, ok = ctx.indices[tag.Unique]
 		if !ok {
 			index = &schema.Index{
 				Name: tag.Unique,
@@ -324,7 +326,8 @@ func (ctx *context) convertLeafNodeToField(leaf *types.Var, pkg string, tags sty
 	}
 
 	if tag.Type != "" {
-		base, ok := mapStringToSqlType[tag.Type]
+		var base stypes.Kind
+		base, ok = mapStringToSqlType[tag.Type]
 		if ok {
 			field.Type.Base = base
 		} else {

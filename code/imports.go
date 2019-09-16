@@ -2,13 +2,13 @@ package code
 
 import (
 	"fmt"
+	"github.com/rickb777/collection"
 	"github.com/rickb777/sqlapi/schema"
-	"github.com/rickb777/sqlapi/util"
 	"io"
 	"sort"
 )
 
-func ImportsForFields(table *schema.TableDescription, packages util.StringSet) {
+func ImportsForFields(table *schema.TableDescription, packages collection.StringSet) {
 
 	// check each edge field to see if it is
 	// encoded, which might require us to import
@@ -30,7 +30,7 @@ func ImportsForFields(table *schema.TableDescription, packages util.StringSet) {
 	}
 }
 
-func ImportsForSetters(setters schema.FieldList, packages util.StringSet) {
+func ImportsForSetters(setters schema.FieldList, packages collection.StringSet) {
 	for _, field := range setters {
 		if field.Type.PkgPath != "" {
 			packages.Add(field.Type.PkgPath)
@@ -38,7 +38,7 @@ func ImportsForSetters(setters schema.FieldList, packages util.StringSet) {
 	}
 }
 
-func WriteImports(w io.Writer, packages util.StringSet) {
+func WriteImports(w io.Writer, packages collection.StringSet) {
 	if packages.NonEmpty() {
 		// write the import block, including each
 		// encoder package that was specified.
@@ -51,7 +51,7 @@ func WriteImports(w io.Writer, packages util.StringSet) {
 	}
 }
 
-func sortImports(pmap util.StringSet) []string {
+func sortImports(pmap collection.StringSet) []string {
 	sorted := pmap.ToSlice()
 	sort.Strings(sorted)
 	return sorted

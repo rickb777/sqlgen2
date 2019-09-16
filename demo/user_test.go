@@ -683,8 +683,8 @@ func TestRowsAsMaps_using_database(t *testing.T) {
 
 	i := 0
 	for ram.Next() {
-		m, err := ram.ScanToMap()
-		g.Expect(err).NotTo(HaveOccurred())
+		m, e2 := ram.ScanToMap()
+		g.Expect(e2).NotTo(HaveOccurred())
 
 		g.Expect(m.Columns).To(HaveLen(22))
 		g.Expect(m.ColumnTypes).To(HaveLen(22))
@@ -785,8 +785,8 @@ func xTestNumericRanges_using_database(t *testing.T) {
 	for i := 0; i < n; i++ {
 		j := uint64(1) << uint(i)
 		name := fmt.Sprintf("user%02d", i)
-		u, err := tbl.GetUserByName(require.One, name)
-		g.Expect(err).NotTo(HaveOccurred())
+		u, e2 := tbl.GetUserByName(require.One, name)
+		g.Expect(e2).NotTo(HaveOccurred())
 		g.Expect(u.Numbers.I8).To(Equal(int8(j)), name)
 		g.Expect(u.Numbers.U8).To(Equal(uint8(j)), name)
 		g.Expect(u.Numbers.I16).To(Equal(int16(j)), name)

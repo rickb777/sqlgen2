@@ -10,32 +10,31 @@ import (
 )
 
 func simpleFixtureTable() *TableDescription {
-	id := &Field{Node{"Id", Type{Name: "int64", Base: Int64}, nil}, "id", ENCNONE, &Tag{Primary: true, Auto: true}}
-	name := &Field{Node{"Name", Type{Name: "string", Base: String}, nil}, "name", ENCNONE, nil}
-	age := &Field{Node{"Age", Type{Name: "int", Base: Int}, nil}, "age", ENCNONE, nil}
+	name2 := &Field{Node{"Name", Type{Name: "string", Base: String}, nil}, "name", ENCNONE, nil}
+	age2 := &Field{Node{"Age", Type{Name: "int", Base: Int}, nil}, "age", ENCNONE, nil}
 
 	return &TableDescription{
 		Type: "Example",
 		Name: "examples",
 		Fields: FieldList{
 			id,
-			name,
-			age,
+			name2,
+			age2,
 		},
 		Primary: id,
 	}
 }
 
 func simpleNoPKTable() *TableDescription {
-	name := &Field{Node{"Name", Type{Name: "string", Base: String}, nil}, "name", ENCNONE, nil}
-	age := &Field{Node{"Age", Type{Name: "int", Base: Int}, nil}, "age", ENCNONE, nil}
+	name2 := &Field{Node{"Name", Type{Name: "string", Base: String}, nil}, "name", ENCNONE, nil}
+	age2 := &Field{Node{"Age", Type{Name: "int", Base: Int}, nil}, "age", ENCNONE, nil}
 
 	return &TableDescription{
 		Type: "Example",
 		Name: "examples",
 		Fields: FieldList{
-			name,
-			age,
+			name2,
+			age2,
 		},
 	}
 }

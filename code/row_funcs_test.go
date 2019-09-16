@@ -17,19 +17,19 @@ func TestWriteRowsFunc1(t *testing.T) {
 	p1 := &Node{Name: "Commit"}
 	p2 := &Node{Name: "Author", Parent: p1}
 
-	category := &Field{Node{"Cat", Type{Name: "Category", Base: Int32}, nil}, "cat", ENCNONE, nil}
-	name := &Field{Node{"Name", Type{Name: "string", Base: String}, p2}, "commit_author_name", ENCNONE, nil}
-	email := &Field{Node{"Email", Type{Name: "string", Base: String}, p2}, "commit_author_email", ENCNONE, nil}
-	message := &Field{Node{"Message", Type{Name: "string", Base: String}, p1}, "commit_message", ENCNONE, nil}
+	category2 := &Field{Node{"Cat", Type{Name: "Category", Base: Int32}, nil}, "cat", ENCNONE, nil}
+	name2 := &Field{Node{"Name", Type{Name: "string", Base: String}, p2}, "commit_author_name", ENCNONE, nil}
+	email2 := &Field{Node{"Email", Type{Name: "string", Base: String}, p2}, "commit_author_email", ENCNONE, nil}
+	message2 := &Field{Node{"Message", Type{Name: "string", Base: String}, p1}, "commit_message", ENCNONE, nil}
 
 	table := &TableDescription{
 		Type: "Example",
 		Name: "examples",
 		Fields: FieldList{
-			category,
-			name,
-			email,
-			message,
+			category2,
+			name2,
+			email2,
+			message2,
 		},
 	}
 

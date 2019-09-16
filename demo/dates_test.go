@@ -36,8 +36,8 @@ func TestDatesCrud_using_database(t *testing.T) {
 		err = dt.Insert(require.One, d0)
 		g.Expect(err).NotTo(HaveOccurred())
 
-		dx, err := dt.GetDatesById(require.One, d0.Id)
-		g.Expect(err).NotTo(HaveOccurred())
+		dx, e2 := dt.GetDatesById(require.One, d0.Id)
+		g.Expect(e2).NotTo(HaveOccurred())
 		g.Expect(dx).To(Equal(d0))
 	}
 }
