@@ -225,6 +225,8 @@ github.com/jackc/pgx v3.4.0+incompatible h1:XRfh5KFhf3AVttfC0D93ij0oNNGYlSm0xlc5
 github.com/jackc/pgx v3.4.0+incompatible/go.mod h1:0ZGrqGqkRlliWnWB4zKnWtjbSWbGkVEFm4TeybAXq+I=
 github.com/jackc/pgx v3.5.0+incompatible h1:BRJ4G3UPtvml5R1ey0biqqGuYUGayMYekm3woO75orY=
 github.com/jackc/pgx v3.5.0+incompatible/go.mod h1:0ZGrqGqkRlliWnWB4zKnWtjbSWbGkVEFm4TeybAXq+I=
+github.com/jackc/pgx v3.6.0+incompatible h1:bJeo4JdVbDAW8KB2m8XkFeo8CPipREoG37BwEoKGz+Q=
+github.com/jackc/pgx v3.6.0+incompatible/go.mod h1:0ZGrqGqkRlliWnWB4zKnWtjbSWbGkVEFm4TeybAXq+I=
 github.com/jmoiron/sqlx v0.0.0-20180614180643-0dae4fefe7c0/go.mod h1:IiEW3SEiiErVyFdH8NTuWjSifiEQKUoyK3LNqr2kCHU=
 github.com/joho/godotenv v1.2.0/go.mod h1:7hK45KPybAkOC6peb+G5yklZfMxEjkZhHbwpqxOKXbg=
 github.com/joho/godotenv v1.3.0/go.mod h1:7hK45KPybAkOC6peb+G5yklZfMxEjkZhHbwpqxOKXbg=
@@ -246,6 +248,8 @@ github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxv
 github.com/konsorten/go-windows-terminal-sequences v1.0.2/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/kortschak/utter v0.0.0-20181020070522-d57bf3064fe6 h1:Pqjik0mR9JMoLrn37CqkEZmXVXLTCxVq9KXj7qMsbAo=
 github.com/kortschak/utter v0.0.0-20181020070522-d57bf3064fe6/go.mod h1:oDr41C7kH9wvAikWyFhr6UFr8R7nelpmCF5XR5rL7I8=
+github.com/kortschak/utter v0.0.0-20190412033250-50fe362e6560 h1:OlYbDnkCeVAYqjFM+mj0RVKMeO9b9Q7AUDHmkgpmy/M=
+github.com/kortschak/utter v0.0.0-20190412033250-50fe362e6560/go.mod h1:oDr41C7kH9wvAikWyFhr6UFr8R7nelpmCF5XR5rL7I8=
 github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
@@ -319,8 +323,15 @@ github.com/rickb777/sqlapi v0.32.0 h1:5YXUbrEdkAfHpcJSUJeU/ald0kqA0c7SNi6un4i2yn
 github.com/rickb777/sqlapi v0.32.0/go.mod h1:wnQVq3WeFbjo7gZ5xup+nRp4qsKuiCynHuBYs9wNxSw=
 github.com/rickb777/sqlapi v0.34.0 h1:Lrlxjhyqd74Ppmd8/DWZj82ifBpfavAIGc+/JQbOou0=
 github.com/rickb777/sqlapi v0.34.0/go.mod h1:CKBStmwO/2Mo7p3OAdRJ3BZIs3E7ThMPOWYbJlSaeDI=
+github.com/rickb777/sqlapi v0.35.0 h1:KCXiZf4b5EC8wOkQjxGvelwPMxznsIMKTMmjBGkXATE=
+github.com/rickb777/sqlapi v0.35.0/go.mod h1:CKBStmwO/2Mo7p3OAdRJ3BZIs3E7ThMPOWYbJlSaeDI=
+github.com/rickb777/sqlapi v0.36.0/go.mod h1:HgRLNhmAKfzYXOrISDK9xYY+lf7jDhZNGFMl7QGUdo4=
+github.com/rickb777/sqlapi v0.36.1 h1:kjNF3ZRYbegjP2W6n+aRi11GrGybCVChXNrMSqETYiI=
+github.com/rickb777/sqlapi v0.36.1/go.mod h1:HgRLNhmAKfzYXOrISDK9xYY+lf7jDhZNGFMl7QGUdo4=
 github.com/rickb777/where v0.6.0 h1:bEp2PziyqxRfhZ6j7XCdspCEVZYmI9bd5pJsl3QtKTM=
 github.com/rickb777/where v0.6.0/go.mod h1:4rZ71SF2T5pNU0qrCWnTAoOEHe0u+tQ0vNCnQtAVmI0=
+github.com/rickb777/where v0.7.1 h1:2Z9io1RhG+bZZBuWQvcLZmGEQH1XFSEMjO3hdHpdO1c=
+github.com/rickb777/where v0.7.1/go.mod h1:xetGPI9t4u9t1V5IsTua5tQvp8EyxXPADRx4vtHuGFc=
 github.com/rogpeppe/go-internal v1.0.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.1.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
@@ -358,6 +369,7 @@ github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnIn
 github.com/spf13/viper v1.2.1/go.mod h1:P4AexN0a+C9tGAnUFNwDMYYZv3pjFuvmeiMyKRaNVlI=
 github.com/spf13/viper v1.3.1/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
 github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
+github.com/sqs/goreturns v0.0.0-20181028201513-538ac6014518/go.mod h1:CKI4AZ4XmGV240rTHfO0hfE83S6/a3/Q1siZJ/vXf7A=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
@@ -387,6 +399,8 @@ golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4 h1:ydJNl0ENAG67pFbB+9tfhi
 golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 h1:HuIa8hRrWRSrqYzx1qI49NNxhdi2PrY7gxVSq1JjLDc=
 golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
+golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7 h1:0hQKqeLdqlt5iIwVOBErRisrHJAN57yOiPRQItI20fU=
+golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/net v0.0.0-20180724234803-3673e40ba225/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180816102801-aaf60122140d/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180906233101-161cd47e91fd/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
@@ -472,6 +486,8 @@ golang.org/x/tools v0.0.0-20190628034336-212fb13d595e h1:ZlQjfVdpDxeqxRfmO30CdqW
 golang.org/x/tools v0.0.0-20190628034336-212fb13d595e/go.mod h1:/rFqwRUd4F7ZHNgwSSTFct+R/Kf4OFW1sUzUTQQTgfc=
 golang.org/x/tools v0.0.0-20190916034716-92af9d69eff2 h1:cvSBP3q8DeS4up5q8ssbGdEtSGiDgRV7HBvOpr3g5RM=
 golang.org/x/tools v0.0.0-20190916034716-92af9d69eff2/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
+golang.org/x/tools v0.0.0-20190919031856-7460b8e10b7e h1:DxffoHYXmce3WTEBU/6/5bBSV7wmPSvT+atzBfv8hJI=
+golang.org/x/tools v0.0.0-20190919031856-7460b8e10b7e/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 google.golang.org/appengine v1.2.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
 google.golang.org/appengine v1.4.0 h1:/wp5JvzpHIxhs/dumFmF7BXTf3Z+dd4uXta4kVyO508=

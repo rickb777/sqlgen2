@@ -92,7 +92,7 @@ func newDatabase(t *testing.T) sqlapi.Database {
 		verbose = true
 	}
 
-	return sqlapi.NewDatabase(sqlapi.WrapDB(db), di, lgr, nil)
+	return sqlapi.NewDatabase(sqlapi.WrapDB(db, di), di, lgr, nil)
 }
 
 func cleanup(db sqlapi.Execer) {
