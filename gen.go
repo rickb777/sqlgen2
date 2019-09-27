@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/kortschak/utter"
+	"github.com/rickb777/filemod"
 	"github.com/rickb777/sqlapi/schema"
 	"github.com/rickb777/sqlapi/types"
 	"github.com/rickb777/sqlgen2/code"
@@ -26,7 +27,7 @@ func main() {
 
 	var oFile, pkgImport, typeName, prefix, list, kind, tableName, tagsFile, genSetters string
 	var flags = load.FuncFlags{}
-	var pgx, all, join, read, create, gofmt, jsonFile, yamlFile, showVersion bool
+	var force, pgx, all, join, read, create, gofmt, jsonFile, yamlFile, showVersion bool
 
 	flag.StringVar(&oFile, "o", "", "Output file name; optional. Use '-' for stdout.\n"+
 		"\tIf omitted, the first input filename is used with '_sql.go' suffix.")
@@ -44,6 +45,7 @@ func main() {
 		"\tTags control the SQL type, size, column name, indexes etc.")
 
 	// filters for what gets generated
+	flag.BoolVar(&force, "f", false, "Force output code generation, even if already up to date.")
 	flag.BoolVar(&pgx, "pgx", false, "Generates code for github.com/jackc/pgx.")
 	flag.BoolVar(&all, "all", false, "Shorthand for '-schema -exec -query -select -count -insert -update -upsert -delete -slice'; recommended for normal tables.\n"+
 		"\tThis does not affect -setters.")
@@ -125,6 +127,7 @@ func main() {
 		parse.DevInfo("typePkg: %s, tablePkg: %s\n", typePkg, tablePkg)
 	}
 
+	outputDeps := filemod.New(oFile)
 	o := output.NewOutput(oFile)
 
 	var table *schema.TableDescription
@@ -143,6 +146,12 @@ func main() {
 		if table != nil {
 			jsonFile = false
 		}
+	}
+
+	inputSources := filemod.New(flag.Args()...)
+	if outputDeps.Compare(inputSources) == filemod.AllAreYounger {
+		output.Info("skipped %s (%s is already up to date)\n", strings.Join(flag.Args(), ", "), oFile)
+		return
 	}
 
 	if table == nil {

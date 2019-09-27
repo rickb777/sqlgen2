@@ -5,7 +5,7 @@ package demopgx
 //   * the use of pointers for optional items
 //   * metadata is written to/read from JSON file
 
-//go:generate sqlgen -pgx -json -type demopgx.Address -o address_sql.go -all -v address.go
+//go:generate sqlgen -pgx -type demopgx.Address -o address_sql.go -all -v address.go
 
 type Address struct {
 	Id       int64    `sql:"pk: true, auto: true"`

@@ -5,7 +5,7 @@ package demo
 //   * the use of pointers for optional items
 //   * metadata is written to/read from JSON file
 
-//go:generate sqlgen -json -type demo.Address -o address_sql.go -all -v address.go
+//go:generate sqlgen -type demo.Address -o address_sql.go -all -v address.go
 
 type AddressFields struct {
 	Lines    []string `sql:"encode: json"`
