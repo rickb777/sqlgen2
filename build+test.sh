@@ -28,7 +28,7 @@ for d in code output parse; do
   announce sqlgen/$d
   go test -covermode=count -coverprofile=reports/sqlgen-$d.out ./$d
   go tool cover -html=reports/sqlgen-$d.out -o reports/sqlgen-$d.html
-  [ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=reports/sqlgen-$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+  [ -z "$COVERALLS_TOKEN" ] || goveralls -coverprofile=reports/sqlgen-$d.out -service=travis-ci -repotoken $COVERALLS_TOKEN || echo "Push to coveralls failed"
 done
 
 ### Build Phase 2 ###

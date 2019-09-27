@@ -22,15 +22,18 @@ unset GO_DRIVER GO_DSN GO_QUOTER
 
 go clean -testcache ||:
 
+export DB_CONNECT_TIMEOUT=1s
 export PGHOST=localhost
 export PGDATABASE=test
-export PGUSER=testuser
-export PGPASSWORD=TestPasswd.9.9.9
-export DB_CONNECT_TIMEOUT=1s
+export PGUSER PGPASSWORD
+if [[ -z $PGUSER ]]; then
+  PGUSER=testuser
+  PGPASSWORD=TestPasswd.9.9.9
+fi
 
 echo
 echo "PGX (no quotes)...."
-GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" GO_QUOTER=none go test -v . ||:
+GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=none go test -v . ||:
 echo
 echo "PGX (ANSI)...."
-GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" GO_QUOTER=ansi go test -v . ||:
+GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=ansi go test -v . ||:

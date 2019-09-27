@@ -1,7 +1,15 @@
 language: go
 
 go:
-  - "1.12"
+  - "1.13"
+
+services:
+  - mysql
+  - postgresql
+
+before_install:
+  - mysql -e 'CREATE DATABASE test;'
+  - psql -c 'CREATE DATABASE test;' -U postgres
 
 install:
   - unset GOPATH

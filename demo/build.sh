@@ -28,6 +28,15 @@ sqlgen -type demo.User -o user_ex_EQICRUPDL_sql.go -v -prefix A -all          us
 
 unset GO_DRIVER GO_DSN GO_QUOTER
 
+export DB_CONNECT_TIMEOUT=1s
+export PGHOST=localhost
+export PGDATABASE=test
+export PGUSER PGPASSWORD
+if [[ -z $PGUSER ]]; then
+  PGUSER=testuser
+  PGPASSWORD=TestPasswd.9.9.9
+fi
+
 DBS=$@
 if [ "$1" = "all" ]; then
   DBS="sqlite mysql postgres pgx"
@@ -41,25 +50,25 @@ for db in $DBS; do
     mysql)
       echo
       echo "MySQL...."
-      GO_DRIVER=mysql GO_DSN=testuser:TestPasswd.9.9.9@/test go test -v .
+      GO_DRIVER=mysql GO_DSN="$PGUSER:$PGPASSWORD@/test" go test -v .
       ;;
 
     postgres)
       echo
       echo "PostgreSQL (no quotes)...."
-      GO_DRIVER=postgres GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" GO_QUOTER=none go test -v . ||:
+      GO_DRIVER=postgres GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=none go test -v . ||:
       echo
       echo "PostgreSQL (ANSI)...."
-      GO_DRIVER=postgres GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" GO_QUOTER=ansi go test -v . ||:
+      GO_DRIVER=postgres GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=ansi go test -v . ||:
       ;;
 
     pgx)
       echo
       echo "PGX (no quotes)...."
-      GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" GO_QUOTER=none go test -v . ||:
+      GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=none go test -v . ||:
       echo
       echo "PGX (ANSI)...."
-      GO_DRIVER=pgx GO_DSN="postgres://testuser:TestPasswd.9.9.9@/test" GO_QUOTER=ansi go test -v . ||:
+      GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=ansi go test -v . ||:
       ;;
 
     sqlite)
