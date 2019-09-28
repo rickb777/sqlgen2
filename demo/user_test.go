@@ -819,7 +819,7 @@ func (m mockExecer) ExecContext(ctx context.Context, query string, args ...inter
 	return m.RowsAffected, m.Error
 }
 
-func (m mockExecer) InsertContext(ctx context.Context, query string, args ...interface{}) (int64, error) {
+func (m mockExecer) InsertContext(ctx context.Context, pk, query string, args ...interface{}) (int64, error) {
 	panic("implement me")
 }
 

@@ -725,7 +725,7 @@ type mockExecer struct {
 	Error  error
 }
 
-func (m mockExecer) InsertContext(ctx context.Context, query string, args ...interface{}) (int64, error) {
+func (m mockExecer) InsertContext(ctx context.Context, pk, query string, args ...interface{}) (int64, error) {
 	if m.Error != nil {
 		return 0, m.Error
 	}

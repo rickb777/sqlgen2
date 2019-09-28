@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.36.2; sqlgen v0.57.1
+// sqlapi v0.37.0; sqlgen v0.58.0
 
 package demo
 
@@ -509,7 +509,7 @@ func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 			err = row.Scan(&v.Uid)
 
 		} else {
-			i64, e2 := tbl.db.InsertContext(tbl.ctx, query, fields...)
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
