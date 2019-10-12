@@ -196,7 +196,7 @@ func TestCreateIndexSql(t *testing.T) {
 	d := pgxapi.NewDatabase(nil, dialect.Postgres, nil)
 	tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
 	s := createDbUserTableEmailaddressIdxSql(tbl, "IF NOT EXISTS ")
-	expected := `CREATE UNIQUE INDEX IF NOT EXISTS "prefix_emailaddress_idx" ON "prefix_users" ("emailaddress")`
+	expected := `CREATE UNIQUE INDEX IF NOT EXISTS "prefix_users_emailaddress_idx" ON "prefix_users" ("emailaddress")`
 	g.Expect(s).To(Equal(expected))
 }
 
@@ -207,9 +207,9 @@ func TestDropIndexSql(t *testing.T) {
 		d        dialect.Dialect
 		expected string
 	}{
-		{dialect.Sqlite, `DROP INDEX IF EXISTS "prefix_emailaddress_idx"`},
-		{dialect.Mysql, "DROP INDEX `prefix_emailaddress_idx` ON `prefix_users`"},
-		{dialect.Postgres, `DROP INDEX IF EXISTS "prefix_emailaddress_idx"`},
+		{dialect.Sqlite, `DROP INDEX IF EXISTS "prefix_users_emailaddress_idx"`},
+		{dialect.Mysql, "DROP INDEX `prefix_users_emailaddress_idx` ON `prefix_users`"},
+		{dialect.Postgres, `DROP INDEX IF EXISTS "prefix_users_emailaddress_idx"`},
 	}
 
 	for _, c := range cases {

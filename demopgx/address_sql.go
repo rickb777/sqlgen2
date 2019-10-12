@@ -470,7 +470,7 @@ func (tbl AddressTable) CreatePostcodeIdxIndex(ifNotExist bool) error {
 
 func createAddressTablePostcodeIdxSql(tbl AddressTabler, ifNotExists string) string {
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%spostcodeIdx", indexPrefix)
+	id := fmt.Sprintf("%s%s_postcodeIdx", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfPostcodeIdxIndexColumns), ",")
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
@@ -488,7 +488,7 @@ func dropAddressTablePostcodeIdxSql(tbl AddressTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := ternaryAddressTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%spostcodeIdx", indexPrefix)
+	id := fmt.Sprintf("%s%s_postcodeIdx", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
@@ -515,7 +515,7 @@ func (tbl AddressTable) CreateTownIdxIndex(ifNotExist bool) error {
 
 func createAddressTableTownIdxSql(tbl AddressTabler, ifNotExists string) string {
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%stownIdx", indexPrefix)
+	id := fmt.Sprintf("%s%s_townIdx", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfTownIdxIndexColumns), ",")
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
@@ -533,7 +533,7 @@ func dropAddressTableTownIdxSql(tbl AddressTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := ternaryAddressTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%stownIdx", indexPrefix)
+	id := fmt.Sprintf("%s%s_townIdx", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())

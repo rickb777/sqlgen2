@@ -587,7 +587,7 @@ func (tbl DbUserTable) CreateEmailaddressIdxIndex(ifNotExist bool) error {
 
 func createDbUserTableEmailaddressIdxSql(tbl DbUserTabler, ifNotExists string) string {
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%semailaddress_idx", indexPrefix)
+	id := fmt.Sprintf("%s%s_emailaddress_idx", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfDbEmailaddressIdxIndexColumns), ",")
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
@@ -605,7 +605,7 @@ func dropDbUserTableEmailaddressIdxSql(tbl DbUserTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := ternaryDbUserTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%semailaddress_idx", indexPrefix)
+	id := fmt.Sprintf("%s%s_emailaddress_idx", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
@@ -632,7 +632,7 @@ func (tbl DbUserTable) CreateUserLoginIndex(ifNotExist bool) error {
 
 func createDbUserTableUserLoginSql(tbl DbUserTabler, ifNotExists string) string {
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%suser_login", indexPrefix)
+	id := fmt.Sprintf("%s%s_user_login", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfDbUserLoginIndexColumns), ",")
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
@@ -650,7 +650,7 @@ func dropDbUserTableUserLoginSql(tbl DbUserTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := ternaryDbUserTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%suser_login", indexPrefix)
+	id := fmt.Sprintf("%s%s_user_login", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())

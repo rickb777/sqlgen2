@@ -422,7 +422,7 @@ func (tbl DbCompoundTable) CreateAlphaBetaIndex(ifNotExist bool) error {
 
 func createDbCompoundTableAlphaBetaSql(tbl DbCompoundTabler, ifNotExists string) string {
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%salpha_beta", indexPrefix)
+	id := fmt.Sprintf("%s%s_alpha_beta", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfDbAlphaBetaIndexColumns), ",")
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
@@ -440,7 +440,7 @@ func dropDbCompoundTableAlphaBetaSql(tbl DbCompoundTabler, ifExists bool) string
 	// Mysql does not support 'if exists' on indexes
 	ie := ternaryDbCompoundTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%salpha_beta", indexPrefix)
+	id := fmt.Sprintf("%s%s_alpha_beta", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())

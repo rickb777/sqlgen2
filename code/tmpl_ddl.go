@@ -451,7 +451,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ifNotExi
 
 func create{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl {{$.Prefix}}{{$.Type}}{{$.Thinger}}, ifNotExists string) string {
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%s{{.Name}}", indexPrefix)
+	id := fmt.Sprintf("%s%s_{{.Name}}", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOf{{$.Prefix}}{{camel .Name}}IndexColumns), ",")
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
@@ -469,7 +469,7 @@ func drop{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl {{$.Prefix}}{{$
 	// Mysql does not support 'if exists' on indexes
 	ie := ternary{{$.Prefix}}{{$.Type}}{{$.Thing}}(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%s{{.Name}}", indexPrefix)
+	id := fmt.Sprintf("%s%s_{{.Name}}", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())

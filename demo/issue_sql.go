@@ -476,7 +476,7 @@ func (tbl IssueTable) CreateIssueAssigneeIndex(ifNotExist bool) error {
 
 func createIssueTableIssueAssigneeSql(tbl IssueTabler, ifNotExists string) string {
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%sissue_assignee", indexPrefix)
+	id := fmt.Sprintf("%s%s_issue_assignee", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfIssueAssigneeIndexColumns), ",")
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
@@ -494,7 +494,7 @@ func dropIssueTableIssueAssigneeSql(tbl IssueTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := ternaryIssueTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%sissue_assignee", indexPrefix)
+	id := fmt.Sprintf("%s%s_issue_assignee", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
