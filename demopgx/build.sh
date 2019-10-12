@@ -3,6 +3,11 @@ cd $(dirname $0)
 
 PATH=$PWD/..:$HOME/go/bin:$PATH
 
+if [[ $1 = "-v" ]]; then
+  V=-v
+  shift
+fi
+
 rm -f *_sql.go *_sql.json
 
 go generate .
@@ -10,13 +15,13 @@ go generate .
 # also...
 
 # These demonstrate the various filters that control what methods are generated
-#sqlgen -json -type demo.User -o user_ex_xxxxx_sql.go -v -prefix X -schema=false                                                              user.go role.go
-#sqlgen -type demo.User -o user_ex_Cxxxx_sql.go -v -prefix C -schema=false -create=true  -read=false -update=false -delete=false -slice=false user.go role.go
-#sqlgen -type demo.User -o user_ex_xRxxx_sql.go -v -prefix R -schema=false -create=false -read=true  -update=false -delete=false -slice=false user.go role.go
-#sqlgen -type demo.User -o user_ex_xxUxx_sql.go -v -prefix U -schema=false -create=false -read=false -update=true  -delete=false -slice=false user.go role.go
-#sqlgen -type demo.User -o user_ex_xxxDx_sql.go -v -prefix D -schema=false -create=false -read=false -update=false -delete=true  -slice=false user.go role.go
-#sqlgen -type demo.User -o user_ex_xxxxS_sql.go -v -prefix S -schema=false -create=false -read=false -update=false -delete=false -slice=true  user.go role.go
-#sqlgen -type demo.User -o user_ex_CRUDS_sql.go -v -prefix A -schema=false -all user.go role.go
+#sqlgen -json -type demo.User -o user_ex_xxxxx_sql.go $V -prefix X -schema=false                                                              user.go role.go
+#sqlgen -type demo.User -o user_ex_Cxxxx_sql.go $V -prefix C -schema=false -create=true  -read=false -update=false -delete=false -slice=false user.go role.go
+#sqlgen -type demo.User -o user_ex_xRxxx_sql.go $V -prefix R -schema=false -create=false -read=true  -update=false -delete=false -slice=false user.go role.go
+#sqlgen -type demo.User -o user_ex_xxUxx_sql.go $V -prefix U -schema=false -create=false -read=false -update=true  -delete=false -slice=false user.go role.go
+#sqlgen -type demo.User -o user_ex_xxxDx_sql.go $V -prefix D -schema=false -create=false -read=false -update=false -delete=true  -slice=false user.go role.go
+#sqlgen -type demo.User -o user_ex_xxxxS_sql.go $V -prefix S -schema=false -create=false -read=false -update=false -delete=false -slice=true  user.go role.go
+#sqlgen -type demo.User -o user_ex_CRUDS_sql.go $V -prefix A -schema=false -all user.go role.go
 
 unset GO_DRIVER GO_DSN GO_QUOTER
 
@@ -33,7 +38,7 @@ fi
 
 echo
 echo "PGX (no quotes)...."
-GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=none go test -v . ||:
+GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=none go test $V . ||:
 echo
 echo "PGX (ANSI)...."
-GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=ansi go test -v . ||:
+GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=ansi go test $V . ||:
