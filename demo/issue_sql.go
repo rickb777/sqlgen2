@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0
+// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
 
 package demo
 
@@ -22,10 +22,20 @@ import (
 
 // IssueTabler lists methods provided by IssueTable.
 type IssueTabler interface {
-	sqlapi.Table
+	// Name gets the table name. without prefix
+	Name() sqlapi.TableName
+
+	// Ctx gets the current request context.
+	//Ctx() context.Context
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	//Logger() sqlapi.Logger
 
 	// Constraints returns the table's constraints.
-	Constraints() constraint.Constraints
+	//Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified IssueTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) IssueTabler
@@ -128,6 +138,41 @@ type IssueTabler interface {
 
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Issue) (int64, error)
+
+	// Upsert inserts or updates a record, matching it using the expression supplied.
+	// This expression is used to search for an existing record based on some specified
+	// key column(s). It must match either zero or one existing record. If it matches
+	// none, a new record is inserted; otherwise the matching record is updated. An
+	// error results if these conditions are not met.
+	Upsert(v *Issue, wh where.Expression) error
+
+	// DeleteIssuesById deletes rows from the table, given some id values.
+	// The list of ids can be arbitrarily long.
+	DeleteIssuesById(req require.Requirement, values ...int64) (int64, error)
+
+	// DeleteIssuesByNumber deletes rows from the table, given some number values.
+	// The list of ids can be arbitrarily long.
+	DeleteIssuesByNumber(req require.Requirement, values ...int) (int64, error)
+
+	// DeleteIssuesByTitle deletes rows from the table, given some title values.
+	// The list of ids can be arbitrarily long.
+	DeleteIssuesByTitle(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteIssuesByBigbody deletes rows from the table, given some bigbody values.
+	// The list of ids can be arbitrarily long.
+	DeleteIssuesByBigbody(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteIssuesByAssignee deletes rows from the table, given some assignee values.
+	// The list of ids can be arbitrarily long.
+	DeleteIssuesByAssignee(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteIssuesByState deletes rows from the table, given some state values.
+	// The list of ids can be arbitrarily long.
+	DeleteIssuesByState(req require.Requirement, values ...string) (int64, error)
+
+	// Delete deletes one or more rows from the table, given a 'where' clause.
+	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
 
 // IssueTable holds a given table name with the database reference, providing access methods below.
@@ -405,7 +450,7 @@ func createIssueTableSql(tbl IssueTabler, ifNotExists bool) string {
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.Constraints() {
+	for i, c := range tbl.(IssueTable).Constraints() {
 		buf.WriteString(",\n ")
 		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}
@@ -561,14 +606,14 @@ func (tbl IssueTable) Query(req require.Requirement, query string, args ...inter
 }
 
 func doIssueTableQueryAndScan(tbl IssueTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Issue, error) {
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := ScanIssues(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -1155,14 +1200,64 @@ func (tbl IssueTable) Upsert(v *Issue, wh where.Expression) error {
 
 //--------------------------------------------------------------------------------
 
-// DeleteIssues deletes rows from the table, given some primary keys.
+// DeleteIssuesById deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteIssuesById(req require.Requirement, id ...int64) (int64, error) {
-	values := make([]interface{}, len(id))
-	for i, v := range id {
-		values[i] = v
+func (tbl IssueTable) DeleteIssuesById(req require.Requirement, values ...int64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, values...)
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteIssuesByNumber deletes rows from the table, given some number values.
+// The list of ids can be arbitrarily long.
+func (tbl IssueTable) DeleteIssuesByNumber(req require.Requirement, values ...int) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteIssuesByTitle deletes rows from the table, given some title values.
+// The list of ids can be arbitrarily long.
+func (tbl IssueTable) DeleteIssuesByTitle(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteIssuesByBigbody deletes rows from the table, given some bigbody values.
+// The list of ids can be arbitrarily long.
+func (tbl IssueTable) DeleteIssuesByBigbody(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteIssuesByAssignee deletes rows from the table, given some assignee values.
+// The list of ids can be arbitrarily long.
+func (tbl IssueTable) DeleteIssuesByAssignee(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteIssuesByState deletes rows from the table, given some state values.
+// The list of ids can be arbitrarily long.
+func (tbl IssueTable) DeleteIssuesByState(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.

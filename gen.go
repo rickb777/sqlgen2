@@ -326,11 +326,11 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 	}
 
 	if flags.Upsert {
-		code.WriteUpsertFunc(structBuf, view)
+		code.WriteUpsertFunc(interfaceBuf, structBuf, view)
 	}
 
 	if flags.Delete {
-		code.WriteDeleteFunc(structBuf, view)
+		code.WriteDeleteFunc(interfaceBuf, structBuf, view)
 	}
 
 	code.WriteSetters(interfaceBuf, structBuf, view, setters)

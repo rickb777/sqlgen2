@@ -14,10 +14,11 @@ package %s
 const sTabler = `
 // {{.Prefix}}{{.Type}}{{.Thinger}} lists methods provided by {{.Prefix}}{{.Type}}{{.Thing}}.
 type {{.Prefix}}{{.Type}}{{.Thinger}} interface {
-	{{.Sqlapi}}.Table
+	// Name gets the table name. without prefix
+	Name() {{.Sqlapi}}.TableName
 
-	// Constraints returns the table's constraints.
-	Constraints() constraint.Constraints
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
 
 	// WithConstraint returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) {{.Prefix}}{{.Type}}{{.Thinger}}
@@ -360,7 +361,7 @@ func create{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl {{.Prefix}}{{.Type}}{{.Thinger}
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.Constraints() {
+	for i, c := range tbl.({{.Prefix}}{{.Type}}{{.Thing}}).Constraints() {
 		buf.WriteString(",\n ")
 		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}

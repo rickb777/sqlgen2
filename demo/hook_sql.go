@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0
+// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
 
 package demo
 
@@ -21,10 +21,20 @@ import (
 
 // HookTabler lists methods provided by HookTable.
 type HookTabler interface {
-	sqlapi.Table
+	// Name gets the table name. without prefix
+	Name() sqlapi.TableName
+
+	// Ctx gets the current request context.
+	//Ctx() context.Context
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	//Logger() sqlapi.Logger
 
 	// Constraints returns the table's constraints.
-	Constraints() constraint.Constraints
+	//Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified HookTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) HookTabler
@@ -136,6 +146,73 @@ type HookTabler interface {
 
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Hook) (int64, error)
+
+	// Upsert inserts or updates a record, matching it using the expression supplied.
+	// This expression is used to search for an existing record based on some specified
+	// key column(s). It must match either zero or one existing record. If it matches
+	// none, a new record is inserted; otherwise the matching record is updated. An
+	// error results if these conditions are not met.
+	Upsert(v *Hook, wh where.Expression) error
+
+	// DeleteHooksById deletes rows from the table, given some id values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksById(req require.Requirement, values ...uint64) (int64, error)
+
+	// DeleteHooksBySha deletes rows from the table, given some sha values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksBySha(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteHooksByAfter deletes rows from the table, given some after values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksByAfter(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteHooksByBefore deletes rows from the table, given some before values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksByBefore(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteHooksByCategory deletes rows from the table, given some category values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksByCategory(req require.Requirement, values ...Category) (int64, error)
+
+	// DeleteHooksByCommitId deletes rows from the table, given some commit_id values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksByCommitId(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteHooksByMessage deletes rows from the table, given some message values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksByMessage(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteHooksByTimestamp deletes rows from the table, given some timestamp values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksByTimestamp(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteHooksByHeadCommitAuthorName deletes rows from the table, given some head_commit_author_name values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksByHeadCommitAuthorName(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteHooksByHeadCommitAuthorEmail deletes rows from the table, given some head_commit_author_email values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksByHeadCommitAuthorEmail(req require.Requirement, values ...Email) (int64, error)
+
+	// DeleteHooksByHeadCommitAuthorUsername deletes rows from the table, given some head_commit_author_username values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksByHeadCommitAuthorUsername(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteHooksByHeadCommitCommitterName deletes rows from the table, given some head_commit_committer_name values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksByHeadCommitCommitterName(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteHooksByHeadCommitCommitterEmail deletes rows from the table, given some head_commit_committer_email values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksByHeadCommitCommitterEmail(req require.Requirement, values ...Email) (int64, error)
+
+	// DeleteHooksByHeadCommitCommitterUsername deletes rows from the table, given some head_commit_committer_username values.
+	// The list of ids can be arbitrarily long.
+	DeleteHooksByHeadCommitCommitterUsername(req require.Requirement, values ...string) (int64, error)
+
+	// Delete deletes one or more rows from the table, given a 'where' clause.
+	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
 
 // HookTable holds a given table name with the database reference, providing access methods below.
@@ -443,7 +520,7 @@ func createHookTableSql(tbl HookTabler, ifNotExists bool) string {
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.Constraints() {
+	for i, c := range tbl.(HookTable).Constraints() {
 		buf.WriteString(",\n ")
 		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}
@@ -520,14 +597,14 @@ func (tbl HookTable) Query(req require.Requirement, query string, args ...interf
 }
 
 func doHookTableQueryAndScan(tbl HookTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) (HookList, error) {
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := ScanHooks(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -929,7 +1006,7 @@ func sliceHookTableCategoryList(tbl HookTabler, req require.Requirement, sqlname
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -941,12 +1018,12 @@ func sliceHookTableCategoryList(tbl HookTabler, req require.Requirement, sqlname
 		var v Category
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func sliceHookTableEmailList(tbl HookTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
@@ -955,7 +1032,7 @@ func sliceHookTableEmailList(tbl HookTabler, req require.Requirement, sqlname st
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -967,12 +1044,12 @@ func sliceHookTableEmailList(tbl HookTabler, req require.Requirement, sqlname st
 		var v Email
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func constructHookTableInsert(tbl HookTable, w dialect.StringWriter, v *Hook, withPk bool) (s []interface{}, err error) {
@@ -1323,14 +1400,144 @@ func (tbl HookTable) Upsert(v *Hook, wh where.Expression) error {
 
 //--------------------------------------------------------------------------------
 
-// DeleteHooks deletes rows from the table, given some primary keys.
+// DeleteHooksById deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteHooksById(req require.Requirement, id ...uint64) (int64, error) {
-	values := make([]interface{}, len(id))
-	for i, v := range id {
-		values[i] = v
+func (tbl HookTable) DeleteHooksById(req require.Requirement, values ...uint64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, values...)
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksBySha deletes rows from the table, given some sha values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksBySha(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksByAfter deletes rows from the table, given some after values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksByAfter(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksByBefore deletes rows from the table, given some before values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksByBefore(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksByCategory deletes rows from the table, given some category values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksByCategory(req require.Requirement, values ...Category) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksByCommitId deletes rows from the table, given some commit_id values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksByCommitId(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksByMessage deletes rows from the table, given some message values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksByMessage(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksByTimestamp deletes rows from the table, given some timestamp values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksByTimestamp(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksByHeadCommitAuthorName deletes rows from the table, given some head_commit_author_name values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksByHeadCommitAuthorName(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksByHeadCommitAuthorEmail deletes rows from the table, given some head_commit_author_email values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksByHeadCommitAuthorEmail(req require.Requirement, values ...Email) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksByHeadCommitAuthorUsername deletes rows from the table, given some head_commit_author_username values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksByHeadCommitAuthorUsername(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksByHeadCommitCommitterName deletes rows from the table, given some head_commit_committer_name values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksByHeadCommitCommitterName(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksByHeadCommitCommitterEmail deletes rows from the table, given some head_commit_committer_email values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksByHeadCommitCommitterEmail(req require.Requirement, values ...Email) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteHooksByHeadCommitCommitterUsername deletes rows from the table, given some head_commit_committer_username values.
+// The list of ids can be arbitrarily long.
+func (tbl HookTable) DeleteHooksByHeadCommitCommitterUsername(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.

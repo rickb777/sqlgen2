@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0
+// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
 
 package demo
 
@@ -21,10 +21,20 @@ import (
 
 // PUserTabler lists methods provided by PUserTable.
 type PUserTabler interface {
-	sqlapi.Table
+	// Name gets the table name. without prefix
+	Name() sqlapi.TableName
+
+	// Ctx gets the current request context.
+	//Ctx() context.Context
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	//Logger() sqlapi.Logger
 
 	// Constraints returns the table's constraints.
-	Constraints() constraint.Constraints
+	//Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified PUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) PUserTabler
@@ -48,6 +58,13 @@ type PUserTabler interface {
 
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*User) (int64, error)
+
+	// Upsert inserts or updates a record, matching it using the expression supplied.
+	// This expression is used to search for an existing record based on some specified
+	// key column(s). It must match either zero or one existing record. If it matches
+	// none, a new record is inserted; otherwise the matching record is updated. An
+	// error results if these conditions are not met.
+	Upsert(v *User, wh where.Expression) error
 }
 
 // PUserTable holds a given table name with the database reference, providing access methods below.

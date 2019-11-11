@@ -52,9 +52,10 @@ func WriteInsertFunc(w1, w2 io.Writer, view View) {
 	must(tInsertFunc.Execute(w2, view))
 }
 
-func WriteUpsertFunc(w io.Writer, view View) {
+func WriteUpsertFunc(w1, w2 io.Writer, view View) {
 	if view.Table.HasPrimaryKey() {
-		must(tUpsert.Execute(w, view))
+		must(tUpsertDecl.Execute(w1, view))
+		must(tUpsertFunc.Execute(w2, view))
 	}
 }
 
@@ -74,10 +75,11 @@ func WriteUpdateFunc(w1, w2 io.Writer, view View) {
 	}
 }
 
-func WriteDeleteFunc(w io.Writer, view View) {
-	fmt.Fprintln(w, sectionBreak)
-	must(tDelete.Execute(w, view))
-	fmt.Fprintln(w, sectionBreak)
+func WriteDeleteFunc(w1, w2 io.Writer, view View) {
+	fmt.Fprintln(w2, sectionBreak)
+	must(tDeleteDecl.Execute(w1, view))
+	must(tDeleteFunc.Execute(w2, view))
+	fmt.Fprintln(w2, sectionBreak)
 }
 
 func WriteExecFunc(w1, w2 io.Writer, view View) {

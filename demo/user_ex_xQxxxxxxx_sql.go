@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0
+// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
 
 package demo
 
@@ -18,10 +18,20 @@ import (
 
 // QUserTabler lists methods provided by QUserTable.
 type QUserTabler interface {
-	sqlapi.Table
+	// Name gets the table name. without prefix
+	Name() sqlapi.TableName
+
+	// Ctx gets the current request context.
+	//Ctx() context.Context
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	//Logger() sqlapi.Logger
 
 	// Constraints returns the table's constraints.
-	Constraints() constraint.Constraints
+	//Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified QUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) QUserTabler
@@ -259,14 +269,14 @@ func (tbl QUserTable) Query(req require.Requirement, query string, args ...inter
 }
 
 func doQUserTableQueryAndScan(tbl QUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := scanQUsers(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------

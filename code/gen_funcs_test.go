@@ -73,14 +73,14 @@ func (tbl XExampleTable) Query(req require.Requirement, query string, args ...in
 }
 
 func doXExampleTableQueryAndScan(tbl XExampleTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Example, error) {
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := scanXExamples(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 `, "¬", "`", -1)
 	expectCodeEqual(t, code, expected)
@@ -197,6 +197,7 @@ func (tbl XExampleTable) Exec(req require.Requirement, query string, args ...int
 }
 
 func expectCodeEqual(t *testing.T, code, expected string) {
+	t.Helper()
 	if code != expected {
 		outputDiff(expected, "expected.txt")
 		outputDiff(code, "got.txt")
@@ -205,6 +206,7 @@ func expectCodeEqual(t *testing.T, code, expected string) {
 }
 
 func disallowTrailingWhitespace(t *testing.T, code string) {
+	t.Helper()
 	for i, line := range strings.Split(code, "\n") {
 		if line != strings.TrimRight(line, " \t") {
 			t.Errorf("disallowed whitespace on line %d\n%q", i+1, line)

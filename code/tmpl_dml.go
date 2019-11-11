@@ -45,14 +45,14 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(req require.Requirement, query s
 }
 
 func do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.({{.Sqlapi}}.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := {{.Scan}}{{.Prefix}}{{.Types}}(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.({{.Sqlapi}}.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 `
 
@@ -413,7 +413,7 @@ func slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Tag}}List(tbl {{$.Prefix}}{{
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.({{$.Sqlapi}}.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -425,12 +425,12 @@ func slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Tag}}List(tbl {{$.Prefix}}{{
 		var v {{.Type}}
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.({{$.Sqlapi}}.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.({{$.Sqlapi}}.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 {{- end}}
 `
@@ -640,7 +640,19 @@ var tUpdateFunc = template.Must(template.New("UpdateFunc").Funcs(funcMap).Parse(
 
 //-------------------------------------------------------------------------------------------------
 
-const sUpsert = `
+const sUpsertDecl = `
+{{- if .Table.Primary}}
+
+	// Upsert inserts or updates a record, matching it using the expression supplied.
+	// This expression is used to search for an existing record based on some specified
+	// key column(s). It must match either zero or one existing record. If it matches
+	// none, a new record is inserted; otherwise the matching record is updated. An
+	// error results if these conditions are not met.
+	Upsert(v *{{.TypePkg}}{{.Type}}, wh where.Expression) error
+{{- end}}
+`
+
+const sUpsertFunc = `
 {{- if .Table.Primary}}
 //--------------------------------------------------------------------------------
 
@@ -682,20 +694,35 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Upsert(v *{{.TypePkg}}{{.Type}}, wh wh
 {{- end}}
 `
 
-var tUpsert = template.Must(template.New("Upsert").Funcs(funcMap).Parse(sUpsert))
+var tUpsertDecl = template.Must(template.New("Upsert").Funcs(funcMap).Parse(sUpsertDecl))
+var tUpsertFunc = template.Must(template.New("Upsert").Funcs(funcMap).Parse(sUpsertFunc))
 
 //-------------------------------------------------------------------------------------------------
 
-const sDelete = `
-{{- if .Table.Primary}}
-// Delete{{.Types}} deletes rows from the table, given some primary keys.
+const sDeleteDecl = `
+{{- range .Table.SimpleFields.NoSkips}}
+
+	// Delete{{$.Types}}By{{camel .SqlName}} deletes rows from the table, given some {{.SqlName}} values.
+	// The list of ids can be arbitrarily long.
+	Delete{{$.Types}}By{{camel .SqlName}}(req require.Requirement, values ...{{.Type.Type}}) (int64, error)
+{{- end}}
+
+	// Delete deletes one or more rows from the table, given a 'where' clause.
+	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+	Delete(req require.Requirement, wh where.Expression) (int64, error)
+`
+
+const sDeleteFunc = `
+{{- range .Table.SimpleFields.NoSkips}}
+
+// Delete{{$.Types}}By{{camel .SqlName}} deletes rows from the table, given some {{.SqlName}} values.
 // The list of ids can be arbitrarily long.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete{{.Types}}ById(req require.Requirement, id ...{{.Table.Primary.Type.Type}}) (int64, error) {
-	values := make([]interface{}, len(id))
-	for i, v := range id {
-		values[i] = v
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Delete{{$.Types}}By{{camel .SqlName}}(req require.Requirement, values ...{{.Type.Type}}) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, values...)
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
 }
 {{- end}}
 
@@ -714,4 +741,5 @@ func deleteRows{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl {{.Prefix}}{{.Type}}{{.Thin
 }
 `
 
-var tDelete = template.Must(template.New("Delete").Funcs(funcMap).Parse(sDelete))
+var tDeleteDecl = template.Must(template.New("Delete").Funcs(funcMap).Parse(sDeleteDecl))
+var tDeleteFunc = template.Must(template.New("Delete").Funcs(funcMap).Parse(sDeleteFunc))

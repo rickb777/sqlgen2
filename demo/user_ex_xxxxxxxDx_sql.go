@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0
+// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
 
 package demo
 
@@ -20,10 +20,20 @@ import (
 
 // DUserTabler lists methods provided by DUserTable.
 type DUserTabler interface {
-	sqlapi.Table
+	// Name gets the table name. without prefix
+	Name() sqlapi.TableName
+
+	// Ctx gets the current request context.
+	//Ctx() context.Context
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	//Logger() sqlapi.Logger
 
 	// Constraints returns the table's constraints.
-	Constraints() constraint.Constraints
+	//Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified DUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) DUserTabler
@@ -41,6 +51,78 @@ type DUserTabler interface {
 	Transact(txOptions *sql.TxOptions, fn func(DUserTabler) error) error
 
 	// Exec executes a query without returning any rows.
+
+	// DeleteUsersByUid deletes rows from the table, given some uid values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByUid(req require.Requirement, values ...int64) (int64, error)
+
+	// DeleteUsersByName deletes rows from the table, given some name values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByName(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteUsersByEmailaddress deletes rows from the table, given some emailaddress values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByEmailaddress(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteUsersByAddressid deletes rows from the table, given some addressid values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByAddressid(req require.Requirement, values ...int64) (int64, error)
+
+	// DeleteUsersByAvatar deletes rows from the table, given some avatar values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByAvatar(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteUsersByRole deletes rows from the table, given some role values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByRole(req require.Requirement, values ...Role) (int64, error)
+
+	// DeleteUsersByLastupdated deletes rows from the table, given some lastupdated values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByLastupdated(req require.Requirement, values ...int64) (int64, error)
+
+	// DeleteUsersByI8 deletes rows from the table, given some i8 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByI8(req require.Requirement, values ...int8) (int64, error)
+
+	// DeleteUsersByU8 deletes rows from the table, given some u8 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByU8(req require.Requirement, values ...uint8) (int64, error)
+
+	// DeleteUsersByI16 deletes rows from the table, given some i16 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByI16(req require.Requirement, values ...int16) (int64, error)
+
+	// DeleteUsersByU16 deletes rows from the table, given some u16 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByU16(req require.Requirement, values ...uint16) (int64, error)
+
+	// DeleteUsersByI32 deletes rows from the table, given some i32 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByI32(req require.Requirement, values ...int32) (int64, error)
+
+	// DeleteUsersByU32 deletes rows from the table, given some u32 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByU32(req require.Requirement, values ...uint32) (int64, error)
+
+	// DeleteUsersByI64 deletes rows from the table, given some i64 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByI64(req require.Requirement, values ...int64) (int64, error)
+
+	// DeleteUsersByU64 deletes rows from the table, given some u64 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByU64(req require.Requirement, values ...uint64) (int64, error)
+
+	// DeleteUsersByF32 deletes rows from the table, given some f32 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByF32(req require.Requirement, values ...float32) (int64, error)
+
+	// DeleteUsersByF64 deletes rows from the table, given some f64 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByF64(req require.Requirement, values ...float64) (int64, error)
+
+	// Delete deletes one or more rows from the table, given a 'where' clause.
+	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
 
 // DUserTable holds a given table name with the database reference, providing access methods below.
@@ -361,14 +443,174 @@ func scanDUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 
 //--------------------------------------------------------------------------------
 
-// DeleteUsers deletes rows from the table, given some primary keys.
+// DeleteUsersByUid deletes rows from the table, given some uid values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteUsersById(req require.Requirement, id ...int64) (int64, error) {
-	values := make([]interface{}, len(id))
-	for i, v := range id {
-		values[i] = v
+func (tbl DUserTable) DeleteUsersByUid(req require.Requirement, values ...int64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, values...)
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByName deletes rows from the table, given some name values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByName(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByEmailaddress deletes rows from the table, given some emailaddress values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByEmailaddress(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByAddressid deletes rows from the table, given some addressid values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByAddressid(req require.Requirement, values ...int64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByAvatar deletes rows from the table, given some avatar values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByAvatar(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByRole deletes rows from the table, given some role values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByRole(req require.Requirement, values ...Role) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByLastupdated deletes rows from the table, given some lastupdated values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByLastupdated(req require.Requirement, values ...int64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByI8 deletes rows from the table, given some i8 values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByI8(req require.Requirement, values ...int8) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByU8 deletes rows from the table, given some u8 values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByU8(req require.Requirement, values ...uint8) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByI16 deletes rows from the table, given some i16 values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByI16(req require.Requirement, values ...int16) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByU16 deletes rows from the table, given some u16 values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByU16(req require.Requirement, values ...uint16) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByI32 deletes rows from the table, given some i32 values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByI32(req require.Requirement, values ...int32) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByU32 deletes rows from the table, given some u32 values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByU32(req require.Requirement, values ...uint32) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByI64 deletes rows from the table, given some i64 values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByI64(req require.Requirement, values ...int64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByU64 deletes rows from the table, given some u64 values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByU64(req require.Requirement, values ...uint64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByF32 deletes rows from the table, given some f32 values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByF32(req require.Requirement, values ...float32) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByF64 deletes rows from the table, given some f64 values.
+// The list of ids can be arbitrarily long.
+func (tbl DUserTable) DeleteUsersByF64(req require.Requirement, values ...float64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.

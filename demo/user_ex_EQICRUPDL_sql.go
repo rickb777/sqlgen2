@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0
+// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
 
 package demo
 
@@ -22,10 +22,20 @@ import (
 
 // AUserTabler lists methods provided by AUserTable.
 type AUserTabler interface {
-	sqlapi.Table
+	// Name gets the table name. without prefix
+	Name() sqlapi.TableName
+
+	// Ctx gets the current request context.
+	//Ctx() context.Context
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	//Logger() sqlapi.Logger
 
 	// Constraints returns the table's constraints.
-	Constraints() constraint.Constraints
+	//Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified AUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) AUserTabler
@@ -170,6 +180,85 @@ type AUserTabler interface {
 
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*User) (int64, error)
+
+	// Upsert inserts or updates a record, matching it using the expression supplied.
+	// This expression is used to search for an existing record based on some specified
+	// key column(s). It must match either zero or one existing record. If it matches
+	// none, a new record is inserted; otherwise the matching record is updated. An
+	// error results if these conditions are not met.
+	Upsert(v *User, wh where.Expression) error
+
+	// DeleteUsersByUid deletes rows from the table, given some uid values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByUid(req require.Requirement, values ...int64) (int64, error)
+
+	// DeleteUsersByName deletes rows from the table, given some name values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByName(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteUsersByEmailaddress deletes rows from the table, given some emailaddress values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByEmailaddress(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteUsersByAddressid deletes rows from the table, given some addressid values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByAddressid(req require.Requirement, values ...int64) (int64, error)
+
+	// DeleteUsersByAvatar deletes rows from the table, given some avatar values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByAvatar(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteUsersByRole deletes rows from the table, given some role values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByRole(req require.Requirement, values ...Role) (int64, error)
+
+	// DeleteUsersByLastupdated deletes rows from the table, given some lastupdated values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByLastupdated(req require.Requirement, values ...int64) (int64, error)
+
+	// DeleteUsersByI8 deletes rows from the table, given some i8 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByI8(req require.Requirement, values ...int8) (int64, error)
+
+	// DeleteUsersByU8 deletes rows from the table, given some u8 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByU8(req require.Requirement, values ...uint8) (int64, error)
+
+	// DeleteUsersByI16 deletes rows from the table, given some i16 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByI16(req require.Requirement, values ...int16) (int64, error)
+
+	// DeleteUsersByU16 deletes rows from the table, given some u16 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByU16(req require.Requirement, values ...uint16) (int64, error)
+
+	// DeleteUsersByI32 deletes rows from the table, given some i32 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByI32(req require.Requirement, values ...int32) (int64, error)
+
+	// DeleteUsersByU32 deletes rows from the table, given some u32 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByU32(req require.Requirement, values ...uint32) (int64, error)
+
+	// DeleteUsersByI64 deletes rows from the table, given some i64 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByI64(req require.Requirement, values ...int64) (int64, error)
+
+	// DeleteUsersByU64 deletes rows from the table, given some u64 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByU64(req require.Requirement, values ...uint64) (int64, error)
+
+	// DeleteUsersByF32 deletes rows from the table, given some f32 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByF32(req require.Requirement, values ...float32) (int64, error)
+
+	// DeleteUsersByF64 deletes rows from the table, given some f64 values.
+	// The list of ids can be arbitrarily long.
+	DeleteUsersByF64(req require.Requirement, values ...float64) (int64, error)
+
+	// Delete deletes one or more rows from the table, given a 'where' clause.
+	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
 
 // AUserTable holds a given table name with the database reference, providing access methods below.
@@ -510,7 +599,7 @@ func createAUserTableSql(tbl AUserTabler, ifNotExists bool) string {
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.Constraints() {
+	for i, c := range tbl.(AUserTable).Constraints() {
 		buf.WriteString(",\n ")
 		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}
@@ -721,14 +810,14 @@ func (tbl AUserTable) Query(req require.Requirement, query string, args ...inter
 }
 
 func doAUserTableQueryAndScan(tbl AUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := ScanAUsers(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -1193,7 +1282,7 @@ func sliceAUserTableRolePtrList(tbl AUserTabler, req require.Requirement, sqlnam
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1205,12 +1294,12 @@ func sliceAUserTableRolePtrList(tbl AUserTabler, req require.Requirement, sqlnam
 		var v Role
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func sliceAUserTableFloat32List(tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
@@ -1219,7 +1308,7 @@ func sliceAUserTableFloat32List(tbl AUserTabler, req require.Requirement, sqlnam
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1231,12 +1320,12 @@ func sliceAUserTableFloat32List(tbl AUserTabler, req require.Requirement, sqlnam
 		var v float32
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func sliceAUserTableFloat64List(tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
@@ -1245,7 +1334,7 @@ func sliceAUserTableFloat64List(tbl AUserTabler, req require.Requirement, sqlnam
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1257,12 +1346,12 @@ func sliceAUserTableFloat64List(tbl AUserTabler, req require.Requirement, sqlnam
 		var v float64
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func constructAUserTableInsert(tbl AUserTable, w dialect.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
@@ -1691,14 +1780,174 @@ func (tbl AUserTable) Upsert(v *User, wh where.Expression) error {
 
 //--------------------------------------------------------------------------------
 
-// DeleteUsers deletes rows from the table, given some primary keys.
+// DeleteUsersByUid deletes rows from the table, given some uid values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteUsersById(req require.Requirement, id ...int64) (int64, error) {
-	values := make([]interface{}, len(id))
-	for i, v := range id {
-		values[i] = v
+func (tbl AUserTable) DeleteUsersByUid(req require.Requirement, values ...int64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, values...)
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByName deletes rows from the table, given some name values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByName(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByEmailaddress deletes rows from the table, given some emailaddress values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByEmailaddress(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByAddressid deletes rows from the table, given some addressid values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByAddressid(req require.Requirement, values ...int64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByAvatar deletes rows from the table, given some avatar values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByAvatar(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByRole deletes rows from the table, given some role values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByRole(req require.Requirement, values ...Role) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByLastupdated deletes rows from the table, given some lastupdated values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByLastupdated(req require.Requirement, values ...int64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByI8 deletes rows from the table, given some i8 values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByI8(req require.Requirement, values ...int8) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByU8 deletes rows from the table, given some u8 values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByU8(req require.Requirement, values ...uint8) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByI16 deletes rows from the table, given some i16 values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByI16(req require.Requirement, values ...int16) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByU16 deletes rows from the table, given some u16 values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByU16(req require.Requirement, values ...uint16) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByI32 deletes rows from the table, given some i32 values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByI32(req require.Requirement, values ...int32) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByU32 deletes rows from the table, given some u32 values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByU32(req require.Requirement, values ...uint32) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByI64 deletes rows from the table, given some i64 values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByI64(req require.Requirement, values ...int64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByU64 deletes rows from the table, given some u64 values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByU64(req require.Requirement, values ...uint64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByF32 deletes rows from the table, given some f32 values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByF32(req require.Requirement, values ...float32) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteUsersByF64 deletes rows from the table, given some f64 values.
+// The list of ids can be arbitrarily long.
+func (tbl AUserTable) DeleteUsersByF64(req require.Requirement, values ...float64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.

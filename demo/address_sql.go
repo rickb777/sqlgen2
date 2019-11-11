@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0
+// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
 
 package demo
 
@@ -22,10 +22,20 @@ import (
 
 // AddressTabler lists methods provided by AddressTable.
 type AddressTabler interface {
-	sqlapi.Table
+	// Name gets the table name. without prefix
+	Name() sqlapi.TableName
+
+	// Ctx gets the current request context.
+	//Ctx() context.Context
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	//Logger() sqlapi.Logger
 
 	// Constraints returns the table's constraints.
-	Constraints() constraint.Constraints
+	//Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified AddressTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) AddressTabler
@@ -140,6 +150,33 @@ type AddressTabler interface {
 
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Address) (int64, error)
+
+	// Upsert inserts or updates a record, matching it using the expression supplied.
+	// This expression is used to search for an existing record based on some specified
+	// key column(s). It must match either zero or one existing record. If it matches
+	// none, a new record is inserted; otherwise the matching record is updated. An
+	// error results if these conditions are not met.
+	Upsert(v *Address, wh where.Expression) error
+
+	// DeleteAddressesById deletes rows from the table, given some id values.
+	// The list of ids can be arbitrarily long.
+	DeleteAddressesById(req require.Requirement, values ...int64) (int64, error)
+
+	// DeleteAddressesByTown deletes rows from the table, given some town values.
+	// The list of ids can be arbitrarily long.
+	DeleteAddressesByTown(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteAddressesByPostcode deletes rows from the table, given some postcode values.
+	// The list of ids can be arbitrarily long.
+	DeleteAddressesByPostcode(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteAddressesByUprn deletes rows from the table, given some uprn values.
+	// The list of ids can be arbitrarily long.
+	DeleteAddressesByUprn(req require.Requirement, values ...string) (int64, error)
+
+	// Delete deletes one or more rows from the table, given a 'where' clause.
+	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
 
 // AddressTable holds a given table name with the database reference, providing access methods below.
@@ -413,7 +450,7 @@ func createAddressTableSql(tbl AddressTabler, ifNotExists bool) string {
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.Constraints() {
+	for i, c := range tbl.(AddressTable).Constraints() {
 		buf.WriteString(",\n ")
 		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}
@@ -679,14 +716,14 @@ func (tbl AddressTable) Query(req require.Requirement, query string, args ...int
 }
 
 func doAddressTableQueryAndScan(tbl AddressTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := ScanAddresses(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -1242,14 +1279,44 @@ func (tbl AddressTable) Upsert(v *Address, wh where.Expression) error {
 
 //--------------------------------------------------------------------------------
 
-// DeleteAddresses deletes rows from the table, given some primary keys.
+// DeleteAddressesById deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl AddressTable) DeleteAddressesById(req require.Requirement, id ...int64) (int64, error) {
-	values := make([]interface{}, len(id))
-	for i, v := range id {
-		values[i] = v
+func (tbl AddressTable) DeleteAddressesById(req require.Requirement, values ...int64) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, values...)
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteAddressesByTown deletes rows from the table, given some town values.
+// The list of ids can be arbitrarily long.
+func (tbl AddressTable) DeleteAddressesByTown(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteAddressesByPostcode deletes rows from the table, given some postcode values.
+// The list of ids can be arbitrarily long.
+func (tbl AddressTable) DeleteAddressesByPostcode(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteAddressesByUprn deletes rows from the table, given some uprn values.
+// The list of ids can be arbitrarily long.
+func (tbl AddressTable) DeleteAddressesByUprn(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0
+// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
 
 package demo
 
@@ -21,10 +21,20 @@ import (
 
 // DbCompoundTabler lists methods provided by DbCompoundTable.
 type DbCompoundTabler interface {
-	sqlapi.Table
+	// Name gets the table name. without prefix
+	Name() sqlapi.TableName
+
+	// Ctx gets the current request context.
+	//Ctx() context.Context
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	//Logger() sqlapi.Logger
 
 	// Constraints returns the table's constraints.
-	Constraints() constraint.Constraints
+	//Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified DbCompoundTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) DbCompoundTabler
@@ -109,6 +119,22 @@ type DbCompoundTabler interface {
 
 	// Insert adds new records for the Compounds.
 	Insert(req require.Requirement, vv ...*Compound) error
+
+	// DeleteCompoundsByAlpha deletes rows from the table, given some alpha values.
+	// The list of ids can be arbitrarily long.
+	DeleteCompoundsByAlpha(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteCompoundsByBeta deletes rows from the table, given some beta values.
+	// The list of ids can be arbitrarily long.
+	DeleteCompoundsByBeta(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteCompoundsByCategory deletes rows from the table, given some category values.
+	// The list of ids can be arbitrarily long.
+	DeleteCompoundsByCategory(req require.Requirement, values ...Category) (int64, error)
+
+	// Delete deletes one or more rows from the table, given a 'where' clause.
+	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
 
 // DbCompoundTable holds a given table name with the database reference, providing access methods below.
@@ -351,7 +377,7 @@ func createDbCompoundTableSql(tbl DbCompoundTabler, ifNotExists bool) string {
 		comma = ",\n "
 	}
 
-	for i, c := range tbl.Constraints() {
+	for i, c := range tbl.(DbCompoundTable).Constraints() {
 		buf.WriteString(",\n ")
 		buf.WriteString(c.ConstraintSql(tbl.Dialect().Quoter(), tbl.Name(), i+1))
 	}
@@ -507,14 +533,14 @@ func (tbl DbCompoundTable) Query(req require.Requirement, query string, args ...
 }
 
 func doDbCompoundTableQueryAndScan(tbl DbCompoundTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Compound, error) {
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := ScanDbCompounds(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //--------------------------------------------------------------------------------
@@ -772,7 +798,7 @@ func sliceDbCompoundTableCategoryList(tbl DbCompoundTabler, req require.Requirem
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -784,12 +810,12 @@ func sliceDbCompoundTableCategoryList(tbl DbCompoundTabler, req require.Requirem
 		var v Category
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func constructDbCompoundTableInsert(tbl DbCompoundTable, w dialect.StringWriter, v *Compound, withPk bool) (s []interface{}, err error) {
@@ -911,6 +937,36 @@ func (tbl DbCompoundTable) UpdateFields(req require.Requirement, wh where.Expres
 }
 
 //--------------------------------------------------------------------------------
+
+// DeleteCompoundsByAlpha deletes rows from the table, given some alpha values.
+// The list of ids can be arbitrarily long.
+func (tbl DbCompoundTable) DeleteCompoundsByAlpha(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteCompoundsByBeta deletes rows from the table, given some beta values.
+// The list of ids can be arbitrarily long.
+func (tbl DbCompoundTable) DeleteCompoundsByBeta(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteCompoundsByCategory deletes rows from the table, given some category values.
+// The list of ids can be arbitrarily long.
+func (tbl DbCompoundTable) DeleteCompoundsByCategory(req require.Requirement, values ...Category) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
