@@ -5,6 +5,7 @@
     <envs>
       <env name="GO_DRIVER" value="postgres" />
       <env name="GO_DSN" value="postgres://testuser:TestPasswd.9.9.9@/test" />
+      <env name="PGHOST" value="localhost" />
     </envs>
     <framework value="gotest" />
     <kind value="DIRECTORY" />

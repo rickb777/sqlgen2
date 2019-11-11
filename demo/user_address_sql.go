@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demo
 
@@ -16,22 +16,13 @@ import (
 	"strings"
 )
 
-// UserAddressJoiner lists methods provided by UserAddressJoin.
+// UserAddressJoiner lists table methods provided by UserAddressJoin.
 type UserAddressJoiner interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified UserAddressJoiner with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) UserAddressJoiner
@@ -41,12 +32,15 @@ type UserAddressJoiner interface {
 
 	// WithContext returns a modified UserAddressJoiner with a given context.
 	WithContext(ctx context.Context) UserAddressJoiner
+}
 
+// UserAddressQueryer lists query methods provided by UserAddressJoin.
+type UserAddressQueryer interface {
 	// Using returns a modified UserAddressJoiner using the transaction supplied.
-	Using(tx sqlapi.SqlTx) UserAddressJoiner
+	Using(tx sqlapi.SqlTx) UserAddressQueryer
 
 	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(UserAddressJoiner) error) error
+	Transact(txOptions *sql.TxOptions, fn func(UserAddressQueryer) error) error
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for UserAddress values.
@@ -201,7 +195,7 @@ func (tbl UserAddressJoin) IsTx() bool {
 // Using returns a modified UserAddressJoiner using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl UserAddressJoin) Using(tx sqlapi.SqlTx) UserAddressJoiner {
+func (tbl UserAddressJoin) Using(tx sqlapi.SqlTx) UserAddressQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -211,7 +205,7 @@ func (tbl UserAddressJoin) Using(tx sqlapi.SqlTx) UserAddressJoiner {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl UserAddressJoin) Transact(txOptions *sql.TxOptions, fn func(UserAddressJoiner) error) error {
+func (tbl UserAddressJoin) Transact(txOptions *sql.TxOptions, fn func(UserAddressQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

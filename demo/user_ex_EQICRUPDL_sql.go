@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demo
 
@@ -20,22 +20,13 @@ import (
 	"strings"
 )
 
-// AUserTabler lists methods provided by AUserTable.
+// AUserTabler lists table methods provided by AUserTable.
 type AUserTabler interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified AUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) AUserTabler
@@ -45,12 +36,6 @@ type AUserTabler interface {
 
 	// WithContext returns a modified AUserTabler with a given context.
 	WithContext(ctx context.Context) AUserTabler
-
-	// Using returns a modified AUserTabler using the transaction supplied.
-	Using(tx sqlapi.SqlTx) AUserTabler
-
-	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(AUserTabler) error) error
 
 	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
@@ -78,6 +63,15 @@ type AUserTabler interface {
 
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
+}
+
+// AUserQueryer lists query methods provided by AUserTable.
+type AUserQueryer interface {
+	// Using returns a modified AUserTabler using the transaction supplied.
+	Using(tx sqlapi.SqlTx) AUserQueryer
+
+	// Transact runs the function provided within a transaction.
+	Transact(txOptions *sql.TxOptions, fn func(AUserQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 
@@ -403,7 +397,7 @@ func (tbl AUserTable) IsTx() bool {
 // Using returns a modified AUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AUserTable) Using(tx sqlapi.SqlTx) AUserTabler {
+func (tbl AUserTable) Using(tx sqlapi.SqlTx) AUserQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -413,7 +407,7 @@ func (tbl AUserTable) Using(tx sqlapi.SqlTx) AUserTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl AUserTable) Transact(txOptions *sql.TxOptions, fn func(AUserTabler) error) error {
+func (tbl AUserTable) Transact(txOptions *sql.TxOptions, fn func(AUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

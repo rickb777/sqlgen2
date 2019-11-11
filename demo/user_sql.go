@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demo
 
@@ -21,22 +21,13 @@ import (
 	"strings"
 )
 
-// DbUserTabler lists methods provided by DbUserTable.
+// DbUserTabler lists table methods provided by DbUserTable.
 type DbUserTabler interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified DbUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) DbUserTabler
@@ -46,12 +37,6 @@ type DbUserTabler interface {
 
 	// WithContext returns a modified DbUserTabler with a given context.
 	WithContext(ctx context.Context) DbUserTabler
-
-	// Using returns a modified DbUserTabler using the transaction supplied.
-	Using(tx sqlapi.SqlTx) DbUserTabler
-
-	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(DbUserTabler) error) error
 
 	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
@@ -79,6 +64,15 @@ type DbUserTabler interface {
 
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
+}
+
+// DbUserQueryer lists query methods provided by DbUserTable.
+type DbUserQueryer interface {
+	// Using returns a modified DbUserTabler using the transaction supplied.
+	Using(tx sqlapi.SqlTx) DbUserQueryer
+
+	// Transact runs the function provided within a transaction.
+	Transact(txOptions *sql.TxOptions, fn func(DbUserQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 
@@ -404,7 +398,7 @@ func (tbl DbUserTable) IsTx() bool {
 // Using returns a modified DbUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DbUserTable) Using(tx sqlapi.SqlTx) DbUserTabler {
+func (tbl DbUserTable) Using(tx sqlapi.SqlTx) DbUserQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -414,7 +408,7 @@ func (tbl DbUserTable) Using(tx sqlapi.SqlTx) DbUserTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl DbUserTable) Transact(txOptions *sql.TxOptions, fn func(DbUserTabler) error) error {
+func (tbl DbUserTable) Transact(txOptions *sql.TxOptions, fn func(DbUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

@@ -269,44 +269,45 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 	code.ImportsForSetters(setters, importSet)
 
 	headerBuf := &bytes.Buffer{}
-	interfaceBuf := &bytes.Buffer{}
+	tablerBuf := &bytes.Buffer{}
+	queryerBuf := &bytes.Buffer{}
 	structBuf := &bytes.Buffer{}
 
 	code.WritePackageHeader(headerBuf, tablePkg, appVersion)
 
 	code.WriteImports(headerBuf, importSet)
 
-	code.WriteType(interfaceBuf, structBuf, view)
+	code.WriteType(tablerBuf, queryerBuf, structBuf, view)
 
 	code.WritePrimaryDeclarations(structBuf, view)
 
 	if flags.Schema {
 		code.WriteSchemaDeclarations(structBuf, view)
-		code.WriteSchemaFunctions(interfaceBuf, structBuf, view)
+		code.WriteSchemaFunctions(tablerBuf, structBuf, view)
 	}
 
 	if flags.Exec || flags.Update || flags.Delete {
-		code.WriteExecFunc(interfaceBuf, structBuf, view)
+		code.WriteExecFunc(queryerBuf, structBuf, view)
 	}
 
 	if flags.Query {
-		code.WriteQueryRows(interfaceBuf, structBuf, view)
-		code.WriteQueryThings(interfaceBuf, structBuf, view)
+		code.WriteQueryRows(queryerBuf, structBuf, view)
+		code.WriteQueryThings(queryerBuf, structBuf, view)
 	}
 
 	code.WriteScanRows(structBuf, view)
 
 	if flags.Select {
-		code.WriteGetRow(interfaceBuf, structBuf, view)
-		code.WriteSelectRowsFuncs(interfaceBuf, structBuf, view)
+		code.WriteGetRow(queryerBuf, structBuf, view)
+		code.WriteSelectRowsFuncs(queryerBuf, structBuf, view)
 	}
 
 	if flags.Count {
-		code.WriteCountRowsFuncs(interfaceBuf, structBuf, view)
+		code.WriteCountRowsFuncs(queryerBuf, structBuf, view)
 	}
 
 	if flags.Slice {
-		code.WriteSliceColumn(interfaceBuf, structBuf, view)
+		code.WriteSliceColumn(queryerBuf, structBuf, view)
 	}
 
 	if flags.Insert {
@@ -318,32 +319,34 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 	}
 
 	if flags.Insert {
-		code.WriteInsertFunc(interfaceBuf, structBuf, view)
+		code.WriteInsertFunc(queryerBuf, structBuf, view)
 	}
 
 	if flags.Update {
-		code.WriteUpdateFunc(interfaceBuf, structBuf, view)
+		code.WriteUpdateFunc(queryerBuf, structBuf, view)
 	}
 
 	if flags.Upsert {
-		code.WriteUpsertFunc(interfaceBuf, structBuf, view)
+		code.WriteUpsertFunc(queryerBuf, structBuf, view)
 	}
 
 	if flags.Delete {
-		code.WriteDeleteFunc(interfaceBuf, structBuf, view)
+		code.WriteDeleteFunc(queryerBuf, structBuf, view)
 	}
 
-	code.WriteSetters(interfaceBuf, structBuf, view, setters)
+	code.WriteSetters(queryerBuf, structBuf, view, setters)
 
-	io.WriteString(interfaceBuf, "}\n")
+	io.WriteString(tablerBuf, "}\n")
+	io.WriteString(queryerBuf, "}\n")
 
-	finishWriting(o, gofmt, constructFullBuffer(headerBuf, interfaceBuf, structBuf))
+	finishWriting(o, gofmt, constructFullBuffer(headerBuf, tablerBuf, queryerBuf, structBuf))
 }
 
-func constructFullBuffer(headerBuf, interfaceBuf, structBuf io.Reader) *bytes.Buffer {
+func constructFullBuffer(headerBuf, tablerBuf, queryerBuf, structBuf io.Reader) *bytes.Buffer {
 	whole := &bytes.Buffer{}
 	io.Copy(whole, headerBuf)
-	io.Copy(whole, interfaceBuf)
+	io.Copy(whole, tablerBuf)
+	io.Copy(whole, queryerBuf)
 	io.Copy(whole, structBuf)
 	return whole
 }

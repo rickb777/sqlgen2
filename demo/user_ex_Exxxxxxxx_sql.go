@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demo
 
@@ -16,22 +16,13 @@ import (
 	"strings"
 )
 
-// EUserTabler lists methods provided by EUserTable.
+// EUserTabler lists table methods provided by EUserTable.
 type EUserTabler interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified EUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) EUserTabler
@@ -41,12 +32,15 @@ type EUserTabler interface {
 
 	// WithContext returns a modified EUserTabler with a given context.
 	WithContext(ctx context.Context) EUserTabler
+}
 
+// EUserQueryer lists query methods provided by EUserTable.
+type EUserQueryer interface {
 	// Using returns a modified EUserTabler using the transaction supplied.
-	Using(tx sqlapi.SqlTx) EUserTabler
+	Using(tx sqlapi.SqlTx) EUserQueryer
 
 	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(EUserTabler) error) error
+	Transact(txOptions *sql.TxOptions, fn func(EUserQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 }
@@ -193,7 +187,7 @@ func (tbl EUserTable) IsTx() bool {
 // Using returns a modified EUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl EUserTable) Using(tx sqlapi.SqlTx) EUserTabler {
+func (tbl EUserTable) Using(tx sqlapi.SqlTx) EUserQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -203,7 +197,7 @@ func (tbl EUserTable) Using(tx sqlapi.SqlTx) EUserTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl EUserTable) Transact(txOptions *sql.TxOptions, fn func(EUserTabler) error) error {
+func (tbl EUserTable) Transact(txOptions *sql.TxOptions, fn func(EUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

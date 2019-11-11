@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demo
 
@@ -20,22 +20,13 @@ import (
 	"strings"
 )
 
-// AddressTabler lists methods provided by AddressTable.
+// AddressTabler lists table methods provided by AddressTable.
 type AddressTabler interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified AddressTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) AddressTabler
@@ -45,12 +36,6 @@ type AddressTabler interface {
 
 	// WithContext returns a modified AddressTabler with a given context.
 	WithContext(ctx context.Context) AddressTabler
-
-	// Using returns a modified AddressTabler using the transaction supplied.
-	Using(tx sqlapi.SqlTx) AddressTabler
-
-	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(AddressTabler) error) error
 
 	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
@@ -76,14 +61,23 @@ type AddressTabler interface {
 	// DropTownIdxIndex drops the townIdx index.
 	DropTownIdxIndex(ifExists bool) error
 
-	// CreateUprnIdxIndex creates the uprnIdx index.
+	// CreateUprnIdxIndex creates the uprn_idx index.
 	CreateUprnIdxIndex(ifNotExist bool) error
 
-	// DropUprnIdxIndex drops the uprnIdx index.
+	// DropUprnIdxIndex drops the uprn_idx index.
 	DropUprnIdxIndex(ifExists bool) error
 
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
+}
+
+// AddressQueryer lists query methods provided by AddressTable.
+type AddressQueryer interface {
+	// Using returns a modified AddressTabler using the transaction supplied.
+	Using(tx sqlapi.SqlTx) AddressQueryer
+
+	// Transact runs the function provided within a transaction.
+	Transact(txOptions *sql.TxOptions, fn func(AddressQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 
@@ -318,7 +312,7 @@ func (tbl AddressTable) IsTx() bool {
 // Using returns a modified AddressTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AddressTable) Using(tx sqlapi.SqlTx) AddressTabler {
+func (tbl AddressTable) Using(tx sqlapi.SqlTx) AddressQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -328,7 +322,7 @@ func (tbl AddressTable) Using(tx sqlapi.SqlTx) AddressTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl AddressTable) Transact(txOptions *sql.TxOptions, fn func(AddressTabler) error) error {
+func (tbl AddressTable) Transact(txOptions *sql.TxOptions, fn func(AddressQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -602,7 +596,7 @@ func dropAddressTableTownIdxSql(tbl AddressTabler, ifExists bool) string {
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
-// CreateUprnIdxIndex creates the uprnIdx index.
+// CreateUprnIdxIndex creates the uprn_idx index.
 func (tbl AddressTable) CreateUprnIdxIndex(ifNotExist bool) error {
 	ine := ternaryAddressTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
@@ -621,7 +615,7 @@ func (tbl AddressTable) CreateUprnIdxIndex(ifNotExist bool) error {
 
 func createAddressTableUprnIdxSql(tbl AddressTabler, ifNotExists string) string {
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%s%s_uprnIdx", indexPrefix, tbl.Name().Name)
+	id := fmt.Sprintf("%s%s_uprn_idx", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	cols := strings.Join(q.QuoteN(listOfUprnIdxIndexColumns), ",")
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
@@ -629,7 +623,7 @@ func createAddressTableUprnIdxSql(tbl AddressTabler, ifNotExists string) string 
 		q.Quote(id), quotedName, cols)
 }
 
-// DropUprnIdxIndex drops the uprnIdx index.
+// DropUprnIdxIndex drops the uprn_idx index.
 func (tbl AddressTable) DropUprnIdxIndex(ifExists bool) error {
 	_, err := tbl.Exec(nil, dropAddressTableUprnIdxSql(tbl, ifExists))
 	return err
@@ -639,7 +633,7 @@ func dropAddressTableUprnIdxSql(tbl AddressTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
 	ie := ternaryAddressTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
-	id := fmt.Sprintf("%s%s_uprnIdx", indexPrefix, tbl.Name().Name)
+	id := fmt.Sprintf("%s%s_uprn_idx", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())

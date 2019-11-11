@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demo
 
@@ -19,22 +19,13 @@ import (
 	"strings"
 )
 
-// DbCompoundTabler lists methods provided by DbCompoundTable.
+// DbCompoundTabler lists table methods provided by DbCompoundTable.
 type DbCompoundTabler interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified DbCompoundTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) DbCompoundTabler
@@ -44,12 +35,6 @@ type DbCompoundTabler interface {
 
 	// WithContext returns a modified DbCompoundTabler with a given context.
 	WithContext(ctx context.Context) DbCompoundTabler
-
-	// Using returns a modified DbCompoundTabler using the transaction supplied.
-	Using(tx sqlapi.SqlTx) DbCompoundTabler
-
-	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(DbCompoundTabler) error) error
 
 	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
@@ -71,6 +56,15 @@ type DbCompoundTabler interface {
 
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
+}
+
+// DbCompoundQueryer lists query methods provided by DbCompoundTable.
+type DbCompoundQueryer interface {
+	// Using returns a modified DbCompoundTabler using the transaction supplied.
+	Using(tx sqlapi.SqlTx) DbCompoundQueryer
+
+	// Transact runs the function provided within a transaction.
+	Transact(txOptions *sql.TxOptions, fn func(DbCompoundQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 
@@ -264,7 +258,7 @@ func (tbl DbCompoundTable) IsTx() bool {
 // Using returns a modified DbCompoundTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DbCompoundTable) Using(tx sqlapi.SqlTx) DbCompoundTabler {
+func (tbl DbCompoundTable) Using(tx sqlapi.SqlTx) DbCompoundQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -274,7 +268,7 @@ func (tbl DbCompoundTable) Using(tx sqlapi.SqlTx) DbCompoundTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl DbCompoundTable) Transact(txOptions *sql.TxOptions, fn func(DbCompoundTabler) error) error {
+func (tbl DbCompoundTable) Transact(txOptions *sql.TxOptions, fn func(DbCompoundQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

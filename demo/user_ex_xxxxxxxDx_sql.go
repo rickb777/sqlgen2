@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demo
 
@@ -18,22 +18,13 @@ import (
 	"strings"
 )
 
-// DUserTabler lists methods provided by DUserTable.
+// DUserTabler lists table methods provided by DUserTable.
 type DUserTabler interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified DUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) DUserTabler
@@ -43,12 +34,15 @@ type DUserTabler interface {
 
 	// WithContext returns a modified DUserTabler with a given context.
 	WithContext(ctx context.Context) DUserTabler
+}
 
+// DUserQueryer lists query methods provided by DUserTable.
+type DUserQueryer interface {
 	// Using returns a modified DUserTabler using the transaction supplied.
-	Using(tx sqlapi.SqlTx) DUserTabler
+	Using(tx sqlapi.SqlTx) DUserQueryer
 
 	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(DUserTabler) error) error
+	Transact(txOptions *sql.TxOptions, fn func(DUserQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 
@@ -267,7 +261,7 @@ func (tbl DUserTable) IsTx() bool {
 // Using returns a modified DUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DUserTable) Using(tx sqlapi.SqlTx) DUserTabler {
+func (tbl DUserTable) Using(tx sqlapi.SqlTx) DUserQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -277,7 +271,7 @@ func (tbl DUserTable) Using(tx sqlapi.SqlTx) DUserTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl DUserTable) Transact(txOptions *sql.TxOptions, fn func(DUserTabler) error) error {
+func (tbl DUserTable) Transact(txOptions *sql.TxOptions, fn func(DUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

@@ -6,9 +6,10 @@ import (
 	"io"
 )
 
-func WriteType(w1, w2 io.Writer, view View) {
+func WriteType(w1, w2, w3 io.Writer, view View) {
 	must(tTabler.Execute(w1, view))
-	must(tTable.Execute(w2, view))
+	must(tQueryer.Execute(w2, view))
+	must(tTable.Execute(w3, view))
 }
 
 func WriteQueryRows(w1, w2 io.Writer, view View) {

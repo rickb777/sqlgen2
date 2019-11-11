@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demo
 
@@ -19,22 +19,13 @@ import (
 	"strings"
 )
 
-// SUserTabler lists methods provided by SUserTable.
+// SUserTabler lists table methods provided by SUserTable.
 type SUserTabler interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified SUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) SUserTabler
@@ -44,12 +35,15 @@ type SUserTabler interface {
 
 	// WithContext returns a modified SUserTabler with a given context.
 	WithContext(ctx context.Context) SUserTabler
+}
 
+// SUserQueryer lists query methods provided by SUserTable.
+type SUserQueryer interface {
 	// Using returns a modified SUserTabler using the transaction supplied.
-	Using(tx sqlapi.SqlTx) SUserTabler
+	Using(tx sqlapi.SqlTx) SUserQueryer
 
 	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(SUserTabler) error) error
+	Transact(txOptions *sql.TxOptions, fn func(SUserQueryer) error) error
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for User values.
@@ -237,7 +231,7 @@ func (tbl SUserTable) IsTx() bool {
 // Using returns a modified SUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl SUserTable) Using(tx sqlapi.SqlTx) SUserTabler {
+func (tbl SUserTable) Using(tx sqlapi.SqlTx) SUserQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -247,7 +241,7 @@ func (tbl SUserTable) Using(tx sqlapi.SqlTx) SUserTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl SUserTable) Transact(txOptions *sql.TxOptions, fn func(SUserTabler) error) error {
+func (tbl SUserTable) Transact(txOptions *sql.TxOptions, fn func(SUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

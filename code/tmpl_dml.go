@@ -642,14 +642,13 @@ var tUpdateFunc = template.Must(template.New("UpdateFunc").Funcs(funcMap).Parse(
 
 const sUpsertDecl = `
 {{- if .Table.Primary}}
-
 	// Upsert inserts or updates a record, matching it using the expression supplied.
 	// This expression is used to search for an existing record based on some specified
 	// key column(s). It must match either zero or one existing record. If it matches
 	// none, a new record is inserted; otherwise the matching record is updated. An
 	// error results if these conditions are not met.
 	Upsert(v *{{.TypePkg}}{{.Type}}, wh where.Expression) error
-{{- end}}
+{{- end -}}
 `
 
 const sUpsertFunc = `
@@ -691,7 +690,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Upsert(v *{{.TypePkg}}{{.Type}}, wh wh
 	_, err = tbl.Update(require.One, v)
 	return err
 }
-{{- end}}
+{{- end -}}
 `
 
 var tUpsertDecl = template.Must(template.New("Upsert").Funcs(funcMap).Parse(sUpsertDecl))

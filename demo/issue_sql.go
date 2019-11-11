@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demo
 
@@ -20,22 +20,13 @@ import (
 	"strings"
 )
 
-// IssueTabler lists methods provided by IssueTable.
+// IssueTabler lists table methods provided by IssueTable.
 type IssueTabler interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified IssueTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) IssueTabler
@@ -45,12 +36,6 @@ type IssueTabler interface {
 
 	// WithContext returns a modified IssueTabler with a given context.
 	WithContext(ctx context.Context) IssueTabler
-
-	// Using returns a modified IssueTabler using the transaction supplied.
-	Using(tx sqlapi.SqlTx) IssueTabler
-
-	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(IssueTabler) error) error
 
 	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
@@ -72,6 +57,15 @@ type IssueTabler interface {
 
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
+}
+
+// IssueQueryer lists query methods provided by IssueTable.
+type IssueQueryer interface {
+	// Using returns a modified IssueTabler using the transaction supplied.
+	Using(tx sqlapi.SqlTx) IssueQueryer
+
+	// Transact runs the function provided within a transaction.
+	Transact(txOptions *sql.TxOptions, fn func(IssueQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 
@@ -314,7 +308,7 @@ func (tbl IssueTable) IsTx() bool {
 // Using returns a modified IssueTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl IssueTable) Using(tx sqlapi.SqlTx) IssueTabler {
+func (tbl IssueTable) Using(tx sqlapi.SqlTx) IssueQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -324,7 +318,7 @@ func (tbl IssueTable) Using(tx sqlapi.SqlTx) IssueTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl IssueTable) Transact(txOptions *sql.TxOptions, fn func(IssueTabler) error) error {
+func (tbl IssueTable) Transact(txOptions *sql.TxOptions, fn func(IssueQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

@@ -12,13 +12,13 @@ package %s
 //-------------------------------------------------------------------------------------------------
 
 const sTabler = `
-// {{.Prefix}}{{.Type}}{{.Thinger}} lists methods provided by {{.Prefix}}{{.Type}}{{.Thing}}.
+// {{.Prefix}}{{.Type}}{{.Thinger}} lists table methods provided by {{.Prefix}}{{.Type}}{{.Thing}}.
 type {{.Prefix}}{{.Type}}{{.Thinger}} interface {
-	// Name gets the table name. without prefix
-	Name() {{.Sqlapi}}.TableName
+	{{.Sqlapi}}.Table
 
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
+	// Constraints returns the table's constraints.
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) {{.Prefix}}{{.Type}}{{.Thinger}}
@@ -28,15 +28,20 @@ type {{.Prefix}}{{.Type}}{{.Thinger}} interface {
 
 	// WithContext returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with a given context.
 	WithContext(ctx context.Context) {{.Prefix}}{{.Type}}{{.Thinger}}
+`
 
+const sQueryer = `
+// {{.Prefix}}{{.Type}}Queryer lists query methods provided by {{.Prefix}}{{.Type}}{{.Thing}}.
+type {{.Prefix}}{{.Type}}Queryer interface {
 	// Using returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} using the transaction supplied.
-	Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}}{{.Type}}{{.Thinger}}
+	Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}}{{.Type}}Queryer
 
 	// Transact runs the function provided within a transaction.
-	Transact(txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}{{.Thinger}}) error) error
+	Transact(txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}Queryer) error) error
 `
 
 var tTabler = template.Must(template.New("Tabler").Funcs(funcMap).Parse(sTabler))
+var tQueryer = template.Must(template.New("Tabler").Funcs(funcMap).Parse(sQueryer))
 
 //-------------------------------------------------------------------------------------------------
 
@@ -189,7 +194,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
 // Using returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}}{{.Type}}{{.Thinger}} {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}}{{.Type}}Queryer {
 	tbl.db = tx
 	return tbl
 }
@@ -199,7 +204,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Transact(txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}{{.Thinger}}) error) error {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Transact(txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}Queryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

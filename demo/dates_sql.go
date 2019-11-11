@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demo
 
@@ -20,22 +20,13 @@ import (
 	"strings"
 )
 
-// DatesTabler lists methods provided by DatesTable.
+// DatesTabler lists table methods provided by DatesTable.
 type DatesTabler interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified DatesTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) DatesTabler
@@ -46,12 +37,6 @@ type DatesTabler interface {
 	// WithContext returns a modified DatesTabler with a given context.
 	WithContext(ctx context.Context) DatesTabler
 
-	// Using returns a modified DatesTabler using the transaction supplied.
-	Using(tx sqlapi.SqlTx) DatesTabler
-
-	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(DatesTabler) error) error
-
 	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
 
@@ -60,6 +45,15 @@ type DatesTabler interface {
 
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
+}
+
+// DatesQueryer lists query methods provided by DatesTable.
+type DatesQueryer interface {
+	// Using returns a modified DatesTabler using the transaction supplied.
+	Using(tx sqlapi.SqlTx) DatesQueryer
+
+	// Transact runs the function provided within a transaction.
+	Transact(txOptions *sql.TxOptions, fn func(DatesQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 
@@ -278,7 +272,7 @@ func (tbl DatesTable) IsTx() bool {
 // Using returns a modified DatesTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DatesTable) Using(tx sqlapi.SqlTx) DatesTabler {
+func (tbl DatesTable) Using(tx sqlapi.SqlTx) DatesQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -288,7 +282,7 @@ func (tbl DatesTable) Using(tx sqlapi.SqlTx) DatesTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl DatesTable) Transact(txOptions *sql.TxOptions, fn func(DatesTabler) error) error {
+func (tbl DatesTable) Transact(txOptions *sql.TxOptions, fn func(DatesQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

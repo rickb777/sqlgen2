@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demopgx
 
@@ -21,22 +21,13 @@ import (
 	"strings"
 )
 
-// AddressTabler lists methods provided by AddressTable.
+// AddressTabler lists table methods provided by AddressTable.
 type AddressTabler interface {
-	// Name gets the table name. without prefix
-	Name() pgxapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() pgxapi.Logger
+	pgxapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified AddressTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) AddressTabler
@@ -46,12 +37,6 @@ type AddressTabler interface {
 
 	// WithContext returns a modified AddressTabler with a given context.
 	WithContext(ctx context.Context) AddressTabler
-
-	// Using returns a modified AddressTabler using the transaction supplied.
-	Using(tx pgxapi.SqlTx) AddressTabler
-
-	// Transact runs the function provided within a transaction.
-	Transact(txOptions *pgx.TxOptions, fn func(AddressTabler) error) error
 
 	// CreateTable creates the table.
 	CreateTable(ifNotExists bool) (int64, error)
@@ -77,8 +62,23 @@ type AddressTabler interface {
 	// DropTownIdxIndex drops the townIdx index.
 	DropTownIdxIndex(ifExists bool) error
 
+	// CreateUprnIdxIndex creates the uprn_idx index.
+	CreateUprnIdxIndex(ifNotExist bool) error
+
+	// DropUprnIdxIndex drops the uprn_idx index.
+	DropUprnIdxIndex(ifExists bool) error
+
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
+}
+
+// AddressQueryer lists query methods provided by AddressTable.
+type AddressQueryer interface {
+	// Using returns a modified AddressTabler using the transaction supplied.
+	Using(tx pgxapi.SqlTx) AddressQueryer
+
+	// Transact runs the function provided within a transaction.
+	Transact(txOptions *pgx.TxOptions, fn func(AddressQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 
@@ -107,6 +107,9 @@ type AddressTabler interface {
 	// GetAddressesByTown gets the records with a given town value.
 	GetAddressesByTown(req require.Requirement, town string) ([]*Address, error)
 
+	// GetAddressByUPRN gets the record with a given uprn value.
+	GetAddressByUPRN(req require.Requirement, uprn string) (*Address, error)
+
 	// SelectOneWhere allows a single Address to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error)
 
@@ -134,6 +137,9 @@ type AddressTabler interface {
 	// SlicePostcode gets the postcode column for all rows that match the 'where' condition.
 	SlicePostcode(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
+	// SliceUprn gets the uprn column for all rows that match the 'where' condition.
+	SliceUprn(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+
 	// Insert adds new records for the Addresses, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Address) error
 
@@ -158,6 +164,10 @@ type AddressTabler interface {
 	// DeleteAddressesByPostcode deletes rows from the table, given some postcode values.
 	// The list of ids can be arbitrarily long.
 	DeleteAddressesByPostcode(req require.Requirement, values ...string) (int64, error)
+
+	// DeleteAddressesByUprn deletes rows from the table, given some uprn values.
+	// The list of ids can be arbitrarily long.
+	DeleteAddressesByUprn(req require.Requirement, values ...string) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
@@ -303,7 +313,7 @@ func (tbl AddressTable) IsTx() bool {
 // Using returns a modified AddressTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl AddressTable) Using(tx pgxapi.SqlTx) AddressTabler {
+func (tbl AddressTable) Using(tx pgxapi.SqlTx) AddressQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -313,7 +323,7 @@ func (tbl AddressTable) Using(tx pgxapi.SqlTx) AddressTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl AddressTable) Transact(txOptions *pgx.TxOptions, fn func(AddressTabler) error) error {
+func (tbl AddressTable) Transact(txOptions *pgx.TxOptions, fn func(AddressQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -336,16 +346,16 @@ func (tbl AddressTable) quotedNameW(w dialect.StringWriter) {
 //--------------------------------------------------------------------------------
 
 // NumAddressTableColumns is the total number of columns in AddressTable.
-const NumAddressTableColumns = 4
+const NumAddressTableColumns = 5
 
 // NumAddressTableDataColumns is the number of columns in AddressTable not including the auto-increment key.
-const NumAddressTableDataColumns = 3
+const NumAddressTableDataColumns = 4
 
 // AddressTableColumnNames is the list of columns in AddressTable.
-const AddressTableColumnNames = "id,lines,town,postcode"
+const AddressTableColumnNames = "id,lines,town,postcode,uprn"
 
 // AddressTableDataColumnNames is the list of data columns in AddressTable.
-const AddressTableDataColumnNames = "lines,town,postcode"
+const AddressTableDataColumnNames = "lines,town,postcode,uprn"
 
 var listOfAddressTableColumnNames = strings.Split(AddressTableColumnNames, ",")
 
@@ -356,12 +366,14 @@ var sqlAddressTableCreateColumnsSqlite = []string{
 	"text",
 	"text default null",
 	"text not null",
+	"text not null",
 }
 
 var sqlAddressTableCreateColumnsMysql = []string{
 	"bigint not null primary key auto_increment",
 	"json",
 	"varchar(80) default null",
+	"varchar(20) not null",
 	"varchar(20) not null",
 }
 
@@ -370,12 +382,14 @@ var sqlAddressTableCreateColumnsPostgres = []string{
 	"json",
 	"text default null",
 	"text not null",
+	"text not null",
 }
 
 var sqlAddressTableCreateColumnsPgx = []string{
 	"bigserial not null primary key",
 	"json",
 	"text default null",
+	"text not null",
 	"text not null",
 }
 
@@ -388,6 +402,10 @@ var listOfPostcodeIdxIndexColumns = []string{"postcode"}
 const sqlTownIdxIndexColumns = "town"
 
 var listOfTownIdxIndexColumns = []string{"town"}
+
+const sqlUprnIdxIndexColumns = "uprn"
+
+var listOfUprnIdxIndexColumns = []string{"uprn"}
 
 //--------------------------------------------------------------------------------
 
@@ -477,6 +495,11 @@ func (tbl AddressTable) CreateIndexes(ifNotExist bool) (err error) {
 	}
 
 	err = tbl.CreateTownIdxIndex(ifNotExist)
+	if err != nil {
+		return err
+	}
+
+	err = tbl.CreateUprnIdxIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
@@ -574,6 +597,51 @@ func dropAddressTableTownIdxSql(tbl AddressTabler, ifExists bool) string {
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
+// CreateUprnIdxIndex creates the uprn_idx index.
+func (tbl AddressTable) CreateUprnIdxIndex(ifNotExist bool) error {
+	ine := ternaryAddressTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+
+	// Mysql does not support 'if not exists' on indexes
+	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
+
+	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
+		// low-level no-logging Exec
+		tbl.Execer().ExecContext(tbl.ctx, dropAddressTableUprnIdxSql(tbl, false))
+		ine = ""
+	}
+
+	_, err := tbl.Exec(nil, createAddressTableUprnIdxSql(tbl, ine))
+	return err
+}
+
+func createAddressTableUprnIdxSql(tbl AddressTabler, ifNotExists string) string {
+	indexPrefix := tbl.Name().PrefixWithoutDot()
+	id := fmt.Sprintf("%s%s_uprn_idx", indexPrefix, tbl.Name().Name)
+	q := tbl.Dialect().Quoter()
+	cols := strings.Join(q.QuoteN(listOfUprnIdxIndexColumns), ",")
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	return fmt.Sprintf("CREATE UNIQUE INDEX %s%s ON %s (%s)", ifNotExists,
+		q.Quote(id), quotedName, cols)
+}
+
+// DropUprnIdxIndex drops the uprn_idx index.
+func (tbl AddressTable) DropUprnIdxIndex(ifExists bool) error {
+	_, err := tbl.Exec(nil, dropAddressTableUprnIdxSql(tbl, ifExists))
+	return err
+}
+
+func dropAddressTableUprnIdxSql(tbl AddressTabler, ifExists bool) string {
+	// Mysql does not support 'if exists' on indexes
+	ie := ternaryAddressTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	indexPrefix := tbl.Name().PrefixWithoutDot()
+	id := fmt.Sprintf("%s%s_uprn_idx", indexPrefix, tbl.Name().Name)
+	q := tbl.Dialect().Quoter()
+	// Mysql requires extra "ON tbl" clause
+	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
+	onTbl := ternaryAddressTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
+	return "DROP INDEX " + ie + q.Quote(id) + onTbl
+}
+
 // DropIndexes executes queries that drop the indexes on by the Address table.
 func (tbl AddressTable) DropIndexes(ifExist bool) (err error) {
 
@@ -583,6 +651,11 @@ func (tbl AddressTable) DropIndexes(ifExist bool) (err error) {
 	}
 
 	err = tbl.DropTownIdxIndex(ifExist)
+	if err != nil {
+		return err
+	}
+
+	err = tbl.DropUprnIdxIndex(ifExist)
 	if err != nil {
 		return err
 	}
@@ -697,12 +770,14 @@ func ScanAddresses(query string, rows pgxapi.SqlRows, firstOnly bool) (vv []*Add
 		var v1 []byte
 		var v2 sql.NullString
 		var v3 string
+		var v4 string
 
 		err = rows.Scan(
 			&v0,
 			&v1,
 			&v2,
 			&v3,
+			&v4,
 		)
 		if err != nil {
 			return vv, n, errors.Wrap(err, query)
@@ -710,15 +785,16 @@ func ScanAddresses(query string, rows pgxapi.SqlRows, firstOnly bool) (vv []*Add
 
 		v := &Address{}
 		v.Id = v0
-		err = json.Unmarshal(v1, &v.Lines)
+		err = json.Unmarshal(v1, &v.AddressFields.Lines)
 		if err != nil {
 			return nil, n, errors.Wrap(err, query)
 		}
 		if v2.Valid {
 			a := v2.String
-			v.Town = &a
+			v.AddressFields.Town = &a
 		}
-		v.Postcode = v3
+		v.AddressFields.Postcode = v3
+		v.AddressFields.UPRN = v4
 
 		var iv interface{} = v
 		if hook, ok := iv.(pgxapi.CanPostGet); ok {
@@ -788,6 +864,12 @@ func (tbl AddressTable) GetAddressesByPostcode(req require.Requirement, postcode
 // If not found, the resulting slice will be empty (nil).
 func (tbl AddressTable) GetAddressesByTown(req require.Requirement, town string) ([]*Address, error) {
 	return tbl.Select(req, where.And(where.Eq("town", town)), nil)
+}
+
+// GetAddressByUPRN gets the record with a given uprn value.
+// If not found, *Address will be nil.
+func (tbl AddressTable) GetAddressByUPRN(req require.Requirement, uprn string) (*Address, error) {
+	return tbl.SelectOne(req, where.And(where.Eq("uprn", uprn)), nil)
 }
 
 func getAddress(tbl AddressTable, req require.Requirement, column string, arg interface{}) (*Address, error) {
@@ -943,9 +1025,16 @@ func (tbl AddressTable) SlicePostcode(req require.Requirement, wh where.Expressi
 	return support.SliceStringList(tbl, req, "postcode", wh, qc)
 }
 
+// SliceUprn gets the uprn column for all rows that match the 'where' condition.
+// Any order, limit or offset clauses can be supplied in query constraint 'qc'.
+// Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
+func (tbl AddressTable) SliceUprn(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "uprn", wh, qc)
+}
+
 func constructAddressTableInsert(tbl AddressTable, w dialect.StringWriter, v *Address, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
-	s = make([]interface{}, 0, 4)
+	s = make([]interface{}, 0, 5)
 
 	comma := ""
 	w.WriteString(" (")
@@ -959,21 +1048,25 @@ func constructAddressTableInsert(tbl AddressTable, w dialect.StringWriter, v *Ad
 	w.WriteString(comma)
 	q.QuoteW(w, "lines")
 	comma = ","
-	x, err := json.Marshal(&v.Lines)
+	x, err := json.Marshal(&v.AddressFields.Lines)
 	if err != nil {
 		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
-	if v.Town != nil {
+	if v.AddressFields.Town != nil {
 		w.WriteString(comma)
 		q.QuoteW(w, "town")
-		s = append(s, v.Town)
+		s = append(s, v.AddressFields.Town)
 	}
 
 	w.WriteString(comma)
 	q.QuoteW(w, "postcode")
-	s = append(s, v.Postcode)
+	s = append(s, v.AddressFields.Postcode)
+
+	w.WriteString(comma)
+	q.QuoteW(w, "uprn")
+	s = append(s, v.AddressFields.UPRN)
 
 	w.WriteString(")")
 	return s, nil
@@ -982,7 +1075,7 @@ func constructAddressTableInsert(tbl AddressTable, w dialect.StringWriter, v *Ad
 func constructAddressTableUpdate(tbl AddressTable, w dialect.StringWriter, v *Address) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
-	s = make([]interface{}, 0, 3)
+	s = make([]interface{}, 0, 4)
 
 	comma := ""
 
@@ -992,17 +1085,17 @@ func constructAddressTableUpdate(tbl AddressTable, w dialect.StringWriter, v *Ad
 	comma = ", "
 	j++
 
-	x, err := json.Marshal(&v.Lines)
+	x, err := json.Marshal(&v.AddressFields.Lines)
 	if err != nil {
 		return nil, tbl.Logger().LogError(errors.WithStack(err))
 	}
 	s = append(s, x)
 
 	w.WriteString(comma)
-	if v.Town != nil {
+	if v.AddressFields.Town != nil {
 		q.QuoteW(w, "town")
 		w.WriteString("=?")
-		s = append(s, v.Town)
+		s = append(s, v.AddressFields.Town)
 		j++
 	} else {
 		q.QuoteW(w, "town")
@@ -1012,7 +1105,13 @@ func constructAddressTableUpdate(tbl AddressTable, w dialect.StringWriter, v *Ad
 	w.WriteString(comma)
 	q.QuoteW(w, "postcode")
 	w.WriteString("=?")
-	s = append(s, v.Postcode)
+	s = append(s, v.AddressFields.Postcode)
+	j++
+
+	w.WriteString(comma)
+	q.QuoteW(w, "uprn")
+	w.WriteString("=?")
+	s = append(s, v.AddressFields.UPRN)
 	j++
 	return s, nil
 }
@@ -1198,6 +1297,16 @@ func (tbl AddressTable) DeleteAddressesByTown(req require.Requirement, values ..
 // DeleteAddressesByPostcode deletes rows from the table, given some postcode values.
 // The list of ids can be arbitrarily long.
 func (tbl AddressTable) DeleteAddressesByPostcode(req require.Requirement, values ...string) (int64, error) {
+	ii := make([]interface{}, len(values))
+	for i, v := range values {
+		ii[i] = v
+	}
+	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+}
+
+// DeleteAddressesByUprn deletes rows from the table, given some uprn values.
+// The list of ids can be arbitrarily long.
+func (tbl AddressTable) DeleteAddressesByUprn(req require.Requirement, values ...string) (int64, error) {
 	ii := make([]interface{}, len(values))
 	for i, v := range values {
 		ii[i] = v

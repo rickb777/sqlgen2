@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demo
 
@@ -18,22 +18,13 @@ import (
 	"strings"
 )
 
-// LUserTabler lists methods provided by LUserTable.
+// LUserTabler lists table methods provided by LUserTable.
 type LUserTabler interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified LUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) LUserTabler
@@ -43,12 +34,15 @@ type LUserTabler interface {
 
 	// WithContext returns a modified LUserTabler with a given context.
 	WithContext(ctx context.Context) LUserTabler
+}
 
+// LUserQueryer lists query methods provided by LUserTable.
+type LUserQueryer interface {
 	// Using returns a modified LUserTabler using the transaction supplied.
-	Using(tx sqlapi.SqlTx) LUserTabler
+	Using(tx sqlapi.SqlTx) LUserQueryer
 
 	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(LUserTabler) error) error
+	Transact(txOptions *sql.TxOptions, fn func(LUserQueryer) error) error
 
 	// SliceUid gets the uid column for all rows that match the 'where' condition.
 	SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
@@ -244,7 +238,7 @@ func (tbl LUserTable) IsTx() bool {
 // Using returns a modified LUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl LUserTable) Using(tx sqlapi.SqlTx) LUserTabler {
+func (tbl LUserTable) Using(tx sqlapi.SqlTx) LUserQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -254,7 +248,7 @@ func (tbl LUserTable) Using(tx sqlapi.SqlTx) LUserTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl LUserTable) Transact(txOptions *sql.TxOptions, fn func(LUserTabler) error) error {
+func (tbl LUserTable) Transact(txOptions *sql.TxOptions, fn func(LUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined

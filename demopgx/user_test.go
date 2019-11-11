@@ -444,7 +444,7 @@ func update_users_in_tx(g *GomegaWithT, tbl DbUserTable, user *User) {
 	user.EmailAddress = "dude@zzz.com"
 	//utter.Dump(user)
 
-	err := tbl.Transact(nil, func(t2 DbUserTabler) error {
+	err := tbl.Transact(nil, func(t2 DbUserQueryer) error {
 		n, err := t2.Update(require.One, user)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(n).To(BeEquivalentTo(1))

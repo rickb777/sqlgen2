@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.59.0-1-gb99ffb8
+// sqlapi v0.40.1; sqlgen v0.60.0
 
 package demo
 
@@ -17,22 +17,13 @@ import (
 	"strings"
 )
 
-// IUserTabler lists methods provided by IUserTable.
+// IUserTabler lists table methods provided by IUserTable.
 type IUserTabler interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Ctx gets the current request context.
-	//Ctx() context.Context
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	//Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	//Constraints() constraint.Constraints
+	// (not included here because of package inter-dependencies)
+	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified IUserTabler with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) IUserTabler
@@ -42,12 +33,15 @@ type IUserTabler interface {
 
 	// WithContext returns a modified IUserTabler with a given context.
 	WithContext(ctx context.Context) IUserTabler
+}
 
+// IUserQueryer lists query methods provided by IUserTable.
+type IUserQueryer interface {
 	// Using returns a modified IUserTabler using the transaction supplied.
-	Using(tx sqlapi.SqlTx) IUserTabler
+	Using(tx sqlapi.SqlTx) IUserQueryer
 
 	// Transact runs the function provided within a transaction.
-	Transact(txOptions *sql.TxOptions, fn func(IUserTabler) error) error
+	Transact(txOptions *sql.TxOptions, fn func(IUserQueryer) error) error
 
 	// Insert adds new records for the Users, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*User) error
@@ -195,7 +189,7 @@ func (tbl IUserTable) IsTx() bool {
 // Using returns a modified IUserTabler using the transaction supplied. This is needed
 // when making multiple queries across several tables within a single transaction.
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl IUserTable) Using(tx sqlapi.SqlTx) IUserTabler {
+func (tbl IUserTable) Using(tx sqlapi.SqlTx) IUserQueryer {
 	tbl.db = tx
 	return tbl
 }
@@ -205,7 +199,7 @@ func (tbl IUserTable) Using(tx sqlapi.SqlTx) IUserTabler {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl IUserTable) Transact(txOptions *sql.TxOptions, fn func(IUserTabler) error) error {
+func (tbl IUserTable) Transact(txOptions *sql.TxOptions, fn func(IUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
