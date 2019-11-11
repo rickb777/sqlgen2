@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.0
+// sqlapi v0.40.1; sqlgen v0.60.1
 
 package demo
 
@@ -42,6 +42,13 @@ type CUserQueryer interface {
 
 	// Transact runs the function provided within a transaction.
 	Transact(txOptions *sql.TxOptions, fn func(CUserQueryer) error) error
+
+	// Tx gets the wrapped transaction handle, provided this is within a transaction.
+	// Panics if it is in the wrong state - use IsTx() if necessary.
+	Tx() sqlapi.SqlTx
+
+	// IsTx tests whether this is within a transaction.
+	IsTx() bool
 
 	// CountWhere counts Users in the table that match a 'where' clause.
 	CountWhere(where string, args ...interface{}) (count int64, err error)
@@ -189,8 +196,9 @@ func (tbl CUserTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified CUserTabler using the transaction supplied. This is needed
-// when making multiple queries across several tables within a single transaction.
+// Using returns a modified CUserTabler using the transaction supplied. This is
+// needed when making multiple queries across several tables within a single transaction.
+//
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl CUserTable) Using(tx sqlapi.SqlTx) CUserQueryer {
 	tbl.db = tx
@@ -199,6 +207,8 @@ func (tbl CUserTable) Using(tx sqlapi.SqlTx) CUserQueryer {
 
 // Transact runs the function provided within a transaction. If the function completes without error,
 // the transaction is committed. If there is an error or a panic, the transaction is rolled back.
+//
+// The options can be nil, in which case the default behaviour is that of the underlying connection.
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
