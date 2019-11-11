@@ -115,17 +115,22 @@ var tQueryThingsFunc = template.Must(template.New("QueryThingsFunc").Funcs(funcM
 
 const sGetRowDecl = `
 {{- if .Table.Primary}}
-	// Get{{.Types}}By{{.Table.Primary.Name}} gets records from the table according to a list of primary keys.
-	Get{{.Types}}By{{.Table.Primary.Name}}(req require.Requirement, id ...{{.Table.Primary.Type.Type}}) (list {{.List}}, err error)
-
 	// Get{{.Type}}By{{.Table.Primary.Name}} gets the record with a given primary key value.
 	Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.TypePkg}}{{.Type}}, error)
+
+	// Get{{.Types}}By{{.Table.Primary.Name}} gets records from the table according to a list of primary keys.
+	Get{{.Types}}By{{.Table.Primary.Name}}(req require.Requirement, qc where.QueryConstraint, id ...{{.Table.Primary.Type.Type}}) (list {{.List}}, err error)
 {{- end}}
 {{- range .Table.Index}}
 {{- if .Unique}}
 
 	// Get{{$.Type}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
 	Get{{$.Type}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.TypePkg}}{{$.Type}}, error)
+{{- if eq (len .Fields) 1}}
+
+	// Get{{$.Types}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
+	Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, qc where.QueryConstraint, {{(index .Fields 0).SqlName}} ...{{(index .Fields 0).Type.Type}}) ({{$.List}}, error)
+{{- end}}
 {{- else}}
 
 	// Get{{$.Types}}By{{.JoinedNames "And"}} gets the records with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
@@ -144,33 +149,23 @@ func all{{.CamelName}}ColumnNamesQuoted(q quote.Quoter) string {
 
 //--------------------------------------------------------------------------------
 
+// Get{{.Type}}By{{.Table.Primary.Name}} gets the record with a given primary key value.
+// If not found, *{{.Type}} will be nil.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.TypePkg}}{{.Type}}, error) {
+	return tbl.SelectOne(req, where.Eq("{{.Table.Primary.SqlName}}", id), nil)
+}
+
 // Get{{.Types}}By{{.Table.Primary.Name}} gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}(req require.Requirement, id ...{{.Table.Primary.Type.Type}}) (list {{.List}}, err error) {
-	if len(id) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(id))
-		}
-		args := make([]interface{}, len(id))
-
-		for i, v := range id {
-			args[i] = v
-		}
-
-		list, err = get{{.Prefix}}{{.Types}}(tbl, req, tbl.pk, args...)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}(req require.Requirement, qc where.QueryConstraint, {{.Table.Primary.SqlName}} ...{{.Table.Primary.Type.Type}}) (list {{.List}}, err error) {
+	if req == require.All {
+		req = require.Exactly(len({{.Table.Primary.SqlName}}))
 	}
-
-	return list, err
-}
-
-// Get{{.Type}}By{{.Table.Primary.Name}} gets the record with a given primary key value.
-// If not found, *{{.Type}} will be nil.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.TypePkg}}{{.Type}}, error) {
-	return get{{.Prefix}}{{.Type}}(tbl, req, tbl.pk, id)
+	return tbl.Select(req, where.In("{{.Table.Primary.SqlName}}", {{.Table.Primary.SqlName}}), qc)
 }
 {{- end}}
 {{- range .Table.Index}}
@@ -181,6 +176,16 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.TypePkg}}{{$.Type}}, error) {
 	return tbl.SelectOne(req, where.And({{.Fields.WhereClauses.MkString ", "}}), nil)
 }
+{{- if eq (len .Fields) 1}}
+
+// Get{{$.Types}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, qc where.QueryConstraint, {{(index .Fields 0).SqlName}} ...{{(index .Fields 0).Type.Type}}) ({{$.List}}, error) {
+	if req == require.All {
+		req = require.Exactly(len({{(index .Fields 0).SqlName}}))
+	}
+	return tbl.Select(req, where.In("{{(index .Fields 0).SqlName}}", {{(index .Fields 0).SqlName}}), qc)
+}
+{{- end}}
 {{- else }}
 
 // Get{{$.Types}}By{{.JoinedNames "And"}} gets the records with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
@@ -190,33 +195,6 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And
 }
 {{- end}}
 {{- end}}
-
-func get{{.Prefix}}{{.Type}}(tbl {{.Prefix}}{{.Type}}{{.Thing}}, req require.Requirement, column string, arg interface{}) (*{{.TypePkg}}{{.Type}}, error) {
-	d := tbl.Dialect()
-	q := d.Quoter()
-	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		all{{.CamelName}}ColumnNamesQuoted(q), quotedName, q.Quote(column))
-	v, err := do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScanOne(tbl, req, query, arg)
-	return v, err
-}
-
-func get{{.Prefix}}{{.Types}}(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, column string, args ...interface{}) (list {{.List}}, err error) {
-	if len(args) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(args))
-		}
-		d := tbl.Dialect()
-		q := d.Quoter()
-		pl := d.Placeholders(len(args))
-		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			all{{.CamelName}}ColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
-		list, err = do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl, req, false, query, args...)
-	}
-
-	return list, err
-}
 
 func do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScanOne(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, query string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error) {
 	list, err := do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl, req, true, query, args...)

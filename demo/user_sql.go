@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.41.0; sqlgen v0.61.0
+// sqlapi v0.42.0; sqlgen v0.62.0
 
 package demo
 
@@ -97,17 +97,23 @@ type DbUserQueryer interface {
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
-	// GetUsersByUid gets records from the table according to a list of primary keys.
-	GetUsersByUid(req require.Requirement, id ...int64) (list []*User, err error)
-
 	// GetUserByUid gets the record with a given primary key value.
 	GetUserByUid(req require.Requirement, id int64) (*User, error)
+
+	// GetUsersByUid gets records from the table according to a list of primary keys.
+	GetUsersByUid(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*User, err error)
 
 	// GetUserByEmailAddress gets the record with a given emailaddress value.
 	GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error)
 
+	// GetUsersByEmailAddress gets the record with a given emailaddress value.
+	GetUsersByEmailAddress(req require.Requirement, qc where.QueryConstraint, emailaddress ...string) ([]*User, error)
+
 	// GetUserByName gets the record with a given name value.
 	GetUserByName(req require.Requirement, name string) (*User, error)
+
+	// GetUsersByName gets the record with a given name value.
+	GetUsersByName(req require.Requirement, qc where.QueryConstraint, name ...string) ([]*User, error)
 
 	// SelectOneWhere allows a single User to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error)
@@ -1046,33 +1052,23 @@ func allDbUserColumnNamesQuoted(q quote.Quoter) string {
 
 //--------------------------------------------------------------------------------
 
+// GetUserByUid gets the record with a given primary key value.
+// If not found, *User will be nil.
+func (tbl DbUserTable) GetUserByUid(req require.Requirement, id int64) (*User, error) {
+	return tbl.SelectOne(req, where.Eq("uid", id), nil)
+}
+
 // GetUsersByUid gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl DbUserTable) GetUsersByUid(req require.Requirement, id ...int64) (list []*User, err error) {
-	if len(id) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(id))
-		}
-		args := make([]interface{}, len(id))
-
-		for i, v := range id {
-			args[i] = v
-		}
-
-		list, err = getDbUsers(tbl, req, tbl.pk, args...)
+func (tbl DbUserTable) GetUsersByUid(req require.Requirement, qc where.QueryConstraint, uid ...int64) (list []*User, err error) {
+	if req == require.All {
+		req = require.Exactly(len(uid))
 	}
-
-	return list, err
-}
-
-// GetUserByUid gets the record with a given primary key value.
-// If not found, *User will be nil.
-func (tbl DbUserTable) GetUserByUid(req require.Requirement, id int64) (*User, error) {
-	return getDbUser(tbl, req, tbl.pk, id)
+	return tbl.Select(req, where.In("uid", uid), qc)
 }
 
 // GetUserByEmailAddress gets the record with a given emailaddress value.
@@ -1081,37 +1077,26 @@ func (tbl DbUserTable) GetUserByEmailAddress(req require.Requirement, emailaddre
 	return tbl.SelectOne(req, where.And(where.Eq("emailaddress", emailaddress)), nil)
 }
 
+// GetUsersByEmailAddress gets the record with a given emailaddress value.
+func (tbl DbUserTable) GetUsersByEmailAddress(req require.Requirement, qc where.QueryConstraint, emailaddress ...string) ([]*User, error) {
+	if req == require.All {
+		req = require.Exactly(len(emailaddress))
+	}
+	return tbl.Select(req, where.In("emailaddress", emailaddress), qc)
+}
+
 // GetUserByName gets the record with a given name value.
 // If not found, *User will be nil.
 func (tbl DbUserTable) GetUserByName(req require.Requirement, name string) (*User, error) {
 	return tbl.SelectOne(req, where.And(where.Eq("name", name)), nil)
 }
 
-func getDbUser(tbl DbUserTable, req require.Requirement, column string, arg interface{}) (*User, error) {
-	d := tbl.Dialect()
-	q := d.Quoter()
-	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allDbUserColumnNamesQuoted(q), quotedName, q.Quote(column))
-	v, err := doDbUserTableQueryAndScanOne(tbl, req, query, arg)
-	return v, err
-}
-
-func getDbUsers(tbl DbUserTabler, req require.Requirement, column string, args ...interface{}) (list []*User, err error) {
-	if len(args) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(args))
-		}
-		d := tbl.Dialect()
-		q := d.Quoter()
-		pl := d.Placeholders(len(args))
-		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allDbUserColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
-		list, err = doDbUserTableQueryAndScan(tbl, req, false, query, args...)
+// GetUsersByName gets the record with a given name value.
+func (tbl DbUserTable) GetUsersByName(req require.Requirement, qc where.QueryConstraint, name ...string) ([]*User, error) {
+	if req == require.All {
+		req = require.Exactly(len(name))
 	}
-
-	return list, err
+	return tbl.Select(req, where.In("name", name), qc)
 }
 
 func doDbUserTableQueryAndScanOne(tbl DbUserTabler, req require.Requirement, query string, args ...interface{}) (*User, error) {

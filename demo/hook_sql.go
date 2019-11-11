@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.41.0; sqlgen v0.61.0
+// sqlapi v0.42.0; sqlgen v0.62.0
 
 package demo
 
@@ -77,11 +77,11 @@ type HookQueryer interface {
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
-	// GetHooksById gets records from the table according to a list of primary keys.
-	GetHooksById(req require.Requirement, id ...uint64) (list HookList, err error)
-
 	// GetHookById gets the record with a given primary key value.
 	GetHookById(req require.Requirement, id uint64) (*Hook, error)
+
+	// GetHooksById gets records from the table according to a list of primary keys.
+	GetHooksById(req require.Requirement, qc where.QueryConstraint, id ...uint64) (list HookList, err error)
 
 	// SelectOneWhere allows a single Hook to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Hook, error)
@@ -793,60 +793,23 @@ func allHookColumnNamesQuoted(q quote.Quoter) string {
 
 //--------------------------------------------------------------------------------
 
+// GetHookById gets the record with a given primary key value.
+// If not found, *Hook will be nil.
+func (tbl HookTable) GetHookById(req require.Requirement, id uint64) (*Hook, error) {
+	return tbl.SelectOne(req, where.Eq("id", id), nil)
+}
+
 // GetHooksById gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl HookTable) GetHooksById(req require.Requirement, id ...uint64) (list HookList, err error) {
-	if len(id) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(id))
-		}
-		args := make([]interface{}, len(id))
-
-		for i, v := range id {
-			args[i] = v
-		}
-
-		list, err = getHooks(tbl, req, tbl.pk, args...)
+func (tbl HookTable) GetHooksById(req require.Requirement, qc where.QueryConstraint, id ...uint64) (list HookList, err error) {
+	if req == require.All {
+		req = require.Exactly(len(id))
 	}
-
-	return list, err
-}
-
-// GetHookById gets the record with a given primary key value.
-// If not found, *Hook will be nil.
-func (tbl HookTable) GetHookById(req require.Requirement, id uint64) (*Hook, error) {
-	return getHook(tbl, req, tbl.pk, id)
-}
-
-func getHook(tbl HookTable, req require.Requirement, column string, arg interface{}) (*Hook, error) {
-	d := tbl.Dialect()
-	q := d.Quoter()
-	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allHookColumnNamesQuoted(q), quotedName, q.Quote(column))
-	v, err := doHookTableQueryAndScanOne(tbl, req, query, arg)
-	return v, err
-}
-
-func getHooks(tbl HookTabler, req require.Requirement, column string, args ...interface{}) (list HookList, err error) {
-	if len(args) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(args))
-		}
-		d := tbl.Dialect()
-		q := d.Quoter()
-		pl := d.Placeholders(len(args))
-		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allHookColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
-		list, err = doHookTableQueryAndScan(tbl, req, false, query, args...)
-	}
-
-	return list, err
+	return tbl.Select(req, where.In("id", id), qc)
 }
 
 func doHookTableQueryAndScanOne(tbl HookTabler, req require.Requirement, query string, args ...interface{}) (*Hook, error) {

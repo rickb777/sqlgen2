@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.41.0; sqlgen v0.61.0
+// sqlapi v0.42.0; sqlgen v0.62.0
 
 package demo
 
@@ -77,11 +77,11 @@ type AssociationQueryer interface {
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
-	// GetAssociationsById gets records from the table according to a list of primary keys.
-	GetAssociationsById(req require.Requirement, id ...int64) (list []*Association, err error)
-
 	// GetAssociationById gets the record with a given primary key value.
 	GetAssociationById(req require.Requirement, id int64) (*Association, error)
+
+	// GetAssociationsById gets records from the table according to a list of primary keys.
+	GetAssociationsById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Association, err error)
 
 	// SelectOneWhere allows a single Association to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error)
@@ -651,60 +651,23 @@ func allAssociationColumnNamesQuoted(q quote.Quoter) string {
 
 //--------------------------------------------------------------------------------
 
+// GetAssociationById gets the record with a given primary key value.
+// If not found, *Association will be nil.
+func (tbl AssociationTable) GetAssociationById(req require.Requirement, id int64) (*Association, error) {
+	return tbl.SelectOne(req, where.Eq("id", id), nil)
+}
+
 // GetAssociationsById gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl AssociationTable) GetAssociationsById(req require.Requirement, id ...int64) (list []*Association, err error) {
-	if len(id) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(id))
-		}
-		args := make([]interface{}, len(id))
-
-		for i, v := range id {
-			args[i] = v
-		}
-
-		list, err = getAssociations(tbl, req, tbl.pk, args...)
+func (tbl AssociationTable) GetAssociationsById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Association, err error) {
+	if req == require.All {
+		req = require.Exactly(len(id))
 	}
-
-	return list, err
-}
-
-// GetAssociationById gets the record with a given primary key value.
-// If not found, *Association will be nil.
-func (tbl AssociationTable) GetAssociationById(req require.Requirement, id int64) (*Association, error) {
-	return getAssociation(tbl, req, tbl.pk, id)
-}
-
-func getAssociation(tbl AssociationTable, req require.Requirement, column string, arg interface{}) (*Association, error) {
-	d := tbl.Dialect()
-	q := d.Quoter()
-	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allAssociationColumnNamesQuoted(q), quotedName, q.Quote(column))
-	v, err := doAssociationTableQueryAndScanOne(tbl, req, query, arg)
-	return v, err
-}
-
-func getAssociations(tbl AssociationTabler, req require.Requirement, column string, args ...interface{}) (list []*Association, err error) {
-	if len(args) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(args))
-		}
-		d := tbl.Dialect()
-		q := d.Quoter()
-		pl := d.Placeholders(len(args))
-		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allAssociationColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
-		list, err = doAssociationTableQueryAndScan(tbl, req, false, query, args...)
-	}
-
-	return list, err
+	return tbl.Select(req, where.In("id", id), qc)
 }
 
 func doAssociationTableQueryAndScanOne(tbl AssociationTabler, req require.Requirement, query string, args ...interface{}) (*Association, error) {

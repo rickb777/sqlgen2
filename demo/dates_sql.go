@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.41.0; sqlgen v0.61.0
+// sqlapi v0.42.0; sqlgen v0.62.0
 
 package demo
 
@@ -78,11 +78,11 @@ type DatesQueryer interface {
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
-	// GetDatessById gets records from the table according to a list of primary keys.
-	GetDatessById(req require.Requirement, id ...uint64) (list []*Dates, err error)
-
 	// GetDatesById gets the record with a given primary key value.
 	GetDatesById(req require.Requirement, id uint64) (*Dates, error)
+
+	// GetDatessById gets records from the table according to a list of primary keys.
+	GetDatessById(req require.Requirement, qc where.QueryConstraint, id ...uint64) (list []*Dates, err error)
 
 	// SelectOneWhere allows a single Dates to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Dates, error)
@@ -586,60 +586,23 @@ func allDatesColumnNamesQuoted(q quote.Quoter) string {
 
 //--------------------------------------------------------------------------------
 
+// GetDatesById gets the record with a given primary key value.
+// If not found, *Dates will be nil.
+func (tbl DatesTable) GetDatesById(req require.Requirement, id uint64) (*Dates, error) {
+	return tbl.SelectOne(req, where.Eq("id", id), nil)
+}
+
 // GetDatessById gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl DatesTable) GetDatessById(req require.Requirement, id ...uint64) (list []*Dates, err error) {
-	if len(id) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(id))
-		}
-		args := make([]interface{}, len(id))
-
-		for i, v := range id {
-			args[i] = v
-		}
-
-		list, err = getDatess(tbl, req, tbl.pk, args...)
+func (tbl DatesTable) GetDatessById(req require.Requirement, qc where.QueryConstraint, id ...uint64) (list []*Dates, err error) {
+	if req == require.All {
+		req = require.Exactly(len(id))
 	}
-
-	return list, err
-}
-
-// GetDatesById gets the record with a given primary key value.
-// If not found, *Dates will be nil.
-func (tbl DatesTable) GetDatesById(req require.Requirement, id uint64) (*Dates, error) {
-	return getDates(tbl, req, tbl.pk, id)
-}
-
-func getDates(tbl DatesTable, req require.Requirement, column string, arg interface{}) (*Dates, error) {
-	d := tbl.Dialect()
-	q := d.Quoter()
-	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allDatesColumnNamesQuoted(q), quotedName, q.Quote(column))
-	v, err := doDatesTableQueryAndScanOne(tbl, req, query, arg)
-	return v, err
-}
-
-func getDatess(tbl DatesTabler, req require.Requirement, column string, args ...interface{}) (list []*Dates, err error) {
-	if len(args) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(args))
-		}
-		d := tbl.Dialect()
-		q := d.Quoter()
-		pl := d.Placeholders(len(args))
-		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allDatesColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
-		list, err = doDatesTableQueryAndScan(tbl, req, false, query, args...)
-	}
-
-	return list, err
+	return tbl.Select(req, where.In("id", id), qc)
 }
 
 func doDatesTableQueryAndScanOne(tbl DatesTabler, req require.Requirement, query string, args ...interface{}) (*Dates, error) {

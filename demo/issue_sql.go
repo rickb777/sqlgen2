@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.41.0; sqlgen v0.61.0
+// sqlapi v0.42.0; sqlgen v0.62.0
 
 package demo
 
@@ -90,11 +90,11 @@ type IssueQueryer interface {
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
-	// GetIssuesById gets records from the table according to a list of primary keys.
-	GetIssuesById(req require.Requirement, id ...int64) (list []*Issue, err error)
-
 	// GetIssueById gets the record with a given primary key value.
 	GetIssueById(req require.Requirement, id int64) (*Issue, error)
+
+	// GetIssuesById gets records from the table according to a list of primary keys.
+	GetIssuesById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Issue, err error)
 
 	// GetIssuesByAssignee gets the records with a given assignee value.
 	GetIssuesByAssignee(req require.Requirement, assignee string) ([]*Issue, error)
@@ -754,66 +754,29 @@ func allIssueColumnNamesQuoted(q quote.Quoter) string {
 
 //--------------------------------------------------------------------------------
 
+// GetIssueById gets the record with a given primary key value.
+// If not found, *Issue will be nil.
+func (tbl IssueTable) GetIssueById(req require.Requirement, id int64) (*Issue, error) {
+	return tbl.SelectOne(req, where.Eq("id", id), nil)
+}
+
 // GetIssuesById gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl IssueTable) GetIssuesById(req require.Requirement, id ...int64) (list []*Issue, err error) {
-	if len(id) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(id))
-		}
-		args := make([]interface{}, len(id))
-
-		for i, v := range id {
-			args[i] = v
-		}
-
-		list, err = getIssues(tbl, req, tbl.pk, args...)
+func (tbl IssueTable) GetIssuesById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Issue, err error) {
+	if req == require.All {
+		req = require.Exactly(len(id))
 	}
-
-	return list, err
-}
-
-// GetIssueById gets the record with a given primary key value.
-// If not found, *Issue will be nil.
-func (tbl IssueTable) GetIssueById(req require.Requirement, id int64) (*Issue, error) {
-	return getIssue(tbl, req, tbl.pk, id)
+	return tbl.Select(req, where.In("id", id), qc)
 }
 
 // GetIssuesByAssignee gets the records with a given assignee value.
 // If not found, the resulting slice will be empty (nil).
 func (tbl IssueTable) GetIssuesByAssignee(req require.Requirement, assignee string) ([]*Issue, error) {
 	return tbl.Select(req, where.And(where.Eq("assignee", assignee)), nil)
-}
-
-func getIssue(tbl IssueTable, req require.Requirement, column string, arg interface{}) (*Issue, error) {
-	d := tbl.Dialect()
-	q := d.Quoter()
-	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allIssueColumnNamesQuoted(q), quotedName, q.Quote(column))
-	v, err := doIssueTableQueryAndScanOne(tbl, req, query, arg)
-	return v, err
-}
-
-func getIssues(tbl IssueTabler, req require.Requirement, column string, args ...interface{}) (list []*Issue, err error) {
-	if len(args) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(args))
-		}
-		d := tbl.Dialect()
-		q := d.Quoter()
-		pl := d.Placeholders(len(args))
-		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allIssueColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
-		list, err = doIssueTableQueryAndScan(tbl, req, false, query, args...)
-	}
-
-	return list, err
 }
 
 func doIssueTableQueryAndScanOne(tbl IssueTabler, req require.Requirement, query string, args ...interface{}) (*Issue, error) {

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.41.0; sqlgen v0.61.0
+// sqlapi v0.42.0; sqlgen v0.62.0
 
 package demopgx
 
@@ -103,11 +103,11 @@ type AddressQueryer interface {
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
-	// GetAddressesById gets records from the table according to a list of primary keys.
-	GetAddressesById(req require.Requirement, id ...int64) (list []*Address, err error)
-
 	// GetAddressById gets the record with a given primary key value.
 	GetAddressById(req require.Requirement, id int64) (*Address, error)
+
+	// GetAddressesById gets records from the table according to a list of primary keys.
+	GetAddressesById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Address, err error)
 
 	// GetAddressesByPostcode gets the records with a given postcode value.
 	GetAddressesByPostcode(req require.Requirement, postcode string) ([]*Address, error)
@@ -117,6 +117,9 @@ type AddressQueryer interface {
 
 	// GetAddressByUPRN gets the record with a given uprn value.
 	GetAddressByUPRN(req require.Requirement, uprn string) (*Address, error)
+
+	// GetAddressesByUPRN gets the record with a given uprn value.
+	GetAddressesByUPRN(req require.Requirement, qc where.QueryConstraint, uprn ...string) ([]*Address, error)
 
 	// SelectOneWhere allows a single Address to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error)
@@ -853,33 +856,23 @@ func allAddressColumnNamesQuoted(q quote.Quoter) string {
 
 //--------------------------------------------------------------------------------
 
+// GetAddressById gets the record with a given primary key value.
+// If not found, *Address will be nil.
+func (tbl AddressTable) GetAddressById(req require.Requirement, id int64) (*Address, error) {
+	return tbl.SelectOne(req, where.Eq("id", id), nil)
+}
+
 // GetAddressesById gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl AddressTable) GetAddressesById(req require.Requirement, id ...int64) (list []*Address, err error) {
-	if len(id) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(id))
-		}
-		args := make([]interface{}, len(id))
-
-		for i, v := range id {
-			args[i] = v
-		}
-
-		list, err = getAddresses(tbl, req, tbl.pk, args...)
+func (tbl AddressTable) GetAddressesById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Address, err error) {
+	if req == require.All {
+		req = require.Exactly(len(id))
 	}
-
-	return list, err
-}
-
-// GetAddressById gets the record with a given primary key value.
-// If not found, *Address will be nil.
-func (tbl AddressTable) GetAddressById(req require.Requirement, id int64) (*Address, error) {
-	return getAddress(tbl, req, tbl.pk, id)
+	return tbl.Select(req, where.In("id", id), qc)
 }
 
 // GetAddressesByPostcode gets the records with a given postcode value.
@@ -900,31 +893,12 @@ func (tbl AddressTable) GetAddressByUPRN(req require.Requirement, uprn string) (
 	return tbl.SelectOne(req, where.And(where.Eq("uprn", uprn)), nil)
 }
 
-func getAddress(tbl AddressTable, req require.Requirement, column string, arg interface{}) (*Address, error) {
-	d := tbl.Dialect()
-	q := d.Quoter()
-	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allAddressColumnNamesQuoted(q), quotedName, q.Quote(column))
-	v, err := doAddressTableQueryAndScanOne(tbl, req, query, arg)
-	return v, err
-}
-
-func getAddresses(tbl AddressTabler, req require.Requirement, column string, args ...interface{}) (list []*Address, err error) {
-	if len(args) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(args))
-		}
-		d := tbl.Dialect()
-		q := d.Quoter()
-		pl := d.Placeholders(len(args))
-		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allAddressColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
-		list, err = doAddressTableQueryAndScan(tbl, req, false, query, args...)
+// GetAddressesByUPRN gets the record with a given uprn value.
+func (tbl AddressTable) GetAddressesByUPRN(req require.Requirement, qc where.QueryConstraint, uprn ...string) ([]*Address, error) {
+	if req == require.All {
+		req = require.Exactly(len(uprn))
 	}
-
-	return list, err
+	return tbl.Select(req, where.In("uprn", uprn), qc)
 }
 
 func doAddressTableQueryAndScanOne(tbl AddressTabler, req require.Requirement, query string, args ...interface{}) (*Address, error) {

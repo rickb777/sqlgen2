@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.41.0; sqlgen v0.61.0
+// sqlapi v0.42.0; sqlgen v0.62.0
 
 package demo
 
@@ -656,33 +656,6 @@ func allDbCompoundColumnNamesQuoted(q quote.Quoter) string {
 // If not found, *Compound will be nil.
 func (tbl DbCompoundTable) GetCompoundByAlphaAndBeta(req require.Requirement, alpha string, beta string) (*Compound, error) {
 	return tbl.SelectOne(req, where.And(where.Eq("alpha", alpha), where.Eq("beta", beta)), nil)
-}
-
-func getDbCompound(tbl DbCompoundTable, req require.Requirement, column string, arg interface{}) (*Compound, error) {
-	d := tbl.Dialect()
-	q := d.Quoter()
-	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s=?",
-		allDbCompoundColumnNamesQuoted(q), quotedName, q.Quote(column))
-	v, err := doDbCompoundTableQueryAndScanOne(tbl, req, query, arg)
-	return v, err
-}
-
-func getDbCompounds(tbl DbCompoundTabler, req require.Requirement, column string, args ...interface{}) (list []*Compound, err error) {
-	if len(args) > 0 {
-		if req == require.All {
-			req = require.Exactly(len(args))
-		}
-		d := tbl.Dialect()
-		q := d.Quoter()
-		pl := d.Placeholders(len(args))
-		quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s IN (%s)",
-			allDbCompoundColumnNamesQuoted(q), quotedName, q.Quote(column), pl)
-		list, err = doDbCompoundTableQueryAndScan(tbl, req, false, query, args...)
-	}
-
-	return list, err
 }
 
 func doDbCompoundTableQueryAndScanOne(tbl DbCompoundTabler, req require.Requirement, query string, args ...interface{}) (*Compound, error) {
