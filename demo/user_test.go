@@ -740,7 +740,7 @@ func xTestBulk_delete_using_database(t *testing.T) {
 		ids[i] = list[i].Uid
 	}
 
-	j, err := tbl.DeleteUsers(require.All, ids...)
+	j, err := tbl.DeleteUsersById(require.All, ids...)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(j).To(BeEquivalentTo(n))
 }

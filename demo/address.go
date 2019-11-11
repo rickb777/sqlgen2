@@ -11,6 +11,7 @@ type AddressFields struct {
 	Lines    []string `sql:"encode: json"`
 	Town     *string  `sql:"size: 80, index: townIdx"`
 	Postcode string   `sql:"size: 20, index: postcodeIdx"`
+	UPRN     string   `sql:"size: 20, unique: uprnIdx"`
 }
 
 type Address struct {

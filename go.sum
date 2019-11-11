@@ -287,6 +287,7 @@ github.com/mattn/go-isatty v0.0.4/go.mod h1:M+lRXTBqGeGNdLjl/ufCoiOlB5xdOkqRJdNx
 github.com/mattn/go-sqlite3 v1.9.0/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
 github.com/mattn/go-sqlite3 v1.10.0 h1:jbhqpg7tQe4SupckyijYiy0mJJ/pRyHvXf7JdWK860o=
 github.com/mattn/go-sqlite3 v1.10.0/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
+github.com/mattn/goveralls v0.0.4/go.mod h1:8d1ZMHsd7fW6IRPKQh46F2WRpyib5/X4FOpevwGNQEw=
 github.com/microcosm-cc/bluemonday v1.0.1/go.mod h1:hsXNsILzKxV+sX77C5b8FSuKF00vh2OMYv+xgHpAMF4=
 github.com/microcosm-cc/bluemonday v1.0.2/go.mod h1:iVP4YcDBq+n/5fb23BhYFvIMq/leAFZyRl6bYmGDlGc=
 github.com/mitchellh/go-homedir v1.0.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
@@ -336,6 +337,10 @@ github.com/rickb777/sqlapi v0.38.1 h1:dIuPihd77k0c7AYFZxyAoITZVBoT7Pz+tbonyiIQmZ
 github.com/rickb777/sqlapi v0.38.1/go.mod h1:je//0Tm4km0coaEHSOmFcdJmT1LRA5dpgZYrztWVoG0=
 github.com/rickb777/sqlapi v0.38.2 h1:0wRoO5XY9k9/dhyQk9BUTj3cKsyNTl3iNmka7/UUl/c=
 github.com/rickb777/sqlapi v0.38.2/go.mod h1:L7LaxVDsBodeFKgGsPZCW5lHlS/p4Eb3gqWqkc1fqiI=
+github.com/rickb777/sqlapi v0.40.0 h1:AvUDt5N6Sab4PrABEVSBpxieJoqbcT0te6WrHKL7y1Y=
+github.com/rickb777/sqlapi v0.40.0/go.mod h1:L7LaxVDsBodeFKgGsPZCW5lHlS/p4Eb3gqWqkc1fqiI=
+github.com/rickb777/sqlapi v0.40.1 h1:YVb7fT2xZbjhkSQhqrU3d6qBFGhsGHIGWnSYvHrnucs=
+github.com/rickb777/sqlapi v0.40.1/go.mod h1:332NtGXkJCrtSouoJ103wkCywW/CUNVjyzqIaBIXLbk=
 github.com/rickb777/where v0.6.0 h1:bEp2PziyqxRfhZ6j7XCdspCEVZYmI9bd5pJsl3QtKTM=
 github.com/rickb777/where v0.6.0/go.mod h1:4rZ71SF2T5pNU0qrCWnTAoOEHe0u+tQ0vNCnQtAVmI0=
 github.com/rickb777/where v0.7.1 h1:2Z9io1RhG+bZZBuWQvcLZmGEQH1XFSEMjO3hdHpdO1c=

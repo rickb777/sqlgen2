@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.38.2; sqlgen v0.59.0
+// sqlapi v0.40.1; sqlgen v0.59.0
 
 package demo
 
@@ -224,16 +224,16 @@ func (tbl UserAddressJoin) quotedNameW(w dialect.StringWriter) {
 //--------------------------------------------------------------------------------
 
 // NumUserAddressJoinColumns is the total number of columns in UserAddressJoin.
-const NumUserAddressJoinColumns = 12
+const NumUserAddressJoinColumns = 13
 
 // NumUserAddressJoinDataColumns is the number of columns in UserAddressJoin not including the auto-increment key.
-const NumUserAddressJoinDataColumns = 11
+const NumUserAddressJoinDataColumns = 12
 
 // UserAddressJoinColumnNames is the list of columns in UserAddressJoin.
-const UserAddressJoinColumnNames = "uid,name,emailaddress,lines,town,postcode,avatar,role,active,admin,fave,lastupdated"
+const UserAddressJoinColumnNames = "uid,name,emailaddress,lines,town,postcode,uprn,avatar,role,active,admin,fave,lastupdated"
 
 // UserAddressJoinDataColumnNames is the list of data columns in UserAddressJoin.
-const UserAddressJoinDataColumnNames = "name,emailaddress,lines,town,postcode,avatar,role,active,admin,fave,lastupdated"
+const UserAddressJoinDataColumnNames = "name,emailaddress,lines,town,postcode,uprn,avatar,role,active,admin,fave,lastupdated"
 
 var listOfUserAddressJoinColumnNames = strings.Split(UserAddressJoinColumnNames, ",")
 
@@ -317,12 +317,13 @@ func scanUserAddresses(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []
 		var v3 []byte
 		var v4 sql.NullString
 		var v5 string
-		var v6 sql.NullString
+		var v6 string
 		var v7 sql.NullString
-		var v8 bool
+		var v8 sql.NullString
 		var v9 bool
-		var v10 []byte
-		var v11 int64
+		var v10 bool
+		var v11 []byte
+		var v12 int64
 
 		err = rows.Scan(
 			&v0,
@@ -337,6 +338,7 @@ func scanUserAddresses(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []
 			&v9,
 			&v10,
 			&v11,
+			&v12,
 		)
 		if err != nil {
 			return vv, n, errors.Wrap(err, query)
@@ -355,24 +357,25 @@ func scanUserAddresses(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []
 			v.Address.Town = &a
 		}
 		v.Address.Postcode = v5
-		if v6.Valid {
-			a := v6.String
+		v.Address.UPRN = v6
+		if v7.Valid {
+			a := v7.String
 			v.Avatar = &a
 		}
-		if v7.Valid {
+		if v8.Valid {
 			v.Role = new(Role)
-			err = v.Role.Scan(v7.String)
+			err = v.Role.Scan(v8.String)
 			if err != nil {
 				return nil, n, errors.Wrap(err, query)
 			}
 		}
-		v.Active = v8
-		v.Admin = v9
-		err = json.Unmarshal(v10, &v.Fave)
+		v.Active = v9
+		v.Admin = v10
+		err = json.Unmarshal(v11, &v.Fave)
 		if err != nil {
 			return nil, n, errors.Wrap(err, query)
 		}
-		v.LastUpdated = v11
+		v.LastUpdated = v12
 
 		var iv interface{} = v
 		if hook, ok := iv.(sqlapi.CanPostGet); ok {

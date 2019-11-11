@@ -15,7 +15,7 @@ require (
 	github.com/rickb777/collection v0.4.0
 	github.com/rickb777/date v1.12.4
 	github.com/rickb777/filemod v0.5.2
-	github.com/rickb777/sqlapi v0.38.2
+	github.com/rickb777/sqlapi v0.40.1
 	github.com/rickb777/where v0.7.1
 	github.com/spf13/cast v1.3.0
 	github.com/stretchr/objx v0.2.0 // indirect

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.38.2; sqlgen v0.59.0
+// sqlapi v0.40.1; sqlgen v0.59.0
 
 package demo
 
@@ -363,57 +363,12 @@ func scanDUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 
 // DeleteUsers deletes rows from the table, given some primary keys.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteUsers(req require.Requirement, id ...int64) (int64, error) {
-	const batch = 1000 // limited by Oracle DB
-	const qt = "DELETE FROM %s WHERE %s IN (%s)"
-	qName := tbl.quotedName()
-
-	if req == require.All {
-		req = require.Exactly(len(id))
+func (tbl DUserTable) DeleteUsersById(req require.Requirement, id ...int64) (int64, error) {
+	values := make([]interface{}, len(id))
+	for i, v := range id {
+		values[i] = v
 	}
-
-	var count, n int64
-	var err error
-	var max = batch
-	if len(id) < batch {
-		max = len(id)
-	}
-	d := tbl.Dialect()
-	col := d.Quoter().Quote(tbl.pk)
-	args := make([]interface{}, max)
-
-	if len(id) > batch {
-		pl := d.Placeholders(batch)
-		query := fmt.Sprintf(qt, qName, col, pl)
-
-		for len(id) > batch {
-			for i := 0; i < batch; i++ {
-				args[i] = id[i]
-			}
-
-			n, err = tbl.Exec(nil, query, args...)
-			count += n
-			if err != nil {
-				return count, err
-			}
-
-			id = id[batch:]
-		}
-	}
-
-	if len(id) > 0 {
-		pl := d.Placeholders(len(id))
-		query := fmt.Sprintf(qt, qName, col, pl)
-
-		for i := 0; i < len(id); i++ {
-			args[i] = id[i]
-		}
-
-		n, err = tbl.Exec(nil, query, args...)
-		count += n
-	}
-
-	return count, tbl.Logger().LogIfError(require.ChainErrorIfExecNotSatisfiedBy(err, req, n))
+	return support.DeleteByColumn(tbl, req, tbl.pk, values...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
