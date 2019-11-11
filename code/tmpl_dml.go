@@ -134,7 +134,7 @@ const sGetRowDecl = `
 {{- else}}
 
 	// Get{{$.Types}}By{{.JoinedNames "And"}} gets the records with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
-	Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error)
+	Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, qc where.QueryConstraint, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error)
 {{- end}}
 {{- end}}
 `
@@ -190,8 +190,8 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And
 
 // Get{{$.Types}}By{{.JoinedNames "And"}} gets the records with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
 // If not found, the resulting slice will be empty (nil).
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error) {
-	return tbl.Select(req, where.And({{.Fields.WhereClauses.MkString ", "}}), nil)
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, qc where.QueryConstraint, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error) {
+	return tbl.Select(req, where.And({{.Fields.WhereClauses.MkString ", "}}), qc)
 }
 {{- end}}
 {{- end}}

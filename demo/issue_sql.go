@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.42.0; sqlgen v0.61.0
+// sqlapi v0.42.0; sqlgen v0.62.0
 
 package demo
 
@@ -97,7 +97,7 @@ type IssueQueryer interface {
 	GetIssuesById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Issue, err error)
 
 	// GetIssuesByAssignee gets the records with a given assignee value.
-	GetIssuesByAssignee(req require.Requirement, assignee string) ([]*Issue, error)
+	GetIssuesByAssignee(req require.Requirement, qc where.QueryConstraint, assignee string) ([]*Issue, error)
 
 	// SelectOneWhere allows a single Issue to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Issue, error)
@@ -775,8 +775,8 @@ func (tbl IssueTable) GetIssuesById(req require.Requirement, qc where.QueryConst
 
 // GetIssuesByAssignee gets the records with a given assignee value.
 // If not found, the resulting slice will be empty (nil).
-func (tbl IssueTable) GetIssuesByAssignee(req require.Requirement, assignee string) ([]*Issue, error) {
-	return tbl.Select(req, where.And(where.Eq("assignee", assignee)), nil)
+func (tbl IssueTable) GetIssuesByAssignee(req require.Requirement, qc where.QueryConstraint, assignee string) ([]*Issue, error) {
+	return tbl.Select(req, where.And(where.Eq("assignee", assignee)), qc)
 }
 
 func doIssueTableQueryAndScanOne(tbl IssueTabler, req require.Requirement, query string, args ...interface{}) (*Issue, error) {

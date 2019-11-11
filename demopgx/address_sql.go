@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.42.0; sqlgen v0.61.0
+// sqlapi v0.42.0; sqlgen v0.62.0
 
 package demopgx
 
@@ -110,10 +110,10 @@ type AddressQueryer interface {
 	GetAddressesById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Address, err error)
 
 	// GetAddressesByPostcode gets the records with a given postcode value.
-	GetAddressesByPostcode(req require.Requirement, postcode string) ([]*Address, error)
+	GetAddressesByPostcode(req require.Requirement, qc where.QueryConstraint, postcode string) ([]*Address, error)
 
 	// GetAddressesByTown gets the records with a given town value.
-	GetAddressesByTown(req require.Requirement, town string) ([]*Address, error)
+	GetAddressesByTown(req require.Requirement, qc where.QueryConstraint, town string) ([]*Address, error)
 
 	// GetAddressByUPRN gets the record with a given uprn value.
 	GetAddressByUPRN(req require.Requirement, uprn string) (*Address, error)
@@ -877,14 +877,14 @@ func (tbl AddressTable) GetAddressesById(req require.Requirement, qc where.Query
 
 // GetAddressesByPostcode gets the records with a given postcode value.
 // If not found, the resulting slice will be empty (nil).
-func (tbl AddressTable) GetAddressesByPostcode(req require.Requirement, postcode string) ([]*Address, error) {
-	return tbl.Select(req, where.And(where.Eq("postcode", postcode)), nil)
+func (tbl AddressTable) GetAddressesByPostcode(req require.Requirement, qc where.QueryConstraint, postcode string) ([]*Address, error) {
+	return tbl.Select(req, where.And(where.Eq("postcode", postcode)), qc)
 }
 
 // GetAddressesByTown gets the records with a given town value.
 // If not found, the resulting slice will be empty (nil).
-func (tbl AddressTable) GetAddressesByTown(req require.Requirement, town string) ([]*Address, error) {
-	return tbl.Select(req, where.And(where.Eq("town", town)), nil)
+func (tbl AddressTable) GetAddressesByTown(req require.Requirement, qc where.QueryConstraint, town string) ([]*Address, error) {
+	return tbl.Select(req, where.And(where.Eq("town", town)), qc)
 }
 
 // GetAddressByUPRN gets the record with a given uprn value.
