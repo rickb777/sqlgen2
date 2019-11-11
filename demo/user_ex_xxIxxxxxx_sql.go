@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demo
 
@@ -22,7 +22,6 @@ type IUserTabler interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified IUserTabler with added data consistency constraints.
@@ -34,6 +33,8 @@ type IUserTabler interface {
 	// WithContext returns a modified IUserTabler with a given context.
 	WithContext(ctx context.Context) IUserTabler
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // IUserQueryer lists query methods provided by IUserTable.
 type IUserQueryer interface {
@@ -53,6 +54,8 @@ type IUserQueryer interface {
 	// Insert adds new records for the Users, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*User) error
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // IUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -229,7 +232,7 @@ func (tbl IUserTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumIUserTableColumns is the total number of columns in IUserTable.
 const NumIUserTableColumns = 22

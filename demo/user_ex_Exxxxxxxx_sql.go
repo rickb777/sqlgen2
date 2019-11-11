@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demo
 
@@ -21,7 +21,6 @@ type EUserTabler interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified EUserTabler with added data consistency constraints.
@@ -33,6 +32,8 @@ type EUserTabler interface {
 	// WithContext returns a modified EUserTabler with a given context.
 	WithContext(ctx context.Context) EUserTabler
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // EUserQueryer lists query methods provided by EUserTable.
 type EUserQueryer interface {
@@ -51,6 +52,8 @@ type EUserQueryer interface {
 
 	// Exec executes a query without returning any rows.
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // EUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -227,7 +230,7 @@ func (tbl EUserTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumEUserTableColumns is the total number of columns in EUserTable.
 const NumEUserTableColumns = 22
@@ -243,7 +246,7 @@ const EUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,activ
 
 var listOfEUserTableColumnNames = strings.Split(EUserTableColumnNames, ",")
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
 // It returns the number of rows affected (if the database driver supports this).

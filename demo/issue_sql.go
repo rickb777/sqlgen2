@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demo
 
@@ -25,7 +25,6 @@ type IssueTabler interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified IssueTabler with added data consistency constraints.
@@ -58,6 +57,8 @@ type IssueTabler interface {
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // IssueQueryer lists query methods provided by IssueTable.
 type IssueQueryer interface {
@@ -137,6 +138,27 @@ type IssueQueryer interface {
 	// Insert adds new records for the Issues, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Issue) error
 
+	// UpdateById updates one or more columns, given a id value.
+	UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByNumber updates one or more columns, given a number value.
+	UpdateByNumber(req require.Requirement, number int, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByTitle updates one or more columns, given a title value.
+	UpdateByTitle(req require.Requirement, title string, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByBigbody updates one or more columns, given a bigbody value.
+	UpdateByBigbody(req require.Requirement, bigbody string, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByAssignee updates one or more columns, given a assignee value.
+	UpdateByAssignee(req require.Requirement, assignee string, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByState updates one or more columns, given a state value.
+	UpdateByState(req require.Requirement, state string, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateFields updates one or more columns, given a 'where' clause.
+	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Issue) (int64, error)
 
@@ -147,34 +169,36 @@ type IssueQueryer interface {
 	// error results if these conditions are not met.
 	Upsert(v *Issue, wh where.Expression) error
 
-	// DeleteIssuesById deletes rows from the table, given some id values.
+	// DeleteById deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteIssuesById(req require.Requirement, values ...int64) (int64, error)
+	DeleteById(req require.Requirement, id ...int64) (int64, error)
 
-	// DeleteIssuesByNumber deletes rows from the table, given some number values.
+	// DeleteByNumber deletes rows from the table, given some number values.
 	// The list of ids can be arbitrarily long.
-	DeleteIssuesByNumber(req require.Requirement, values ...int) (int64, error)
+	DeleteByNumber(req require.Requirement, number ...int) (int64, error)
 
-	// DeleteIssuesByTitle deletes rows from the table, given some title values.
+	// DeleteByTitle deletes rows from the table, given some title values.
 	// The list of ids can be arbitrarily long.
-	DeleteIssuesByTitle(req require.Requirement, values ...string) (int64, error)
+	DeleteByTitle(req require.Requirement, title ...string) (int64, error)
 
-	// DeleteIssuesByBigbody deletes rows from the table, given some bigbody values.
+	// DeleteByBigbody deletes rows from the table, given some bigbody values.
 	// The list of ids can be arbitrarily long.
-	DeleteIssuesByBigbody(req require.Requirement, values ...string) (int64, error)
+	DeleteByBigbody(req require.Requirement, bigbody ...string) (int64, error)
 
-	// DeleteIssuesByAssignee deletes rows from the table, given some assignee values.
+	// DeleteByAssignee deletes rows from the table, given some assignee values.
 	// The list of ids can be arbitrarily long.
-	DeleteIssuesByAssignee(req require.Requirement, values ...string) (int64, error)
+	DeleteByAssignee(req require.Requirement, assignee ...string) (int64, error)
 
-	// DeleteIssuesByState deletes rows from the table, given some state values.
+	// DeleteByState deletes rows from the table, given some state values.
 	// The list of ids can be arbitrarily long.
-	DeleteIssuesByState(req require.Requirement, values ...string) (int64, error)
+	DeleteByState(req require.Requirement, state ...string) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
 	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // IssueTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -348,7 +372,7 @@ func (tbl IssueTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumIssueTableColumns is the total number of columns in IssueTable.
 const NumIssueTableColumns = 8
@@ -364,7 +388,7 @@ const IssueTableDataColumnNames = "number,date,title,bigbody,assignee,state,labe
 
 var listOfIssueTableColumnNames = strings.Split(IssueTableColumnNames, ",")
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 var sqlIssueTableCreateColumnsSqlite = []string{
 	"integer not null primary key autoincrement",
@@ -410,13 +434,13 @@ var sqlIssueTableCreateColumnsPgx = []string{
 	"json",
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 const sqlIssueAssigneeIndexColumns = "assignee"
 
 var listOfIssueAssigneeIndexColumns = []string{"assignee"}
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
 func (tbl IssueTable) CreateTable(ifNotExists bool) (int64, error) {
@@ -483,7 +507,7 @@ func dropIssueTableSql(tbl IssueTabler, ifExists bool) string {
 	return query
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 func (tbl IssueTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
@@ -562,7 +586,7 @@ func (tbl IssueTable) DropIndexes(ifExist bool) (err error) {
 	return nil
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Truncate drops every record from the table, if possible. It might fail if constraints exist that
 // prevent some or all rows from being deleted; use the force option to override this.
@@ -581,7 +605,7 @@ func (tbl IssueTable) Truncate(force bool) (err error) {
 	return nil
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
 // It returns the number of rows affected (if the database driver supports this).
@@ -591,7 +615,7 @@ func (tbl IssueTable) Exec(req require.Requirement, query string, args ...interf
 	return support.Exec(tbl, req, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Query is the low-level request method for this table. The SQL query must return all the columns necessary for
 // Issue values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
@@ -620,7 +644,7 @@ func doIssueTableQueryAndScan(tbl IssueTabler, req require.Requirement, firstOnl
 	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
@@ -806,7 +830,7 @@ func (tbl IssueTable) Fetch(req require.Requirement, query string, args ...inter
 	return doIssueTableQueryAndScan(tbl, req, false, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // SelectOneWhere allows a single Issue to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
@@ -868,7 +892,7 @@ func (tbl IssueTable) Select(req require.Requirement, wh where.Expression, qc wh
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CountWhere counts Issues in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
@@ -1110,8 +1134,38 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
+// UpdateById updates one or more columns, given a id value.
+func (tbl IssueTable) UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
+}
+
+// UpdateByNumber updates one or more columns, given a number value.
+func (tbl IssueTable) UpdateByNumber(req require.Requirement, number int, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("number", number), fields...)
+}
+
+// UpdateByTitle updates one or more columns, given a title value.
+func (tbl IssueTable) UpdateByTitle(req require.Requirement, title string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("title", title), fields...)
+}
+
+// UpdateByBigbody updates one or more columns, given a bigbody value.
+func (tbl IssueTable) UpdateByBigbody(req require.Requirement, bigbody string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("bigbody", bigbody), fields...)
+}
+
+// UpdateByAssignee updates one or more columns, given a assignee value.
+func (tbl IssueTable) UpdateByAssignee(req require.Requirement, assignee string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("assignee", assignee), fields...)
+}
+
+// UpdateByState updates one or more columns, given a state value.
+func (tbl IssueTable) UpdateByState(req require.Requirement, state string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("state", state), fields...)
+}
+
 // UpdateFields updates one or more columns, given a 'where' clause.
-// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+// Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
 func (tbl IssueTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
@@ -1202,66 +1256,48 @@ func (tbl IssueTable) Upsert(v *Issue, wh where.Expression) error {
 	return err
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
-// DeleteIssuesById deletes rows from the table, given some id values.
+// DeleteById deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteIssuesById(req require.Requirement, values ...int64) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl IssueTable) DeleteById(req require.Requirement, id ...int64) (int64, error) {
+	ii := support.Int64AsInterfaceSlice(id)
+	return support.DeleteByColumn(tbl, req, "id", ii...)
 }
 
-// DeleteIssuesByNumber deletes rows from the table, given some number values.
+// DeleteByNumber deletes rows from the table, given some number values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteIssuesByNumber(req require.Requirement, values ...int) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl IssueTable) DeleteByNumber(req require.Requirement, number ...int) (int64, error) {
+	ii := support.IntAsInterfaceSlice(number)
+	return support.DeleteByColumn(tbl, req, "number", ii...)
 }
 
-// DeleteIssuesByTitle deletes rows from the table, given some title values.
+// DeleteByTitle deletes rows from the table, given some title values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteIssuesByTitle(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl IssueTable) DeleteByTitle(req require.Requirement, title ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(title)
+	return support.DeleteByColumn(tbl, req, "title", ii...)
 }
 
-// DeleteIssuesByBigbody deletes rows from the table, given some bigbody values.
+// DeleteByBigbody deletes rows from the table, given some bigbody values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteIssuesByBigbody(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl IssueTable) DeleteByBigbody(req require.Requirement, bigbody ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(bigbody)
+	return support.DeleteByColumn(tbl, req, "bigbody", ii...)
 }
 
-// DeleteIssuesByAssignee deletes rows from the table, given some assignee values.
+// DeleteByAssignee deletes rows from the table, given some assignee values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteIssuesByAssignee(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl IssueTable) DeleteByAssignee(req require.Requirement, assignee ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(assignee)
+	return support.DeleteByColumn(tbl, req, "assignee", ii...)
 }
 
-// DeleteIssuesByState deletes rows from the table, given some state values.
+// DeleteByState deletes rows from the table, given some state values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteIssuesByState(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl IssueTable) DeleteByState(req require.Requirement, state ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(state)
+	return support.DeleteByColumn(tbl, req, "state", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
@@ -1278,9 +1314,9 @@ func deleteRowsIssueTableSql(tbl IssueTabler, wh where.Expression) (string, []in
 	return query, args
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // SetId sets the Id field and returns the modified Issue.
 func (v *Issue) SetId(x int64) *Issue {

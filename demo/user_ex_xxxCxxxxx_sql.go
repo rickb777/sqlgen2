@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demo
 
@@ -22,7 +22,6 @@ type CUserTabler interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified CUserTabler with added data consistency constraints.
@@ -34,6 +33,8 @@ type CUserTabler interface {
 	// WithContext returns a modified CUserTabler with a given context.
 	WithContext(ctx context.Context) CUserTabler
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // CUserQueryer lists query methods provided by CUserTable.
 type CUserQueryer interface {
@@ -56,6 +57,8 @@ type CUserQueryer interface {
 	// Count counts the Users in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // CUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -232,7 +235,7 @@ func (tbl CUserTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumCUserTableColumns is the total number of columns in CUserTable.
 const NumCUserTableColumns = 22
@@ -366,7 +369,7 @@ func scanCUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 	return vv, n, errors.Wrap(rows.Err(), query)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CountWhere counts Users in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.

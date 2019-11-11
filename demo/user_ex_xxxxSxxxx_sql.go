@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demo
 
@@ -24,7 +24,6 @@ type SUserTabler interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified SUserTabler with added data consistency constraints.
@@ -36,6 +35,8 @@ type SUserTabler interface {
 	// WithContext returns a modified SUserTabler with a given context.
 	WithContext(ctx context.Context) SUserTabler
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // SUserQueryer lists query methods provided by SUserTable.
 type SUserQueryer interface {
@@ -95,6 +96,8 @@ type SUserQueryer interface {
 	// Count counts the Users in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // SUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -271,7 +274,7 @@ func (tbl SUserTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumSUserTableColumns is the total number of columns in SUserTable.
 const NumSUserTableColumns = 22
@@ -287,7 +290,7 @@ const SUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,activ
 
 var listOfSUserTableColumnNames = strings.Split(SUserTableColumnNames, ",")
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Query is the low-level request method for this table. The SQL query must return all the columns necessary for
 // User values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
@@ -316,7 +319,7 @@ func doSUserTableQueryAndScan(tbl SUserTabler, req require.Requirement, firstOnl
 	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
@@ -562,7 +565,7 @@ func (tbl SUserTable) Fetch(req require.Requirement, query string, args ...inter
 	return doSUserTableQueryAndScan(tbl, req, false, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // SelectOneWhere allows a single User to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
@@ -624,7 +627,7 @@ func (tbl SUserTable) Select(req require.Requirement, wh where.Expression, qc wh
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CountWhere counts Users in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.

@@ -566,14 +566,32 @@ var tInsertFunc = template.Must(template.New("InsertFunc").Funcs(funcMap).Parse(
 
 //-------------------------------------------------------------------------------------------------
 
+const sUpdateFieldsDecl = `
+{{- range .Table.SimpleFields.NoSkips}}
+	// UpdateBy{{camel .SqlName}} updates one or more columns, given a {{.SqlName}} value.
+	UpdateBy{{camel .SqlName}}(req require.Requirement, {{.SqlName}} {{.Type.Type}}, fields ...sql.NamedArg) (int64, error)
+{{end}}
+	// UpdateFields updates one or more columns, given a 'where' clause.
+	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+`
+
 const sUpdateFieldsFunc = `
+{{- range .Table.SimpleFields.NoSkips}}
+
+// UpdateBy{{camel .SqlName}} updates one or more columns, given a {{.SqlName}} value.
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) UpdateBy{{camel .SqlName}}(req require.Requirement, {{.SqlName}} {{.Type.Type}}, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("{{.SqlName}}", {{.SqlName}}), fields...)
+}
+{{- end}}
+
 // UpdateFields updates one or more columns, given a 'where' clause.
-// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+// Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
 `
 
+var tUpdateFieldsDecl = template.Must(template.New("UpdateFieldsFunc").Funcs(funcMap).Parse(sUpdateFieldsDecl))
 var tUpdateFieldsFunc = template.Must(template.New("UpdateFieldsFunc").Funcs(funcMap).Parse(sUpdateFieldsFunc))
 
 //-------------------------------------------------------------------------------------------------
@@ -693,17 +711,17 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Upsert(v *{{.TypePkg}}{{.Type}}, wh wh
 {{- end -}}
 `
 
-var tUpsertDecl = template.Must(template.New("Upsert").Funcs(funcMap).Parse(sUpsertDecl))
-var tUpsertFunc = template.Must(template.New("Upsert").Funcs(funcMap).Parse(sUpsertFunc))
+var tUpsertDecl = template.Must(template.New("UpsertDecl").Funcs(funcMap).Parse(sUpsertDecl))
+var tUpsertFunc = template.Must(template.New("UpsertFunc").Funcs(funcMap).Parse(sUpsertFunc))
 
 //-------------------------------------------------------------------------------------------------
 
 const sDeleteDecl = `
 {{- range .Table.SimpleFields.NoSkips}}
 
-	// Delete{{$.Types}}By{{camel .SqlName}} deletes rows from the table, given some {{.SqlName}} values.
+	// DeleteBy{{camel .SqlName}} deletes rows from the table, given some {{.SqlName}} values.
 	// The list of ids can be arbitrarily long.
-	Delete{{$.Types}}By{{camel .SqlName}}(req require.Requirement, values ...{{.Type.Type}}) (int64, error)
+	DeleteBy{{camel .SqlName}}(req require.Requirement, {{.SqlName}} ...{{.Type.Type}}) (int64, error)
 {{- end}}
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
@@ -714,14 +732,17 @@ const sDeleteDecl = `
 const sDeleteFunc = `
 {{- range .Table.SimpleFields.NoSkips}}
 
-// Delete{{$.Types}}By{{camel .SqlName}} deletes rows from the table, given some {{.SqlName}} values.
+// DeleteBy{{camel .SqlName}} deletes rows from the table, given some {{.SqlName}} values.
 // The list of ids can be arbitrarily long.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Delete{{$.Types}}By{{camel .SqlName}}(req require.Requirement, values ...{{.Type.Type}}) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) DeleteBy{{camel .SqlName}}(req require.Requirement, {{.SqlName}} ...{{.Type.Type}}) (int64, error) {
+	{{if .Type.IsBasicType}}ii := support.{{camel .Type.Type}}AsInterfaceSlice({{.SqlName}})
+	{{- else -}}
+	ii := make([]interface{}, len({{.SqlName}}))
+	for i, v := range {{.SqlName}} {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+	{{- end}}
+	return support.DeleteByColumn(tbl, req, "{{.SqlName}}", ii...)
 }
 {{- end}}
 
@@ -740,5 +761,5 @@ func deleteRows{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl {{.Prefix}}{{.Type}}{{.Thin
 }
 `
 
-var tDeleteDecl = template.Must(template.New("Delete").Funcs(funcMap).Parse(sDeleteDecl))
-var tDeleteFunc = template.Must(template.New("Delete").Funcs(funcMap).Parse(sDeleteFunc))
+var tDeleteDecl = template.Must(template.New("DeleteDecl").Funcs(funcMap).Parse(sDeleteDecl))
+var tDeleteFunc = template.Must(template.New("DeleteFunc").Funcs(funcMap).Parse(sDeleteFunc))

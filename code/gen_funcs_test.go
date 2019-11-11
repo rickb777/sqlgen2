@@ -54,7 +54,7 @@ func TestWriteQueryRows(t *testing.T) {
 
 	code := buf2.String()
 	expected := strings.Replace(`
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Query is the low-level request method for this table. The SQL query must return all the columns necessary for
 // Example values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
@@ -102,7 +102,7 @@ func TestWriteQueryThings(t *testing.T) {
 
 	code := buf2.String()
 	expected := strings.Replace(`
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
@@ -159,8 +159,19 @@ func TestWriteUpdateFunc_noPK(t *testing.T) {
 
 	code := buf2.String()
 	expected := strings.Replace(`
+
+// UpdateByName updates one or more columns, given a name value.
+func (tbl XExampleTable) UpdateByName(req require.Requirement, name string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("name", name), fields...)
+}
+
+// UpdateByAge updates one or more columns, given a age value.
+func (tbl XExampleTable) UpdateByAge(req require.Requirement, age int, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("age", age), fields...)
+}
+
 // UpdateFields updates one or more columns, given a 'where' clause.
-// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+// Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
 func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
@@ -182,7 +193,7 @@ func TestWriteExecFunc(t *testing.T) {
 
 	code := buf2.String()
 	expected := strings.Replace(`
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
 // It returns the number of rows affected (if the database driver supports this).

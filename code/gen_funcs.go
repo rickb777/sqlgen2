@@ -12,6 +12,13 @@ func WriteType(w1, w2, w3 io.Writer, view View) {
 	must(tTable.Execute(w3, view))
 }
 
+func EndType(w1, w2 io.Writer, view View) {
+	io.WriteString(w1, "}\n")
+	fmt.Fprintln(w1, sectionBreak)
+	io.WriteString(w2, "}\n")
+	fmt.Fprintln(w2, sectionBreak)
+}
+
 func WriteQueryRows(w1, w2 io.Writer, view View) {
 	fmt.Fprintln(w2, sectionBreak)
 
@@ -61,6 +68,7 @@ func WriteUpsertFunc(w1, w2 io.Writer, view View) {
 }
 
 func WriteUpdateFunc(w1, w2 io.Writer, view View) {
+	must(tUpdateFieldsDecl.Execute(w1, view))
 	must(tUpdateFieldsFunc.Execute(w2, view))
 
 	if view.Table.HasPrimaryKey() {

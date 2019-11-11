@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demo
 
@@ -19,7 +19,6 @@ type XUserTabler interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified XUserTabler with added data consistency constraints.
@@ -31,6 +30,8 @@ type XUserTabler interface {
 	// WithContext returns a modified XUserTabler with a given context.
 	WithContext(ctx context.Context) XUserTabler
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // XUserQueryer lists query methods provided by XUserTable.
 type XUserQueryer interface {
@@ -47,6 +48,8 @@ type XUserQueryer interface {
 	// IsTx tests whether this is within a transaction.
 	IsTx() bool
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // XUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -223,7 +226,7 @@ func (tbl XUserTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumXUserTableColumns is the total number of columns in XUserTable.
 const NumXUserTableColumns = 22

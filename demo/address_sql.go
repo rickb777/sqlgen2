@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demo
 
@@ -25,7 +25,6 @@ type AddressTabler interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified AddressTabler with added data consistency constraints.
@@ -70,6 +69,8 @@ type AddressTabler interface {
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // AddressQueryer lists query methods provided by AddressTable.
 type AddressQueryer interface {
@@ -149,6 +150,21 @@ type AddressQueryer interface {
 	// Insert adds new records for the Addresses, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Address) error
 
+	// UpdateById updates one or more columns, given a id value.
+	UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByTown updates one or more columns, given a town value.
+	UpdateByTown(req require.Requirement, town string, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByPostcode updates one or more columns, given a postcode value.
+	UpdateByPostcode(req require.Requirement, postcode string, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByUprn updates one or more columns, given a uprn value.
+	UpdateByUprn(req require.Requirement, uprn string, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateFields updates one or more columns, given a 'where' clause.
+	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Address) (int64, error)
 
@@ -159,26 +175,28 @@ type AddressQueryer interface {
 	// error results if these conditions are not met.
 	Upsert(v *Address, wh where.Expression) error
 
-	// DeleteAddressesById deletes rows from the table, given some id values.
+	// DeleteById deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteAddressesById(req require.Requirement, values ...int64) (int64, error)
+	DeleteById(req require.Requirement, id ...int64) (int64, error)
 
-	// DeleteAddressesByTown deletes rows from the table, given some town values.
+	// DeleteByTown deletes rows from the table, given some town values.
 	// The list of ids can be arbitrarily long.
-	DeleteAddressesByTown(req require.Requirement, values ...string) (int64, error)
+	DeleteByTown(req require.Requirement, town ...string) (int64, error)
 
-	// DeleteAddressesByPostcode deletes rows from the table, given some postcode values.
+	// DeleteByPostcode deletes rows from the table, given some postcode values.
 	// The list of ids can be arbitrarily long.
-	DeleteAddressesByPostcode(req require.Requirement, values ...string) (int64, error)
+	DeleteByPostcode(req require.Requirement, postcode ...string) (int64, error)
 
-	// DeleteAddressesByUprn deletes rows from the table, given some uprn values.
+	// DeleteByUprn deletes rows from the table, given some uprn values.
 	// The list of ids can be arbitrarily long.
-	DeleteAddressesByUprn(req require.Requirement, values ...string) (int64, error)
+	DeleteByUprn(req require.Requirement, uprn ...string) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
 	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // AddressTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -352,7 +370,7 @@ func (tbl AddressTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumAddressTableColumns is the total number of columns in AddressTable.
 const NumAddressTableColumns = 5
@@ -368,7 +386,7 @@ const AddressTableDataColumnNames = "lines,town,postcode,uprn"
 
 var listOfAddressTableColumnNames = strings.Split(AddressTableColumnNames, ",")
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 var sqlAddressTableCreateColumnsSqlite = []string{
 	"integer not null primary key autoincrement",
@@ -402,7 +420,7 @@ var sqlAddressTableCreateColumnsPgx = []string{
 	"text not null",
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 const sqlPostcodeIdxIndexColumns = "postcode"
 
@@ -416,7 +434,7 @@ const sqlUprnIdxIndexColumns = "uprn"
 
 var listOfUprnIdxIndexColumns = []string{"uprn"}
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
 func (tbl AddressTable) CreateTable(ifNotExists bool) (int64, error) {
@@ -483,7 +501,7 @@ func dropAddressTableSql(tbl AddressTabler, ifExists bool) string {
 	return query
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 func (tbl AddressTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
@@ -672,7 +690,7 @@ func (tbl AddressTable) DropIndexes(ifExist bool) (err error) {
 	return nil
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Truncate drops every record from the table, if possible. It might fail if constraints exist that
 // prevent some or all rows from being deleted; use the force option to override this.
@@ -691,7 +709,7 @@ func (tbl AddressTable) Truncate(force bool) (err error) {
 	return nil
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
 // It returns the number of rows affected (if the database driver supports this).
@@ -701,7 +719,7 @@ func (tbl AddressTable) Exec(req require.Requirement, query string, args ...inte
 	return support.Exec(tbl, req, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Query is the low-level request method for this table. The SQL query must return all the columns necessary for
 // Address values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
@@ -730,7 +748,7 @@ func doAddressTableQueryAndScan(tbl AddressTabler, req require.Requirement, firs
 	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
@@ -922,7 +940,7 @@ func (tbl AddressTable) Fetch(req require.Requirement, query string, args ...int
 	return doAddressTableQueryAndScan(tbl, req, false, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // SelectOneWhere allows a single Address to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
@@ -984,7 +1002,7 @@ func (tbl AddressTable) Select(req require.Requirement, wh where.Expression, qc 
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CountWhere counts Addresses in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
@@ -1189,8 +1207,28 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
+// UpdateById updates one or more columns, given a id value.
+func (tbl AddressTable) UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
+}
+
+// UpdateByTown updates one or more columns, given a town value.
+func (tbl AddressTable) UpdateByTown(req require.Requirement, town string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("town", town), fields...)
+}
+
+// UpdateByPostcode updates one or more columns, given a postcode value.
+func (tbl AddressTable) UpdateByPostcode(req require.Requirement, postcode string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("postcode", postcode), fields...)
+}
+
+// UpdateByUprn updates one or more columns, given a uprn value.
+func (tbl AddressTable) UpdateByUprn(req require.Requirement, uprn string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("uprn", uprn), fields...)
+}
+
 // UpdateFields updates one or more columns, given a 'where' clause.
-// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+// Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
 func (tbl AddressTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
@@ -1281,46 +1319,34 @@ func (tbl AddressTable) Upsert(v *Address, wh where.Expression) error {
 	return err
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
-// DeleteAddressesById deletes rows from the table, given some id values.
+// DeleteById deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl AddressTable) DeleteAddressesById(req require.Requirement, values ...int64) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl AddressTable) DeleteById(req require.Requirement, id ...int64) (int64, error) {
+	ii := support.Int64AsInterfaceSlice(id)
+	return support.DeleteByColumn(tbl, req, "id", ii...)
 }
 
-// DeleteAddressesByTown deletes rows from the table, given some town values.
+// DeleteByTown deletes rows from the table, given some town values.
 // The list of ids can be arbitrarily long.
-func (tbl AddressTable) DeleteAddressesByTown(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl AddressTable) DeleteByTown(req require.Requirement, town ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(town)
+	return support.DeleteByColumn(tbl, req, "town", ii...)
 }
 
-// DeleteAddressesByPostcode deletes rows from the table, given some postcode values.
+// DeleteByPostcode deletes rows from the table, given some postcode values.
 // The list of ids can be arbitrarily long.
-func (tbl AddressTable) DeleteAddressesByPostcode(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl AddressTable) DeleteByPostcode(req require.Requirement, postcode ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(postcode)
+	return support.DeleteByColumn(tbl, req, "postcode", ii...)
 }
 
-// DeleteAddressesByUprn deletes rows from the table, given some uprn values.
+// DeleteByUprn deletes rows from the table, given some uprn values.
 // The list of ids can be arbitrarily long.
-func (tbl AddressTable) DeleteAddressesByUprn(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl AddressTable) DeleteByUprn(req require.Requirement, uprn ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(uprn)
+	return support.DeleteByColumn(tbl, req, "uprn", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
@@ -1337,4 +1363,4 @@ func deleteRowsAddressTableSql(tbl AddressTabler, wh where.Expression) (string, 
 	return query, args
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------

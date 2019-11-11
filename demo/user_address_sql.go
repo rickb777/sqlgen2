@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demo
 
@@ -21,7 +21,6 @@ type UserAddressJoiner interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified UserAddressJoiner with added data consistency constraints.
@@ -33,6 +32,8 @@ type UserAddressJoiner interface {
 	// WithContext returns a modified UserAddressJoiner with a given context.
 	WithContext(ctx context.Context) UserAddressJoiner
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // UserAddressQueryer lists query methods provided by UserAddressJoin.
 type UserAddressQueryer interface {
@@ -62,6 +63,8 @@ type UserAddressQueryer interface {
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // UserAddressJoin holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -235,7 +238,7 @@ func (tbl UserAddressJoin) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumUserAddressJoinColumns is the total number of columns in UserAddressJoin.
 const NumUserAddressJoinColumns = 13
@@ -251,7 +254,7 @@ const UserAddressJoinDataColumnNames = "name,emailaddress,lines,town,postcode,up
 
 var listOfUserAddressJoinColumnNames = strings.Split(UserAddressJoinColumnNames, ",")
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Query is the low-level request method for this table. The SQL query must return all the columns necessary for
 // UserAddress values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
@@ -280,7 +283,7 @@ func doUserAddressJoinQueryAndScan(tbl UserAddressJoiner, req require.Requiremen
 	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.

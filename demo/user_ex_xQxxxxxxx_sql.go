@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demo
 
@@ -21,7 +21,6 @@ type QUserTabler interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified QUserTabler with added data consistency constraints.
@@ -33,6 +32,8 @@ type QUserTabler interface {
 	// WithContext returns a modified QUserTabler with a given context.
 	WithContext(ctx context.Context) QUserTabler
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // QUserQueryer lists query methods provided by QUserTable.
 type QUserQueryer interface {
@@ -62,6 +63,8 @@ type QUserQueryer interface {
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
 	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // QUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -238,7 +241,7 @@ func (tbl QUserTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumQUserTableColumns is the total number of columns in QUserTable.
 const NumQUserTableColumns = 22
@@ -254,7 +257,7 @@ const QUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,activ
 
 var listOfQUserTableColumnNames = strings.Split(QUserTableColumnNames, ",")
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Query is the low-level request method for this table. The SQL query must return all the columns necessary for
 // User values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
@@ -283,7 +286,7 @@ func doQUserTableQueryAndScan(tbl QUserTabler, req require.Requirement, firstOnl
 	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.

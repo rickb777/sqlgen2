@@ -18,7 +18,7 @@ func TestWriteSetters_all(t *testing.T) {
 
 	code := buf2.String()
 	expected := `
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // SetId sets the Id field and returns the modified Example.
 func (v *Example) SetId(x int64) *Example {
@@ -138,7 +138,7 @@ func TestWriteSetters_exported(t *testing.T) {
 
 	code := buf2.String()
 	expected := `
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // SetId sets the Id field and returns the modified Example.
 func (v *Example) SetId(x int64) *Example {
@@ -258,7 +258,7 @@ func TestWriteSetters_optional(t *testing.T) {
 
 	code := buf2.String()
 	expected := `
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // SetMobile sets the Mobile field and returns the modified Example.
 func (v *Example) SetMobile(x PhoneNumber) *Example {

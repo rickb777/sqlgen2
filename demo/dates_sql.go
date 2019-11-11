@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demo
 
@@ -25,7 +25,6 @@ type DatesTabler interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified DatesTabler with added data consistency constraints.
@@ -46,6 +45,8 @@ type DatesTabler interface {
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // DatesQueryer lists query methods provided by DatesTable.
 type DatesQueryer interface {
@@ -113,6 +114,18 @@ type DatesQueryer interface {
 	// Insert adds new records for the Datess, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Dates) error
 
+	// UpdateById updates one or more columns, given a id value.
+	UpdateById(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByInteger updates one or more columns, given a integer value.
+	UpdateByInteger(req require.Requirement, integer date.Date, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByString updates one or more columns, given a string value.
+	UpdateByString(req require.Requirement, string date.DateString, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateFields updates one or more columns, given a 'where' clause.
+	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Dates) (int64, error)
 
@@ -123,22 +136,24 @@ type DatesQueryer interface {
 	// error results if these conditions are not met.
 	Upsert(v *Dates, wh where.Expression) error
 
-	// DeleteDatessById deletes rows from the table, given some id values.
+	// DeleteById deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteDatessById(req require.Requirement, values ...uint64) (int64, error)
+	DeleteById(req require.Requirement, id ...uint64) (int64, error)
 
-	// DeleteDatessByInteger deletes rows from the table, given some integer values.
+	// DeleteByInteger deletes rows from the table, given some integer values.
 	// The list of ids can be arbitrarily long.
-	DeleteDatessByInteger(req require.Requirement, values ...date.Date) (int64, error)
+	DeleteByInteger(req require.Requirement, integer ...date.Date) (int64, error)
 
-	// DeleteDatessByString deletes rows from the table, given some string values.
+	// DeleteByString deletes rows from the table, given some string values.
 	// The list of ids can be arbitrarily long.
-	DeleteDatessByString(req require.Requirement, values ...date.DateString) (int64, error)
+	DeleteByString(req require.Requirement, string ...date.DateString) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
 	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // DatesTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -312,7 +327,7 @@ func (tbl DatesTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumDatesTableColumns is the total number of columns in DatesTable.
 const NumDatesTableColumns = 3
@@ -328,7 +343,7 @@ const DatesTableDataColumnNames = "integer,string"
 
 var listOfDatesTableColumnNames = strings.Split(DatesTableColumnNames, ",")
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 var sqlDatesTableCreateColumnsSqlite = []string{
 	"integer not null primary key autoincrement",
@@ -354,7 +369,7 @@ var sqlDatesTableCreateColumnsPgx = []string{
 	"text not null",
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
 func (tbl DatesTable) CreateTable(ifNotExists bool) (int64, error) {
@@ -421,7 +436,7 @@ func dropDatesTableSql(tbl DatesTabler, ifExists bool) string {
 	return query
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Truncate drops every record from the table, if possible. It might fail if constraints exist that
 // prevent some or all rows from being deleted; use the force option to override this.
@@ -440,7 +455,7 @@ func (tbl DatesTable) Truncate(force bool) (err error) {
 	return nil
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
 // It returns the number of rows affected (if the database driver supports this).
@@ -450,7 +465,7 @@ func (tbl DatesTable) Exec(req require.Requirement, query string, args ...interf
 	return support.Exec(tbl, req, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Query is the low-level request method for this table. The SQL query must return all the columns necessary for
 // Dates values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
@@ -479,7 +494,7 @@ func doDatesTableQueryAndScan(tbl DatesTabler, req require.Requirement, firstOnl
 	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
@@ -641,7 +656,7 @@ func (tbl DatesTable) Fetch(req require.Requirement, query string, args ...inter
 	return doDatesTableQueryAndScan(tbl, req, false, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // SelectOneWhere allows a single Dates to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
@@ -703,7 +718,7 @@ func (tbl DatesTable) Select(req require.Requirement, wh where.Expression, qc wh
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CountWhere counts Datess in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
@@ -919,8 +934,23 @@ func (tbl DatesTable) Insert(req require.Requirement, vv ...*Dates) error {
 	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
+// UpdateById updates one or more columns, given a id value.
+func (tbl DatesTable) UpdateById(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
+}
+
+// UpdateByInteger updates one or more columns, given a integer value.
+func (tbl DatesTable) UpdateByInteger(req require.Requirement, integer date.Date, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("integer", integer), fields...)
+}
+
+// UpdateByString updates one or more columns, given a string value.
+func (tbl DatesTable) UpdateByString(req require.Requirement, string date.DateString, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("string", string), fields...)
+}
+
 // UpdateFields updates one or more columns, given a 'where' clause.
-// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+// Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
 func (tbl DatesTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
@@ -1011,36 +1041,33 @@ func (tbl DatesTable) Upsert(v *Dates, wh where.Expression) error {
 	return err
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
-// DeleteDatessById deletes rows from the table, given some id values.
+// DeleteById deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl DatesTable) DeleteDatessById(req require.Requirement, values ...uint64) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DatesTable) DeleteById(req require.Requirement, id ...uint64) (int64, error) {
+	ii := support.Uint64AsInterfaceSlice(id)
+	return support.DeleteByColumn(tbl, req, "id", ii...)
 }
 
-// DeleteDatessByInteger deletes rows from the table, given some integer values.
+// DeleteByInteger deletes rows from the table, given some integer values.
 // The list of ids can be arbitrarily long.
-func (tbl DatesTable) DeleteDatessByInteger(req require.Requirement, values ...date.Date) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
+func (tbl DatesTable) DeleteByInteger(req require.Requirement, integer ...date.Date) (int64, error) {
+	ii := make([]interface{}, len(integer))
+	for i, v := range integer {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+	return support.DeleteByColumn(tbl, req, "integer", ii...)
 }
 
-// DeleteDatessByString deletes rows from the table, given some string values.
+// DeleteByString deletes rows from the table, given some string values.
 // The list of ids can be arbitrarily long.
-func (tbl DatesTable) DeleteDatessByString(req require.Requirement, values ...date.DateString) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
+func (tbl DatesTable) DeleteByString(req require.Requirement, string ...date.DateString) (int64, error) {
+	ii := make([]interface{}, len(string))
+	for i, v := range string {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+	return support.DeleteByColumn(tbl, req, "string", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
@@ -1057,4 +1084,4 @@ func deleteRowsDatesTableSql(tbl DatesTabler, wh where.Expression) (string, []in
 	return query, args
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------

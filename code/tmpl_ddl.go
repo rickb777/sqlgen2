@@ -17,7 +17,6 @@ type {{.Prefix}}{{.Type}}{{.Thinger}} interface {
 	{{.Sqlapi}}.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with added data consistency constraints.

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demo
 
@@ -24,7 +24,6 @@ type AssociationTabler interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified AssociationTabler with added data consistency constraints.
@@ -45,6 +44,8 @@ type AssociationTabler interface {
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // AssociationQueryer lists query methods provided by AssociationTable.
 type AssociationQueryer interface {
@@ -121,6 +122,27 @@ type AssociationQueryer interface {
 	// Insert adds new records for the Associations, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Association) error
 
+	// UpdateById updates one or more columns, given a id value.
+	UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByName updates one or more columns, given a name value.
+	UpdateByName(req require.Requirement, name string, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByQuality updates one or more columns, given a quality value.
+	UpdateByQuality(req require.Requirement, quality QualName, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByRef1 updates one or more columns, given a ref1 value.
+	UpdateByRef1(req require.Requirement, ref1 int64, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByRef2 updates one or more columns, given a ref2 value.
+	UpdateByRef2(req require.Requirement, ref2 int64, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByCategory updates one or more columns, given a category value.
+	UpdateByCategory(req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateFields updates one or more columns, given a 'where' clause.
+	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*Association) (int64, error)
 
@@ -131,34 +153,36 @@ type AssociationQueryer interface {
 	// error results if these conditions are not met.
 	Upsert(v *Association, wh where.Expression) error
 
-	// DeleteAssociationsById deletes rows from the table, given some id values.
+	// DeleteById deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteAssociationsById(req require.Requirement, values ...int64) (int64, error)
+	DeleteById(req require.Requirement, id ...int64) (int64, error)
 
-	// DeleteAssociationsByName deletes rows from the table, given some name values.
+	// DeleteByName deletes rows from the table, given some name values.
 	// The list of ids can be arbitrarily long.
-	DeleteAssociationsByName(req require.Requirement, values ...string) (int64, error)
+	DeleteByName(req require.Requirement, name ...string) (int64, error)
 
-	// DeleteAssociationsByQuality deletes rows from the table, given some quality values.
+	// DeleteByQuality deletes rows from the table, given some quality values.
 	// The list of ids can be arbitrarily long.
-	DeleteAssociationsByQuality(req require.Requirement, values ...QualName) (int64, error)
+	DeleteByQuality(req require.Requirement, quality ...QualName) (int64, error)
 
-	// DeleteAssociationsByRef1 deletes rows from the table, given some ref1 values.
+	// DeleteByRef1 deletes rows from the table, given some ref1 values.
 	// The list of ids can be arbitrarily long.
-	DeleteAssociationsByRef1(req require.Requirement, values ...int64) (int64, error)
+	DeleteByRef1(req require.Requirement, ref1 ...int64) (int64, error)
 
-	// DeleteAssociationsByRef2 deletes rows from the table, given some ref2 values.
+	// DeleteByRef2 deletes rows from the table, given some ref2 values.
 	// The list of ids can be arbitrarily long.
-	DeleteAssociationsByRef2(req require.Requirement, values ...int64) (int64, error)
+	DeleteByRef2(req require.Requirement, ref2 ...int64) (int64, error)
 
-	// DeleteAssociationsByCategory deletes rows from the table, given some category values.
+	// DeleteByCategory deletes rows from the table, given some category values.
 	// The list of ids can be arbitrarily long.
-	DeleteAssociationsByCategory(req require.Requirement, values ...Category) (int64, error)
+	DeleteByCategory(req require.Requirement, category ...Category) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
 	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // AssociationTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -332,7 +356,7 @@ func (tbl AssociationTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumAssociationTableColumns is the total number of columns in AssociationTable.
 const NumAssociationTableColumns = 6
@@ -348,7 +372,7 @@ const AssociationTableDataColumnNames = "name,quality,ref1,ref2,category"
 
 var listOfAssociationTableColumnNames = strings.Split(AssociationTableColumnNames, ",")
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 var sqlAssociationTableCreateColumnsSqlite = []string{
 	"integer not null primary key autoincrement",
@@ -386,7 +410,7 @@ var sqlAssociationTableCreateColumnsPgx = []string{
 	"smallint default null",
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
 func (tbl AssociationTable) CreateTable(ifNotExists bool) (int64, error) {
@@ -453,7 +477,7 @@ func dropAssociationTableSql(tbl AssociationTabler, ifExists bool) string {
 	return query
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Truncate drops every record from the table, if possible. It might fail if constraints exist that
 // prevent some or all rows from being deleted; use the force option to override this.
@@ -472,7 +496,7 @@ func (tbl AssociationTable) Truncate(force bool) (err error) {
 	return nil
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
 // It returns the number of rows affected (if the database driver supports this).
@@ -482,7 +506,7 @@ func (tbl AssociationTable) Exec(req require.Requirement, query string, args ...
 	return support.Exec(tbl, req, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Query is the low-level request method for this table. The SQL query must return all the columns necessary for
 // Association values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
@@ -511,7 +535,7 @@ func doAssociationTableQueryAndScan(tbl AssociationTabler, req require.Requireme
 	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
@@ -697,7 +721,7 @@ func (tbl AssociationTable) Fetch(req require.Requirement, query string, args ..
 	return doAssociationTableQueryAndScan(tbl, req, false, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // SelectOneWhere allows a single Association to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
@@ -759,7 +783,7 @@ func (tbl AssociationTable) Select(req require.Requirement, wh where.Expression,
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CountWhere counts Associations in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
@@ -1067,8 +1091,38 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
+// UpdateById updates one or more columns, given a id value.
+func (tbl AssociationTable) UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
+}
+
+// UpdateByName updates one or more columns, given a name value.
+func (tbl AssociationTable) UpdateByName(req require.Requirement, name string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("name", name), fields...)
+}
+
+// UpdateByQuality updates one or more columns, given a quality value.
+func (tbl AssociationTable) UpdateByQuality(req require.Requirement, quality QualName, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("quality", quality), fields...)
+}
+
+// UpdateByRef1 updates one or more columns, given a ref1 value.
+func (tbl AssociationTable) UpdateByRef1(req require.Requirement, ref1 int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("ref1", ref1), fields...)
+}
+
+// UpdateByRef2 updates one or more columns, given a ref2 value.
+func (tbl AssociationTable) UpdateByRef2(req require.Requirement, ref2 int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("ref2", ref2), fields...)
+}
+
+// UpdateByCategory updates one or more columns, given a category value.
+func (tbl AssociationTable) UpdateByCategory(req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("category", category), fields...)
+}
+
 // UpdateFields updates one or more columns, given a 'where' clause.
-// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+// Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
 func (tbl AssociationTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
@@ -1159,66 +1213,54 @@ func (tbl AssociationTable) Upsert(v *Association, wh where.Expression) error {
 	return err
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
-// DeleteAssociationsById deletes rows from the table, given some id values.
+// DeleteById deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteAssociationsById(req require.Requirement, values ...int64) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl AssociationTable) DeleteById(req require.Requirement, id ...int64) (int64, error) {
+	ii := support.Int64AsInterfaceSlice(id)
+	return support.DeleteByColumn(tbl, req, "id", ii...)
 }
 
-// DeleteAssociationsByName deletes rows from the table, given some name values.
+// DeleteByName deletes rows from the table, given some name values.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteAssociationsByName(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl AssociationTable) DeleteByName(req require.Requirement, name ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(name)
+	return support.DeleteByColumn(tbl, req, "name", ii...)
 }
 
-// DeleteAssociationsByQuality deletes rows from the table, given some quality values.
+// DeleteByQuality deletes rows from the table, given some quality values.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteAssociationsByQuality(req require.Requirement, values ...QualName) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
+func (tbl AssociationTable) DeleteByQuality(req require.Requirement, quality ...QualName) (int64, error) {
+	ii := make([]interface{}, len(quality))
+	for i, v := range quality {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+	return support.DeleteByColumn(tbl, req, "quality", ii...)
 }
 
-// DeleteAssociationsByRef1 deletes rows from the table, given some ref1 values.
+// DeleteByRef1 deletes rows from the table, given some ref1 values.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteAssociationsByRef1(req require.Requirement, values ...int64) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl AssociationTable) DeleteByRef1(req require.Requirement, ref1 ...int64) (int64, error) {
+	ii := support.Int64AsInterfaceSlice(ref1)
+	return support.DeleteByColumn(tbl, req, "ref1", ii...)
 }
 
-// DeleteAssociationsByRef2 deletes rows from the table, given some ref2 values.
+// DeleteByRef2 deletes rows from the table, given some ref2 values.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteAssociationsByRef2(req require.Requirement, values ...int64) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl AssociationTable) DeleteByRef2(req require.Requirement, ref2 ...int64) (int64, error) {
+	ii := support.Int64AsInterfaceSlice(ref2)
+	return support.DeleteByColumn(tbl, req, "ref2", ii...)
 }
 
-// DeleteAssociationsByCategory deletes rows from the table, given some category values.
+// DeleteByCategory deletes rows from the table, given some category values.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteAssociationsByCategory(req require.Requirement, values ...Category) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
+func (tbl AssociationTable) DeleteByCategory(req require.Requirement, category ...Category) (int64, error) {
+	ii := make([]interface{}, len(category))
+	for i, v := range category {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+	return support.DeleteByColumn(tbl, req, "category", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
@@ -1235,4 +1277,4 @@ func deleteRowsAssociationTableSql(tbl AssociationTabler, wh where.Expression) (
 	return query, args
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------

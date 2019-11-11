@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demopgx
 
@@ -27,7 +27,6 @@ type DbUserTabler interface {
 	pgxapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified DbUserTabler with added data consistency constraints.
@@ -66,6 +65,8 @@ type DbUserTabler interface {
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // DbUserQueryer lists query methods provided by DbUserTable.
 type DbUserQueryer interface {
@@ -181,6 +182,60 @@ type DbUserQueryer interface {
 	// Insert adds new records for the Users, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*User) error
 
+	// UpdateByUid updates one or more columns, given a uid value.
+	UpdateByUid(req require.Requirement, uid int64, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByName updates one or more columns, given a name value.
+	UpdateByName(req require.Requirement, name string, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByEmailaddress updates one or more columns, given a emailaddress value.
+	UpdateByEmailaddress(req require.Requirement, emailaddress string, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByAddressid updates one or more columns, given a addressid value.
+	UpdateByAddressid(req require.Requirement, addressid int64, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByAvatar updates one or more columns, given a avatar value.
+	UpdateByAvatar(req require.Requirement, avatar string, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByRole updates one or more columns, given a role value.
+	UpdateByRole(req require.Requirement, role Role, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByLastupdated updates one or more columns, given a lastupdated value.
+	UpdateByLastupdated(req require.Requirement, lastupdated int64, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByI8 updates one or more columns, given a i8 value.
+	UpdateByI8(req require.Requirement, i8 int8, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByU8 updates one or more columns, given a u8 value.
+	UpdateByU8(req require.Requirement, u8 uint8, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByI16 updates one or more columns, given a i16 value.
+	UpdateByI16(req require.Requirement, i16 int16, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByU16 updates one or more columns, given a u16 value.
+	UpdateByU16(req require.Requirement, u16 uint16, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByI32 updates one or more columns, given a i32 value.
+	UpdateByI32(req require.Requirement, i32 int32, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByU32 updates one or more columns, given a u32 value.
+	UpdateByU32(req require.Requirement, u32 uint32, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByI64 updates one or more columns, given a i64 value.
+	UpdateByI64(req require.Requirement, i64 int64, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByU64 updates one or more columns, given a u64 value.
+	UpdateByU64(req require.Requirement, u64 uint64, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByF32 updates one or more columns, given a f32 value.
+	UpdateByF32(req require.Requirement, f32 float32, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateByF64 updates one or more columns, given a f64 value.
+	UpdateByF64(req require.Requirement, f64 float64, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateFields updates one or more columns, given a 'where' clause.
+	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+
 	// Update updates records, matching them by primary key.
 	Update(req require.Requirement, vv ...*User) (int64, error)
 
@@ -191,78 +246,80 @@ type DbUserQueryer interface {
 	// error results if these conditions are not met.
 	Upsert(v *User, wh where.Expression) error
 
-	// DeleteUsersByUid deletes rows from the table, given some uid values.
+	// DeleteByUid deletes rows from the table, given some uid values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByUid(req require.Requirement, values ...int64) (int64, error)
+	DeleteByUid(req require.Requirement, uid ...int64) (int64, error)
 
-	// DeleteUsersByName deletes rows from the table, given some name values.
+	// DeleteByName deletes rows from the table, given some name values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByName(req require.Requirement, values ...string) (int64, error)
+	DeleteByName(req require.Requirement, name ...string) (int64, error)
 
-	// DeleteUsersByEmailaddress deletes rows from the table, given some emailaddress values.
+	// DeleteByEmailaddress deletes rows from the table, given some emailaddress values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByEmailaddress(req require.Requirement, values ...string) (int64, error)
+	DeleteByEmailaddress(req require.Requirement, emailaddress ...string) (int64, error)
 
-	// DeleteUsersByAddressid deletes rows from the table, given some addressid values.
+	// DeleteByAddressid deletes rows from the table, given some addressid values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByAddressid(req require.Requirement, values ...int64) (int64, error)
+	DeleteByAddressid(req require.Requirement, addressid ...int64) (int64, error)
 
-	// DeleteUsersByAvatar deletes rows from the table, given some avatar values.
+	// DeleteByAvatar deletes rows from the table, given some avatar values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByAvatar(req require.Requirement, values ...string) (int64, error)
+	DeleteByAvatar(req require.Requirement, avatar ...string) (int64, error)
 
-	// DeleteUsersByRole deletes rows from the table, given some role values.
+	// DeleteByRole deletes rows from the table, given some role values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByRole(req require.Requirement, values ...Role) (int64, error)
+	DeleteByRole(req require.Requirement, role ...Role) (int64, error)
 
-	// DeleteUsersByLastupdated deletes rows from the table, given some lastupdated values.
+	// DeleteByLastupdated deletes rows from the table, given some lastupdated values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByLastupdated(req require.Requirement, values ...int64) (int64, error)
+	DeleteByLastupdated(req require.Requirement, lastupdated ...int64) (int64, error)
 
-	// DeleteUsersByI8 deletes rows from the table, given some i8 values.
+	// DeleteByI8 deletes rows from the table, given some i8 values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByI8(req require.Requirement, values ...int8) (int64, error)
+	DeleteByI8(req require.Requirement, i8 ...int8) (int64, error)
 
-	// DeleteUsersByU8 deletes rows from the table, given some u8 values.
+	// DeleteByU8 deletes rows from the table, given some u8 values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByU8(req require.Requirement, values ...uint8) (int64, error)
+	DeleteByU8(req require.Requirement, u8 ...uint8) (int64, error)
 
-	// DeleteUsersByI16 deletes rows from the table, given some i16 values.
+	// DeleteByI16 deletes rows from the table, given some i16 values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByI16(req require.Requirement, values ...int16) (int64, error)
+	DeleteByI16(req require.Requirement, i16 ...int16) (int64, error)
 
-	// DeleteUsersByU16 deletes rows from the table, given some u16 values.
+	// DeleteByU16 deletes rows from the table, given some u16 values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByU16(req require.Requirement, values ...uint16) (int64, error)
+	DeleteByU16(req require.Requirement, u16 ...uint16) (int64, error)
 
-	// DeleteUsersByI32 deletes rows from the table, given some i32 values.
+	// DeleteByI32 deletes rows from the table, given some i32 values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByI32(req require.Requirement, values ...int32) (int64, error)
+	DeleteByI32(req require.Requirement, i32 ...int32) (int64, error)
 
-	// DeleteUsersByU32 deletes rows from the table, given some u32 values.
+	// DeleteByU32 deletes rows from the table, given some u32 values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByU32(req require.Requirement, values ...uint32) (int64, error)
+	DeleteByU32(req require.Requirement, u32 ...uint32) (int64, error)
 
-	// DeleteUsersByI64 deletes rows from the table, given some i64 values.
+	// DeleteByI64 deletes rows from the table, given some i64 values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByI64(req require.Requirement, values ...int64) (int64, error)
+	DeleteByI64(req require.Requirement, i64 ...int64) (int64, error)
 
-	// DeleteUsersByU64 deletes rows from the table, given some u64 values.
+	// DeleteByU64 deletes rows from the table, given some u64 values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByU64(req require.Requirement, values ...uint64) (int64, error)
+	DeleteByU64(req require.Requirement, u64 ...uint64) (int64, error)
 
-	// DeleteUsersByF32 deletes rows from the table, given some f32 values.
+	// DeleteByF32 deletes rows from the table, given some f32 values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByF32(req require.Requirement, values ...float32) (int64, error)
+	DeleteByF32(req require.Requirement, f32 ...float32) (int64, error)
 
-	// DeleteUsersByF64 deletes rows from the table, given some f64 values.
+	// DeleteByF64 deletes rows from the table, given some f64 values.
 	// The list of ids can be arbitrarily long.
-	DeleteUsersByF64(req require.Requirement, values ...float64) (int64, error)
+	DeleteByF64(req require.Requirement, f64 ...float64) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
 	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // DbUserTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -439,7 +496,7 @@ func (tbl DbUserTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumDbUserTableColumns is the total number of columns in DbUserTable.
 const NumDbUserTableColumns = 22
@@ -455,7 +512,7 @@ const DbUserTableDataColumnNames = "name,emailaddress,addressid,avatar,role,acti
 
 var listOfDbUserTableColumnNames = strings.Split(DbUserTableColumnNames, ",")
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 var sqlDbUserTableCreateColumnsSqlite = []string{
 	"integer not null primary key autoincrement",
@@ -557,7 +614,7 @@ var sqlDbUserTableCreateColumnsPgx = []string{
 	"text not null",
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 const sqlDbEmailaddressIdxIndexColumns = "emailaddress"
 
@@ -567,7 +624,7 @@ const sqlDbUserLoginIndexColumns = "name"
 
 var listOfDbUserLoginIndexColumns = []string{"name"}
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
 func (tbl DbUserTable) CreateTable(ifNotExists bool) (int64, error) {
@@ -634,7 +691,7 @@ func dropDbUserTableSql(tbl DbUserTabler, ifExists bool) string {
 	return query
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 func (tbl DbUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
@@ -768,7 +825,7 @@ func (tbl DbUserTable) DropIndexes(ifExist bool) (err error) {
 	return nil
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Truncate drops every record from the table, if possible. It might fail if constraints exist that
 // prevent some or all rows from being deleted; use the force option to override this.
@@ -787,7 +844,7 @@ func (tbl DbUserTable) Truncate(force bool) (err error) {
 	return nil
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
 // It returns the number of rows affected (if the database driver supports this).
@@ -797,7 +854,7 @@ func (tbl DbUserTable) Exec(req require.Requirement, query string, args ...inter
 	return support.Exec(tbl, req, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Query is the low-level request method for this table. The SQL query must return all the columns necessary for
 // User values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
@@ -826,7 +883,7 @@ func doDbUserTableQueryAndScan(tbl DbUserTabler, req require.Requirement, firstO
 	return vv, tbl.(pgxapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
@@ -1072,7 +1129,7 @@ func (tbl DbUserTable) Fetch(req require.Requirement, query string, args ...inte
 	return doDbUserTableQueryAndScan(tbl, req, false, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // SelectOneWhere allows a single User to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
@@ -1134,7 +1191,7 @@ func (tbl DbUserTable) Select(req require.Requirement, wh where.Expression, qc w
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CountWhere counts Users in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
@@ -1692,8 +1749,93 @@ func (tbl DbUserTable) Insert(req require.Requirement, vv ...*User) error {
 	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
+// UpdateByUid updates one or more columns, given a uid value.
+func (tbl DbUserTable) UpdateByUid(req require.Requirement, uid int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("uid", uid), fields...)
+}
+
+// UpdateByName updates one or more columns, given a name value.
+func (tbl DbUserTable) UpdateByName(req require.Requirement, name string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("name", name), fields...)
+}
+
+// UpdateByEmailaddress updates one or more columns, given a emailaddress value.
+func (tbl DbUserTable) UpdateByEmailaddress(req require.Requirement, emailaddress string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("emailaddress", emailaddress), fields...)
+}
+
+// UpdateByAddressid updates one or more columns, given a addressid value.
+func (tbl DbUserTable) UpdateByAddressid(req require.Requirement, addressid int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("addressid", addressid), fields...)
+}
+
+// UpdateByAvatar updates one or more columns, given a avatar value.
+func (tbl DbUserTable) UpdateByAvatar(req require.Requirement, avatar string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("avatar", avatar), fields...)
+}
+
+// UpdateByRole updates one or more columns, given a role value.
+func (tbl DbUserTable) UpdateByRole(req require.Requirement, role Role, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("role", role), fields...)
+}
+
+// UpdateByLastupdated updates one or more columns, given a lastupdated value.
+func (tbl DbUserTable) UpdateByLastupdated(req require.Requirement, lastupdated int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("lastupdated", lastupdated), fields...)
+}
+
+// UpdateByI8 updates one or more columns, given a i8 value.
+func (tbl DbUserTable) UpdateByI8(req require.Requirement, i8 int8, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("i8", i8), fields...)
+}
+
+// UpdateByU8 updates one or more columns, given a u8 value.
+func (tbl DbUserTable) UpdateByU8(req require.Requirement, u8 uint8, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("u8", u8), fields...)
+}
+
+// UpdateByI16 updates one or more columns, given a i16 value.
+func (tbl DbUserTable) UpdateByI16(req require.Requirement, i16 int16, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("i16", i16), fields...)
+}
+
+// UpdateByU16 updates one or more columns, given a u16 value.
+func (tbl DbUserTable) UpdateByU16(req require.Requirement, u16 uint16, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("u16", u16), fields...)
+}
+
+// UpdateByI32 updates one or more columns, given a i32 value.
+func (tbl DbUserTable) UpdateByI32(req require.Requirement, i32 int32, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("i32", i32), fields...)
+}
+
+// UpdateByU32 updates one or more columns, given a u32 value.
+func (tbl DbUserTable) UpdateByU32(req require.Requirement, u32 uint32, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("u32", u32), fields...)
+}
+
+// UpdateByI64 updates one or more columns, given a i64 value.
+func (tbl DbUserTable) UpdateByI64(req require.Requirement, i64 int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("i64", i64), fields...)
+}
+
+// UpdateByU64 updates one or more columns, given a u64 value.
+func (tbl DbUserTable) UpdateByU64(req require.Requirement, u64 uint64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("u64", u64), fields...)
+}
+
+// UpdateByF32 updates one or more columns, given a f32 value.
+func (tbl DbUserTable) UpdateByF32(req require.Requirement, f32 float32, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("f32", f32), fields...)
+}
+
+// UpdateByF64 updates one or more columns, given a f64 value.
+func (tbl DbUserTable) UpdateByF64(req require.Requirement, f64 float64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("f64", f64), fields...)
+}
+
 // UpdateFields updates one or more columns, given a 'where' clause.
-// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+// Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
 func (tbl DbUserTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
@@ -1784,176 +1926,134 @@ func (tbl DbUserTable) Upsert(v *User, wh where.Expression) error {
 	return err
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
-// DeleteUsersByUid deletes rows from the table, given some uid values.
+// DeleteByUid deletes rows from the table, given some uid values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByUid(req require.Requirement, values ...int64) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByUid(req require.Requirement, uid ...int64) (int64, error) {
+	ii := support.Int64AsInterfaceSlice(uid)
+	return support.DeleteByColumn(tbl, req, "uid", ii...)
 }
 
-// DeleteUsersByName deletes rows from the table, given some name values.
+// DeleteByName deletes rows from the table, given some name values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByName(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByName(req require.Requirement, name ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(name)
+	return support.DeleteByColumn(tbl, req, "name", ii...)
 }
 
-// DeleteUsersByEmailaddress deletes rows from the table, given some emailaddress values.
+// DeleteByEmailaddress deletes rows from the table, given some emailaddress values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByEmailaddress(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByEmailaddress(req require.Requirement, emailaddress ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(emailaddress)
+	return support.DeleteByColumn(tbl, req, "emailaddress", ii...)
 }
 
-// DeleteUsersByAddressid deletes rows from the table, given some addressid values.
+// DeleteByAddressid deletes rows from the table, given some addressid values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByAddressid(req require.Requirement, values ...int64) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByAddressid(req require.Requirement, addressid ...int64) (int64, error) {
+	ii := support.Int64AsInterfaceSlice(addressid)
+	return support.DeleteByColumn(tbl, req, "addressid", ii...)
 }
 
-// DeleteUsersByAvatar deletes rows from the table, given some avatar values.
+// DeleteByAvatar deletes rows from the table, given some avatar values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByAvatar(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByAvatar(req require.Requirement, avatar ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(avatar)
+	return support.DeleteByColumn(tbl, req, "avatar", ii...)
 }
 
-// DeleteUsersByRole deletes rows from the table, given some role values.
+// DeleteByRole deletes rows from the table, given some role values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByRole(req require.Requirement, values ...Role) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
+func (tbl DbUserTable) DeleteByRole(req require.Requirement, role ...Role) (int64, error) {
+	ii := make([]interface{}, len(role))
+	for i, v := range role {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+	return support.DeleteByColumn(tbl, req, "role", ii...)
 }
 
-// DeleteUsersByLastupdated deletes rows from the table, given some lastupdated values.
+// DeleteByLastupdated deletes rows from the table, given some lastupdated values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByLastupdated(req require.Requirement, values ...int64) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByLastupdated(req require.Requirement, lastupdated ...int64) (int64, error) {
+	ii := support.Int64AsInterfaceSlice(lastupdated)
+	return support.DeleteByColumn(tbl, req, "lastupdated", ii...)
 }
 
-// DeleteUsersByI8 deletes rows from the table, given some i8 values.
+// DeleteByI8 deletes rows from the table, given some i8 values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByI8(req require.Requirement, values ...int8) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByI8(req require.Requirement, i8 ...int8) (int64, error) {
+	ii := support.Int8AsInterfaceSlice(i8)
+	return support.DeleteByColumn(tbl, req, "i8", ii...)
 }
 
-// DeleteUsersByU8 deletes rows from the table, given some u8 values.
+// DeleteByU8 deletes rows from the table, given some u8 values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByU8(req require.Requirement, values ...uint8) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByU8(req require.Requirement, u8 ...uint8) (int64, error) {
+	ii := support.Uint8AsInterfaceSlice(u8)
+	return support.DeleteByColumn(tbl, req, "u8", ii...)
 }
 
-// DeleteUsersByI16 deletes rows from the table, given some i16 values.
+// DeleteByI16 deletes rows from the table, given some i16 values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByI16(req require.Requirement, values ...int16) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByI16(req require.Requirement, i16 ...int16) (int64, error) {
+	ii := support.Int16AsInterfaceSlice(i16)
+	return support.DeleteByColumn(tbl, req, "i16", ii...)
 }
 
-// DeleteUsersByU16 deletes rows from the table, given some u16 values.
+// DeleteByU16 deletes rows from the table, given some u16 values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByU16(req require.Requirement, values ...uint16) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByU16(req require.Requirement, u16 ...uint16) (int64, error) {
+	ii := support.Uint16AsInterfaceSlice(u16)
+	return support.DeleteByColumn(tbl, req, "u16", ii...)
 }
 
-// DeleteUsersByI32 deletes rows from the table, given some i32 values.
+// DeleteByI32 deletes rows from the table, given some i32 values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByI32(req require.Requirement, values ...int32) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByI32(req require.Requirement, i32 ...int32) (int64, error) {
+	ii := support.Int32AsInterfaceSlice(i32)
+	return support.DeleteByColumn(tbl, req, "i32", ii...)
 }
 
-// DeleteUsersByU32 deletes rows from the table, given some u32 values.
+// DeleteByU32 deletes rows from the table, given some u32 values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByU32(req require.Requirement, values ...uint32) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByU32(req require.Requirement, u32 ...uint32) (int64, error) {
+	ii := support.Uint32AsInterfaceSlice(u32)
+	return support.DeleteByColumn(tbl, req, "u32", ii...)
 }
 
-// DeleteUsersByI64 deletes rows from the table, given some i64 values.
+// DeleteByI64 deletes rows from the table, given some i64 values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByI64(req require.Requirement, values ...int64) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByI64(req require.Requirement, i64 ...int64) (int64, error) {
+	ii := support.Int64AsInterfaceSlice(i64)
+	return support.DeleteByColumn(tbl, req, "i64", ii...)
 }
 
-// DeleteUsersByU64 deletes rows from the table, given some u64 values.
+// DeleteByU64 deletes rows from the table, given some u64 values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByU64(req require.Requirement, values ...uint64) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbUserTable) DeleteByU64(req require.Requirement, u64 ...uint64) (int64, error) {
+	ii := support.Uint64AsInterfaceSlice(u64)
+	return support.DeleteByColumn(tbl, req, "u64", ii...)
 }
 
-// DeleteUsersByF32 deletes rows from the table, given some f32 values.
+// DeleteByF32 deletes rows from the table, given some f32 values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByF32(req require.Requirement, values ...float32) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
+func (tbl DbUserTable) DeleteByF32(req require.Requirement, f32 ...float32) (int64, error) {
+	ii := make([]interface{}, len(f32))
+	for i, v := range f32 {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+	return support.DeleteByColumn(tbl, req, "f32", ii...)
 }
 
-// DeleteUsersByF64 deletes rows from the table, given some f64 values.
+// DeleteByF64 deletes rows from the table, given some f64 values.
 // The list of ids can be arbitrarily long.
-func (tbl DbUserTable) DeleteUsersByF64(req require.Requirement, values ...float64) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
+func (tbl DbUserTable) DeleteByF64(req require.Requirement, f64 ...float64) (int64, error) {
+	ii := make([]interface{}, len(f64))
+	for i, v := range f64 {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+	return support.DeleteByColumn(tbl, req, "f64", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
@@ -1970,9 +2070,9 @@ func deleteRowsDbUserTableSql(tbl DbUserTabler, wh where.Expression) (string, []
 	return query, args
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // SetUid sets the Uid field and returns the modified User.
 func (v *User) SetUid(x int64) *User {

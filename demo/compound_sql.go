@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.40.1; sqlgen v0.60.1
+// sqlapi v0.41.0; sqlgen v0.61.0
 
 package demo
 
@@ -24,7 +24,6 @@ type DbCompoundTabler interface {
 	sqlapi.Table
 
 	// Constraints returns the table's constraints.
-	// (not included here because of package inter-dependencies)
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified DbCompoundTabler with added data consistency constraints.
@@ -57,6 +56,8 @@ type DbCompoundTabler interface {
 	// Truncate drops every record from the table, if possible.
 	Truncate(force bool) (err error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // DbCompoundQueryer lists query methods provided by DbCompoundTable.
 type DbCompoundQueryer interface {
@@ -121,22 +122,36 @@ type DbCompoundQueryer interface {
 	// Insert adds new records for the Compounds.
 	Insert(req require.Requirement, vv ...*Compound) error
 
-	// DeleteCompoundsByAlpha deletes rows from the table, given some alpha values.
-	// The list of ids can be arbitrarily long.
-	DeleteCompoundsByAlpha(req require.Requirement, values ...string) (int64, error)
+	// UpdateByAlpha updates one or more columns, given a alpha value.
+	UpdateByAlpha(req require.Requirement, alpha string, fields ...sql.NamedArg) (int64, error)
 
-	// DeleteCompoundsByBeta deletes rows from the table, given some beta values.
-	// The list of ids can be arbitrarily long.
-	DeleteCompoundsByBeta(req require.Requirement, values ...string) (int64, error)
+	// UpdateByBeta updates one or more columns, given a beta value.
+	UpdateByBeta(req require.Requirement, beta string, fields ...sql.NamedArg) (int64, error)
 
-	// DeleteCompoundsByCategory deletes rows from the table, given some category values.
+	// UpdateByCategory updates one or more columns, given a category value.
+	UpdateByCategory(req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error)
+
+	// UpdateFields updates one or more columns, given a 'where' clause.
+	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+
+	// DeleteByAlpha deletes rows from the table, given some alpha values.
 	// The list of ids can be arbitrarily long.
-	DeleteCompoundsByCategory(req require.Requirement, values ...Category) (int64, error)
+	DeleteByAlpha(req require.Requirement, alpha ...string) (int64, error)
+
+	// DeleteByBeta deletes rows from the table, given some beta values.
+	// The list of ids can be arbitrarily long.
+	DeleteByBeta(req require.Requirement, beta ...string) (int64, error)
+
+	// DeleteByCategory deletes rows from the table, given some category values.
+	// The list of ids can be arbitrarily long.
+	DeleteByCategory(req require.Requirement, category ...Category) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
 	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
+
+//-------------------------------------------------------------------------------------------------
 
 // DbCompoundTable holds a given table name with the database reference, providing access methods below.
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
@@ -298,7 +313,7 @@ func (tbl DbCompoundTable) quotedNameW(w dialect.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // NumDbCompoundTableColumns is the total number of columns in DbCompoundTable.
 const NumDbCompoundTableColumns = 3
@@ -311,7 +326,7 @@ const DbCompoundTableColumnNames = "alpha,beta,category"
 
 var listOfDbCompoundTableColumnNames = strings.Split(DbCompoundTableColumnNames, ",")
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 var sqlDbCompoundTableCreateColumnsSqlite = []string{
 	"text not null",
@@ -337,13 +352,13 @@ var sqlDbCompoundTableCreateColumnsPgx = []string{
 	"smallint not null",
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 const sqlDbAlphaBetaIndexColumns = "alpha,beta"
 
 var listOfDbAlphaBetaIndexColumns = strings.Split(sqlDbAlphaBetaIndexColumns, ",")
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
 func (tbl DbCompoundTable) CreateTable(ifNotExists bool) (int64, error) {
@@ -410,7 +425,7 @@ func dropDbCompoundTableSql(tbl DbCompoundTabler, ifExists bool) string {
 	return query
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
 func (tbl DbCompoundTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
@@ -489,7 +504,7 @@ func (tbl DbCompoundTable) DropIndexes(ifExist bool) (err error) {
 	return nil
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Truncate drops every record from the table, if possible. It might fail if constraints exist that
 // prevent some or all rows from being deleted; use the force option to override this.
@@ -508,7 +523,7 @@ func (tbl DbCompoundTable) Truncate(force bool) (err error) {
 	return nil
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Exec executes a query without returning any rows.
 // It returns the number of rows affected (if the database driver supports this).
@@ -518,7 +533,7 @@ func (tbl DbCompoundTable) Exec(req require.Requirement, query string, args ...i
 	return support.Exec(tbl, req, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // Query is the low-level request method for this table. The SQL query must return all the columns necessary for
 // Compound values. Placeholders should be vanilla '?' marks, which will be replaced if necessary according to
@@ -547,7 +562,7 @@ func doDbCompoundTableQueryAndScan(tbl DbCompoundTabler, req require.Requirement
 	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // QueryOneNullString is a low-level access method for one string. This can be used for function queries and
 // such like. If the query selected many rows, only the first is returned; the rest are discarded.
@@ -684,7 +699,7 @@ func (tbl DbCompoundTable) Fetch(req require.Requirement, query string, args ...
 	return doDbCompoundTableQueryAndScan(tbl, req, false, query, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // SelectOneWhere allows a single Compound to be obtained from the table that matches a 'where' clause
 // and some limit. Any order, limit or offset clauses can be supplied in 'orderBy'.
@@ -746,7 +761,7 @@ func (tbl DbCompoundTable) Select(req require.Requirement, wh where.Expression, 
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 // CountWhere counts Compounds in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
@@ -934,42 +949,51 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
+// UpdateByAlpha updates one or more columns, given a alpha value.
+func (tbl DbCompoundTable) UpdateByAlpha(req require.Requirement, alpha string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("alpha", alpha), fields...)
+}
+
+// UpdateByBeta updates one or more columns, given a beta value.
+func (tbl DbCompoundTable) UpdateByBeta(req require.Requirement, beta string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("beta", beta), fields...)
+}
+
+// UpdateByCategory updates one or more columns, given a category value.
+func (tbl DbCompoundTable) UpdateByCategory(req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("category", category), fields...)
+}
+
 // UpdateFields updates one or more columns, given a 'where' clause.
-// Use a nil value for the 'wh' argument if it is not needed (very risky!).
+// Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
 func (tbl DbCompoundTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
 	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
-// DeleteCompoundsByAlpha deletes rows from the table, given some alpha values.
+// DeleteByAlpha deletes rows from the table, given some alpha values.
 // The list of ids can be arbitrarily long.
-func (tbl DbCompoundTable) DeleteCompoundsByAlpha(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbCompoundTable) DeleteByAlpha(req require.Requirement, alpha ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(alpha)
+	return support.DeleteByColumn(tbl, req, "alpha", ii...)
 }
 
-// DeleteCompoundsByBeta deletes rows from the table, given some beta values.
+// DeleteByBeta deletes rows from the table, given some beta values.
 // The list of ids can be arbitrarily long.
-func (tbl DbCompoundTable) DeleteCompoundsByBeta(req require.Requirement, values ...string) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
-		ii[i] = v
-	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+func (tbl DbCompoundTable) DeleteByBeta(req require.Requirement, beta ...string) (int64, error) {
+	ii := support.StringAsInterfaceSlice(beta)
+	return support.DeleteByColumn(tbl, req, "beta", ii...)
 }
 
-// DeleteCompoundsByCategory deletes rows from the table, given some category values.
+// DeleteByCategory deletes rows from the table, given some category values.
 // The list of ids can be arbitrarily long.
-func (tbl DbCompoundTable) DeleteCompoundsByCategory(req require.Requirement, values ...Category) (int64, error) {
-	ii := make([]interface{}, len(values))
-	for i, v := range values {
+func (tbl DbCompoundTable) DeleteByCategory(req require.Requirement, category ...Category) (int64, error) {
+	ii := make([]interface{}, len(category))
+	for i, v := range category {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, tbl.pk, ii...)
+	return support.DeleteByColumn(tbl, req, "category", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
@@ -986,4 +1010,4 @@ func deleteRowsDbCompoundTableSql(tbl DbCompoundTabler, wh where.Expression) (st
 	return query, args
 }
 
-//--------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
