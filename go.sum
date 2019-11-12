@@ -345,6 +345,8 @@ github.com/rickb777/sqlapi v0.41.0 h1:RackJrAVq4sGYM0aaJhC+VtUZsSq2yrR9eG0j3DVN4
 github.com/rickb777/sqlapi v0.41.0/go.mod h1:332NtGXkJCrtSouoJ103wkCywW/CUNVjyzqIaBIXLbk=
 github.com/rickb777/sqlapi v0.42.0 h1:qS9yXgAx+BofPs2xMedobevL/mASA0E1wjzQh7RWGyY=
 github.com/rickb777/sqlapi v0.42.0/go.mod h1:332NtGXkJCrtSouoJ103wkCywW/CUNVjyzqIaBIXLbk=
+github.com/rickb777/sqlapi v0.43.0 h1:y8iDP71PlnZtTlB/FSNDdiXXbu+FLArvM/mJb97N60g=
+github.com/rickb777/sqlapi v0.43.0/go.mod h1:332NtGXkJCrtSouoJ103wkCywW/CUNVjyzqIaBIXLbk=
 github.com/rickb777/where v0.6.0 h1:bEp2PziyqxRfhZ6j7XCdspCEVZYmI9bd5pJsl3QtKTM=
 github.com/rickb777/where v0.6.0/go.mod h1:4rZ71SF2T5pNU0qrCWnTAoOEHe0u+tQ0vNCnQtAVmI0=
 github.com/rickb777/where v0.7.1 h1:2Z9io1RhG+bZZBuWQvcLZmGEQH1XFSEMjO3hdHpdO1c=

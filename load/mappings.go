@@ -1,10 +1,10 @@
 package load
 
 import (
-	"strings"
-	"sort"
 	"github.com/rickb777/sqlapi/schema"
 	"github.com/rickb777/sqlapi/types"
+	"sort"
+	"strings"
 )
 
 var mapTagToEncoding = map[string]schema.SqlEncode{
@@ -53,6 +53,4 @@ func allowedSqlTypeStrings() string {
 	sort.Strings(s)
 	return strings.Join(s, ", ")
 
-
 }
-

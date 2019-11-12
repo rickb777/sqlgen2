@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.42.0; sqlgen v0.62.0
+// sqlapi v0.43.0; sqlgen v0.63.0
 
 package demo
 
@@ -1265,10 +1265,10 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 	}
 
 	var count int64
-	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
 	returning := ""
-	if tbl.Dialect().InsertHasReturningPhrase() {
-		returning = fmt.Sprintf(" returning %q", tbl.pk)
+	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
+	if insertHasReturningPhrase {
+		returning = fmt.Sprintf(" RETURNING %q", tbl.pk)
 	}
 
 	for _, v := range vv {

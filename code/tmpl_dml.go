@@ -443,7 +443,7 @@ var tConstructUpdateFunc = template.Must(template.New("ConstructUpdateFunc").Fun
 //-------------------------------------------------------------------------------------------------
 
 const sInsertDecl = `
-	// Insert adds new records for the {{.Types}}{{if .Table.HasLastInsertId}}, setting the primary key field for each one{{end}}.
+	// Insert adds new records for the {{.Types}}{{if .Table.HasIntegerPrimaryKey}}, setting the primary key field for each one{{end}}.
 	Insert(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) error
 `
 
@@ -451,7 +451,7 @@ const sInsertFunc = `
 //--------------------------------------------------------------------------------
 
 // Insert adds new records for the {{.Types}}.
-{{- if .Table.HasLastInsertId}}// The {{.Types}} have their primary key fields set to the new record identifiers.{{end}}
+{{- if .Table.HasIntegerPrimaryKey}}// The {{.Types}} have their primary key fields set to the new record identifiers.{{end}}
 // The {{.Type}}.PreInsert() method will be called, if it exists.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) error {
 	if req == require.All {
@@ -459,12 +459,15 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 	}
 
 	var count int64
-	insertHasReturningPhrase := {{if .Table.HasLastInsertId -}}tbl.Dialect().InsertHasReturningPhrase(){{else}}false{{end}}
 	returning := ""
-	{{if .Table.Primary -}}
-	if tbl.Dialect().InsertHasReturningPhrase() {
-		returning = fmt.Sprintf(" returning %q", tbl.pk)
+	{{if .Table.HasIntegerPrimaryKey -}}
+	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
+	if insertHasReturningPhrase {
+		returning = fmt.Sprintf(" RETURNING %q", tbl.pk)
 	}
+
+	{{else -}}
+	insertHasReturningPhrase := false
 
 	{{end -}}
 	for _, v := range vv {
@@ -480,7 +483,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
-		fields, err := construct{{.Prefix}}{{.Type}}{{.Thing}}Insert(tbl, b, v, {{not .Table.HasLastInsertId}})
+		fields, err := construct{{.Prefix}}{{.Type}}{{.Thing}}Insert(tbl, b, v, {{not .Table.HasIntegerPrimaryKey}})
 		if err != nil {
 			return tbl.Logger().LogError(err)
 		}
@@ -496,21 +499,18 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 		var n int64 = 1
 		if insertHasReturningPhrase {
 			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
-			{{- if .Table.HasLastInsertId}}
-			{{- if eq .Table.Primary.Type.Name "int64"}}
-			err = row.Scan(&v.{{.Table.Primary.Name}})
-			{{- else}}
 			var i64 int64
 			err = row.Scan(&i64)
+			{{- if .Table.HasIntegerPrimaryKey}}
+			{{- if eq .Table.Primary.Type.Name "int64"}}
+			v.{{.Table.Primary.Name}} = i64
+			{{- else}}
 			v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(i64)
 			{{- end}}
-			{{- else}}
-			var i64 int64
-			err = row.Scan(&i64)
 			{{- end}}
 
 		} else {
-			{{- if .Table.HasLastInsertId}}
+			{{- if .Table.HasIntegerPrimaryKey}}
 			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
@@ -522,9 +522,9 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 			v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(i64)
 			{{- end}}
 			{{- else}}
-			_, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
-			if e2 != nil {
-				return tbl.Logger().LogError(e2)
+			_, e3 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if e3 != nil {
+				return tbl.Logger().LogError(e3)
 			}
 			{{- end}}
 		}

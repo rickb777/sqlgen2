@@ -43,6 +43,9 @@ announce demo
 announce demopgx
 ./demopgx/build.sh
 
+announce gofmt
+gofmt -l -w *.go */*.go
+
 echo
 go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
 # currently, 'go vet' doesn't execute the shadow tool adequately

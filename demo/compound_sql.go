@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.42.0; sqlgen v0.62.0
+// sqlapi v0.43.0; sqlgen v0.63.0
 
 package demo
 
@@ -872,8 +872,9 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 	}
 
 	var count int64
-	insertHasReturningPhrase := false
 	returning := ""
+	insertHasReturningPhrase := false
+
 	for _, v := range vv {
 		var iv interface{} = v
 		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
@@ -907,9 +908,9 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 			err = row.Scan(&i64)
 
 		} else {
-			_, e2 := tbl.db.ExecContext(tbl.ctx, query, fields...)
-			if e2 != nil {
-				return tbl.Logger().LogError(e2)
+			_, e3 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			if e3 != nil {
+				return tbl.Logger().LogError(e3)
 			}
 		}
 

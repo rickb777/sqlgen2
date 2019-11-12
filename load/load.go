@@ -1,13 +1,13 @@
 package load
 
 import (
-	"sort"
-	"github.com/rickb777/sqlapi/schema"
-	"github.com/rickb777/sqlgen2/parse"
-	stypes "github.com/rickb777/sqlapi/types"
 	"github.com/acsellers/inflections"
-	"github.com/rickb777/sqlgen2/parse/exit"
 	"github.com/kortschak/utter"
+	"github.com/rickb777/sqlapi/schema"
+	stypes "github.com/rickb777/sqlapi/types"
+	"github.com/rickb777/sqlgen2/parse"
+	"github.com/rickb777/sqlgen2/parse/exit"
+	"sort"
 )
 
 type context struct {
@@ -76,5 +76,3 @@ func checkNoConflictingNames(name parse.LType, table *schema.TableDescription) {
 			name, duplicates.MkString(", "))
 	}
 }
-
-

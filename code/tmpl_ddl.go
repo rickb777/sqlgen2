@@ -197,7 +197,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} using the transaction supplied. This is 
+// Using returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} using the transaction supplied. This is
 // needed when making multiple queries across several tables within a single transaction.
 //
 // The result is a modified copy of the table; the original is unchanged.

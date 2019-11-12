@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.42.0; sqlgen v0.62.0
+// sqlapi v0.43.0; sqlgen v0.63.0
 
 package demo
 
@@ -488,10 +488,10 @@ func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 	}
 
 	var count int64
-	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
 	returning := ""
-	if tbl.Dialect().InsertHasReturningPhrase() {
-		returning = fmt.Sprintf(" returning %q", tbl.pk)
+	insertHasReturningPhrase := tbl.Dialect().InsertHasReturningPhrase()
+	if insertHasReturningPhrase {
+		returning = fmt.Sprintf(" RETURNING %q", tbl.pk)
 	}
 
 	for _, v := range vv {
@@ -523,7 +523,9 @@ func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 		var n int64 = 1
 		if insertHasReturningPhrase {
 			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
-			err = row.Scan(&v.Uid)
+			var i64 int64
+			err = row.Scan(&i64)
+			v.Uid = i64
 
 		} else {
 			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
