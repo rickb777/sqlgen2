@@ -149,7 +149,7 @@ func main() {
 	}
 
 	inputSources := filemod.New(flag.Args()...)
-	if outputDeps.Compare(inputSources) == filemod.AllAreYounger {
+	if outputDeps.AllAreNewerThan(inputSources) {
 		output.Info("skipped %s (%s is already up to date)\n", strings.Join(flag.Args(), ", "), oFile)
 		return
 	}
