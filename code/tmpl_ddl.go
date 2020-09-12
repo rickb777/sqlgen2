@@ -40,6 +40,12 @@ type {{.Prefix}}{{.Type}}Queryer interface {
 	// Database gets the shared database information.
 	Database() {{.Sqlapi}}.Database
 
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	Logger() {{.Sqlapi}}.Logger
+
 	// Using returns a modified {{.Prefix}}{{.Type}}Queryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
 	Using(tx {{.Sqlapi}}.Execer) {{.Prefix}}{{.Type}}Queryer

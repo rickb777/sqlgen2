@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-2-g161ac38
+// sqlapi v0.45.0; sqlgen v0.65.1-3-g5807344
 
 package demopgx
 
@@ -75,6 +75,12 @@ type DbUserQueryer interface {
 
 	// Database gets the shared database information.
 	Database() pgxapi.Database
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	Logger() pgxapi.Logger
 
 	// Using returns a modified DbUserQueryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
