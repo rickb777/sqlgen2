@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.64.0
+// sqlapi v0.45.0; sqlgen v0.65.0
 
 package demo
 
@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
-	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
@@ -19,12 +18,6 @@ import (
 // UserAddressJoiner lists table methods provided by UserAddressJoin.
 type UserAddressJoiner interface {
 	sqlapi.Table
-
-	// Constraints returns the table's constraints.
-	Constraints() constraint.Constraints
-
-	// WithConstraint returns a modified UserAddressJoiner with added data consistency constraints.
-	WithConstraint(cc ...constraint.Constraint) UserAddressJoiner
 
 	// WithPrefix returns a modified UserAddressJoiner with a given table name prefix.
 	WithPrefix(pfx string) UserAddressJoiner
@@ -46,10 +39,11 @@ type UserAddressQueryer interface {
 	// Logger gets the trace logger.
 	Logger() sqlapi.Logger
 
-	// Using returns a modified UserAddressJoiner using the transaction supplied.
+	// Using returns a modified UserAddressQueryer using the transaction supplied.
 	Using(tx sqlapi.SqlTx) UserAddressQueryer
 
-	// Transact runs the function provided within a transaction.
+	// Transact runs the function provided within a transaction. The transction is committed
+	// unless an error occurs.
 	Transact(txOptions *sql.TxOptions, fn func(UserAddressQueryer) error) error
 
 	// Tx gets the wrapped transaction handle, provided this is within a transaction.
@@ -79,12 +73,11 @@ type UserAddressQueryer interface {
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type UserAddressJoin struct {
-	name        sqlapi.TableName
-	database    sqlapi.Database
-	db          sqlapi.Execer
-	constraints constraint.Constraints
-	ctx         context.Context
-	pk          string
+	name     sqlapi.TableName
+	database sqlapi.Database
+	db       sqlapi.Execer
+	ctx      context.Context
+	pk       string
 }
 
 // Type conformance checks
@@ -97,30 +90,27 @@ func NewUserAddressJoin(name string, d sqlapi.Database) UserAddressJoin {
 	if name == "" {
 		name = "useraddresses"
 	}
-	var constraints constraint.Constraints
 	return UserAddressJoin{
-		name:        sqlapi.TableName{Prefix: "", Name: name},
-		database:    d,
-		db:          d.DB(),
-		constraints: constraints,
-		ctx:         context.Background(),
-		pk:          "uid",
+		name:     sqlapi.TableName{Prefix: "", Name: name},
+		database: d,
+		db:       d.DB(),
+		ctx:      context.Background(),
+		pk:       "uid",
 	}
 }
 
 // CopyTableAsUserAddressJoin copies a table instance, retaining the name etc but
-// providing methods appropriate for 'UserAddress'. It doesn't copy the constraints of the original table.
+// providing methods appropriate for 'UserAddress'.
 //
 // It serves to provide methods appropriate for 'UserAddress'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsUserAddressJoin(origin sqlapi.Table) UserAddressJoin {
 	return UserAddressJoin{
-		name:        origin.Name(),
-		database:    origin.Database(),
-		db:          origin.Execer(),
-		constraints: nil,
-		ctx:         context.Background(),
-		pk:          "uid",
+		name:     origin.Name(),
+		database: origin.Database(),
+		db:       origin.Execer(),
+		ctx:      context.Background(),
+		pk:       "uid",
 	}
 }
 
@@ -156,17 +146,6 @@ func (tbl UserAddressJoin) Database() sqlapi.Database {
 // Logger gets the trace logger.
 func (tbl UserAddressJoin) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
-}
-
-// WithConstraint returns a modified UserAddressJoiner with added data consistency constraints.
-func (tbl UserAddressJoin) WithConstraint(cc ...constraint.Constraint) UserAddressJoiner {
-	tbl.constraints = append(tbl.constraints, cc...)
-	return tbl
-}
-
-// Constraints returns the table's constraints.
-func (tbl UserAddressJoin) Constraints() constraint.Constraints {
-	return tbl.constraints
 }
 
 // Ctx gets the current request context.

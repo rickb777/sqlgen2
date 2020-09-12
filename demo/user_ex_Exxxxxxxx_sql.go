@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.64.0
+// sqlapi v0.45.0; sqlgen v0.65.0
 
 package demo
 
@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
-	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
@@ -19,12 +18,6 @@ import (
 // EUserTabler lists table methods provided by EUserTable.
 type EUserTabler interface {
 	sqlapi.Table
-
-	// Constraints returns the table's constraints.
-	Constraints() constraint.Constraints
-
-	// WithConstraint returns a modified EUserTabler with added data consistency constraints.
-	WithConstraint(cc ...constraint.Constraint) EUserTabler
 
 	// WithPrefix returns a modified EUserTabler with a given table name prefix.
 	WithPrefix(pfx string) EUserTabler
@@ -46,10 +39,11 @@ type EUserQueryer interface {
 	// Logger gets the trace logger.
 	Logger() sqlapi.Logger
 
-	// Using returns a modified EUserTabler using the transaction supplied.
+	// Using returns a modified EUserQueryer using the transaction supplied.
 	Using(tx sqlapi.SqlTx) EUserQueryer
 
-	// Transact runs the function provided within a transaction.
+	// Transact runs the function provided within a transaction. The transction is committed
+	// unless an error occurs.
 	Transact(txOptions *sql.TxOptions, fn func(EUserQueryer) error) error
 
 	// Tx gets the wrapped transaction handle, provided this is within a transaction.
@@ -60,6 +54,7 @@ type EUserQueryer interface {
 	IsTx() bool
 
 	// Exec executes a query without returning any rows.
+	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -68,12 +63,11 @@ type EUserQueryer interface {
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type EUserTable struct {
-	name        sqlapi.TableName
-	database    sqlapi.Database
-	db          sqlapi.Execer
-	constraints constraint.Constraints
-	ctx         context.Context
-	pk          string
+	name     sqlapi.TableName
+	database sqlapi.Database
+	db       sqlapi.Execer
+	ctx      context.Context
+	pk       string
 }
 
 // Type conformance checks
@@ -86,33 +80,27 @@ func NewEUserTable(name string, d sqlapi.Database) EUserTable {
 	if name == "" {
 		name = "users"
 	}
-	var constraints constraint.Constraints
-	constraints = append(constraints,
-		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
-
 	return EUserTable{
-		name:        sqlapi.TableName{Prefix: "", Name: name},
-		database:    d,
-		db:          d.DB(),
-		constraints: constraints,
-		ctx:         context.Background(),
-		pk:          "uid",
+		name:     sqlapi.TableName{Prefix: "", Name: name},
+		database: d,
+		db:       d.DB(),
+		ctx:      context.Background(),
+		pk:       "uid",
 	}
 }
 
 // CopyTableAsEUserTable copies a table instance, retaining the name etc but
-// providing methods appropriate for 'User'. It doesn't copy the constraints of the original table.
+// providing methods appropriate for 'User'.
 //
 // It serves to provide methods appropriate for 'User'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsEUserTable(origin sqlapi.Table) EUserTable {
 	return EUserTable{
-		name:        origin.Name(),
-		database:    origin.Database(),
-		db:          origin.Execer(),
-		constraints: nil,
-		ctx:         context.Background(),
-		pk:          "uid",
+		name:     origin.Name(),
+		database: origin.Database(),
+		db:       origin.Execer(),
+		ctx:      context.Background(),
+		pk:       "uid",
 	}
 }
 
@@ -148,17 +136,6 @@ func (tbl EUserTable) Database() sqlapi.Database {
 // Logger gets the trace logger.
 func (tbl EUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
-}
-
-// WithConstraint returns a modified EUserTabler with added data consistency constraints.
-func (tbl EUserTable) WithConstraint(cc ...constraint.Constraint) EUserTabler {
-	tbl.constraints = append(tbl.constraints, cc...)
-	return tbl
-}
-
-// Constraints returns the table's constraints.
-func (tbl EUserTable) Constraints() constraint.Constraints {
-	return tbl.constraints
 }
 
 // Ctx gets the current request context.

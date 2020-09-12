@@ -15,12 +15,14 @@ const sTabler = `
 // {{.Prefix}}{{.Type}}{{.Thinger}} lists table methods provided by {{.Prefix}}{{.Type}}{{.Thing}}.
 type {{.Prefix}}{{.Type}}{{.Thinger}} interface {
 	{{.Sqlapi}}.Table
+{{- if .HasConstraints}}
 
 	// Constraints returns the table's constraints.
 	Constraints() constraint.Constraints
 
 	// WithConstraint returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with added data consistency constraints.
 	WithConstraint(cc ...constraint.Constraint) {{.Prefix}}{{.Type}}{{.Thinger}}
+{{- end}}
 
 	// WithPrefix returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with a given table name prefix.
 	WithPrefix(pfx string) {{.Prefix}}{{.Type}}{{.Thinger}}
@@ -69,7 +71,9 @@ type {{.Prefix}}{{.Type}}{{.Thing}} struct {
 	name        {{.Sqlapi}}.TableName
 	database    {{.Sqlapi}}.Database
 	db          {{.Sqlapi}}.Execer
+{{- if .HasConstraints}}
 	constraints constraint.Constraints
+{{- end}}
 	ctx         context.Context
 	pk          string
 }
@@ -84,24 +88,28 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d {{.Sqlapi}}.Database) {{.P
 	if name == "" {
 		name = "{{.DbName}}"
 	}
+{{- if .HasConstraints}}
 	var constraints constraint.Constraints
-	{{range .Constraints -}}
+	{{- range .Constraints}}
 	constraints = append(constraints,
 		{{.GoString}})
 
-	{{end -}}
-	return {{.Prefix}}{{.Type}}{{.Thing}}{
+	{{- end}}
+{{- end}}
+return {{.Prefix}}{{.Type}}{{.Thing}}{
 		name:        {{.Sqlapi}}.TableName{Prefix: "", Name: name},
 		database:    d,
 		db:          d.DB(),
+{{- if .HasConstraints}}
 		constraints: constraints,
+{{- end}}
 		ctx:         context.Background(),
 		pk:          "{{.Table.SafePrimary.SqlName}}",
 	}
 }
 
 // CopyTableAs{{.Prefix}}{{.Type}}{{.Thing}} copies a table instance, retaining the name etc but
-// providing methods appropriate for '{{.Type}}'. It doesn't copy the constraints of the original table.
+// providing methods appropriate for '{{.Type}}'. {{- if .HasConstraints}}It doesn't copy the constraints of the original table.{{end}}
 //
 // It serves to provide methods appropriate for '{{.Type}}'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
@@ -110,7 +118,9 @@ func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin {{.Sqlapi}}.Ta
 		name:        origin.Name(),
 		database:    origin.Database(),
 		db:          origin.Execer(),
+{{- if .HasConstraints}}
 		constraints: nil,
+{{- end}}
 		ctx:         context.Background(),
 		pk:          "{{.Table.SafePrimary.SqlName}}",
 	}
@@ -151,6 +161,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Database() {{.Sqlapi}}.Database {
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Logger() {{.Sqlapi}}.Logger {
 	return tbl.database.Logger()
 }
+{{- if .HasConstraints}}
 
 // WithConstraint returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with added data consistency constraints.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithConstraint(cc ...constraint.Constraint) {{.Prefix}}{{.Type}}{{.Thinger}} {
@@ -162,6 +173,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithConstraint(cc ...constraint.Constr
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
+{{- end}}
 
 // Ctx gets the current request context.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Ctx() context.Context {

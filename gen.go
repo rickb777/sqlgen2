@@ -251,6 +251,7 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 	}
 	view := code.NewView(typePkg, tablePkg, name, prefix, tableName, list, sql, api)
 	view.Table = table
+	view.HasConstraints = flags.Schema
 	view.Thing = kind
 	view.Thinger = ender(kind)
 	view.Interface1 = api + "." + load.PrimaryInterface(table, flags.Schema)

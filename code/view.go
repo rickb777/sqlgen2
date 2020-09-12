@@ -13,26 +13,27 @@ import (
 )
 
 type View struct {
-	TypePkg    string
-	TablePkg   string
-	Prefix     string
-	Type       string
-	Types      string
-	DbName     string
-	Thing      string
-	Thinger    string
-	Interface1 string
-	List       string
-	Suffix     string
-	Sql        string
-	Sqlapi     string
-	Scan       string
-	Body1      []string
-	Body2      []string
-	Body3      []string
-	Dialects   []dialect.Dialect
-	Table      *schema.TableDescription
-	Setter     *schema.Field
+	TypePkg        string
+	TablePkg       string
+	Prefix         string
+	Type           string
+	Types          string
+	DbName         string
+	HasConstraints bool
+	Thing          string
+	Thinger        string
+	Interface1     string
+	List           string
+	Suffix         string
+	Sql            string
+	Sqlapi         string
+	Scan           string
+	Body1          []string
+	Body2          []string
+	Body3          []string
+	Dialects       []dialect.Dialect
+	Table          *schema.TableDescription
+	Setter         *schema.Field
 }
 
 func NewView(typePkg, tablePkg, name, prefix, tableName, list, sql, api string) View {
@@ -45,20 +46,21 @@ func NewView(typePkg, tablePkg, name, prefix, tableName, list, sql, api string) 
 		tn = tableName
 	}
 	return View{
-		TypePkg:    typePkg,
-		TablePkg:   tablePkg,
-		Prefix:     prefix,
-		Type:       name,
-		Types:      pl,
-		DbName:     tn,
-		Thing:      "Table",
-		Thinger:    "Tabler",
-		Interface1: api + ".Table",
-		List:       list,
-		Dialects:   dialect.AllDialects,
-		Sql:        sql,
-		Sqlapi:     api,
-		Scan:       "scan",
+		TypePkg:        typePkg,
+		TablePkg:       tablePkg,
+		Prefix:         prefix,
+		Type:           name,
+		Types:          pl,
+		DbName:         tn,
+		HasConstraints: true,
+		Thing:          "Table",
+		Thinger:        "Tabler",
+		Interface1:     api + ".Table",
+		List:           list,
+		Dialects:       dialect.AllDialects,
+		Sql:            sql,
+		Sqlapi:         api,
+		Scan:           "scan",
 	}
 }
 

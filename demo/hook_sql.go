@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.64.0
+// sqlapi v0.45.0; sqlgen v0.65.0
 
 package demo
 
@@ -58,10 +58,11 @@ type HookQueryer interface {
 	// Logger gets the trace logger.
 	Logger() sqlapi.Logger
 
-	// Using returns a modified HookTabler using the transaction supplied.
+	// Using returns a modified HookQueryer using the transaction supplied.
 	Using(tx sqlapi.SqlTx) HookQueryer
 
-	// Transact runs the function provided within a transaction.
+	// Transact runs the function provided within a transaction. The transction is committed
+	// unless an error occurs.
 	Transact(txOptions *sql.TxOptions, fn func(HookQueryer) error) error
 
 	// Tx gets the wrapped transaction handle, provided this is within a transaction.
@@ -72,6 +73,7 @@ type HookQueryer interface {
 	IsTx() bool
 
 	// Exec executes a query without returning any rows.
+	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for Hook values.
@@ -307,7 +309,7 @@ func NewHookTable(name string, d sqlapi.Database) HookTable {
 }
 
 // CopyTableAsHookTable copies a table instance, retaining the name etc but
-// providing methods appropriate for 'Hook'. It doesn't copy the constraints of the original table.
+// providing methods appropriate for 'Hook'.It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for 'Hook'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.

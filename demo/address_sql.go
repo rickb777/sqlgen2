@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.64.0
+// sqlapi v0.45.0; sqlgen v0.65.0
 
 package demo
 
@@ -83,10 +83,11 @@ type AddressQueryer interface {
 	// Logger gets the trace logger.
 	Logger() sqlapi.Logger
 
-	// Using returns a modified AddressTabler using the transaction supplied.
+	// Using returns a modified AddressQueryer using the transaction supplied.
 	Using(tx sqlapi.SqlTx) AddressQueryer
 
-	// Transact runs the function provided within a transaction.
+	// Transact runs the function provided within a transaction. The transction is committed
+	// unless an error occurs.
 	Transact(txOptions *sql.TxOptions, fn func(AddressQueryer) error) error
 
 	// Tx gets the wrapped transaction handle, provided this is within a transaction.
@@ -97,6 +98,7 @@ type AddressQueryer interface {
 	IsTx() bool
 
 	// Exec executes a query without returning any rows.
+	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for Address values.
@@ -244,7 +246,7 @@ func NewAddressTable(name string, d sqlapi.Database) AddressTable {
 }
 
 // CopyTableAsAddressTable copies a table instance, retaining the name etc but
-// providing methods appropriate for 'Address'. It doesn't copy the constraints of the original table.
+// providing methods appropriate for 'Address'.It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for 'Address'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.64.0
+// sqlapi v0.45.0; sqlgen v0.65.0
 
 package demo
 
@@ -71,10 +71,11 @@ type IssueQueryer interface {
 	// Logger gets the trace logger.
 	Logger() sqlapi.Logger
 
-	// Using returns a modified IssueTabler using the transaction supplied.
+	// Using returns a modified IssueQueryer using the transaction supplied.
 	Using(tx sqlapi.SqlTx) IssueQueryer
 
-	// Transact runs the function provided within a transaction.
+	// Transact runs the function provided within a transaction. The transction is committed
+	// unless an error occurs.
 	Transact(txOptions *sql.TxOptions, fn func(IssueQueryer) error) error
 
 	// Tx gets the wrapped transaction handle, provided this is within a transaction.
@@ -85,6 +86,7 @@ type IssueQueryer interface {
 	IsTx() bool
 
 	// Exec executes a query without returning any rows.
+	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for Issue values.
@@ -243,7 +245,7 @@ func NewIssueTable(name string, d sqlapi.Database) IssueTable {
 }
 
 // CopyTableAsIssueTable copies a table instance, retaining the name etc but
-// providing methods appropriate for 'Issue'. It doesn't copy the constraints of the original table.
+// providing methods appropriate for 'Issue'.It doesn't copy the constraints of the original table.
 //
 // It serves to provide methods appropriate for 'Issue'. This is most useful when this is used to represent a
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.

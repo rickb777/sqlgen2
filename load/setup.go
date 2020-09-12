@@ -36,10 +36,11 @@ func PackagesToImport(flags FuncFlags, pgx bool) collection.StringSet {
 		base = "github.com/rickb777/sqlapi"
 	}
 
-	imports.Add(
-		base,
-		base+"/constraint",
-	)
+	imports.Add(base)
+
+	if flags.Schema {
+		imports.Add(base + "/constraint")
+	}
 
 	if flags.Exec || flags.Query || flags.Count || flags.Update || flags.Delete || flags.Slice {
 		imports.Add(base + "/support")

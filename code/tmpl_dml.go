@@ -4,6 +4,7 @@ import "text/template"
 
 const sExecDecl = `
 	// Exec executes a query without returning any rows.
+	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
 `
 
 const sExecFunc = `
