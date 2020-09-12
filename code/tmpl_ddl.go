@@ -51,6 +51,9 @@ type {{.Prefix}}{{.Type}}Queryer interface {
 	// unless an error occurs.
 	Transact(txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}Queryer) error) error
 
+	// Execer gets the wrapped database or transaction handle.
+	Execer() {{.Sqlapi}}.Execer
+
 	// Tx gets the wrapped transaction handle, provided this is within a transaction.
 	// Panics if it is in the wrong state - use IsTx() if necessary.
 	Tx() {{.Sqlapi}}.SqlTx

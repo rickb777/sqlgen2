@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1
+// sqlapi v0.45.0; sqlgen v0.65.1-1-g4b03cc4
 
 package demopgx
 
@@ -91,6 +91,9 @@ type AddressQueryer interface {
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
 	Transact(txOptions *pgx.TxOptions, fn func(AddressQueryer) error) error
+
+	// Execer gets the wrapped database or transaction handle.
+	Execer() pgxapi.Execer
 
 	// Tx gets the wrapped transaction handle, provided this is within a transaction.
 	// Panics if it is in the wrong state - use IsTx() if necessary.
