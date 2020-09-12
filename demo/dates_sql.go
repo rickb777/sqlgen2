@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-1-g4b03cc4
+// sqlapi v0.45.0; sqlgen v0.65.1-2-g161ac38
 
 package demo
 
@@ -53,11 +53,8 @@ type DatesQueryer interface {
 	// Name gets the table name. without prefix
 	Name() sqlapi.TableName
 
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	Logger() sqlapi.Logger
+	// Database gets the shared database information.
+	Database() sqlapi.Database
 
 	// Using returns a modified DatesQueryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).

@@ -37,11 +37,8 @@ type {{.Prefix}}{{.Type}}Queryer interface {
 	// Name gets the table name. without prefix
 	Name() {{.Sqlapi}}.TableName
 
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	Logger() {{.Sqlapi}}.Logger
+	// Database gets the shared database information.
+	Database() {{.Sqlapi}}.Database
 
 	// Using returns a modified {{.Prefix}}{{.Type}}Queryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
