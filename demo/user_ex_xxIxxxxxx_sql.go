@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.0
+// sqlapi v0.45.0; sqlgen v0.65.1
 
 package demo
 
@@ -40,8 +40,9 @@ type IUserQueryer interface {
 	// Logger gets the trace logger.
 	Logger() sqlapi.Logger
 
-	// Using returns a modified IUserQueryer using the transaction supplied.
-	Using(tx sqlapi.SqlTx) IUserQueryer
+	// Using returns a modified IUserQueryer using the Execer supplied,
+	// which will typically be a transaction (i.e. SqlTx).
+	Using(tx sqlapi.Execer) IUserQueryer
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
@@ -181,11 +182,12 @@ func (tbl IUserTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified IUserTabler using the transaction supplied. This is
-// needed when making multiple queries across several tables within a single transaction.
+// Using returns a modified IUserTabler using the the Execer supplied,
+// which will typically be a transaction (i.e. SqlTx). This is needed when making multiple
+// queries across several tables within a single transaction.
 //
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl IUserTable) Using(tx sqlapi.SqlTx) IUserQueryer {
+func (tbl IUserTable) Using(tx sqlapi.Execer) IUserQueryer {
 	tbl.db = tx
 	return tbl
 }

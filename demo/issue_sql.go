@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.0
+// sqlapi v0.45.0; sqlgen v0.65.1
 
 package demo
 
@@ -71,8 +71,9 @@ type IssueQueryer interface {
 	// Logger gets the trace logger.
 	Logger() sqlapi.Logger
 
-	// Using returns a modified IssueQueryer using the transaction supplied.
-	Using(tx sqlapi.SqlTx) IssueQueryer
+	// Using returns a modified IssueQueryer using the Execer supplied,
+	// which will typically be a transaction (i.e. SqlTx).
+	Using(tx sqlapi.Execer) IssueQueryer
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
@@ -347,11 +348,12 @@ func (tbl IssueTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified IssueTabler using the transaction supplied. This is
-// needed when making multiple queries across several tables within a single transaction.
+// Using returns a modified IssueTabler using the the Execer supplied,
+// which will typically be a transaction (i.e. SqlTx). This is needed when making multiple
+// queries across several tables within a single transaction.
 //
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl IssueTable) Using(tx sqlapi.SqlTx) IssueQueryer {
+func (tbl IssueTable) Using(tx sqlapi.Execer) IssueQueryer {
 	tbl.db = tx
 	return tbl
 }

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.0
+// sqlapi v0.45.0; sqlgen v0.65.1
 
 package demo
 
@@ -59,8 +59,9 @@ type DatesQueryer interface {
 	// Logger gets the trace logger.
 	Logger() sqlapi.Logger
 
-	// Using returns a modified DatesQueryer using the transaction supplied.
-	Using(tx sqlapi.SqlTx) DatesQueryer
+	// Using returns a modified DatesQueryer using the Execer supplied,
+	// which will typically be a transaction (i.e. SqlTx).
+	Using(tx sqlapi.Execer) DatesQueryer
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
@@ -302,11 +303,12 @@ func (tbl DatesTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified DatesTabler using the transaction supplied. This is
-// needed when making multiple queries across several tables within a single transaction.
+// Using returns a modified DatesTabler using the the Execer supplied,
+// which will typically be a transaction (i.e. SqlTx). This is needed when making multiple
+// queries across several tables within a single transaction.
 //
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DatesTable) Using(tx sqlapi.SqlTx) DatesQueryer {
+func (tbl DatesTable) Using(tx sqlapi.Execer) DatesQueryer {
 	tbl.db = tx
 	return tbl
 }

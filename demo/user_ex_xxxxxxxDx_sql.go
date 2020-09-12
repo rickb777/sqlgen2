@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.0
+// sqlapi v0.45.0; sqlgen v0.65.1
 
 package demo
 
@@ -41,8 +41,9 @@ type DUserQueryer interface {
 	// Logger gets the trace logger.
 	Logger() sqlapi.Logger
 
-	// Using returns a modified DUserQueryer using the transaction supplied.
-	Using(tx sqlapi.SqlTx) DUserQueryer
+	// Using returns a modified DUserQueryer using the Execer supplied,
+	// which will typically be a transaction (i.e. SqlTx).
+	Using(tx sqlapi.Execer) DUserQueryer
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
@@ -254,11 +255,12 @@ func (tbl DUserTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified DUserTabler using the transaction supplied. This is
-// needed when making multiple queries across several tables within a single transaction.
+// Using returns a modified DUserTabler using the the Execer supplied,
+// which will typically be a transaction (i.e. SqlTx). This is needed when making multiple
+// queries across several tables within a single transaction.
 //
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DUserTable) Using(tx sqlapi.SqlTx) DUserQueryer {
+func (tbl DUserTable) Using(tx sqlapi.Execer) DUserQueryer {
 	tbl.db = tx
 	return tbl
 }

@@ -43,8 +43,9 @@ type {{.Prefix}}{{.Type}}Queryer interface {
 	// Logger gets the trace logger.
 	Logger() {{.Sqlapi}}.Logger
 
-	// Using returns a modified {{.Prefix}}{{.Type}}Queryer using the transaction supplied.
-	Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}}{{.Type}}Queryer
+	// Using returns a modified {{.Prefix}}{{.Type}}Queryer using the Execer supplied,
+	// which will typically be a transaction (i.e. SqlTx).
+	Using(tx {{.Sqlapi}}.Execer) {{.Prefix}}{{.Type}}Queryer
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
@@ -219,11 +220,12 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} using the transaction supplied. This is
-// needed when making multiple queries across several tables within a single transaction.
+// Using returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} using the the Execer supplied,
+// which will typically be a transaction (i.e. SqlTx). This is needed when making multiple
+// queries across several tables within a single transaction.
 //
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}}{{.Type}}Queryer {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx {{.Sqlapi}}.Execer) {{.Prefix}}{{.Type}}Queryer {
 	tbl.db = tx
 	return tbl
 }

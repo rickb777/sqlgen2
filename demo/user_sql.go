@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.0
+// sqlapi v0.45.0; sqlgen v0.65.1
 
 package demo
 
@@ -78,8 +78,9 @@ type DbUserQueryer interface {
 	// Logger gets the trace logger.
 	Logger() sqlapi.Logger
 
-	// Using returns a modified DbUserQueryer using the transaction supplied.
-	Using(tx sqlapi.SqlTx) DbUserQueryer
+	// Using returns a modified DbUserQueryer using the Execer supplied,
+	// which will typically be a transaction (i.e. SqlTx).
+	Using(tx sqlapi.Execer) DbUserQueryer
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
@@ -475,11 +476,12 @@ func (tbl DbUserTable) IsTx() bool {
 	return tbl.db.IsTx()
 }
 
-// Using returns a modified DbUserTabler using the transaction supplied. This is
-// needed when making multiple queries across several tables within a single transaction.
+// Using returns a modified DbUserTabler using the the Execer supplied,
+// which will typically be a transaction (i.e. SqlTx). This is needed when making multiple
+// queries across several tables within a single transaction.
 //
 // The result is a modified copy of the table; the original is unchanged.
-func (tbl DbUserTable) Using(tx sqlapi.SqlTx) DbUserQueryer {
+func (tbl DbUserTable) Using(tx sqlapi.Execer) DbUserQueryer {
 	tbl.db = tx
 	return tbl
 }
