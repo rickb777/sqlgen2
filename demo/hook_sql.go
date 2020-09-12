@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.63.0
+// sqlapi v0.45.0; sqlgen v0.64.0
 
 package demo
 
@@ -49,6 +49,15 @@ type HookTabler interface {
 
 // HookQueryer lists query methods provided by HookTable.
 type HookQueryer interface {
+	// Name gets the table name. without prefix
+	Name() sqlapi.TableName
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	Logger() sqlapi.Logger
+
 	// Using returns a modified HookTabler using the transaction supplied.
 	Using(tx sqlapi.SqlTx) HookQueryer
 
@@ -306,7 +315,7 @@ func CopyTableAsHookTable(origin sqlapi.Table) HookTable {
 	return HookTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
-		db:          origin.DB(),
+		db:          origin.Execer(),
 		constraints: nil,
 		ctx:         context.Background(),
 		pk:          "id",

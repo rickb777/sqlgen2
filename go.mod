@@ -7,7 +7,7 @@ require (
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/kortschak/utter v1.0.1
 	github.com/lib/pq v1.8.0
-	github.com/mattn/go-sqlite3 v1.14.2
+	github.com/mattn/go-sqlite3 v1.14.3
 	github.com/onsi/gomega v1.10.2
 	github.com/pkg/errors v0.9.1
 	github.com/rickb777/collection v0.5.0

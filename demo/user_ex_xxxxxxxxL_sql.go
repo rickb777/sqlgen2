@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.63.0
+// sqlapi v0.45.0; sqlgen v0.64.0
 
 package demo
 
@@ -39,6 +39,15 @@ type LUserTabler interface {
 
 // LUserQueryer lists query methods provided by LUserTable.
 type LUserQueryer interface {
+	// Name gets the table name. without prefix
+	Name() sqlapi.TableName
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	Logger() sqlapi.Logger
+
 	// Using returns a modified LUserTabler using the transaction supplied.
 	Using(tx sqlapi.SqlTx) LUserQueryer
 
@@ -151,7 +160,7 @@ func CopyTableAsLUserTable(origin sqlapi.Table) LUserTable {
 	return LUserTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
-		db:          origin.DB(),
+		db:          origin.Execer(),
 		constraints: nil,
 		ctx:         context.Background(),
 		pk:          "uid",

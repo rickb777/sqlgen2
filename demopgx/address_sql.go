@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.63.0
+// sqlapi v0.45.0; sqlgen v0.64.0
 
 package demopgx
 
@@ -75,6 +75,15 @@ type AddressTabler interface {
 
 // AddressQueryer lists query methods provided by AddressTable.
 type AddressQueryer interface {
+	// Name gets the table name. without prefix
+	Name() pgxapi.TableName
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	Logger() pgxapi.Logger
+
 	// Using returns a modified AddressTabler using the transaction supplied.
 	Using(tx pgxapi.SqlTx) AddressQueryer
 
@@ -244,7 +253,7 @@ func CopyTableAsAddressTable(origin pgxapi.Table) AddressTable {
 	return AddressTable{
 		name:        origin.Name(),
 		database:    origin.Database(),
-		db:          origin.DB(),
+		db:          origin.Execer(),
 		constraints: nil,
 		ctx:         context.Background(),
 		pk:          "id",

@@ -32,10 +32,20 @@ type {{.Prefix}}{{.Type}}{{.Thinger}} interface {
 const sQueryer = `
 // {{.Prefix}}{{.Type}}Queryer lists query methods provided by {{.Prefix}}{{.Type}}{{.Thing}}.
 type {{.Prefix}}{{.Type}}Queryer interface {
-	// Using returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} using the transaction supplied.
+	// Name gets the table name. without prefix
+	Name() {{.Sqlapi}}.TableName
+
+	// Dialect gets the database dialect.
+	Dialect() dialect.Dialect
+
+	// Logger gets the trace logger.
+	Logger() {{.Sqlapi}}.Logger
+
+	// Using returns a modified {{.Prefix}}{{.Type}}Queryer using the transaction supplied.
 	Using(tx {{.Sqlapi}}.SqlTx) {{.Prefix}}{{.Type}}Queryer
 
-	// Transact runs the function provided within a transaction.
+	// Transact runs the function provided within a transaction. The transction is committed
+	// unless an error occurs.
 	Transact(txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}Queryer) error) error
 
 	// Tx gets the wrapped transaction handle, provided this is within a transaction.
@@ -99,7 +109,7 @@ func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin {{.Sqlapi}}.Ta
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
 		name:        origin.Name(),
 		database:    origin.Database(),
-		db:          origin.DB(),
+		db:          origin.Execer(),
 		constraints: nil,
 		ctx:         context.Background(),
 		pk:          "{{.Table.SafePrimary.SqlName}}",
