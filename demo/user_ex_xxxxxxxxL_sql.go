@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-3-g5807344
+// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
 
 package demo
 
@@ -535,7 +535,7 @@ func sliceLUserTableRolePtrList(tbl LUserTabler, req require.Requirement, sqlnam
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -547,12 +547,12 @@ func sliceLUserTableRolePtrList(tbl LUserTabler, req require.Requirement, sqlnam
 		var v Role
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func sliceLUserTableFloat32List(tbl LUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
@@ -561,7 +561,7 @@ func sliceLUserTableFloat32List(tbl LUserTabler, req require.Requirement, sqlnam
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -573,12 +573,12 @@ func sliceLUserTableFloat32List(tbl LUserTabler, req require.Requirement, sqlnam
 		var v float32
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func sliceLUserTableFloat64List(tbl LUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
@@ -587,7 +587,7 @@ func sliceLUserTableFloat64List(tbl LUserTabler, req require.Requirement, sqlnam
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -599,10 +599,10 @@ func sliceLUserTableFloat64List(tbl LUserTabler, req require.Requirement, sqlnam
 		var v float64
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }

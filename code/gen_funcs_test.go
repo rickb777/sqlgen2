@@ -73,14 +73,14 @@ func (tbl XExampleTable) Query(req require.Requirement, query string, args ...in
 }
 
 func doXExampleTableQueryAndScan(tbl XExampleTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Example, error) {
-	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := scanXExamples(query, rows, firstOnly)
-	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 `, "¬", "`", -1)
 	expectCodeEqual(t, code, expected)

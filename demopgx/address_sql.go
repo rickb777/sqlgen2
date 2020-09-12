@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-3-g5807344
+// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
 
 package demopgx
 
@@ -761,14 +761,14 @@ func (tbl AddressTable) Query(req require.Requirement, query string, args ...int
 }
 
 func doAddressTableQueryAndScan(tbl AddressTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
-	rows, err := support.Query(tbl.(pgxapi.Table), query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := ScanAddresses(query, rows, firstOnly)
-	return vv, tbl.(pgxapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //-------------------------------------------------------------------------------------------------

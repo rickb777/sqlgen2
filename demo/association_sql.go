@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-3-g5807344
+// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
 
 package demo
 
@@ -544,14 +544,14 @@ func (tbl AssociationTable) Query(req require.Requirement, query string, args ..
 }
 
 func doAssociationTableQueryAndScan(tbl AssociationTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Association, error) {
-	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := ScanAssociations(query, rows, firstOnly)
-	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -842,7 +842,7 @@ func sliceAssociationTableCategoryPtrList(tbl AssociationTabler, req require.Req
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -854,12 +854,12 @@ func sliceAssociationTableCategoryPtrList(tbl AssociationTabler, req require.Req
 		var v Category
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func sliceAssociationTableQualNamePtrList(tbl AssociationTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
@@ -868,7 +868,7 @@ func sliceAssociationTableQualNamePtrList(tbl AssociationTabler, req require.Req
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -880,12 +880,12 @@ func sliceAssociationTableQualNamePtrList(tbl AssociationTabler, req require.Req
 		var v QualName
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func constructAssociationTableInsert(tbl AssociationTable, w dialect.StringWriter, v *Association, withPk bool) (s []interface{}, err error) {

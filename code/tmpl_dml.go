@@ -46,14 +46,14 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(req require.Requirement, query s
 }
 
 func do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
-	rows, err := support.Query(tbl.({{.Sqlapi}}.Table), query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := {{.Scan}}{{.Prefix}}{{.Types}}(query, rows, firstOnly)
-	return vv, tbl.({{.Sqlapi}}.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 `
 
@@ -392,7 +392,7 @@ func slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Tag}}List(tbl {{$.Prefix}}{{
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl.({{$.Sqlapi}}.Table), query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -404,12 +404,12 @@ func slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Tag}}List(tbl {{$.Prefix}}{{
 		var v {{.Type}}
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.({{$.Sqlapi}}.Table).Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.({{$.Sqlapi}}.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 {{- end}}
 `

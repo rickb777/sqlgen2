@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-3-g5807344
+// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
 
 package demo
 
@@ -308,14 +308,14 @@ func (tbl SUserTable) Query(req require.Requirement, query string, args ...inter
 }
 
 func doSUserTableQueryAndScan(tbl SUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
-	rows, err := support.Query(tbl.(sqlapi.Table), query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	vv, n, err := scanSUsers(query, rows, firstOnly)
-	return vv, tbl.(sqlapi.Table).Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //-------------------------------------------------------------------------------------------------
