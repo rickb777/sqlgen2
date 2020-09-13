@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
+// sqlapi v0.47.0; sqlgen v0.66.0
 
 package demo
 
@@ -23,26 +23,13 @@ type DUserTabler interface {
 
 	// WithPrefix returns a modified DUserTabler with a given table name prefix.
 	WithPrefix(pfx string) DUserTabler
-
-	// WithContext returns a modified DUserTabler with a given context.
-	WithContext(ctx context.Context) DUserTabler
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // DUserQueryer lists query methods provided by DUserTable.
 type DUserQueryer interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Database gets the shared database information.
-	Database() sqlapi.Database
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Using returns a modified DUserQueryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
@@ -50,92 +37,82 @@ type DUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(DUserQueryer) error) error
-
-	// Execer gets the wrapped database or transaction handle.
-	Execer() sqlapi.Execer
-
-	// Tx gets the wrapped transaction handle, provided this is within a transaction.
-	// Panics if it is in the wrong state - use IsTx() if necessary.
-	Tx() sqlapi.SqlTx
-
-	// IsTx tests whether this is within a transaction.
-	IsTx() bool
+	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(DUserQueryer) error) error
 
 	// Exec executes a query without returning any rows.
-	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
+	Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error)
 
 	// DeleteByUid deletes rows from the table, given some uid values.
 	// The list of ids can be arbitrarily long.
-	DeleteByUid(req require.Requirement, uid ...int64) (int64, error)
+	DeleteByUid(ctx context.Context, req require.Requirement, uid ...int64) (int64, error)
 
 	// DeleteByName deletes rows from the table, given some name values.
 	// The list of ids can be arbitrarily long.
-	DeleteByName(req require.Requirement, name ...string) (int64, error)
+	DeleteByName(ctx context.Context, req require.Requirement, name ...string) (int64, error)
 
 	// DeleteByEmailaddress deletes rows from the table, given some emailaddress values.
 	// The list of ids can be arbitrarily long.
-	DeleteByEmailaddress(req require.Requirement, emailaddress ...string) (int64, error)
+	DeleteByEmailaddress(ctx context.Context, req require.Requirement, emailaddress ...string) (int64, error)
 
 	// DeleteByAddressid deletes rows from the table, given some addressid values.
 	// The list of ids can be arbitrarily long.
-	DeleteByAddressid(req require.Requirement, addressid ...int64) (int64, error)
+	DeleteByAddressid(ctx context.Context, req require.Requirement, addressid ...int64) (int64, error)
 
 	// DeleteByAvatar deletes rows from the table, given some avatar values.
 	// The list of ids can be arbitrarily long.
-	DeleteByAvatar(req require.Requirement, avatar ...string) (int64, error)
+	DeleteByAvatar(ctx context.Context, req require.Requirement, avatar ...string) (int64, error)
 
 	// DeleteByRole deletes rows from the table, given some role values.
 	// The list of ids can be arbitrarily long.
-	DeleteByRole(req require.Requirement, role ...Role) (int64, error)
+	DeleteByRole(ctx context.Context, req require.Requirement, role ...Role) (int64, error)
 
 	// DeleteByLastupdated deletes rows from the table, given some lastupdated values.
 	// The list of ids can be arbitrarily long.
-	DeleteByLastupdated(req require.Requirement, lastupdated ...int64) (int64, error)
+	DeleteByLastupdated(ctx context.Context, req require.Requirement, lastupdated ...int64) (int64, error)
 
 	// DeleteByI8 deletes rows from the table, given some i8 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByI8(req require.Requirement, i8 ...int8) (int64, error)
+	DeleteByI8(ctx context.Context, req require.Requirement, i8 ...int8) (int64, error)
 
 	// DeleteByU8 deletes rows from the table, given some u8 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByU8(req require.Requirement, u8 ...uint8) (int64, error)
+	DeleteByU8(ctx context.Context, req require.Requirement, u8 ...uint8) (int64, error)
 
 	// DeleteByI16 deletes rows from the table, given some i16 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByI16(req require.Requirement, i16 ...int16) (int64, error)
+	DeleteByI16(ctx context.Context, req require.Requirement, i16 ...int16) (int64, error)
 
 	// DeleteByU16 deletes rows from the table, given some u16 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByU16(req require.Requirement, u16 ...uint16) (int64, error)
+	DeleteByU16(ctx context.Context, req require.Requirement, u16 ...uint16) (int64, error)
 
 	// DeleteByI32 deletes rows from the table, given some i32 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByI32(req require.Requirement, i32 ...int32) (int64, error)
+	DeleteByI32(ctx context.Context, req require.Requirement, i32 ...int32) (int64, error)
 
 	// DeleteByU32 deletes rows from the table, given some u32 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByU32(req require.Requirement, u32 ...uint32) (int64, error)
+	DeleteByU32(ctx context.Context, req require.Requirement, u32 ...uint32) (int64, error)
 
 	// DeleteByI64 deletes rows from the table, given some i64 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByI64(req require.Requirement, i64 ...int64) (int64, error)
+	DeleteByI64(ctx context.Context, req require.Requirement, i64 ...int64) (int64, error)
 
 	// DeleteByU64 deletes rows from the table, given some u64 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByU64(req require.Requirement, u64 ...uint64) (int64, error)
+	DeleteByU64(ctx context.Context, req require.Requirement, u64 ...uint64) (int64, error)
 
 	// DeleteByF32 deletes rows from the table, given some f32 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByF32(req require.Requirement, f32 ...float32) (int64, error)
+	DeleteByF32(ctx context.Context, req require.Requirement, f32 ...float32) (int64, error)
 
 	// DeleteByF64 deletes rows from the table, given some f64 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByF64(req require.Requirement, f64 ...float64) (int64, error)
+	DeleteByF64(ctx context.Context, req require.Requirement, f64 ...float64) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
-	Delete(req require.Requirement, wh where.Expression) (int64, error)
+	Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -147,7 +124,6 @@ type DUserTable struct {
 	name     sqlapi.TableName
 	database sqlapi.Database
 	db       sqlapi.Execer
-	ctx      context.Context
 	pk       string
 }
 
@@ -165,7 +141,6 @@ func NewDUserTable(name string, d sqlapi.Database) DUserTable {
 		name:     sqlapi.TableName{Prefix: "", Name: name},
 		database: d,
 		db:       d.DB(),
-		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -180,7 +155,6 @@ func CopyTableAsDUserTable(origin sqlapi.Table) DUserTable {
 		name:     origin.Name(),
 		database: origin.Database(),
 		db:       origin.Execer(),
-		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -199,16 +173,6 @@ func (tbl DUserTable) WithPrefix(pfx string) DUserTabler {
 	return tbl
 }
 
-// WithContext sets the context for subsequent queries via this table.
-// The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
-func (tbl DUserTable) WithContext(ctx context.Context) DUserTabler {
-	tbl.ctx = ctx
-	return tbl
-}
-
 // Database gets the shared database information.
 func (tbl DUserTable) Database() sqlapi.Database {
 	return tbl.database
@@ -217,11 +181,6 @@ func (tbl DUserTable) Database() sqlapi.Database {
 // Logger gets the trace logger.
 func (tbl DUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
-}
-
-// Ctx gets the current request context.
-func (tbl DUserTable) Ctx() context.Context {
-	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -278,12 +237,12 @@ func (tbl DUserTable) Using(tx sqlapi.Execer) DUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl DUserTable) Transact(txOptions *sql.TxOptions, fn func(DUserQueryer) error) error {
+func (tbl DUserTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(DUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -320,8 +279,10 @@ var listOfDUserTableColumnNames = strings.Split(DUserTableColumnNames, ",")
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl DUserTable) Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(ctx, tbl, req, query, args...)
 }
 
 // scanDUsers reads rows from the database and returns a slice of corresponding values.
@@ -446,137 +407,137 @@ func scanDUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 
 // DeleteByUid deletes rows from the table, given some uid values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByUid(req require.Requirement, uid ...int64) (int64, error) {
+func (tbl DUserTable) DeleteByUid(ctx context.Context, req require.Requirement, uid ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(uid)
-	return support.DeleteByColumn(tbl, req, "uid", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "uid", ii...)
 }
 
 // DeleteByName deletes rows from the table, given some name values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByName(req require.Requirement, name ...string) (int64, error) {
+func (tbl DUserTable) DeleteByName(ctx context.Context, req require.Requirement, name ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(name)
-	return support.DeleteByColumn(tbl, req, "name", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "name", ii...)
 }
 
 // DeleteByEmailaddress deletes rows from the table, given some emailaddress values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByEmailaddress(req require.Requirement, emailaddress ...string) (int64, error) {
+func (tbl DUserTable) DeleteByEmailaddress(ctx context.Context, req require.Requirement, emailaddress ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(emailaddress)
-	return support.DeleteByColumn(tbl, req, "emailaddress", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "emailaddress", ii...)
 }
 
 // DeleteByAddressid deletes rows from the table, given some addressid values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByAddressid(req require.Requirement, addressid ...int64) (int64, error) {
+func (tbl DUserTable) DeleteByAddressid(ctx context.Context, req require.Requirement, addressid ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(addressid)
-	return support.DeleteByColumn(tbl, req, "addressid", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "addressid", ii...)
 }
 
 // DeleteByAvatar deletes rows from the table, given some avatar values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByAvatar(req require.Requirement, avatar ...string) (int64, error) {
+func (tbl DUserTable) DeleteByAvatar(ctx context.Context, req require.Requirement, avatar ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(avatar)
-	return support.DeleteByColumn(tbl, req, "avatar", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "avatar", ii...)
 }
 
 // DeleteByRole deletes rows from the table, given some role values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByRole(req require.Requirement, role ...Role) (int64, error) {
+func (tbl DUserTable) DeleteByRole(ctx context.Context, req require.Requirement, role ...Role) (int64, error) {
 	ii := make([]interface{}, len(role))
 	for i, v := range role {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, "role", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "role", ii...)
 }
 
 // DeleteByLastupdated deletes rows from the table, given some lastupdated values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByLastupdated(req require.Requirement, lastupdated ...int64) (int64, error) {
+func (tbl DUserTable) DeleteByLastupdated(ctx context.Context, req require.Requirement, lastupdated ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(lastupdated)
-	return support.DeleteByColumn(tbl, req, "lastupdated", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "lastupdated", ii...)
 }
 
 // DeleteByI8 deletes rows from the table, given some i8 values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByI8(req require.Requirement, i8 ...int8) (int64, error) {
+func (tbl DUserTable) DeleteByI8(ctx context.Context, req require.Requirement, i8 ...int8) (int64, error) {
 	ii := support.Int8AsInterfaceSlice(i8)
-	return support.DeleteByColumn(tbl, req, "i8", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "i8", ii...)
 }
 
 // DeleteByU8 deletes rows from the table, given some u8 values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByU8(req require.Requirement, u8 ...uint8) (int64, error) {
+func (tbl DUserTable) DeleteByU8(ctx context.Context, req require.Requirement, u8 ...uint8) (int64, error) {
 	ii := support.Uint8AsInterfaceSlice(u8)
-	return support.DeleteByColumn(tbl, req, "u8", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "u8", ii...)
 }
 
 // DeleteByI16 deletes rows from the table, given some i16 values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByI16(req require.Requirement, i16 ...int16) (int64, error) {
+func (tbl DUserTable) DeleteByI16(ctx context.Context, req require.Requirement, i16 ...int16) (int64, error) {
 	ii := support.Int16AsInterfaceSlice(i16)
-	return support.DeleteByColumn(tbl, req, "i16", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "i16", ii...)
 }
 
 // DeleteByU16 deletes rows from the table, given some u16 values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByU16(req require.Requirement, u16 ...uint16) (int64, error) {
+func (tbl DUserTable) DeleteByU16(ctx context.Context, req require.Requirement, u16 ...uint16) (int64, error) {
 	ii := support.Uint16AsInterfaceSlice(u16)
-	return support.DeleteByColumn(tbl, req, "u16", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "u16", ii...)
 }
 
 // DeleteByI32 deletes rows from the table, given some i32 values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByI32(req require.Requirement, i32 ...int32) (int64, error) {
+func (tbl DUserTable) DeleteByI32(ctx context.Context, req require.Requirement, i32 ...int32) (int64, error) {
 	ii := support.Int32AsInterfaceSlice(i32)
-	return support.DeleteByColumn(tbl, req, "i32", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "i32", ii...)
 }
 
 // DeleteByU32 deletes rows from the table, given some u32 values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByU32(req require.Requirement, u32 ...uint32) (int64, error) {
+func (tbl DUserTable) DeleteByU32(ctx context.Context, req require.Requirement, u32 ...uint32) (int64, error) {
 	ii := support.Uint32AsInterfaceSlice(u32)
-	return support.DeleteByColumn(tbl, req, "u32", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "u32", ii...)
 }
 
 // DeleteByI64 deletes rows from the table, given some i64 values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByI64(req require.Requirement, i64 ...int64) (int64, error) {
+func (tbl DUserTable) DeleteByI64(ctx context.Context, req require.Requirement, i64 ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(i64)
-	return support.DeleteByColumn(tbl, req, "i64", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "i64", ii...)
 }
 
 // DeleteByU64 deletes rows from the table, given some u64 values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByU64(req require.Requirement, u64 ...uint64) (int64, error) {
+func (tbl DUserTable) DeleteByU64(ctx context.Context, req require.Requirement, u64 ...uint64) (int64, error) {
 	ii := support.Uint64AsInterfaceSlice(u64)
-	return support.DeleteByColumn(tbl, req, "u64", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "u64", ii...)
 }
 
 // DeleteByF32 deletes rows from the table, given some f32 values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByF32(req require.Requirement, f32 ...float32) (int64, error) {
+func (tbl DUserTable) DeleteByF32(ctx context.Context, req require.Requirement, f32 ...float32) (int64, error) {
 	ii := make([]interface{}, len(f32))
 	for i, v := range f32 {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, "f32", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "f32", ii...)
 }
 
 // DeleteByF64 deletes rows from the table, given some f64 values.
 // The list of ids can be arbitrarily long.
-func (tbl DUserTable) DeleteByF64(req require.Requirement, f64 ...float64) (int64, error) {
+func (tbl DUserTable) DeleteByF64(ctx context.Context, req require.Requirement, f64 ...float64) (int64, error) {
 	ii := make([]interface{}, len(f64))
 	for i, v := range f64 {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, "f64", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "f64", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl DUserTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
+func (tbl DUserTable) Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := deleteRowsDUserTableSql(tbl, wh)
-	return tbl.Exec(req, query, args...)
+	return tbl.Exec(ctx, req, query, args...)
 }
 
 func deleteRowsDUserTableSql(tbl DUserTabler, wh where.Expression) (string, []interface{}) {

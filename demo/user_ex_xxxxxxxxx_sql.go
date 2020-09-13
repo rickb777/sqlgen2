@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
+// sqlapi v0.47.0; sqlgen v0.66.0
 
 package demo
 
@@ -19,26 +19,13 @@ type XUserTabler interface {
 
 	// WithPrefix returns a modified XUserTabler with a given table name prefix.
 	WithPrefix(pfx string) XUserTabler
-
-	// WithContext returns a modified XUserTabler with a given context.
-	WithContext(ctx context.Context) XUserTabler
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // XUserQueryer lists query methods provided by XUserTable.
 type XUserQueryer interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Database gets the shared database information.
-	Database() sqlapi.Database
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Using returns a modified XUserQueryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
@@ -46,17 +33,7 @@ type XUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(XUserQueryer) error) error
-
-	// Execer gets the wrapped database or transaction handle.
-	Execer() sqlapi.Execer
-
-	// Tx gets the wrapped transaction handle, provided this is within a transaction.
-	// Panics if it is in the wrong state - use IsTx() if necessary.
-	Tx() sqlapi.SqlTx
-
-	// IsTx tests whether this is within a transaction.
-	IsTx() bool
+	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(XUserQueryer) error) error
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -68,7 +45,6 @@ type XUserTable struct {
 	name     sqlapi.TableName
 	database sqlapi.Database
 	db       sqlapi.Execer
-	ctx      context.Context
 	pk       string
 }
 
@@ -86,7 +62,6 @@ func NewXUserTable(name string, d sqlapi.Database) XUserTable {
 		name:     sqlapi.TableName{Prefix: "", Name: name},
 		database: d,
 		db:       d.DB(),
-		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -101,7 +76,6 @@ func CopyTableAsXUserTable(origin sqlapi.Table) XUserTable {
 		name:     origin.Name(),
 		database: origin.Database(),
 		db:       origin.Execer(),
-		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -120,16 +94,6 @@ func (tbl XUserTable) WithPrefix(pfx string) XUserTabler {
 	return tbl
 }
 
-// WithContext sets the context for subsequent queries via this table.
-// The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
-func (tbl XUserTable) WithContext(ctx context.Context) XUserTabler {
-	tbl.ctx = ctx
-	return tbl
-}
-
 // Database gets the shared database information.
 func (tbl XUserTable) Database() sqlapi.Database {
 	return tbl.database
@@ -138,11 +102,6 @@ func (tbl XUserTable) Database() sqlapi.Database {
 // Logger gets the trace logger.
 func (tbl XUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
-}
-
-// Ctx gets the current request context.
-func (tbl XUserTable) Ctx() context.Context {
-	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -199,12 +158,12 @@ func (tbl XUserTable) Using(tx sqlapi.Execer) XUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl XUserTable) Transact(txOptions *sql.TxOptions, fn func(XUserQueryer) error) error {
+func (tbl XUserTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(XUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}

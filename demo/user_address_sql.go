@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
+// sqlapi v0.47.0; sqlgen v0.66.0
 
 package demo
 
@@ -21,26 +21,13 @@ type UserAddressJoiner interface {
 
 	// WithPrefix returns a modified UserAddressJoiner with a given table name prefix.
 	WithPrefix(pfx string) UserAddressJoiner
-
-	// WithContext returns a modified UserAddressJoiner with a given context.
-	WithContext(ctx context.Context) UserAddressJoiner
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // UserAddressQueryer lists query methods provided by UserAddressJoin.
 type UserAddressQueryer interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Database gets the shared database information.
-	Database() sqlapi.Database
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Using returns a modified UserAddressQueryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
@@ -48,30 +35,20 @@ type UserAddressQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(UserAddressQueryer) error) error
-
-	// Execer gets the wrapped database or transaction handle.
-	Execer() sqlapi.Execer
-
-	// Tx gets the wrapped transaction handle, provided this is within a transaction.
-	// Panics if it is in the wrong state - use IsTx() if necessary.
-	Tx() sqlapi.SqlTx
-
-	// IsTx tests whether this is within a transaction.
-	IsTx() bool
+	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(UserAddressQueryer) error) error
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for UserAddress values.
-	Query(req require.Requirement, query string, args ...interface{}) ([]*UserAddress, error)
+	Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*UserAddress, error)
 
 	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 
 	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+	QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -83,7 +60,6 @@ type UserAddressJoin struct {
 	name     sqlapi.TableName
 	database sqlapi.Database
 	db       sqlapi.Execer
-	ctx      context.Context
 	pk       string
 }
 
@@ -101,7 +77,6 @@ func NewUserAddressJoin(name string, d sqlapi.Database) UserAddressJoin {
 		name:     sqlapi.TableName{Prefix: "", Name: name},
 		database: d,
 		db:       d.DB(),
-		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -116,7 +91,6 @@ func CopyTableAsUserAddressJoin(origin sqlapi.Table) UserAddressJoin {
 		name:     origin.Name(),
 		database: origin.Database(),
 		db:       origin.Execer(),
-		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -135,16 +109,6 @@ func (tbl UserAddressJoin) WithPrefix(pfx string) UserAddressJoiner {
 	return tbl
 }
 
-// WithContext sets the context for subsequent queries via this table.
-// The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
-func (tbl UserAddressJoin) WithContext(ctx context.Context) UserAddressJoiner {
-	tbl.ctx = ctx
-	return tbl
-}
-
 // Database gets the shared database information.
 func (tbl UserAddressJoin) Database() sqlapi.Database {
 	return tbl.database
@@ -153,11 +117,6 @@ func (tbl UserAddressJoin) Database() sqlapi.Database {
 // Logger gets the trace logger.
 func (tbl UserAddressJoin) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
-}
-
-// Ctx gets the current request context.
-func (tbl UserAddressJoin) Ctx() context.Context {
-	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -214,12 +173,12 @@ func (tbl UserAddressJoin) Using(tx sqlapi.Execer) UserAddressQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl UserAddressJoin) Transact(txOptions *sql.TxOptions, fn func(UserAddressQueryer) error) error {
+func (tbl UserAddressJoin) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(UserAddressQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -258,18 +217,18 @@ var listOfUserAddressJoinColumnNames = strings.Split(UserAddressJoinColumnNames,
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
-// If you need a context other than the background, use WithContext before calling Query.
-//
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl UserAddressJoin) Query(req require.Requirement, query string, args ...interface{}) ([]*UserAddress, error) {
-	return doUserAddressJoinQueryAndScan(tbl, req, false, query, args)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl UserAddressJoin) Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*UserAddress, error) {
+	return doUserAddressJoinQueryAndScan(ctx, tbl, req, false, query, args)
 }
 
-func doUserAddressJoinQueryAndScan(tbl UserAddressJoiner, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*UserAddress, error) {
-	rows, err := support.Query(tbl, query, args...)
+func doUserAddressJoinQueryAndScan(ctx context.Context, tbl UserAddressJoiner, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*UserAddress, error) {
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -288,8 +247,8 @@ func doUserAddressJoinQueryAndScan(tbl UserAddressJoiner, req require.Requiremen
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl UserAddressJoin) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl UserAddressJoin) QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -300,8 +259,8 @@ func (tbl UserAddressJoin) QueryOneNullString(req require.Requirement, query str
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl UserAddressJoin) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl UserAddressJoin) QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -312,8 +271,8 @@ func (tbl UserAddressJoin) QueryOneNullInt64(req require.Requirement, query stri
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl UserAddressJoin) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl UserAddressJoin) QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 

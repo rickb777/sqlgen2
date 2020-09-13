@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
+// sqlapi v0.47.0; sqlgen v0.66.0
 
 package demo
 
@@ -21,26 +21,13 @@ type EUserTabler interface {
 
 	// WithPrefix returns a modified EUserTabler with a given table name prefix.
 	WithPrefix(pfx string) EUserTabler
-
-	// WithContext returns a modified EUserTabler with a given context.
-	WithContext(ctx context.Context) EUserTabler
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // EUserQueryer lists query methods provided by EUserTable.
 type EUserQueryer interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Database gets the shared database information.
-	Database() sqlapi.Database
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Using returns a modified EUserQueryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
@@ -48,20 +35,10 @@ type EUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(EUserQueryer) error) error
-
-	// Execer gets the wrapped database or transaction handle.
-	Execer() sqlapi.Execer
-
-	// Tx gets the wrapped transaction handle, provided this is within a transaction.
-	// Panics if it is in the wrong state - use IsTx() if necessary.
-	Tx() sqlapi.SqlTx
-
-	// IsTx tests whether this is within a transaction.
-	IsTx() bool
+	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(EUserQueryer) error) error
 
 	// Exec executes a query without returning any rows.
-	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
+	Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -73,7 +50,6 @@ type EUserTable struct {
 	name     sqlapi.TableName
 	database sqlapi.Database
 	db       sqlapi.Execer
-	ctx      context.Context
 	pk       string
 }
 
@@ -91,7 +67,6 @@ func NewEUserTable(name string, d sqlapi.Database) EUserTable {
 		name:     sqlapi.TableName{Prefix: "", Name: name},
 		database: d,
 		db:       d.DB(),
-		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -106,7 +81,6 @@ func CopyTableAsEUserTable(origin sqlapi.Table) EUserTable {
 		name:     origin.Name(),
 		database: origin.Database(),
 		db:       origin.Execer(),
-		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -125,16 +99,6 @@ func (tbl EUserTable) WithPrefix(pfx string) EUserTabler {
 	return tbl
 }
 
-// WithContext sets the context for subsequent queries via this table.
-// The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
-func (tbl EUserTable) WithContext(ctx context.Context) EUserTabler {
-	tbl.ctx = ctx
-	return tbl
-}
-
 // Database gets the shared database information.
 func (tbl EUserTable) Database() sqlapi.Database {
 	return tbl.database
@@ -143,11 +107,6 @@ func (tbl EUserTable) Database() sqlapi.Database {
 // Logger gets the trace logger.
 func (tbl EUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
-}
-
-// Ctx gets the current request context.
-func (tbl EUserTable) Ctx() context.Context {
-	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -204,12 +163,12 @@ func (tbl EUserTable) Using(tx sqlapi.Execer) EUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl EUserTable) Transact(txOptions *sql.TxOptions, fn func(EUserQueryer) error) error {
+func (tbl EUserTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(EUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -246,8 +205,10 @@ var listOfEUserTableColumnNames = strings.Split(EUserTableColumnNames, ",")
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-func (tbl EUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl EUserTable) Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(ctx, tbl, req, query, args...)
 }
 
 // scanEUsers reads rows from the database and returns a slice of corresponding values.

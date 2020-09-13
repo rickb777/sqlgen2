@@ -228,7 +228,7 @@ func TestUpdateFields_ok_using_mock(t *testing.T) {
 	d := pgxapi.NewDatabase(mockDb, dialect.Mysql, nil)
 	tbl := NewDbUserTable("users", d)
 
-	n, err := tbl.UpdateFields(require.One, where.NoOp(),
+	n, err := tbl.UpdateFields(nil, require.One, where.NoOp(),
 		pgxapi.Named("EmailAddress", "foo@x.com"),
 		pgxapi.Named("Hash", "abc123"))
 
@@ -245,7 +245,7 @@ func TestUpdateFields_error_using_mock(t *testing.T) {
 	d := pgxapi.NewDatabase(mockDb, dialect.Mysql, nil)
 	tbl := NewDbUserTable("users", d)
 
-	_, err := tbl.UpdateFields(nil, where.NoOp(),
+	_, err := tbl.UpdateFields(nil, nil, where.NoOp(),
 		pgxapi.Named("EmailAddress", "foo@x.com"),
 		pgxapi.Named("Hash", "abc123"))
 
@@ -260,7 +260,7 @@ func TestUpdate_ok_using_mock(t *testing.T) {
 	d := pgxapi.NewDatabase(mockDb, dialect.Mysql, nil)
 	tbl := NewDbUserTable("users", d)
 
-	n, err := tbl.Update(require.One, &User{})
+	n, err := tbl.Update(nil, require.One, &User{})
 
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(n).To(Equal(int64(1)))
@@ -277,7 +277,7 @@ func TestUpdate_error_using_mock(t *testing.T) {
 	d := pgxapi.NewDatabase(mockDb, dialect.Mysql, nil)
 	tbl := NewDbUserTable("users", d)
 
-	_, err := tbl.Update(nil, &User{})
+	_, err := tbl.Update(nil, nil, &User{})
 
 	g.Expect(errors.Cause(err)).To(Equal(exp))
 }
@@ -292,16 +292,16 @@ func TestUserCrud_using_database(t *testing.T) {
 
 	users := NewDbUserTable("users", d)
 
-	_, err := users.DropTable(true)
+	_, err := users.DropTable(nil, true)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	_, err = addresses.DropTable(true)
+	_, err = addresses.DropTable(nil, true)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	err = addresses.CreateTableWithIndexes(false)
+	err = addresses.CreateTableWithIndexes(nil, false)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	err = users.CreateTableWithIndexes(false)
+	err = users.CreateTableWithIndexes(nil, false)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	count_remainder_should_be(g, users, 0)
@@ -340,7 +340,7 @@ func TestUserCrud_using_database(t *testing.T) {
 }
 
 func count_remainder_should_be(g *GomegaWithT, tbl DbUserTable, expected int64) {
-	c1, err := tbl.Count(where.NoOp())
+	c1, err := tbl.Count(nil, where.NoOp())
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(c1).To(Equal(expected))
 }
@@ -348,14 +348,14 @@ func count_remainder_should_be(g *GomegaWithT, tbl DbUserTable, expected int64) 
 func insert_user_should_run_PreInsert(g *GomegaWithT, tbl DbUserTable, name string) *User {
 	user := &User{Name: name, EmailAddress: name + "@x.z"}
 	user = user.SetRole(UserRole)
-	err := tbl.Insert(require.One, user)
+	err := tbl.Insert(nil, require.One, user)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(user.hash).To(Equal("PreInsert"))
 	return user
 }
 
 func get_user_should_call_PostGet_and_match_expected(g *GomegaWithT, tbl DbUserTable, expected *User) {
-	user, err := tbl.GetUserByUid(nil, expected.Uid)
+	user, err := tbl.GetUserByUid(nil, nil, expected.Uid)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(user.hash).To(Equal("PostGet"))
 	user.hash = expected.hash
@@ -363,45 +363,45 @@ func get_user_should_call_PostGet_and_match_expected(g *GomegaWithT, tbl DbUserT
 }
 
 func get_unknown_user_should_return_nil(g *GomegaWithT, tbl DbUserTable, expected *User) {
-	user, err := tbl.GetUserByUid(nil, expected.Uid+100000)
+	user, err := tbl.GetUserByUid(nil, nil, expected.Uid+100000)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(user).To(BeNil())
 }
 
 func must_get_unknown_user_should_return_error(g *GomegaWithT, tbl DbUserTable, expected *User) {
-	_, err := tbl.GetUserByUid(require.One, expected.Uid+100000)
+	_, err := tbl.GetUserByUid(nil, require.One, expected.Uid+100000)
 	g.Expect(err.Error()).To(Equal("expected to fetch one but got 0"))
 }
 
 func count_known_user_should_return_1(g *GomegaWithT, tbl DbUserTable) {
-	count, err := tbl.Count(where.Eq("name", "user1"))
+	count, err := tbl.Count(nil, where.Eq("name", "user1"))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(count).To(BeEquivalentTo(1))
 }
 
 func select_unknown_user_should_return_empty_list(g *GomegaWithT, tbl DbUserTable) {
-	list, err := tbl.Select(require.None, where.Eq("name", "unknown"), nil)
+	list, err := tbl.Select(nil, require.None, where.Eq("name", "unknown"), nil)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(list).To(HaveLen(0))
 }
 
 func select_unknown_user_requiring_one_should_return_error(g *GomegaWithT, tbl DbUserTable) {
-	list, err := tbl.Select(require.None, where.Eq("name", "unknown"), nil)
+	list, err := tbl.Select(nil, require.None, where.Eq("name", "unknown"), nil)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(list).To(HaveLen(0))
 
-	_, err = tbl.Select(require.One, where.Eq("name", "unknown"), nil)
+	_, err = tbl.Select(nil, require.One, where.Eq("name", "unknown"), nil)
 	g.Expect(err.Error()).To(Equal("expected to fetch one but got 0"))
 }
 
 func query_one_nullstring_for_user_should_return_valid(g *GomegaWithT, tbl DbUserTable) {
 	q := fmt.Sprintf("select emailaddress from {TABLE} where name=?")
-	s, err := tbl.QueryOneNullString(nil, q, "user1")
+	s, err := tbl.QueryOneNullString(nil, nil, q, "user1")
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(s.Valid).To(BeTrue())
 	g.Expect(s.String).To(Equal("user1@x.z"))
 
-	s, err = tbl.QueryOneNullString(require.One, q, "user1")
+	s, err = tbl.QueryOneNullString(nil, require.One, q, "user1")
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(s.Valid).To(BeTrue())
 	g.Expect(s.String).To(Equal("user1@x.z"))
@@ -409,17 +409,17 @@ func query_one_nullstring_for_user_should_return_valid(g *GomegaWithT, tbl DbUse
 
 func query_one_nullstring_for_unknown_should_return_invalid(g *GomegaWithT, tbl DbUserTable) {
 	q := fmt.Sprintf("select emailaddress from {TABLE} where name=?")
-	s, err := tbl.QueryOneNullString(nil, q, "foo")
+	s, err := tbl.QueryOneNullString(nil, nil, q, "foo")
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(s.Valid).To(BeFalse())
 
-	_, err = tbl.QueryOneNullString(require.One, q, "foo")
+	_, err = tbl.QueryOneNullString(nil, require.One, q, "foo")
 	g.Expect(err.Error()).To(Equal("expected to fetch one but got 0"))
 	g.Expect(s.Valid).To(BeFalse())
 }
 
 func select_known_user_requiring_one_should_return_user(g *GomegaWithT, tbl DbUserTable) *User {
-	list, err := tbl.Select(require.One, where.Eq("name", "user1"), nil)
+	list, err := tbl.Select(nil, require.One, where.Eq("name", "user1"), nil)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(list).To(HaveLen(1))
 	return list[0]
@@ -429,12 +429,12 @@ func update_user_should_call_PreUpdate(g *GomegaWithT, tbl DbUserTable, user *Us
 	user.EmailAddress = "bah0@zzz.com"
 	//utter.Dump(user)
 
-	n, err := tbl.Update(require.One, user)
+	n, err := tbl.Update(nil, require.One, user)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(n).To(BeEquivalentTo(1))
 	g.Expect(user.hash).To(Equal("PreUpdate"))
 
-	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("uid", user.Uid), nil)
+	ss, err := tbl.SliceEmailaddress(nil, require.One, where.Eq("uid", user.Uid), nil)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(ss).To(HaveLen(1))
 	g.Expect(ss[0]).To(Equal("bah0@zzz.com"))
@@ -444,8 +444,8 @@ func update_users_in_tx(g *GomegaWithT, tbl DbUserTable, user *User) {
 	user.EmailAddress = "dude@zzz.com"
 	//utter.Dump(user)
 
-	err := tbl.Transact(nil, func(t2 DbUserQueryer) error {
-		n, err := t2.Update(require.One, user)
+	err := tbl.Transact(nil, nil, func(t2 DbUserQueryer) error {
+		n, err := t2.Update(nil, require.One, user)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(n).To(BeEquivalentTo(1))
 		g.Expect(user.hash).To(Equal("PreUpdate"))
@@ -453,7 +453,7 @@ func update_users_in_tx(g *GomegaWithT, tbl DbUserTable, user *User) {
 	})
 	g.Expect(err).NotTo(HaveOccurred())
 
-	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("uid", user.Uid), nil)
+	ss, err := tbl.SliceEmailaddress(nil, require.One, where.Eq("uid", user.Uid), nil)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(ss).To(HaveLen(1))
 	g.Expect(ss[0]).To(Equal("dude@zzz.com"))
@@ -463,11 +463,11 @@ func upsert_users(g *GomegaWithT, tbl DbUserTable, user *User) {
 	user.EmailAddress = "dodo@zzz.com"
 	//utter.Dump(user)
 
-	err := tbl.Upsert(user, where.Eq("name", user.Name))
+	err := tbl.Upsert(nil, user, where.Eq("name", user.Name))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(user.hash).To(Equal("PreUpdate"))
 
-	ss, err := tbl.SliceEmailaddress(require.One, where.Eq("uid", user.Uid), nil)
+	ss, err := tbl.SliceEmailaddress(nil, require.One, where.Eq("uid", user.Uid), nil)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(ss).To(HaveLen(1))
 	g.Expect(ss[0]).To(Equal("dodo@zzz.com"))
@@ -477,18 +477,18 @@ func upsert_users(g *GomegaWithT, tbl DbUserTable, user *User) {
 		EmailAddress: "another@z.org",
 		Active:       true,
 	}
-	err = tbl.Upsert(u2, where.Eq("name", u2.Name))
+	err = tbl.Upsert(nil, u2, where.Eq("name", u2.Name))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(user.hash).To(Equal("PreUpdate"))
 
-	ss, err = tbl.SliceEmailaddress(require.One, where.Eq("uid", u2.Uid), nil)
+	ss, err = tbl.SliceEmailaddress(nil, require.One, where.Eq("uid", u2.Uid), nil)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(ss).To(HaveLen(1))
 	g.Expect(ss[0]).To(Equal("another@z.org"))
 }
 
 func delete_one_should_return_1(g *GomegaWithT, tbl DbUserTable) {
-	n, err := tbl.Delete(require.One, where.Eq("name", "user1"))
+	n, err := tbl.Delete(nil, require.One, where.Eq("name", "user1"))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(n).To(BeEquivalentTo(1))
 }
@@ -502,10 +502,10 @@ func xTestMultiSelect_using_database(t *testing.T) {
 
 	tbl := NewDbUserTable("users", d)
 
-	_, err := tbl.DropTable(true)
+	_, err := tbl.DropTable(nil, true)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	err = tbl.CreateTableWithIndexes(true)
+	err = tbl.CreateTableWithIndexes(nil, true)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	const n = 3
@@ -525,10 +525,10 @@ func xTestMultiSelect_using_database(t *testing.T) {
 		users = append(users, user)
 	}
 
-	err = tbl.Insert(require.All, users...)
+	err = tbl.Insert(nil, require.All, users...)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	list, err := tbl.Select(nil, where.NotEq("name", "nobody"), where.OrderBy("name").Desc())
+	list, err := tbl.Select(nil, nil, where.NotEq("name", "nobody"), where.OrderBy("name").Desc())
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(list).To(HaveLen(n + 1))
 	for i := 0; i <= n; i++ {
@@ -544,10 +544,10 @@ func xTestGetters_using_database(t *testing.T) {
 
 	tbl := NewDbUserTable("users", d)
 
-	err := tbl.CreateTableWithIndexes(true)
+	err := tbl.CreateTableWithIndexes(nil, true)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	err = tbl.Truncate(true)
+	err = tbl.Truncate(nil, true)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	const n = 20
@@ -557,10 +557,10 @@ func xTestGetters_using_database(t *testing.T) {
 		list[i] = user(i)
 	}
 
-	err = tbl.Insert(require.All, list...)
+	err = tbl.Insert(nil, require.All, list...)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	names, err := tbl.SliceName(require.Exactly(n), where.NoOp(), where.OrderBy("name"))
+	names, err := tbl.SliceName(nil, require.Exactly(n), where.NoOp(), where.OrderBy("name"))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(names).To(HaveLen(n))
 

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
+// sqlapi v0.47.0; sqlgen v0.66.0
 
 package demo
 
@@ -23,26 +23,13 @@ type LUserTabler interface {
 
 	// WithPrefix returns a modified LUserTabler with a given table name prefix.
 	WithPrefix(pfx string) LUserTabler
-
-	// WithContext returns a modified LUserTabler with a given context.
-	WithContext(ctx context.Context) LUserTabler
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // LUserQueryer lists query methods provided by LUserTable.
 type LUserQueryer interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Database gets the shared database information.
-	Database() sqlapi.Database
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Using returns a modified LUserQueryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
@@ -50,68 +37,58 @@ type LUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(LUserQueryer) error) error
-
-	// Execer gets the wrapped database or transaction handle.
-	Execer() sqlapi.Execer
-
-	// Tx gets the wrapped transaction handle, provided this is within a transaction.
-	// Panics if it is in the wrong state - use IsTx() if necessary.
-	Tx() sqlapi.SqlTx
-
-	// IsTx tests whether this is within a transaction.
-	IsTx() bool
+	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(LUserQueryer) error) error
 
 	// SliceUid gets the uid column for all rows that match the 'where' condition.
-	SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceUid(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceName gets the name column for all rows that match the 'where' condition.
-	SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceName(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceEmailaddress gets the emailaddress column for all rows that match the 'where' condition.
-	SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceEmailaddress(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceAddressid gets the addressid column for all rows that match the 'where' condition.
-	SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceAddressid(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceAvatar gets the avatar column for all rows that match the 'where' condition.
-	SliceAvatar(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceAvatar(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceLastupdated gets the lastupdated column for all rows that match the 'where' condition.
-	SliceLastupdated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceLastupdated(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceI8 gets the i8 column for all rows that match the 'where' condition.
-	SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error)
+	SliceI8(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error)
 
 	// SliceU8 gets the u8 column for all rows that match the 'where' condition.
-	SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error)
+	SliceU8(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error)
 
 	// SliceI16 gets the i16 column for all rows that match the 'where' condition.
-	SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error)
+	SliceI16(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error)
 
 	// SliceU16 gets the u16 column for all rows that match the 'where' condition.
-	SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error)
+	SliceU16(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error)
 
 	// SliceI32 gets the i32 column for all rows that match the 'where' condition.
-	SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error)
+	SliceI32(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error)
 
 	// SliceU32 gets the u32 column for all rows that match the 'where' condition.
-	SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error)
+	SliceU32(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error)
 
 	// SliceI64 gets the i64 column for all rows that match the 'where' condition.
-	SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceI64(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceU64 gets the u64 column for all rows that match the 'where' condition.
-	SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
+	SliceU64(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
 
 	// SliceRole gets the role column for all rows that match the 'where' condition.
-	SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error)
+	SliceRole(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error)
 
 	// SliceF32 gets the f32 column for all rows that match the 'where' condition.
-	SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error)
+	SliceF32(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error)
 
 	// SliceF64 gets the f64 column for all rows that match the 'where' condition.
-	SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error)
+	SliceF64(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -123,7 +100,6 @@ type LUserTable struct {
 	name     sqlapi.TableName
 	database sqlapi.Database
 	db       sqlapi.Execer
-	ctx      context.Context
 	pk       string
 }
 
@@ -141,7 +117,6 @@ func NewLUserTable(name string, d sqlapi.Database) LUserTable {
 		name:     sqlapi.TableName{Prefix: "", Name: name},
 		database: d,
 		db:       d.DB(),
-		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -156,7 +131,6 @@ func CopyTableAsLUserTable(origin sqlapi.Table) LUserTable {
 		name:     origin.Name(),
 		database: origin.Database(),
 		db:       origin.Execer(),
-		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -175,16 +149,6 @@ func (tbl LUserTable) WithPrefix(pfx string) LUserTabler {
 	return tbl
 }
 
-// WithContext sets the context for subsequent queries via this table.
-// The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
-func (tbl LUserTable) WithContext(ctx context.Context) LUserTabler {
-	tbl.ctx = ctx
-	return tbl
-}
-
 // Database gets the shared database information.
 func (tbl LUserTable) Database() sqlapi.Database {
 	return tbl.database
@@ -193,11 +157,6 @@ func (tbl LUserTable) Database() sqlapi.Database {
 // Logger gets the trace logger.
 func (tbl LUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
-}
-
-// Ctx gets the current request context.
-func (tbl LUserTable) Ctx() context.Context {
-	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -254,12 +213,12 @@ func (tbl LUserTable) Using(tx sqlapi.Execer) LUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl LUserTable) Transact(txOptions *sql.TxOptions, fn func(LUserQueryer) error) error {
+func (tbl LUserTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(LUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -413,129 +372,129 @@ func scanLUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 // SliceUid gets the uid column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
+func (tbl LUserTable) SliceUid(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64List(ctx, tbl, req, tbl.pk, wh, qc)
 }
 
 // SliceName gets the name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "name", wh, qc)
+func (tbl LUserTable) SliceName(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "name", wh, qc)
 }
 
 // SliceEmailaddress gets the emailaddress column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "emailaddress", wh, qc)
+func (tbl LUserTable) SliceEmailaddress(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "emailaddress", wh, qc)
 }
 
 // SliceAddressid gets the addressid column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64PtrList(tbl, req, "addressid", wh, qc)
+func (tbl LUserTable) SliceAddressid(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64PtrList(ctx, tbl, req, "addressid", wh, qc)
 }
 
 // SliceAvatar gets the avatar column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceAvatar(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringPtrList(tbl, req, "avatar", wh, qc)
+func (tbl LUserTable) SliceAvatar(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringPtrList(ctx, tbl, req, "avatar", wh, qc)
 }
 
 // SliceLastupdated gets the lastupdated column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceLastupdated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(tbl, req, "lastupdated", wh, qc)
+func (tbl LUserTable) SliceLastupdated(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64List(ctx, tbl, req, "lastupdated", wh, qc)
 }
 
 // SliceI8 gets the i8 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
-	return support.SliceInt8List(tbl, req, "i8", wh, qc)
+func (tbl LUserTable) SliceI8(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
+	return support.SliceInt8List(ctx, tbl, req, "i8", wh, qc)
 }
 
 // SliceU8 gets the u8 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
-	return support.SliceUint8List(tbl, req, "u8", wh, qc)
+func (tbl LUserTable) SliceU8(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
+	return support.SliceUint8List(ctx, tbl, req, "u8", wh, qc)
 }
 
 // SliceI16 gets the i16 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
-	return support.SliceInt16List(tbl, req, "i16", wh, qc)
+func (tbl LUserTable) SliceI16(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
+	return support.SliceInt16List(ctx, tbl, req, "i16", wh, qc)
 }
 
 // SliceU16 gets the u16 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
-	return support.SliceUint16List(tbl, req, "u16", wh, qc)
+func (tbl LUserTable) SliceU16(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
+	return support.SliceUint16List(ctx, tbl, req, "u16", wh, qc)
 }
 
 // SliceI32 gets the i32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
-	return support.SliceInt32List(tbl, req, "i32", wh, qc)
+func (tbl LUserTable) SliceI32(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
+	return support.SliceInt32List(ctx, tbl, req, "i32", wh, qc)
 }
 
 // SliceU32 gets the u32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
-	return support.SliceUint32List(tbl, req, "u32", wh, qc)
+func (tbl LUserTable) SliceU32(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
+	return support.SliceUint32List(ctx, tbl, req, "u32", wh, qc)
 }
 
 // SliceI64 gets the i64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(tbl, req, "i64", wh, qc)
+func (tbl LUserTable) SliceI64(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64List(ctx, tbl, req, "i64", wh, qc)
 }
 
 // SliceU64 gets the u64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
-	return support.SliceUint64List(tbl, req, "u64", wh, qc)
+func (tbl LUserTable) SliceU64(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+	return support.SliceUint64List(ctx, tbl, req, "u64", wh, qc)
 }
 
 // SliceRole gets the role column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
-	return sliceLUserTableRolePtrList(tbl, req, "role", wh, qc)
+func (tbl LUserTable) SliceRole(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
+	return sliceLUserTableRolePtrList(ctx, tbl, req, "role", wh, qc)
 }
 
 // SliceF32 gets the f32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
-	return sliceLUserTableFloat32List(tbl, req, "f32", wh, qc)
+func (tbl LUserTable) SliceF32(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+	return sliceLUserTableFloat32List(ctx, tbl, req, "f32", wh, qc)
 }
 
 // SliceF64 gets the f64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl LUserTable) SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
-	return sliceLUserTableFloat64List(tbl, req, "f64", wh, qc)
+func (tbl LUserTable) SliceF64(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+	return sliceLUserTableFloat64List(ctx, tbl, req, "f64", wh, qc)
 }
 
-func sliceLUserTableRolePtrList(tbl LUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
+func sliceLUserTableRolePtrList(ctx context.Context, tbl LUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -555,13 +514,13 @@ func sliceLUserTableRolePtrList(tbl LUserTabler, req require.Requirement, sqlnam
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceLUserTableFloat32List(tbl LUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+func sliceLUserTableFloat32List(ctx context.Context, tbl LUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -581,13 +540,13 @@ func sliceLUserTableFloat32List(tbl LUserTabler, req require.Requirement, sqlnam
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceLUserTableFloat64List(tbl LUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+func sliceLUserTableFloat64List(ctx context.Context, tbl LUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}

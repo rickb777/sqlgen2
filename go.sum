@@ -393,6 +393,12 @@ github.com/rickb777/plural v1.2.1/go.mod h1:j058+3M5QQFgcZZ2oKIOekcygoZUL8gKW5yR
 github.com/rickb777/runtemplate/v3 v3.5.4/go.mod h1:8b30uPUenvvnN94neg3qNnar3d03FeJfhrF1hHDX/yM=
 github.com/rickb777/sqlapi v0.45.0 h1:wwa6VoZ6b6yZq7ZBCGrTZHtE04Ce+RuG80pVtByLYVY=
 github.com/rickb777/sqlapi v0.45.0/go.mod h1:CHbVApqYl0p5784HRwNQ7zilK5t7NEeTjqWW4vKcXX8=
+github.com/rickb777/sqlapi v0.46.0 h1:C1zk5+6rmKkpM9+trnmmZrSofTIisyWT9NDMyV8M8hQ=
+github.com/rickb777/sqlapi v0.46.0/go.mod h1:CHbVApqYl0p5784HRwNQ7zilK5t7NEeTjqWW4vKcXX8=
+github.com/rickb777/sqlapi v0.47.0 h1:OQMo9rZhwEl7dcOnzL9lBgPdi16nVL4D22YWAoo096c=
+github.com/rickb777/sqlapi v0.47.0/go.mod h1:CHbVApqYl0p5784HRwNQ7zilK5t7NEeTjqWW4vKcXX8=
+github.com/rickb777/sqlapi v0.47.1 h1:dM25i/UaDlzedzxIdS5s3yBkjhJfQ6vmVcaMiNK6NH4=
+github.com/rickb777/sqlapi v0.47.1/go.mod h1:CHbVApqYl0p5784HRwNQ7zilK5t7NEeTjqWW4vKcXX8=
 github.com/rickb777/where v0.8.1 h1:D0iJDbmRk4/BTl71ZSBlsom6dVXArgeKNvWrlZd2OUI=
 github.com/rickb777/where v0.8.1/go.mod h1:UTxc6SrkfKvtqsY5mKDQCAkqC3341varz4EHGDsWKKo=
 github.com/rogpeppe/go-internal v1.0.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=

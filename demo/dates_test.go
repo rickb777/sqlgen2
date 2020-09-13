@@ -25,18 +25,18 @@ func TestDatesCrud_using_database(t *testing.T) {
 
 	dt := NewDatesTable("dates", d)
 
-	_, err := dt.DropTable(true)
+	_, err := dt.DropTable(nil, true)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	_, err = dt.CreateTable(false)
+	_, err = dt.CreateTable(nil, false)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	for _, e := range examples {
 		d0 := NewDates(e)
-		err = dt.Insert(require.One, d0)
+		err = dt.Insert(nil, require.One, d0)
 		g.Expect(err).NotTo(HaveOccurred())
 
-		dx, e2 := dt.GetDatesById(require.One, d0.Id)
+		dx, e2 := dt.GetDatesById(nil, require.One, d0.Id)
 		g.Expect(e2).NotTo(HaveOccurred())
 		g.Expect(dx).To(Equal(d0))
 	}

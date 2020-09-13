@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
+// sqlapi v0.47.0; sqlgen v0.66.0
 
 package demo
 
@@ -32,34 +32,21 @@ type HookTabler interface {
 	// WithPrefix returns a modified HookTabler with a given table name prefix.
 	WithPrefix(pfx string) HookTabler
 
-	// WithContext returns a modified HookTabler with a given context.
-	WithContext(ctx context.Context) HookTabler
-
 	// CreateTable creates the table.
-	CreateTable(ifNotExists bool) (int64, error)
+	CreateTable(ctx context.Context, ifNotExists bool) (int64, error)
 
 	// DropTable drops the table, destroying all its data.
-	DropTable(ifExists bool) (int64, error)
+	DropTable(ctx context.Context, ifExists bool) (int64, error)
 
 	// Truncate drops every record from the table, if possible.
-	Truncate(force bool) (err error)
+	Truncate(ctx context.Context, force bool) (err error)
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // HookQueryer lists query methods provided by HookTable.
 type HookQueryer interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Database gets the shared database information.
-	Database() sqlapi.Database
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Using returns a modified HookQueryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
@@ -67,217 +54,207 @@ type HookQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(HookQueryer) error) error
-
-	// Execer gets the wrapped database or transaction handle.
-	Execer() sqlapi.Execer
-
-	// Tx gets the wrapped transaction handle, provided this is within a transaction.
-	// Panics if it is in the wrong state - use IsTx() if necessary.
-	Tx() sqlapi.SqlTx
-
-	// IsTx tests whether this is within a transaction.
-	IsTx() bool
+	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(HookQueryer) error) error
 
 	// Exec executes a query without returning any rows.
-	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
+	Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error)
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for Hook values.
-	Query(req require.Requirement, query string, args ...interface{}) (HookList, error)
+	Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) (HookList, error)
 
 	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 
 	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+	QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
 	// GetHookById gets the record with a given primary key value.
-	GetHookById(req require.Requirement, id uint64) (*Hook, error)
+	GetHookById(ctx context.Context, req require.Requirement, id uint64) (*Hook, error)
 
 	// GetHooksById gets records from the table according to a list of primary keys.
-	GetHooksById(req require.Requirement, qc where.QueryConstraint, id ...uint64) (list HookList, err error)
+	GetHooksById(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...uint64) (list HookList, err error)
 
 	// SelectOneWhere allows a single Hook to be obtained from the table that matches a 'where' clause.
-	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Hook, error)
+	SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Hook, error)
 
 	// SelectOne allows a single Hook to be obtained from the table that matches a 'where' clause.
-	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Hook, error)
+	SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Hook, error)
 
 	// SelectWhere allows Hooks to be obtained from the table that match a 'where' clause.
-	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) (HookList, error)
+	SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (HookList, error)
 
 	// Select allows Hooks to be obtained from the table that match a 'where' clause.
-	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (HookList, error)
+	Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (HookList, error)
 
 	// CountWhere counts Hooks in the table that match a 'where' clause.
-	CountWhere(where string, args ...interface{}) (count int64, err error)
+	CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error)
 
 	// Count counts the Hooks in the table that match a 'where' clause.
-	Count(wh where.Expression) (count int64, err error)
+	Count(ctx context.Context, wh where.Expression) (count int64, err error)
 
 	// SliceId gets the id column for all rows that match the 'where' condition.
-	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
+	SliceId(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
 
 	// SliceSha gets the sha column for all rows that match the 'where' condition.
-	SliceSha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceSha(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceAfter gets the after column for all rows that match the 'where' condition.
-	SliceAfter(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceAfter(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceBefore gets the before column for all rows that match the 'where' condition.
-	SliceBefore(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceBefore(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceCommitId gets the commit_id column for all rows that match the 'where' condition.
-	SliceCommitId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceCommitId(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceMessage gets the message column for all rows that match the 'where' condition.
-	SliceMessage(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceMessage(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceTimestamp gets the timestamp column for all rows that match the 'where' condition.
-	SliceTimestamp(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceTimestamp(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceHeadCommitAuthorName gets the head_commit_author_name column for all rows that match the 'where' condition.
-	SliceHeadCommitAuthorName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceHeadCommitAuthorName(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceHeadCommitAuthorUsername gets the head_commit_author_username column for all rows that match the 'where' condition.
-	SliceHeadCommitAuthorUsername(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceHeadCommitAuthorUsername(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceHeadCommitCommitterName gets the head_commit_committer_name column for all rows that match the 'where' condition.
-	SliceHeadCommitCommitterName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceHeadCommitCommitterName(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceHeadCommitCommitterUsername gets the head_commit_committer_username column for all rows that match the 'where' condition.
-	SliceHeadCommitCommitterUsername(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceHeadCommitCommitterUsername(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceCategory gets the category column for all rows that match the 'where' condition.
-	SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
+	SliceCategory(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
 
 	// SliceHeadCommitAuthorEmail gets the head_commit_author_email column for all rows that match the 'where' condition.
-	SliceHeadCommitAuthorEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error)
+	SliceHeadCommitAuthorEmail(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error)
 
 	// SliceHeadCommitCommitterEmail gets the head_commit_committer_email column for all rows that match the 'where' condition.
-	SliceHeadCommitCommitterEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error)
+	SliceHeadCommitCommitterEmail(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error)
 
 	// Insert adds new records for the Hooks, setting the primary key field for each one.
-	Insert(req require.Requirement, vv ...*Hook) error
+	Insert(ctx context.Context, req require.Requirement, vv ...*Hook) error
 
 	// UpdateById updates one or more columns, given a id value.
-	UpdateById(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error)
+	UpdateById(ctx context.Context, req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateBySha updates one or more columns, given a sha value.
-	UpdateBySha(req require.Requirement, sha string, fields ...sql.NamedArg) (int64, error)
+	UpdateBySha(ctx context.Context, req require.Requirement, sha string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByAfter updates one or more columns, given a after value.
-	UpdateByAfter(req require.Requirement, after string, fields ...sql.NamedArg) (int64, error)
+	UpdateByAfter(ctx context.Context, req require.Requirement, after string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByBefore updates one or more columns, given a before value.
-	UpdateByBefore(req require.Requirement, before string, fields ...sql.NamedArg) (int64, error)
+	UpdateByBefore(ctx context.Context, req require.Requirement, before string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByCategory updates one or more columns, given a category value.
-	UpdateByCategory(req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error)
+	UpdateByCategory(ctx context.Context, req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByCommitId updates one or more columns, given a commit_id value.
-	UpdateByCommitId(req require.Requirement, commit_id string, fields ...sql.NamedArg) (int64, error)
+	UpdateByCommitId(ctx context.Context, req require.Requirement, commit_id string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByMessage updates one or more columns, given a message value.
-	UpdateByMessage(req require.Requirement, message string, fields ...sql.NamedArg) (int64, error)
+	UpdateByMessage(ctx context.Context, req require.Requirement, message string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByTimestamp updates one or more columns, given a timestamp value.
-	UpdateByTimestamp(req require.Requirement, timestamp string, fields ...sql.NamedArg) (int64, error)
+	UpdateByTimestamp(ctx context.Context, req require.Requirement, timestamp string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByHeadCommitAuthorName updates one or more columns, given a head_commit_author_name value.
-	UpdateByHeadCommitAuthorName(req require.Requirement, head_commit_author_name string, fields ...sql.NamedArg) (int64, error)
+	UpdateByHeadCommitAuthorName(ctx context.Context, req require.Requirement, head_commit_author_name string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByHeadCommitAuthorEmail updates one or more columns, given a head_commit_author_email value.
-	UpdateByHeadCommitAuthorEmail(req require.Requirement, head_commit_author_email Email, fields ...sql.NamedArg) (int64, error)
+	UpdateByHeadCommitAuthorEmail(ctx context.Context, req require.Requirement, head_commit_author_email Email, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByHeadCommitAuthorUsername updates one or more columns, given a head_commit_author_username value.
-	UpdateByHeadCommitAuthorUsername(req require.Requirement, head_commit_author_username string, fields ...sql.NamedArg) (int64, error)
+	UpdateByHeadCommitAuthorUsername(ctx context.Context, req require.Requirement, head_commit_author_username string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByHeadCommitCommitterName updates one or more columns, given a head_commit_committer_name value.
-	UpdateByHeadCommitCommitterName(req require.Requirement, head_commit_committer_name string, fields ...sql.NamedArg) (int64, error)
+	UpdateByHeadCommitCommitterName(ctx context.Context, req require.Requirement, head_commit_committer_name string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByHeadCommitCommitterEmail updates one or more columns, given a head_commit_committer_email value.
-	UpdateByHeadCommitCommitterEmail(req require.Requirement, head_commit_committer_email Email, fields ...sql.NamedArg) (int64, error)
+	UpdateByHeadCommitCommitterEmail(ctx context.Context, req require.Requirement, head_commit_committer_email Email, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByHeadCommitCommitterUsername updates one or more columns, given a head_commit_committer_username value.
-	UpdateByHeadCommitCommitterUsername(req require.Requirement, head_commit_committer_username string, fields ...sql.NamedArg) (int64, error)
+	UpdateByHeadCommitCommitterUsername(ctx context.Context, req require.Requirement, head_commit_committer_username string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateFields updates one or more columns, given a 'where' clause.
-	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+	UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
 
 	// Update updates records, matching them by primary key.
-	Update(req require.Requirement, vv ...*Hook) (int64, error)
+	Update(ctx context.Context, req require.Requirement, vv ...*Hook) (int64, error)
 
 	// Upsert inserts or updates a record, matching it using the expression supplied.
 	// This expression is used to search for an existing record based on some specified
 	// key column(s). It must match either zero or one existing record. If it matches
 	// none, a new record is inserted; otherwise the matching record is updated. An
 	// error results if these conditions are not met.
-	Upsert(v *Hook, wh where.Expression) error
+	Upsert(ctx context.Context, v *Hook, wh where.Expression) error
 
 	// DeleteById deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteById(req require.Requirement, id ...uint64) (int64, error)
+	DeleteById(ctx context.Context, req require.Requirement, id ...uint64) (int64, error)
 
 	// DeleteBySha deletes rows from the table, given some sha values.
 	// The list of ids can be arbitrarily long.
-	DeleteBySha(req require.Requirement, sha ...string) (int64, error)
+	DeleteBySha(ctx context.Context, req require.Requirement, sha ...string) (int64, error)
 
 	// DeleteByAfter deletes rows from the table, given some after values.
 	// The list of ids can be arbitrarily long.
-	DeleteByAfter(req require.Requirement, after ...string) (int64, error)
+	DeleteByAfter(ctx context.Context, req require.Requirement, after ...string) (int64, error)
 
 	// DeleteByBefore deletes rows from the table, given some before values.
 	// The list of ids can be arbitrarily long.
-	DeleteByBefore(req require.Requirement, before ...string) (int64, error)
+	DeleteByBefore(ctx context.Context, req require.Requirement, before ...string) (int64, error)
 
 	// DeleteByCategory deletes rows from the table, given some category values.
 	// The list of ids can be arbitrarily long.
-	DeleteByCategory(req require.Requirement, category ...Category) (int64, error)
+	DeleteByCategory(ctx context.Context, req require.Requirement, category ...Category) (int64, error)
 
 	// DeleteByCommitId deletes rows from the table, given some commit_id values.
 	// The list of ids can be arbitrarily long.
-	DeleteByCommitId(req require.Requirement, commit_id ...string) (int64, error)
+	DeleteByCommitId(ctx context.Context, req require.Requirement, commit_id ...string) (int64, error)
 
 	// DeleteByMessage deletes rows from the table, given some message values.
 	// The list of ids can be arbitrarily long.
-	DeleteByMessage(req require.Requirement, message ...string) (int64, error)
+	DeleteByMessage(ctx context.Context, req require.Requirement, message ...string) (int64, error)
 
 	// DeleteByTimestamp deletes rows from the table, given some timestamp values.
 	// The list of ids can be arbitrarily long.
-	DeleteByTimestamp(req require.Requirement, timestamp ...string) (int64, error)
+	DeleteByTimestamp(ctx context.Context, req require.Requirement, timestamp ...string) (int64, error)
 
 	// DeleteByHeadCommitAuthorName deletes rows from the table, given some head_commit_author_name values.
 	// The list of ids can be arbitrarily long.
-	DeleteByHeadCommitAuthorName(req require.Requirement, head_commit_author_name ...string) (int64, error)
+	DeleteByHeadCommitAuthorName(ctx context.Context, req require.Requirement, head_commit_author_name ...string) (int64, error)
 
 	// DeleteByHeadCommitAuthorEmail deletes rows from the table, given some head_commit_author_email values.
 	// The list of ids can be arbitrarily long.
-	DeleteByHeadCommitAuthorEmail(req require.Requirement, head_commit_author_email ...Email) (int64, error)
+	DeleteByHeadCommitAuthorEmail(ctx context.Context, req require.Requirement, head_commit_author_email ...Email) (int64, error)
 
 	// DeleteByHeadCommitAuthorUsername deletes rows from the table, given some head_commit_author_username values.
 	// The list of ids can be arbitrarily long.
-	DeleteByHeadCommitAuthorUsername(req require.Requirement, head_commit_author_username ...string) (int64, error)
+	DeleteByHeadCommitAuthorUsername(ctx context.Context, req require.Requirement, head_commit_author_username ...string) (int64, error)
 
 	// DeleteByHeadCommitCommitterName deletes rows from the table, given some head_commit_committer_name values.
 	// The list of ids can be arbitrarily long.
-	DeleteByHeadCommitCommitterName(req require.Requirement, head_commit_committer_name ...string) (int64, error)
+	DeleteByHeadCommitCommitterName(ctx context.Context, req require.Requirement, head_commit_committer_name ...string) (int64, error)
 
 	// DeleteByHeadCommitCommitterEmail deletes rows from the table, given some head_commit_committer_email values.
 	// The list of ids can be arbitrarily long.
-	DeleteByHeadCommitCommitterEmail(req require.Requirement, head_commit_committer_email ...Email) (int64, error)
+	DeleteByHeadCommitCommitterEmail(ctx context.Context, req require.Requirement, head_commit_committer_email ...Email) (int64, error)
 
 	// DeleteByHeadCommitCommitterUsername deletes rows from the table, given some head_commit_committer_username values.
 	// The list of ids can be arbitrarily long.
-	DeleteByHeadCommitCommitterUsername(req require.Requirement, head_commit_committer_username ...string) (int64, error)
+	DeleteByHeadCommitCommitterUsername(ctx context.Context, req require.Requirement, head_commit_committer_username ...string) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
-	Delete(req require.Requirement, wh where.Expression) (int64, error)
+	Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -290,7 +267,6 @@ type HookTable struct {
 	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx         context.Context
 	pk          string
 }
 
@@ -310,7 +286,6 @@ func NewHookTable(name string, d sqlapi.Database) HookTable {
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
-		ctx:         context.Background(),
 		pk:          "id",
 	}
 }
@@ -326,7 +301,6 @@ func CopyTableAsHookTable(origin sqlapi.Table) HookTable {
 		database:    origin.Database(),
 		db:          origin.Execer(),
 		constraints: nil,
-		ctx:         context.Background(),
 		pk:          "id",
 	}
 }
@@ -342,16 +316,6 @@ func CopyTableAsHookTable(origin sqlapi.Table) HookTable {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl HookTable) WithPrefix(pfx string) HookTabler {
 	tbl.name.Prefix = pfx
-	return tbl
-}
-
-// WithContext sets the context for subsequent queries via this table.
-// The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
-func (tbl HookTable) WithContext(ctx context.Context) HookTabler {
-	tbl.ctx = ctx
 	return tbl
 }
 
@@ -374,11 +338,6 @@ func (tbl HookTable) WithConstraint(cc ...constraint.Constraint) HookTabler {
 // Constraints returns the table's constraints.
 func (tbl HookTable) Constraints() constraint.Constraints {
 	return tbl.constraints
-}
-
-// Ctx gets the current request context.
-func (tbl HookTable) Ctx() context.Context {
-	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -435,12 +394,12 @@ func (tbl HookTable) Using(tx sqlapi.Execer) HookQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl HookTable) Transact(txOptions *sql.TxOptions, fn func(HookQueryer) error) error {
+func (tbl HookTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(HookQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -556,8 +515,8 @@ var sqlHookTableCreateColumnsPgx = []string{
 //-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl HookTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, createHookTableSql(tbl, ifNotExists))
+func (tbl HookTable) CreateTable(ctx context.Context, ifNotExists bool) (int64, error) {
+	return support.Exec(ctx, tbl, nil, createHookTableSql(tbl, ifNotExists))
 }
 
 func createHookTableSql(tbl HookTabler, ifNotExists bool) string {
@@ -609,8 +568,8 @@ func ternaryHookTable(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl HookTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, dropHookTableSql(tbl, ifExists))
+func (tbl HookTable) DropTable(ctx context.Context, ifExists bool) (int64, error) {
+	return support.Exec(ctx, tbl, nil, dropHookTableSql(tbl, ifExists))
 }
 
 func dropHookTableSql(tbl HookTabler, ifExists bool) string {
@@ -629,9 +588,9 @@ func dropHookTableSql(tbl HookTabler, ifExists bool) string {
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl HookTable) Truncate(force bool) (err error) {
+func (tbl HookTable) Truncate(ctx context.Context, force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(tbl, nil, query)
+		_, err = support.Exec(ctx, tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -645,8 +604,10 @@ func (tbl HookTable) Truncate(force bool) (err error) {
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl HookTable) Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(ctx, tbl, req, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -657,18 +618,18 @@ func (tbl HookTable) Exec(req require.Requirement, query string, args ...interfa
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
-// If you need a context other than the background, use WithContext before calling Query.
-//
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl HookTable) Query(req require.Requirement, query string, args ...interface{}) (HookList, error) {
-	return doHookTableQueryAndScan(tbl, req, false, query, args)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl HookTable) Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) (HookList, error) {
+	return doHookTableQueryAndScan(ctx, tbl, req, false, query, args)
 }
 
-func doHookTableQueryAndScan(tbl HookTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) (HookList, error) {
-	rows, err := support.Query(tbl, query, args...)
+func doHookTableQueryAndScan(ctx context.Context, tbl HookTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) (HookList, error) {
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -687,8 +648,8 @@ func doHookTableQueryAndScan(tbl HookTabler, req require.Requirement, firstOnly 
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl HookTable) QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -699,8 +660,8 @@ func (tbl HookTable) QueryOneNullString(req require.Requirement, query string, a
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl HookTable) QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -711,8 +672,8 @@ func (tbl HookTable) QueryOneNullInt64(req require.Requirement, query string, ar
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl HookTable) QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -814,8 +775,8 @@ func allHookColumnNamesQuoted(q quote.Quoter) string {
 
 // GetHookById gets the record with a given primary key value.
 // If not found, *Hook will be nil.
-func (tbl HookTable) GetHookById(req require.Requirement, id uint64) (*Hook, error) {
-	return tbl.SelectOne(req, where.Eq("id", id), nil)
+func (tbl HookTable) GetHookById(ctx context.Context, req require.Requirement, id uint64) (*Hook, error) {
+	return tbl.SelectOne(ctx, req, where.Eq("id", id), nil)
 }
 
 // GetHooksById gets records from the table according to a list of primary keys.
@@ -824,15 +785,15 @@ func (tbl HookTable) GetHookById(req require.Requirement, id uint64) (*Hook, err
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl HookTable) GetHooksById(req require.Requirement, qc where.QueryConstraint, id ...uint64) (list HookList, err error) {
+func (tbl HookTable) GetHooksById(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...uint64) (list HookList, err error) {
 	if req == require.All {
 		req = require.Exactly(len(id))
 	}
-	return tbl.Select(req, where.In("id", id), qc)
+	return tbl.Select(ctx, req, where.In("id", id), qc)
 }
 
-func doHookTableQueryAndScanOne(tbl HookTabler, req require.Requirement, query string, args ...interface{}) (*Hook, error) {
-	list, err := doHookTableQueryAndScan(tbl, req, true, query, args...)
+func doHookTableQueryAndScanOne(ctx context.Context, tbl HookTabler, req require.Requirement, query string, args ...interface{}) (*Hook, error) {
+	list, err := doHookTableQueryAndScan(ctx, tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -841,8 +802,8 @@ func doHookTableQueryAndScanOne(tbl HookTabler, req require.Requirement, query s
 
 // Fetch fetches a list of Hook based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of Hook. Other queries might be better handled by GetXxx or Select methods.
-func (tbl HookTable) Fetch(req require.Requirement, query string, args ...interface{}) (HookList, error) {
-	return doHookTableQueryAndScan(tbl, req, false, query, args...)
+func (tbl HookTable) Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) (HookList, error) {
+	return doHookTableQueryAndScan(ctx, tbl, req, false, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -856,11 +817,11 @@ func (tbl HookTable) Fetch(req require.Requirement, query string, args ...interf
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Hook, error) {
+func (tbl HookTable) SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Hook, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		allHookColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	v, err := doHookTableQueryAndScanOne(tbl, req, query, args...)
+	v, err := doHookTableQueryAndScanOne(ctx, tbl, req, query, args...)
 	return v, err
 }
 
@@ -871,11 +832,11 @@ func (tbl HookTable) SelectOneWhere(req require.Requirement, where, orderBy stri
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl HookTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Hook, error) {
+func (tbl HookTable) SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Hook, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectOneWhere(req, whs, orderBy, args...)
+	return tbl.SelectOneWhere(ctx, req, whs, orderBy, args...)
 }
 
 // SelectWhere allows Hooks to be obtained from the table that match a 'where' clause.
@@ -886,11 +847,11 @@ func (tbl HookTable) SelectOne(req require.Requirement, wh where.Expression, qc 
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) (HookList, error) {
+func (tbl HookTable) SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (HookList, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
 		allHookColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	vv, err := doHookTableQueryAndScan(tbl, req, false, query, args...)
+	vv, err := doHookTableQueryAndScan(ctx, tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -900,11 +861,11 @@ func (tbl HookTable) SelectWhere(req require.Requirement, where, orderBy string,
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
-func (tbl HookTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (HookList, error) {
+func (tbl HookTable) Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (HookList, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectWhere(req, whs, orderBy, args...)
+	return tbl.SelectWhere(ctx, req, whs, orderBy, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -913,10 +874,10 @@ func (tbl HookTable) Select(req require.Requirement, wh where.Expression, qc whe
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl HookTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
+func (tbl HookTable) CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -929,9 +890,9 @@ func (tbl HookTable) CountWhere(where string, args ...interface{}) (count int64,
 
 // Count counts the Hooks in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl HookTable) Count(wh where.Expression) (count int64, err error) {
+func (tbl HookTable) Count(ctx context.Context, wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	return tbl.CountWhere(whs, args...)
+	return tbl.CountWhere(ctx, whs, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -939,108 +900,108 @@ func (tbl HookTable) Count(wh where.Expression) (count int64, err error) {
 // SliceId gets the id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
-	return support.SliceUint64List(tbl, req, tbl.pk, wh, qc)
+func (tbl HookTable) SliceId(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+	return support.SliceUint64List(ctx, tbl, req, tbl.pk, wh, qc)
 }
 
 // SliceSha gets the sha column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceSha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "sha", wh, qc)
+func (tbl HookTable) SliceSha(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "sha", wh, qc)
 }
 
 // SliceAfter gets the after column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceAfter(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "after", wh, qc)
+func (tbl HookTable) SliceAfter(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "after", wh, qc)
 }
 
 // SliceBefore gets the before column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceBefore(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "before", wh, qc)
+func (tbl HookTable) SliceBefore(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "before", wh, qc)
 }
 
 // SliceCommitId gets the commit_id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceCommitId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "commit_id", wh, qc)
+func (tbl HookTable) SliceCommitId(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "commit_id", wh, qc)
 }
 
 // SliceMessage gets the message column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceMessage(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "message", wh, qc)
+func (tbl HookTable) SliceMessage(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "message", wh, qc)
 }
 
 // SliceTimestamp gets the timestamp column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceTimestamp(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "timestamp", wh, qc)
+func (tbl HookTable) SliceTimestamp(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "timestamp", wh, qc)
 }
 
 // SliceHeadCommitAuthorName gets the head_commit_author_name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceHeadCommitAuthorName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "head_commit_author_name", wh, qc)
+func (tbl HookTable) SliceHeadCommitAuthorName(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "head_commit_author_name", wh, qc)
 }
 
 // SliceHeadCommitAuthorUsername gets the head_commit_author_username column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceHeadCommitAuthorUsername(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "head_commit_author_username", wh, qc)
+func (tbl HookTable) SliceHeadCommitAuthorUsername(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "head_commit_author_username", wh, qc)
 }
 
 // SliceHeadCommitCommitterName gets the head_commit_committer_name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceHeadCommitCommitterName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "head_commit_committer_name", wh, qc)
+func (tbl HookTable) SliceHeadCommitCommitterName(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "head_commit_committer_name", wh, qc)
 }
 
 // SliceHeadCommitCommitterUsername gets the head_commit_committer_username column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceHeadCommitCommitterUsername(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "head_commit_committer_username", wh, qc)
+func (tbl HookTable) SliceHeadCommitCommitterUsername(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "head_commit_committer_username", wh, qc)
 }
 
 // SliceCategory gets the category column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return sliceHookTableCategoryList(tbl, req, "category", wh, qc)
+func (tbl HookTable) SliceCategory(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	return sliceHookTableCategoryList(ctx, tbl, req, "category", wh, qc)
 }
 
 // SliceHeadCommitAuthorEmail gets the head_commit_author_email column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceHeadCommitAuthorEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
-	return sliceHookTableEmailList(tbl, req, "head_commit_author_email", wh, qc)
+func (tbl HookTable) SliceHeadCommitAuthorEmail(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+	return sliceHookTableEmailList(ctx, tbl, req, "head_commit_author_email", wh, qc)
 }
 
 // SliceHeadCommitCommitterEmail gets the head_commit_committer_email column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceHeadCommitCommitterEmail(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
-	return sliceHookTableEmailList(tbl, req, "head_commit_committer_email", wh, qc)
+func (tbl HookTable) SliceHeadCommitCommitterEmail(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+	return sliceHookTableEmailList(ctx, tbl, req, "head_commit_committer_email", wh, qc)
 }
 
-func sliceHookTableCategoryList(tbl HookTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+func sliceHookTableCategoryList(ctx context.Context, tbl HookTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1060,13 +1021,13 @@ func sliceHookTableCategoryList(tbl HookTabler, req require.Requirement, sqlname
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceHookTableEmailList(tbl HookTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
+func sliceHookTableEmailList(ctx context.Context, tbl HookTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1278,9 +1239,13 @@ func constructHookTableUpdate(tbl HookTable, w dialect.StringWriter, v *Hook) (s
 
 // Insert adds new records for the Hooks.// The Hooks have their primary key fields set to the new record identifiers.
 // The Hook.PreInsert() method will be called, if it exists.
-func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
+func (tbl HookTable) Insert(ctx context.Context, req require.Requirement, vv ...*Hook) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
 	var count int64
@@ -1318,13 +1283,13 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.db.QueryRowContext(ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Id = uint64(i64)
 
 		} else {
-			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.db.InsertContext(ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
@@ -1341,86 +1306,86 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 }
 
 // UpdateById updates one or more columns, given a id value.
-func (tbl HookTable) UpdateById(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
+func (tbl HookTable) UpdateById(ctx context.Context, req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("id", id), fields...)
 }
 
 // UpdateBySha updates one or more columns, given a sha value.
-func (tbl HookTable) UpdateBySha(req require.Requirement, sha string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("sha", sha), fields...)
+func (tbl HookTable) UpdateBySha(ctx context.Context, req require.Requirement, sha string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("sha", sha), fields...)
 }
 
 // UpdateByAfter updates one or more columns, given a after value.
-func (tbl HookTable) UpdateByAfter(req require.Requirement, after string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("after", after), fields...)
+func (tbl HookTable) UpdateByAfter(ctx context.Context, req require.Requirement, after string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("after", after), fields...)
 }
 
 // UpdateByBefore updates one or more columns, given a before value.
-func (tbl HookTable) UpdateByBefore(req require.Requirement, before string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("before", before), fields...)
+func (tbl HookTable) UpdateByBefore(ctx context.Context, req require.Requirement, before string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("before", before), fields...)
 }
 
 // UpdateByCategory updates one or more columns, given a category value.
-func (tbl HookTable) UpdateByCategory(req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("category", category), fields...)
+func (tbl HookTable) UpdateByCategory(ctx context.Context, req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("category", category), fields...)
 }
 
 // UpdateByCommitId updates one or more columns, given a commit_id value.
-func (tbl HookTable) UpdateByCommitId(req require.Requirement, commit_id string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("commit_id", commit_id), fields...)
+func (tbl HookTable) UpdateByCommitId(ctx context.Context, req require.Requirement, commit_id string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("commit_id", commit_id), fields...)
 }
 
 // UpdateByMessage updates one or more columns, given a message value.
-func (tbl HookTable) UpdateByMessage(req require.Requirement, message string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("message", message), fields...)
+func (tbl HookTable) UpdateByMessage(ctx context.Context, req require.Requirement, message string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("message", message), fields...)
 }
 
 // UpdateByTimestamp updates one or more columns, given a timestamp value.
-func (tbl HookTable) UpdateByTimestamp(req require.Requirement, timestamp string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("timestamp", timestamp), fields...)
+func (tbl HookTable) UpdateByTimestamp(ctx context.Context, req require.Requirement, timestamp string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("timestamp", timestamp), fields...)
 }
 
 // UpdateByHeadCommitAuthorName updates one or more columns, given a head_commit_author_name value.
-func (tbl HookTable) UpdateByHeadCommitAuthorName(req require.Requirement, head_commit_author_name string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("head_commit_author_name", head_commit_author_name), fields...)
+func (tbl HookTable) UpdateByHeadCommitAuthorName(ctx context.Context, req require.Requirement, head_commit_author_name string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("head_commit_author_name", head_commit_author_name), fields...)
 }
 
 // UpdateByHeadCommitAuthorEmail updates one or more columns, given a head_commit_author_email value.
-func (tbl HookTable) UpdateByHeadCommitAuthorEmail(req require.Requirement, head_commit_author_email Email, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("head_commit_author_email", head_commit_author_email), fields...)
+func (tbl HookTable) UpdateByHeadCommitAuthorEmail(ctx context.Context, req require.Requirement, head_commit_author_email Email, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("head_commit_author_email", head_commit_author_email), fields...)
 }
 
 // UpdateByHeadCommitAuthorUsername updates one or more columns, given a head_commit_author_username value.
-func (tbl HookTable) UpdateByHeadCommitAuthorUsername(req require.Requirement, head_commit_author_username string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("head_commit_author_username", head_commit_author_username), fields...)
+func (tbl HookTable) UpdateByHeadCommitAuthorUsername(ctx context.Context, req require.Requirement, head_commit_author_username string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("head_commit_author_username", head_commit_author_username), fields...)
 }
 
 // UpdateByHeadCommitCommitterName updates one or more columns, given a head_commit_committer_name value.
-func (tbl HookTable) UpdateByHeadCommitCommitterName(req require.Requirement, head_commit_committer_name string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("head_commit_committer_name", head_commit_committer_name), fields...)
+func (tbl HookTable) UpdateByHeadCommitCommitterName(ctx context.Context, req require.Requirement, head_commit_committer_name string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("head_commit_committer_name", head_commit_committer_name), fields...)
 }
 
 // UpdateByHeadCommitCommitterEmail updates one or more columns, given a head_commit_committer_email value.
-func (tbl HookTable) UpdateByHeadCommitCommitterEmail(req require.Requirement, head_commit_committer_email Email, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("head_commit_committer_email", head_commit_committer_email), fields...)
+func (tbl HookTable) UpdateByHeadCommitCommitterEmail(ctx context.Context, req require.Requirement, head_commit_committer_email Email, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("head_commit_committer_email", head_commit_committer_email), fields...)
 }
 
 // UpdateByHeadCommitCommitterUsername updates one or more columns, given a head_commit_committer_username value.
-func (tbl HookTable) UpdateByHeadCommitCommitterUsername(req require.Requirement, head_commit_committer_username string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("head_commit_committer_username", head_commit_committer_username), fields...)
+func (tbl HookTable) UpdateByHeadCommitCommitterUsername(ctx context.Context, req require.Requirement, head_commit_committer_username string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("head_commit_committer_username", head_commit_committer_username), fields...)
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
-func (tbl HookTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl, req, wh, fields...)
+func (tbl HookTable) UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	return support.UpdateFields(ctx, tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Hook.PreUpdate(Execer) method will be called, if it exists.
-func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error) {
+func (tbl HookTable) Update(ctx context.Context, req require.Requirement, vv ...*Hook) (int64, error) {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -1454,7 +1419,7 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 		b.WriteString("=?")
 
 		query := b.String()
-		n, err := tbl.Exec(nil, query, args...)
+		n, err := tbl.Exec(ctx, nil, query, args...)
 		if err != nil {
 			return count, err
 		}
@@ -1471,20 +1436,20 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 // key column(s). It must match either zero or one existing record. If it matches
 // none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
-func (tbl HookTable) Upsert(v *Hook, wh where.Expression) error {
+func (tbl HookTable) Upsert(ctx context.Context, v *Hook, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)
 	qName := tbl.quotedName()
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 
 	query := fmt.Sprintf("SELECT %s FROM %s %s", col, qName, whs)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return tbl.Insert(require.One, v)
+		return tbl.Insert(ctx, require.One, v)
 	}
 
 	var id uint64
@@ -1498,7 +1463,7 @@ func (tbl HookTable) Upsert(v *Hook, wh where.Expression) error {
 	}
 
 	v.Id = id
-	_, err = tbl.Update(require.One, v)
+	_, err = tbl.Update(ctx, require.One, v)
 	return err
 }
 
@@ -1506,116 +1471,116 @@ func (tbl HookTable) Upsert(v *Hook, wh where.Expression) error {
 
 // DeleteById deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteById(req require.Requirement, id ...uint64) (int64, error) {
+func (tbl HookTable) DeleteById(ctx context.Context, req require.Requirement, id ...uint64) (int64, error) {
 	ii := support.Uint64AsInterfaceSlice(id)
-	return support.DeleteByColumn(tbl, req, "id", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "id", ii...)
 }
 
 // DeleteBySha deletes rows from the table, given some sha values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteBySha(req require.Requirement, sha ...string) (int64, error) {
+func (tbl HookTable) DeleteBySha(ctx context.Context, req require.Requirement, sha ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(sha)
-	return support.DeleteByColumn(tbl, req, "sha", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "sha", ii...)
 }
 
 // DeleteByAfter deletes rows from the table, given some after values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteByAfter(req require.Requirement, after ...string) (int64, error) {
+func (tbl HookTable) DeleteByAfter(ctx context.Context, req require.Requirement, after ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(after)
-	return support.DeleteByColumn(tbl, req, "after", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "after", ii...)
 }
 
 // DeleteByBefore deletes rows from the table, given some before values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteByBefore(req require.Requirement, before ...string) (int64, error) {
+func (tbl HookTable) DeleteByBefore(ctx context.Context, req require.Requirement, before ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(before)
-	return support.DeleteByColumn(tbl, req, "before", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "before", ii...)
 }
 
 // DeleteByCategory deletes rows from the table, given some category values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteByCategory(req require.Requirement, category ...Category) (int64, error) {
+func (tbl HookTable) DeleteByCategory(ctx context.Context, req require.Requirement, category ...Category) (int64, error) {
 	ii := make([]interface{}, len(category))
 	for i, v := range category {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, "category", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "category", ii...)
 }
 
 // DeleteByCommitId deletes rows from the table, given some commit_id values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteByCommitId(req require.Requirement, commit_id ...string) (int64, error) {
+func (tbl HookTable) DeleteByCommitId(ctx context.Context, req require.Requirement, commit_id ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(commit_id)
-	return support.DeleteByColumn(tbl, req, "commit_id", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "commit_id", ii...)
 }
 
 // DeleteByMessage deletes rows from the table, given some message values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteByMessage(req require.Requirement, message ...string) (int64, error) {
+func (tbl HookTable) DeleteByMessage(ctx context.Context, req require.Requirement, message ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(message)
-	return support.DeleteByColumn(tbl, req, "message", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "message", ii...)
 }
 
 // DeleteByTimestamp deletes rows from the table, given some timestamp values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteByTimestamp(req require.Requirement, timestamp ...string) (int64, error) {
+func (tbl HookTable) DeleteByTimestamp(ctx context.Context, req require.Requirement, timestamp ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(timestamp)
-	return support.DeleteByColumn(tbl, req, "timestamp", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "timestamp", ii...)
 }
 
 // DeleteByHeadCommitAuthorName deletes rows from the table, given some head_commit_author_name values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteByHeadCommitAuthorName(req require.Requirement, head_commit_author_name ...string) (int64, error) {
+func (tbl HookTable) DeleteByHeadCommitAuthorName(ctx context.Context, req require.Requirement, head_commit_author_name ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(head_commit_author_name)
-	return support.DeleteByColumn(tbl, req, "head_commit_author_name", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "head_commit_author_name", ii...)
 }
 
 // DeleteByHeadCommitAuthorEmail deletes rows from the table, given some head_commit_author_email values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteByHeadCommitAuthorEmail(req require.Requirement, head_commit_author_email ...Email) (int64, error) {
+func (tbl HookTable) DeleteByHeadCommitAuthorEmail(ctx context.Context, req require.Requirement, head_commit_author_email ...Email) (int64, error) {
 	ii := make([]interface{}, len(head_commit_author_email))
 	for i, v := range head_commit_author_email {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, "head_commit_author_email", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "head_commit_author_email", ii...)
 }
 
 // DeleteByHeadCommitAuthorUsername deletes rows from the table, given some head_commit_author_username values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteByHeadCommitAuthorUsername(req require.Requirement, head_commit_author_username ...string) (int64, error) {
+func (tbl HookTable) DeleteByHeadCommitAuthorUsername(ctx context.Context, req require.Requirement, head_commit_author_username ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(head_commit_author_username)
-	return support.DeleteByColumn(tbl, req, "head_commit_author_username", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "head_commit_author_username", ii...)
 }
 
 // DeleteByHeadCommitCommitterName deletes rows from the table, given some head_commit_committer_name values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteByHeadCommitCommitterName(req require.Requirement, head_commit_committer_name ...string) (int64, error) {
+func (tbl HookTable) DeleteByHeadCommitCommitterName(ctx context.Context, req require.Requirement, head_commit_committer_name ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(head_commit_committer_name)
-	return support.DeleteByColumn(tbl, req, "head_commit_committer_name", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "head_commit_committer_name", ii...)
 }
 
 // DeleteByHeadCommitCommitterEmail deletes rows from the table, given some head_commit_committer_email values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteByHeadCommitCommitterEmail(req require.Requirement, head_commit_committer_email ...Email) (int64, error) {
+func (tbl HookTable) DeleteByHeadCommitCommitterEmail(ctx context.Context, req require.Requirement, head_commit_committer_email ...Email) (int64, error) {
 	ii := make([]interface{}, len(head_commit_committer_email))
 	for i, v := range head_commit_committer_email {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, "head_commit_committer_email", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "head_commit_committer_email", ii...)
 }
 
 // DeleteByHeadCommitCommitterUsername deletes rows from the table, given some head_commit_committer_username values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteByHeadCommitCommitterUsername(req require.Requirement, head_commit_committer_username ...string) (int64, error) {
+func (tbl HookTable) DeleteByHeadCommitCommitterUsername(ctx context.Context, req require.Requirement, head_commit_committer_username ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(head_commit_committer_username)
-	return support.DeleteByColumn(tbl, req, "head_commit_committer_username", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "head_commit_committer_username", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl HookTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
+func (tbl HookTable) Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := deleteRowsHookTableSql(tbl, wh)
-	return tbl.Exec(req, query, args...)
+	return tbl.Exec(ctx, req, query, args...)
 }
 
 func deleteRowsHookTableSql(tbl HookTabler, wh where.Expression) (string, []interface{}) {

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
+// sqlapi v0.47.0; sqlgen v0.66.0
 
 package demo
 
@@ -32,46 +32,33 @@ type DbCompoundTabler interface {
 	// WithPrefix returns a modified DbCompoundTabler with a given table name prefix.
 	WithPrefix(pfx string) DbCompoundTabler
 
-	// WithContext returns a modified DbCompoundTabler with a given context.
-	WithContext(ctx context.Context) DbCompoundTabler
-
 	// CreateTable creates the table.
-	CreateTable(ifNotExists bool) (int64, error)
+	CreateTable(ctx context.Context, ifNotExists bool) (int64, error)
 
 	// DropTable drops the table, destroying all its data.
-	DropTable(ifExists bool) (int64, error)
+	DropTable(ctx context.Context, ifExists bool) (int64, error)
 
 	// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-	CreateTableWithIndexes(ifNotExist bool) (err error)
+	CreateTableWithIndexes(ctx context.Context, ifNotExist bool) (err error)
 
 	// CreateIndexes executes queries that create the indexes needed by the Compound table.
-	CreateIndexes(ifNotExist bool) (err error)
+	CreateIndexes(ctx context.Context, ifNotExist bool) (err error)
 
 	// CreateAlphaBetaIndex creates the alpha_beta index.
-	CreateAlphaBetaIndex(ifNotExist bool) error
+	CreateAlphaBetaIndex(ctx context.Context, ifNotExist bool) error
 
 	// DropAlphaBetaIndex drops the alpha_beta index.
-	DropAlphaBetaIndex(ifExists bool) error
+	DropAlphaBetaIndex(ctx context.Context, ifExists bool) error
 
 	// Truncate drops every record from the table, if possible.
-	Truncate(force bool) (err error)
+	Truncate(ctx context.Context, force bool) (err error)
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // DbCompoundQueryer lists query methods provided by DbCompoundTable.
 type DbCompoundQueryer interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Database gets the shared database information.
-	Database() sqlapi.Database
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Using returns a modified DbCompoundQueryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
@@ -79,94 +66,84 @@ type DbCompoundQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(DbCompoundQueryer) error) error
-
-	// Execer gets the wrapped database or transaction handle.
-	Execer() sqlapi.Execer
-
-	// Tx gets the wrapped transaction handle, provided this is within a transaction.
-	// Panics if it is in the wrong state - use IsTx() if necessary.
-	Tx() sqlapi.SqlTx
-
-	// IsTx tests whether this is within a transaction.
-	IsTx() bool
+	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(DbCompoundQueryer) error) error
 
 	// Exec executes a query without returning any rows.
-	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
+	Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error)
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for Compound values.
-	Query(req require.Requirement, query string, args ...interface{}) ([]*Compound, error)
+	Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Compound, error)
 
 	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 
 	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+	QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
 	// GetCompoundByAlphaAndBeta gets the record with given alpha+beta values.
-	GetCompoundByAlphaAndBeta(req require.Requirement, alpha string, beta string) (*Compound, error)
+	GetCompoundByAlphaAndBeta(ctx context.Context, req require.Requirement, alpha string, beta string) (*Compound, error)
 
 	// SelectOneWhere allows a single Compound to be obtained from the table that matches a 'where' clause.
-	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Compound, error)
+	SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Compound, error)
 
 	// SelectOne allows a single Compound to be obtained from the table that matches a 'where' clause.
-	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Compound, error)
+	SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Compound, error)
 
 	// SelectWhere allows Compounds to be obtained from the table that match a 'where' clause.
-	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Compound, error)
+	SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*Compound, error)
 
 	// Select allows Compounds to be obtained from the table that match a 'where' clause.
-	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Compound, error)
+	Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Compound, error)
 
 	// CountWhere counts Compounds in the table that match a 'where' clause.
-	CountWhere(where string, args ...interface{}) (count int64, err error)
+	CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error)
 
 	// Count counts the Compounds in the table that match a 'where' clause.
-	Count(wh where.Expression) (count int64, err error)
+	Count(ctx context.Context, wh where.Expression) (count int64, err error)
 
 	// SliceAlpha gets the alpha column for all rows that match the 'where' condition.
-	SliceAlpha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceAlpha(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceBeta gets the beta column for all rows that match the 'where' condition.
-	SliceBeta(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceBeta(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceCategory gets the category column for all rows that match the 'where' condition.
-	SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
+	SliceCategory(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
 
 	// Insert adds new records for the Compounds.
-	Insert(req require.Requirement, vv ...*Compound) error
+	Insert(ctx context.Context, req require.Requirement, vv ...*Compound) error
 
 	// UpdateByAlpha updates one or more columns, given a alpha value.
-	UpdateByAlpha(req require.Requirement, alpha string, fields ...sql.NamedArg) (int64, error)
+	UpdateByAlpha(ctx context.Context, req require.Requirement, alpha string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByBeta updates one or more columns, given a beta value.
-	UpdateByBeta(req require.Requirement, beta string, fields ...sql.NamedArg) (int64, error)
+	UpdateByBeta(ctx context.Context, req require.Requirement, beta string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByCategory updates one or more columns, given a category value.
-	UpdateByCategory(req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error)
+	UpdateByCategory(ctx context.Context, req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateFields updates one or more columns, given a 'where' clause.
-	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+	UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
 
 	// DeleteByAlpha deletes rows from the table, given some alpha values.
 	// The list of ids can be arbitrarily long.
-	DeleteByAlpha(req require.Requirement, alpha ...string) (int64, error)
+	DeleteByAlpha(ctx context.Context, req require.Requirement, alpha ...string) (int64, error)
 
 	// DeleteByBeta deletes rows from the table, given some beta values.
 	// The list of ids can be arbitrarily long.
-	DeleteByBeta(req require.Requirement, beta ...string) (int64, error)
+	DeleteByBeta(ctx context.Context, req require.Requirement, beta ...string) (int64, error)
 
 	// DeleteByCategory deletes rows from the table, given some category values.
 	// The list of ids can be arbitrarily long.
-	DeleteByCategory(req require.Requirement, category ...Category) (int64, error)
+	DeleteByCategory(ctx context.Context, req require.Requirement, category ...Category) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
-	Delete(req require.Requirement, wh where.Expression) (int64, error)
+	Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -179,7 +156,6 @@ type DbCompoundTable struct {
 	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx         context.Context
 	pk          string
 }
 
@@ -199,7 +175,6 @@ func NewDbCompoundTable(name string, d sqlapi.Database) DbCompoundTable {
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
-		ctx:         context.Background(),
 		pk:          "",
 	}
 }
@@ -215,7 +190,6 @@ func CopyTableAsDbCompoundTable(origin sqlapi.Table) DbCompoundTable {
 		database:    origin.Database(),
 		db:          origin.Execer(),
 		constraints: nil,
-		ctx:         context.Background(),
 		pk:          "",
 	}
 }
@@ -224,16 +198,6 @@ func CopyTableAsDbCompoundTable(origin sqlapi.Table) DbCompoundTable {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DbCompoundTable) WithPrefix(pfx string) DbCompoundTabler {
 	tbl.name.Prefix = pfx
-	return tbl
-}
-
-// WithContext sets the context for subsequent queries via this table.
-// The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
-func (tbl DbCompoundTable) WithContext(ctx context.Context) DbCompoundTabler {
-	tbl.ctx = ctx
 	return tbl
 }
 
@@ -256,11 +220,6 @@ func (tbl DbCompoundTable) WithConstraint(cc ...constraint.Constraint) DbCompoun
 // Constraints returns the table's constraints.
 func (tbl DbCompoundTable) Constraints() constraint.Constraints {
 	return tbl.constraints
-}
-
-// Ctx gets the current request context.
-func (tbl DbCompoundTable) Ctx() context.Context {
-	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -312,12 +271,12 @@ func (tbl DbCompoundTable) Using(tx sqlapi.Execer) DbCompoundQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl DbCompoundTable) Transact(txOptions *sql.TxOptions, fn func(DbCompoundQueryer) error) error {
+func (tbl DbCompoundTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(DbCompoundQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -380,8 +339,8 @@ var listOfDbAlphaBetaIndexColumns = strings.Split(sqlDbAlphaBetaIndexColumns, ",
 //-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl DbCompoundTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, createDbCompoundTableSql(tbl, ifNotExists))
+func (tbl DbCompoundTable) CreateTable(ctx context.Context, ifNotExists bool) (int64, error) {
+	return support.Exec(ctx, tbl, nil, createDbCompoundTableSql(tbl, ifNotExists))
 }
 
 func createDbCompoundTableSql(tbl DbCompoundTabler, ifNotExists bool) string {
@@ -433,8 +392,8 @@ func ternaryDbCompoundTable(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl DbCompoundTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, dropDbCompoundTableSql(tbl, ifExists))
+func (tbl DbCompoundTable) DropTable(ctx context.Context, ifExists bool) (int64, error) {
+	return support.Exec(ctx, tbl, nil, dropDbCompoundTableSql(tbl, ifExists))
 }
 
 func dropDbCompoundTableSql(tbl DbCompoundTabler, ifExists bool) string {
@@ -447,19 +406,19 @@ func dropDbCompoundTableSql(tbl DbCompoundTabler, ifExists bool) string {
 //-------------------------------------------------------------------------------------------------
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl DbCompoundTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ifNotExist)
+func (tbl DbCompoundTable) CreateTableWithIndexes(ctx context.Context, ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ctx, ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	return tbl.CreateIndexes(ifNotExist)
+	return tbl.CreateIndexes(ctx, ifNotExist)
 }
 
 // CreateIndexes executes queries that create the indexes needed by the Compound table.
-func (tbl DbCompoundTable) CreateIndexes(ifNotExist bool) (err error) {
+func (tbl DbCompoundTable) CreateIndexes(ctx context.Context, ifNotExist bool) (err error) {
 
-	err = tbl.CreateAlphaBetaIndex(ifNotExist)
+	err = tbl.CreateAlphaBetaIndex(ctx, ifNotExist)
 	if err != nil {
 		return err
 	}
@@ -468,7 +427,7 @@ func (tbl DbCompoundTable) CreateIndexes(ifNotExist bool) (err error) {
 }
 
 // CreateAlphaBetaIndex creates the alpha_beta index.
-func (tbl DbCompoundTable) CreateAlphaBetaIndex(ifNotExist bool) error {
+func (tbl DbCompoundTable) CreateAlphaBetaIndex(ctx context.Context, ifNotExist bool) error {
 	ine := ternaryDbCompoundTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -476,11 +435,11 @@ func (tbl DbCompoundTable) CreateAlphaBetaIndex(ifNotExist bool) error {
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, dropDbCompoundTableAlphaBetaSql(tbl, false))
+		tbl.Execer().ExecContext(ctx, dropDbCompoundTableAlphaBetaSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(nil, createDbCompoundTableAlphaBetaSql(tbl, ine))
+	_, err := tbl.Exec(ctx, nil, createDbCompoundTableAlphaBetaSql(tbl, ine))
 	return err
 }
 
@@ -495,8 +454,8 @@ func createDbCompoundTableAlphaBetaSql(tbl DbCompoundTabler, ifNotExists string)
 }
 
 // DropAlphaBetaIndex drops the alpha_beta index.
-func (tbl DbCompoundTable) DropAlphaBetaIndex(ifExists bool) error {
-	_, err := tbl.Exec(nil, dropDbCompoundTableAlphaBetaSql(tbl, ifExists))
+func (tbl DbCompoundTable) DropAlphaBetaIndex(ctx context.Context, ifExists bool) error {
+	_, err := tbl.Exec(ctx, nil, dropDbCompoundTableAlphaBetaSql(tbl, ifExists))
 	return err
 }
 
@@ -513,9 +472,9 @@ func dropDbCompoundTableAlphaBetaSql(tbl DbCompoundTabler, ifExists bool) string
 }
 
 // DropIndexes executes queries that drop the indexes on by the Compound table.
-func (tbl DbCompoundTable) DropIndexes(ifExist bool) (err error) {
+func (tbl DbCompoundTable) DropIndexes(ctx context.Context, ifExist bool) (err error) {
 
-	err = tbl.DropAlphaBetaIndex(ifExist)
+	err = tbl.DropAlphaBetaIndex(ctx, ifExist)
 	if err != nil {
 		return err
 	}
@@ -532,9 +491,9 @@ func (tbl DbCompoundTable) DropIndexes(ifExist bool) (err error) {
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl DbCompoundTable) Truncate(force bool) (err error) {
+func (tbl DbCompoundTable) Truncate(ctx context.Context, force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(tbl, nil, query)
+		_, err = support.Exec(ctx, tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -548,8 +507,10 @@ func (tbl DbCompoundTable) Truncate(force bool) (err error) {
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbCompoundTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl DbCompoundTable) Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(ctx, tbl, req, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -560,18 +521,18 @@ func (tbl DbCompoundTable) Exec(req require.Requirement, query string, args ...i
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
-// If you need a context other than the background, use WithContext before calling Query.
-//
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl DbCompoundTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Compound, error) {
-	return doDbCompoundTableQueryAndScan(tbl, req, false, query, args)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl DbCompoundTable) Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Compound, error) {
+	return doDbCompoundTableQueryAndScan(ctx, tbl, req, false, query, args)
 }
 
-func doDbCompoundTableQueryAndScan(tbl DbCompoundTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Compound, error) {
-	rows, err := support.Query(tbl, query, args...)
+func doDbCompoundTableQueryAndScan(ctx context.Context, tbl DbCompoundTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Compound, error) {
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -590,8 +551,8 @@ func doDbCompoundTableQueryAndScan(tbl DbCompoundTabler, req require.Requirement
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbCompoundTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl DbCompoundTable) QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -602,8 +563,8 @@ func (tbl DbCompoundTable) QueryOneNullString(req require.Requirement, query str
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbCompoundTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl DbCompoundTable) QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -614,8 +575,8 @@ func (tbl DbCompoundTable) QueryOneNullInt64(req require.Requirement, query stri
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbCompoundTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl DbCompoundTable) QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -673,12 +634,12 @@ func allDbCompoundColumnNamesQuoted(q quote.Quoter) string {
 
 // GetCompoundByAlphaAndBeta gets the record with given alpha+beta values.
 // If not found, *Compound will be nil.
-func (tbl DbCompoundTable) GetCompoundByAlphaAndBeta(req require.Requirement, alpha string, beta string) (*Compound, error) {
-	return tbl.SelectOne(req, where.And(where.Eq("alpha", alpha), where.Eq("beta", beta)), nil)
+func (tbl DbCompoundTable) GetCompoundByAlphaAndBeta(ctx context.Context, req require.Requirement, alpha string, beta string) (*Compound, error) {
+	return tbl.SelectOne(ctx, req, where.And(where.Eq("alpha", alpha), where.Eq("beta", beta)), nil)
 }
 
-func doDbCompoundTableQueryAndScanOne(tbl DbCompoundTabler, req require.Requirement, query string, args ...interface{}) (*Compound, error) {
-	list, err := doDbCompoundTableQueryAndScan(tbl, req, true, query, args...)
+func doDbCompoundTableQueryAndScanOne(ctx context.Context, tbl DbCompoundTabler, req require.Requirement, query string, args ...interface{}) (*Compound, error) {
+	list, err := doDbCompoundTableQueryAndScan(ctx, tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -687,8 +648,8 @@ func doDbCompoundTableQueryAndScanOne(tbl DbCompoundTabler, req require.Requirem
 
 // Fetch fetches a list of Compound based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of Compound. Other queries might be better handled by GetXxx or Select methods.
-func (tbl DbCompoundTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Compound, error) {
-	return doDbCompoundTableQueryAndScan(tbl, req, false, query, args...)
+func (tbl DbCompoundTable) Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Compound, error) {
+	return doDbCompoundTableQueryAndScan(ctx, tbl, req, false, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -702,11 +663,11 @@ func (tbl DbCompoundTable) Fetch(req require.Requirement, query string, args ...
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbCompoundTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Compound, error) {
+func (tbl DbCompoundTable) SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Compound, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		allDbCompoundColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	v, err := doDbCompoundTableQueryAndScanOne(tbl, req, query, args...)
+	v, err := doDbCompoundTableQueryAndScanOne(ctx, tbl, req, query, args...)
 	return v, err
 }
 
@@ -717,11 +678,11 @@ func (tbl DbCompoundTable) SelectOneWhere(req require.Requirement, where, orderB
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl DbCompoundTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Compound, error) {
+func (tbl DbCompoundTable) SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Compound, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectOneWhere(req, whs, orderBy, args...)
+	return tbl.SelectOneWhere(ctx, req, whs, orderBy, args...)
 }
 
 // SelectWhere allows Compounds to be obtained from the table that match a 'where' clause.
@@ -732,11 +693,11 @@ func (tbl DbCompoundTable) SelectOne(req require.Requirement, wh where.Expressio
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbCompoundTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Compound, error) {
+func (tbl DbCompoundTable) SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*Compound, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
 		allDbCompoundColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	vv, err := doDbCompoundTableQueryAndScan(tbl, req, false, query, args...)
+	vv, err := doDbCompoundTableQueryAndScan(ctx, tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -746,11 +707,11 @@ func (tbl DbCompoundTable) SelectWhere(req require.Requirement, where, orderBy s
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
-func (tbl DbCompoundTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Compound, error) {
+func (tbl DbCompoundTable) Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Compound, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectWhere(req, whs, orderBy, args...)
+	return tbl.SelectWhere(ctx, req, whs, orderBy, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -759,10 +720,10 @@ func (tbl DbCompoundTable) Select(req require.Requirement, wh where.Expression, 
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DbCompoundTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
+func (tbl DbCompoundTable) CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -775,9 +736,9 @@ func (tbl DbCompoundTable) CountWhere(where string, args ...interface{}) (count 
 
 // Count counts the Compounds in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl DbCompoundTable) Count(wh where.Expression) (count int64, err error) {
+func (tbl DbCompoundTable) Count(ctx context.Context, wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	return tbl.CountWhere(whs, args...)
+	return tbl.CountWhere(ctx, whs, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -785,31 +746,31 @@ func (tbl DbCompoundTable) Count(wh where.Expression) (count int64, err error) {
 // SliceAlpha gets the alpha column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbCompoundTable) SliceAlpha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "alpha", wh, qc)
+func (tbl DbCompoundTable) SliceAlpha(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "alpha", wh, qc)
 }
 
 // SliceBeta gets the beta column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbCompoundTable) SliceBeta(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "beta", wh, qc)
+func (tbl DbCompoundTable) SliceBeta(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "beta", wh, qc)
 }
 
 // SliceCategory gets the category column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DbCompoundTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return sliceDbCompoundTableCategoryList(tbl, req, "category", wh, qc)
+func (tbl DbCompoundTable) SliceCategory(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	return sliceDbCompoundTableCategoryList(ctx, tbl, req, "category", wh, qc)
 }
 
-func sliceDbCompoundTableCategoryList(tbl DbCompoundTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+func sliceDbCompoundTableCategoryList(ctx context.Context, tbl DbCompoundTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -885,9 +846,13 @@ func constructDbCompoundTableUpdate(tbl DbCompoundTable, w dialect.StringWriter,
 
 // Insert adds new records for the Compounds.
 // The Compound.PreInsert() method will be called, if it exists.
-func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) error {
+func (tbl DbCompoundTable) Insert(ctx context.Context, req require.Requirement, vv ...*Compound) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
 	var count int64
@@ -922,12 +887,12 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.db.QueryRowContext(ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 
 		} else {
-			_, e3 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			_, e3 := tbl.db.ExecContext(ctx, query, fields...)
 			if e3 != nil {
 				return tbl.Logger().LogError(e3)
 			}
@@ -943,57 +908,57 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 }
 
 // UpdateByAlpha updates one or more columns, given a alpha value.
-func (tbl DbCompoundTable) UpdateByAlpha(req require.Requirement, alpha string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("alpha", alpha), fields...)
+func (tbl DbCompoundTable) UpdateByAlpha(ctx context.Context, req require.Requirement, alpha string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("alpha", alpha), fields...)
 }
 
 // UpdateByBeta updates one or more columns, given a beta value.
-func (tbl DbCompoundTable) UpdateByBeta(req require.Requirement, beta string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("beta", beta), fields...)
+func (tbl DbCompoundTable) UpdateByBeta(ctx context.Context, req require.Requirement, beta string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("beta", beta), fields...)
 }
 
 // UpdateByCategory updates one or more columns, given a category value.
-func (tbl DbCompoundTable) UpdateByCategory(req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("category", category), fields...)
+func (tbl DbCompoundTable) UpdateByCategory(ctx context.Context, req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("category", category), fields...)
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
-func (tbl DbCompoundTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl, req, wh, fields...)
+func (tbl DbCompoundTable) UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	return support.UpdateFields(ctx, tbl, req, wh, fields...)
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // DeleteByAlpha deletes rows from the table, given some alpha values.
 // The list of ids can be arbitrarily long.
-func (tbl DbCompoundTable) DeleteByAlpha(req require.Requirement, alpha ...string) (int64, error) {
+func (tbl DbCompoundTable) DeleteByAlpha(ctx context.Context, req require.Requirement, alpha ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(alpha)
-	return support.DeleteByColumn(tbl, req, "alpha", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "alpha", ii...)
 }
 
 // DeleteByBeta deletes rows from the table, given some beta values.
 // The list of ids can be arbitrarily long.
-func (tbl DbCompoundTable) DeleteByBeta(req require.Requirement, beta ...string) (int64, error) {
+func (tbl DbCompoundTable) DeleteByBeta(ctx context.Context, req require.Requirement, beta ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(beta)
-	return support.DeleteByColumn(tbl, req, "beta", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "beta", ii...)
 }
 
 // DeleteByCategory deletes rows from the table, given some category values.
 // The list of ids can be arbitrarily long.
-func (tbl DbCompoundTable) DeleteByCategory(req require.Requirement, category ...Category) (int64, error) {
+func (tbl DbCompoundTable) DeleteByCategory(ctx context.Context, req require.Requirement, category ...Category) (int64, error) {
 	ii := make([]interface{}, len(category))
 	for i, v := range category {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, "category", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "category", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl DbCompoundTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
+func (tbl DbCompoundTable) Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := deleteRowsDbCompoundTableSql(tbl, wh)
-	return tbl.Exec(req, query, args...)
+	return tbl.Exec(ctx, req, query, args...)
 }
 
 func deleteRowsDbCompoundTableSql(tbl DbCompoundTabler, wh where.Expression) (string, []interface{}) {

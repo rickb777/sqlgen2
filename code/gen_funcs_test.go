@@ -62,18 +62,18 @@ func TestWriteQueryRows(t *testing.T) {
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
-// If you need a context other than the background, use WithContext before calling Query.
-//
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl XExampleTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Example, error) {
-	return doXExampleTableQueryAndScan(tbl, req, false, query, args)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl XExampleTable) Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Example, error) {
+	return doXExampleTableQueryAndScan(ctx, tbl, req, false, query, args)
 }
 
-func doXExampleTableQueryAndScan(tbl XExampleTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Example, error) {
-	rows, err := support.Query(tbl, query, args...)
+func doXExampleTableQueryAndScan(ctx context.Context, tbl XExampleTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Example, error) {
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -111,8 +111,8 @@ func TestWriteQueryThings(t *testing.T) {
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl XExampleTable) QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -123,8 +123,8 @@ func (tbl XExampleTable) QueryOneNullString(req require.Requirement, query strin
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl XExampleTable) QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -135,8 +135,8 @@ func (tbl XExampleTable) QueryOneNullInt64(req require.Requirement, query string
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl XExampleTable) QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 `, "¬", "`", -1)
@@ -161,19 +161,19 @@ func TestWriteUpdateFunc_noPK(t *testing.T) {
 	expected := strings.Replace(`
 
 // UpdateByName updates one or more columns, given a name value.
-func (tbl XExampleTable) UpdateByName(req require.Requirement, name string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("name", name), fields...)
+func (tbl XExampleTable) UpdateByName(ctx context.Context, req require.Requirement, name string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("name", name), fields...)
 }
 
 // UpdateByAge updates one or more columns, given a age value.
-func (tbl XExampleTable) UpdateByAge(req require.Requirement, age int, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("age", age), fields...)
+func (tbl XExampleTable) UpdateByAge(ctx context.Context, req require.Requirement, age int, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("age", age), fields...)
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
-func (tbl XExampleTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl, req, wh, fields...)
+func (tbl XExampleTable) UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	return support.UpdateFields(ctx, tbl, req, wh, fields...)
 }
 `, "¬", "`", -1)
 	expectCodeEqual(t, code, expected)
@@ -199,8 +199,10 @@ func TestWriteExecFunc(t *testing.T) {
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-func (tbl XExampleTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl XExampleTable) Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(ctx, tbl, req, query, args...)
 }
 `, "¬", "`", -1)
 	expectCodeEqual(t, code, expected)

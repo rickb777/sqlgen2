@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
+// sqlapi v0.47.0; sqlgen v0.66.0
 
 package demo
 
@@ -33,46 +33,33 @@ type IssueTabler interface {
 	// WithPrefix returns a modified IssueTabler with a given table name prefix.
 	WithPrefix(pfx string) IssueTabler
 
-	// WithContext returns a modified IssueTabler with a given context.
-	WithContext(ctx context.Context) IssueTabler
-
 	// CreateTable creates the table.
-	CreateTable(ifNotExists bool) (int64, error)
+	CreateTable(ctx context.Context, ifNotExists bool) (int64, error)
 
 	// DropTable drops the table, destroying all its data.
-	DropTable(ifExists bool) (int64, error)
+	DropTable(ctx context.Context, ifExists bool) (int64, error)
 
 	// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-	CreateTableWithIndexes(ifNotExist bool) (err error)
+	CreateTableWithIndexes(ctx context.Context, ifNotExist bool) (err error)
 
 	// CreateIndexes executes queries that create the indexes needed by the Issue table.
-	CreateIndexes(ifNotExist bool) (err error)
+	CreateIndexes(ctx context.Context, ifNotExist bool) (err error)
 
 	// CreateIssueAssigneeIndex creates the issue_assignee index.
-	CreateIssueAssigneeIndex(ifNotExist bool) error
+	CreateIssueAssigneeIndex(ctx context.Context, ifNotExist bool) error
 
 	// DropIssueAssigneeIndex drops the issue_assignee index.
-	DropIssueAssigneeIndex(ifExists bool) error
+	DropIssueAssigneeIndex(ctx context.Context, ifExists bool) error
 
 	// Truncate drops every record from the table, if possible.
-	Truncate(force bool) (err error)
+	Truncate(ctx context.Context, force bool) (err error)
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // IssueQueryer lists query methods provided by IssueTable.
 type IssueQueryer interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Database gets the shared database information.
-	Database() sqlapi.Database
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Using returns a modified IssueQueryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
@@ -80,140 +67,130 @@ type IssueQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(IssueQueryer) error) error
-
-	// Execer gets the wrapped database or transaction handle.
-	Execer() sqlapi.Execer
-
-	// Tx gets the wrapped transaction handle, provided this is within a transaction.
-	// Panics if it is in the wrong state - use IsTx() if necessary.
-	Tx() sqlapi.SqlTx
-
-	// IsTx tests whether this is within a transaction.
-	IsTx() bool
+	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(IssueQueryer) error) error
 
 	// Exec executes a query without returning any rows.
-	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
+	Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error)
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for Issue values.
-	Query(req require.Requirement, query string, args ...interface{}) ([]*Issue, error)
+	Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Issue, error)
 
 	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 
 	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+	QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
 	// GetIssueById gets the record with a given primary key value.
-	GetIssueById(req require.Requirement, id int64) (*Issue, error)
+	GetIssueById(ctx context.Context, req require.Requirement, id int64) (*Issue, error)
 
 	// GetIssuesById gets records from the table according to a list of primary keys.
-	GetIssuesById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Issue, err error)
+	GetIssuesById(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Issue, err error)
 
 	// GetIssuesByAssignee gets the records with a given assignee value.
-	GetIssuesByAssignee(req require.Requirement, qc where.QueryConstraint, assignee string) ([]*Issue, error)
+	GetIssuesByAssignee(ctx context.Context, req require.Requirement, qc where.QueryConstraint, assignee string) ([]*Issue, error)
 
 	// SelectOneWhere allows a single Issue to be obtained from the table that matches a 'where' clause.
-	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Issue, error)
+	SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Issue, error)
 
 	// SelectOne allows a single Issue to be obtained from the table that matches a 'where' clause.
-	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Issue, error)
+	SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Issue, error)
 
 	// SelectWhere allows Issues to be obtained from the table that match a 'where' clause.
-	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Issue, error)
+	SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*Issue, error)
 
 	// Select allows Issues to be obtained from the table that match a 'where' clause.
-	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Issue, error)
+	Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Issue, error)
 
 	// CountWhere counts Issues in the table that match a 'where' clause.
-	CountWhere(where string, args ...interface{}) (count int64, err error)
+	CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error)
 
 	// Count counts the Issues in the table that match a 'where' clause.
-	Count(wh where.Expression) (count int64, err error)
+	Count(ctx context.Context, wh where.Expression) (count int64, err error)
 
 	// SliceId gets the id column for all rows that match the 'where' condition.
-	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceId(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceNumber gets the number column for all rows that match the 'where' condition.
-	SliceNumber(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int, error)
+	SliceNumber(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int, error)
 
 	// SliceTitle gets the title column for all rows that match the 'where' condition.
-	SliceTitle(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceTitle(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceBigbody gets the bigbody column for all rows that match the 'where' condition.
-	SliceBigbody(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceBigbody(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceAssignee gets the assignee column for all rows that match the 'where' condition.
-	SliceAssignee(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceAssignee(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceState gets the state column for all rows that match the 'where' condition.
-	SliceState(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceState(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// Insert adds new records for the Issues, setting the primary key field for each one.
-	Insert(req require.Requirement, vv ...*Issue) error
+	Insert(ctx context.Context, req require.Requirement, vv ...*Issue) error
 
 	// UpdateById updates one or more columns, given a id value.
-	UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
+	UpdateById(ctx context.Context, req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByNumber updates one or more columns, given a number value.
-	UpdateByNumber(req require.Requirement, number int, fields ...sql.NamedArg) (int64, error)
+	UpdateByNumber(ctx context.Context, req require.Requirement, number int, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByTitle updates one or more columns, given a title value.
-	UpdateByTitle(req require.Requirement, title string, fields ...sql.NamedArg) (int64, error)
+	UpdateByTitle(ctx context.Context, req require.Requirement, title string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByBigbody updates one or more columns, given a bigbody value.
-	UpdateByBigbody(req require.Requirement, bigbody string, fields ...sql.NamedArg) (int64, error)
+	UpdateByBigbody(ctx context.Context, req require.Requirement, bigbody string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByAssignee updates one or more columns, given a assignee value.
-	UpdateByAssignee(req require.Requirement, assignee string, fields ...sql.NamedArg) (int64, error)
+	UpdateByAssignee(ctx context.Context, req require.Requirement, assignee string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByState updates one or more columns, given a state value.
-	UpdateByState(req require.Requirement, state string, fields ...sql.NamedArg) (int64, error)
+	UpdateByState(ctx context.Context, req require.Requirement, state string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateFields updates one or more columns, given a 'where' clause.
-	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+	UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
 
 	// Update updates records, matching them by primary key.
-	Update(req require.Requirement, vv ...*Issue) (int64, error)
+	Update(ctx context.Context, req require.Requirement, vv ...*Issue) (int64, error)
 
 	// Upsert inserts or updates a record, matching it using the expression supplied.
 	// This expression is used to search for an existing record based on some specified
 	// key column(s). It must match either zero or one existing record. If it matches
 	// none, a new record is inserted; otherwise the matching record is updated. An
 	// error results if these conditions are not met.
-	Upsert(v *Issue, wh where.Expression) error
+	Upsert(ctx context.Context, v *Issue, wh where.Expression) error
 
 	// DeleteById deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteById(req require.Requirement, id ...int64) (int64, error)
+	DeleteById(ctx context.Context, req require.Requirement, id ...int64) (int64, error)
 
 	// DeleteByNumber deletes rows from the table, given some number values.
 	// The list of ids can be arbitrarily long.
-	DeleteByNumber(req require.Requirement, number ...int) (int64, error)
+	DeleteByNumber(ctx context.Context, req require.Requirement, number ...int) (int64, error)
 
 	// DeleteByTitle deletes rows from the table, given some title values.
 	// The list of ids can be arbitrarily long.
-	DeleteByTitle(req require.Requirement, title ...string) (int64, error)
+	DeleteByTitle(ctx context.Context, req require.Requirement, title ...string) (int64, error)
 
 	// DeleteByBigbody deletes rows from the table, given some bigbody values.
 	// The list of ids can be arbitrarily long.
-	DeleteByBigbody(req require.Requirement, bigbody ...string) (int64, error)
+	DeleteByBigbody(ctx context.Context, req require.Requirement, bigbody ...string) (int64, error)
 
 	// DeleteByAssignee deletes rows from the table, given some assignee values.
 	// The list of ids can be arbitrarily long.
-	DeleteByAssignee(req require.Requirement, assignee ...string) (int64, error)
+	DeleteByAssignee(ctx context.Context, req require.Requirement, assignee ...string) (int64, error)
 
 	// DeleteByState deletes rows from the table, given some state values.
 	// The list of ids can be arbitrarily long.
-	DeleteByState(req require.Requirement, state ...string) (int64, error)
+	DeleteByState(ctx context.Context, req require.Requirement, state ...string) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
-	Delete(req require.Requirement, wh where.Expression) (int64, error)
+	Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -226,7 +203,6 @@ type IssueTable struct {
 	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx         context.Context
 	pk          string
 }
 
@@ -246,7 +222,6 @@ func NewIssueTable(name string, d sqlapi.Database) IssueTable {
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
-		ctx:         context.Background(),
 		pk:          "id",
 	}
 }
@@ -262,7 +237,6 @@ func CopyTableAsIssueTable(origin sqlapi.Table) IssueTable {
 		database:    origin.Database(),
 		db:          origin.Execer(),
 		constraints: nil,
-		ctx:         context.Background(),
 		pk:          "id",
 	}
 }
@@ -278,16 +252,6 @@ func CopyTableAsIssueTable(origin sqlapi.Table) IssueTable {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl IssueTable) WithPrefix(pfx string) IssueTabler {
 	tbl.name.Prefix = pfx
-	return tbl
-}
-
-// WithContext sets the context for subsequent queries via this table.
-// The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
-func (tbl IssueTable) WithContext(ctx context.Context) IssueTabler {
-	tbl.ctx = ctx
 	return tbl
 }
 
@@ -310,11 +274,6 @@ func (tbl IssueTable) WithConstraint(cc ...constraint.Constraint) IssueTabler {
 // Constraints returns the table's constraints.
 func (tbl IssueTable) Constraints() constraint.Constraints {
 	return tbl.constraints
-}
-
-// Ctx gets the current request context.
-func (tbl IssueTable) Ctx() context.Context {
-	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -371,12 +330,12 @@ func (tbl IssueTable) Using(tx sqlapi.Execer) IssueQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl IssueTable) Transact(txOptions *sql.TxOptions, fn func(IssueQueryer) error) error {
+func (tbl IssueTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(IssueQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -462,8 +421,8 @@ var listOfIssueAssigneeIndexColumns = []string{"assignee"}
 //-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl IssueTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, createIssueTableSql(tbl, ifNotExists))
+func (tbl IssueTable) CreateTable(ctx context.Context, ifNotExists bool) (int64, error) {
+	return support.Exec(ctx, tbl, nil, createIssueTableSql(tbl, ifNotExists))
 }
 
 func createIssueTableSql(tbl IssueTabler, ifNotExists bool) string {
@@ -515,8 +474,8 @@ func ternaryIssueTable(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl IssueTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, dropIssueTableSql(tbl, ifExists))
+func (tbl IssueTable) DropTable(ctx context.Context, ifExists bool) (int64, error) {
+	return support.Exec(ctx, tbl, nil, dropIssueTableSql(tbl, ifExists))
 }
 
 func dropIssueTableSql(tbl IssueTabler, ifExists bool) string {
@@ -529,19 +488,19 @@ func dropIssueTableSql(tbl IssueTabler, ifExists bool) string {
 //-------------------------------------------------------------------------------------------------
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl IssueTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ifNotExist)
+func (tbl IssueTable) CreateTableWithIndexes(ctx context.Context, ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ctx, ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	return tbl.CreateIndexes(ifNotExist)
+	return tbl.CreateIndexes(ctx, ifNotExist)
 }
 
 // CreateIndexes executes queries that create the indexes needed by the Issue table.
-func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
+func (tbl IssueTable) CreateIndexes(ctx context.Context, ifNotExist bool) (err error) {
 
-	err = tbl.CreateIssueAssigneeIndex(ifNotExist)
+	err = tbl.CreateIssueAssigneeIndex(ctx, ifNotExist)
 	if err != nil {
 		return err
 	}
@@ -550,7 +509,7 @@ func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
 }
 
 // CreateIssueAssigneeIndex creates the issue_assignee index.
-func (tbl IssueTable) CreateIssueAssigneeIndex(ifNotExist bool) error {
+func (tbl IssueTable) CreateIssueAssigneeIndex(ctx context.Context, ifNotExist bool) error {
 	ine := ternaryIssueTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -558,11 +517,11 @@ func (tbl IssueTable) CreateIssueAssigneeIndex(ifNotExist bool) error {
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, dropIssueTableIssueAssigneeSql(tbl, false))
+		tbl.Execer().ExecContext(ctx, dropIssueTableIssueAssigneeSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(nil, createIssueTableIssueAssigneeSql(tbl, ine))
+	_, err := tbl.Exec(ctx, nil, createIssueTableIssueAssigneeSql(tbl, ine))
 	return err
 }
 
@@ -577,8 +536,8 @@ func createIssueTableIssueAssigneeSql(tbl IssueTabler, ifNotExists string) strin
 }
 
 // DropIssueAssigneeIndex drops the issue_assignee index.
-func (tbl IssueTable) DropIssueAssigneeIndex(ifExists bool) error {
-	_, err := tbl.Exec(nil, dropIssueTableIssueAssigneeSql(tbl, ifExists))
+func (tbl IssueTable) DropIssueAssigneeIndex(ctx context.Context, ifExists bool) error {
+	_, err := tbl.Exec(ctx, nil, dropIssueTableIssueAssigneeSql(tbl, ifExists))
 	return err
 }
 
@@ -595,9 +554,9 @@ func dropIssueTableIssueAssigneeSql(tbl IssueTabler, ifExists bool) string {
 }
 
 // DropIndexes executes queries that drop the indexes on by the Issue table.
-func (tbl IssueTable) DropIndexes(ifExist bool) (err error) {
+func (tbl IssueTable) DropIndexes(ctx context.Context, ifExist bool) (err error) {
 
-	err = tbl.DropIssueAssigneeIndex(ifExist)
+	err = tbl.DropIssueAssigneeIndex(ctx, ifExist)
 	if err != nil {
 		return err
 	}
@@ -614,9 +573,9 @@ func (tbl IssueTable) DropIndexes(ifExist bool) (err error) {
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl IssueTable) Truncate(force bool) (err error) {
+func (tbl IssueTable) Truncate(ctx context.Context, force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(tbl, nil, query)
+		_, err = support.Exec(ctx, tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -630,8 +589,10 @@ func (tbl IssueTable) Truncate(force bool) (err error) {
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-func (tbl IssueTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl IssueTable) Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(ctx, tbl, req, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -642,18 +603,18 @@ func (tbl IssueTable) Exec(req require.Requirement, query string, args ...interf
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
-// If you need a context other than the background, use WithContext before calling Query.
-//
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl IssueTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Issue, error) {
-	return doIssueTableQueryAndScan(tbl, req, false, query, args)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl IssueTable) Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Issue, error) {
+	return doIssueTableQueryAndScan(ctx, tbl, req, false, query, args)
 }
 
-func doIssueTableQueryAndScan(tbl IssueTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Issue, error) {
-	rows, err := support.Query(tbl, query, args...)
+func doIssueTableQueryAndScan(ctx context.Context, tbl IssueTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Issue, error) {
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -672,8 +633,8 @@ func doIssueTableQueryAndScan(tbl IssueTabler, req require.Requirement, firstOnl
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl IssueTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl IssueTable) QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -684,8 +645,8 @@ func (tbl IssueTable) QueryOneNullString(req require.Requirement, query string, 
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl IssueTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl IssueTable) QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -696,8 +657,8 @@ func (tbl IssueTable) QueryOneNullInt64(req require.Requirement, query string, a
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl IssueTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl IssueTable) QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -775,8 +736,8 @@ func allIssueColumnNamesQuoted(q quote.Quoter) string {
 
 // GetIssueById gets the record with a given primary key value.
 // If not found, *Issue will be nil.
-func (tbl IssueTable) GetIssueById(req require.Requirement, id int64) (*Issue, error) {
-	return tbl.SelectOne(req, where.Eq("id", id), nil)
+func (tbl IssueTable) GetIssueById(ctx context.Context, req require.Requirement, id int64) (*Issue, error) {
+	return tbl.SelectOne(ctx, req, where.Eq("id", id), nil)
 }
 
 // GetIssuesById gets records from the table according to a list of primary keys.
@@ -785,21 +746,21 @@ func (tbl IssueTable) GetIssueById(req require.Requirement, id int64) (*Issue, e
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl IssueTable) GetIssuesById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Issue, err error) {
+func (tbl IssueTable) GetIssuesById(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Issue, err error) {
 	if req == require.All {
 		req = require.Exactly(len(id))
 	}
-	return tbl.Select(req, where.In("id", id), qc)
+	return tbl.Select(ctx, req, where.In("id", id), qc)
 }
 
 // GetIssuesByAssignee gets the records with a given assignee value.
 // If not found, the resulting slice will be empty (nil).
-func (tbl IssueTable) GetIssuesByAssignee(req require.Requirement, qc where.QueryConstraint, assignee string) ([]*Issue, error) {
-	return tbl.Select(req, where.And(where.Eq("assignee", assignee)), qc)
+func (tbl IssueTable) GetIssuesByAssignee(ctx context.Context, req require.Requirement, qc where.QueryConstraint, assignee string) ([]*Issue, error) {
+	return tbl.Select(ctx, req, where.And(where.Eq("assignee", assignee)), qc)
 }
 
-func doIssueTableQueryAndScanOne(tbl IssueTabler, req require.Requirement, query string, args ...interface{}) (*Issue, error) {
-	list, err := doIssueTableQueryAndScan(tbl, req, true, query, args...)
+func doIssueTableQueryAndScanOne(ctx context.Context, tbl IssueTabler, req require.Requirement, query string, args ...interface{}) (*Issue, error) {
+	list, err := doIssueTableQueryAndScan(ctx, tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -808,8 +769,8 @@ func doIssueTableQueryAndScanOne(tbl IssueTabler, req require.Requirement, query
 
 // Fetch fetches a list of Issue based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of Issue. Other queries might be better handled by GetXxx or Select methods.
-func (tbl IssueTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Issue, error) {
-	return doIssueTableQueryAndScan(tbl, req, false, query, args...)
+func (tbl IssueTable) Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Issue, error) {
+	return doIssueTableQueryAndScan(ctx, tbl, req, false, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -823,11 +784,11 @@ func (tbl IssueTable) Fetch(req require.Requirement, query string, args ...inter
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl IssueTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Issue, error) {
+func (tbl IssueTable) SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Issue, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		allIssueColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	v, err := doIssueTableQueryAndScanOne(tbl, req, query, args...)
+	v, err := doIssueTableQueryAndScanOne(ctx, tbl, req, query, args...)
 	return v, err
 }
 
@@ -838,11 +799,11 @@ func (tbl IssueTable) SelectOneWhere(req require.Requirement, where, orderBy str
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl IssueTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Issue, error) {
+func (tbl IssueTable) SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Issue, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectOneWhere(req, whs, orderBy, args...)
+	return tbl.SelectOneWhere(ctx, req, whs, orderBy, args...)
 }
 
 // SelectWhere allows Issues to be obtained from the table that match a 'where' clause.
@@ -853,11 +814,11 @@ func (tbl IssueTable) SelectOne(req require.Requirement, wh where.Expression, qc
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl IssueTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Issue, error) {
+func (tbl IssueTable) SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*Issue, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
 		allIssueColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	vv, err := doIssueTableQueryAndScan(tbl, req, false, query, args...)
+	vv, err := doIssueTableQueryAndScan(ctx, tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -867,11 +828,11 @@ func (tbl IssueTable) SelectWhere(req require.Requirement, where, orderBy string
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
-func (tbl IssueTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Issue, error) {
+func (tbl IssueTable) Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Issue, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectWhere(req, whs, orderBy, args...)
+	return tbl.SelectWhere(ctx, req, whs, orderBy, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -880,10 +841,10 @@ func (tbl IssueTable) Select(req require.Requirement, wh where.Expression, qc wh
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl IssueTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
+func (tbl IssueTable) CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -896,9 +857,9 @@ func (tbl IssueTable) CountWhere(where string, args ...interface{}) (count int64
 
 // Count counts the Issues in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl IssueTable) Count(wh where.Expression) (count int64, err error) {
+func (tbl IssueTable) Count(ctx context.Context, wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	return tbl.CountWhere(whs, args...)
+	return tbl.CountWhere(ctx, whs, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -906,43 +867,43 @@ func (tbl IssueTable) Count(wh where.Expression) (count int64, err error) {
 // SliceId gets the id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl IssueTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
+func (tbl IssueTable) SliceId(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64List(ctx, tbl, req, tbl.pk, wh, qc)
 }
 
 // SliceNumber gets the number column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl IssueTable) SliceNumber(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int, error) {
-	return support.SliceIntList(tbl, req, "number", wh, qc)
+func (tbl IssueTable) SliceNumber(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int, error) {
+	return support.SliceIntList(ctx, tbl, req, "number", wh, qc)
 }
 
 // SliceTitle gets the title column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl IssueTable) SliceTitle(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "title", wh, qc)
+func (tbl IssueTable) SliceTitle(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "title", wh, qc)
 }
 
 // SliceBigbody gets the bigbody column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl IssueTable) SliceBigbody(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "bigbody", wh, qc)
+func (tbl IssueTable) SliceBigbody(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "bigbody", wh, qc)
 }
 
 // SliceAssignee gets the assignee column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl IssueTable) SliceAssignee(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "assignee", wh, qc)
+func (tbl IssueTable) SliceAssignee(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "assignee", wh, qc)
 }
 
 // SliceState gets the state column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl IssueTable) SliceState(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(tbl, req, "state", wh, qc)
+func (tbl IssueTable) SliceState(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(ctx, tbl, req, "state", wh, qc)
 }
 
 func constructIssueTableInsert(tbl IssueTable, w dialect.StringWriter, v *Issue, withPk bool) (s []interface{}, err error) {
@@ -1056,9 +1017,13 @@ func constructIssueTableUpdate(tbl IssueTable, w dialect.StringWriter, v *Issue)
 
 // Insert adds new records for the Issues.// The Issues have their primary key fields set to the new record identifiers.
 // The Issue.PreInsert() method will be called, if it exists.
-func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
+func (tbl IssueTable) Insert(ctx context.Context, req require.Requirement, vv ...*Issue) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
 	var count int64
@@ -1096,13 +1061,13 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.db.QueryRowContext(ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Id = i64
 
 		} else {
-			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.db.InsertContext(ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
@@ -1119,46 +1084,46 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 }
 
 // UpdateById updates one or more columns, given a id value.
-func (tbl IssueTable) UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
+func (tbl IssueTable) UpdateById(ctx context.Context, req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("id", id), fields...)
 }
 
 // UpdateByNumber updates one or more columns, given a number value.
-func (tbl IssueTable) UpdateByNumber(req require.Requirement, number int, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("number", number), fields...)
+func (tbl IssueTable) UpdateByNumber(ctx context.Context, req require.Requirement, number int, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("number", number), fields...)
 }
 
 // UpdateByTitle updates one or more columns, given a title value.
-func (tbl IssueTable) UpdateByTitle(req require.Requirement, title string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("title", title), fields...)
+func (tbl IssueTable) UpdateByTitle(ctx context.Context, req require.Requirement, title string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("title", title), fields...)
 }
 
 // UpdateByBigbody updates one or more columns, given a bigbody value.
-func (tbl IssueTable) UpdateByBigbody(req require.Requirement, bigbody string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("bigbody", bigbody), fields...)
+func (tbl IssueTable) UpdateByBigbody(ctx context.Context, req require.Requirement, bigbody string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("bigbody", bigbody), fields...)
 }
 
 // UpdateByAssignee updates one or more columns, given a assignee value.
-func (tbl IssueTable) UpdateByAssignee(req require.Requirement, assignee string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("assignee", assignee), fields...)
+func (tbl IssueTable) UpdateByAssignee(ctx context.Context, req require.Requirement, assignee string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("assignee", assignee), fields...)
 }
 
 // UpdateByState updates one or more columns, given a state value.
-func (tbl IssueTable) UpdateByState(req require.Requirement, state string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("state", state), fields...)
+func (tbl IssueTable) UpdateByState(ctx context.Context, req require.Requirement, state string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("state", state), fields...)
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
-func (tbl IssueTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl, req, wh, fields...)
+func (tbl IssueTable) UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	return support.UpdateFields(ctx, tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Issue.PreUpdate(Execer) method will be called, if it exists.
-func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, error) {
+func (tbl IssueTable) Update(ctx context.Context, req require.Requirement, vv ...*Issue) (int64, error) {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -1192,7 +1157,7 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 		b.WriteString("=?")
 
 		query := b.String()
-		n, err := tbl.Exec(nil, query, args...)
+		n, err := tbl.Exec(ctx, nil, query, args...)
 		if err != nil {
 			return count, err
 		}
@@ -1209,20 +1174,20 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 // key column(s). It must match either zero or one existing record. If it matches
 // none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
-func (tbl IssueTable) Upsert(v *Issue, wh where.Expression) error {
+func (tbl IssueTable) Upsert(ctx context.Context, v *Issue, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)
 	qName := tbl.quotedName()
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 
 	query := fmt.Sprintf("SELECT %s FROM %s %s", col, qName, whs)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return tbl.Insert(require.One, v)
+		return tbl.Insert(ctx, require.One, v)
 	}
 
 	var id int64
@@ -1236,7 +1201,7 @@ func (tbl IssueTable) Upsert(v *Issue, wh where.Expression) error {
 	}
 
 	v.Id = id
-	_, err = tbl.Update(require.One, v)
+	_, err = tbl.Update(ctx, require.One, v)
 	return err
 }
 
@@ -1244,51 +1209,51 @@ func (tbl IssueTable) Upsert(v *Issue, wh where.Expression) error {
 
 // DeleteById deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteById(req require.Requirement, id ...int64) (int64, error) {
+func (tbl IssueTable) DeleteById(ctx context.Context, req require.Requirement, id ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(id)
-	return support.DeleteByColumn(tbl, req, "id", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "id", ii...)
 }
 
 // DeleteByNumber deletes rows from the table, given some number values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteByNumber(req require.Requirement, number ...int) (int64, error) {
+func (tbl IssueTable) DeleteByNumber(ctx context.Context, req require.Requirement, number ...int) (int64, error) {
 	ii := support.IntAsInterfaceSlice(number)
-	return support.DeleteByColumn(tbl, req, "number", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "number", ii...)
 }
 
 // DeleteByTitle deletes rows from the table, given some title values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteByTitle(req require.Requirement, title ...string) (int64, error) {
+func (tbl IssueTable) DeleteByTitle(ctx context.Context, req require.Requirement, title ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(title)
-	return support.DeleteByColumn(tbl, req, "title", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "title", ii...)
 }
 
 // DeleteByBigbody deletes rows from the table, given some bigbody values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteByBigbody(req require.Requirement, bigbody ...string) (int64, error) {
+func (tbl IssueTable) DeleteByBigbody(ctx context.Context, req require.Requirement, bigbody ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(bigbody)
-	return support.DeleteByColumn(tbl, req, "bigbody", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "bigbody", ii...)
 }
 
 // DeleteByAssignee deletes rows from the table, given some assignee values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteByAssignee(req require.Requirement, assignee ...string) (int64, error) {
+func (tbl IssueTable) DeleteByAssignee(ctx context.Context, req require.Requirement, assignee ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(assignee)
-	return support.DeleteByColumn(tbl, req, "assignee", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "assignee", ii...)
 }
 
 // DeleteByState deletes rows from the table, given some state values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteByState(req require.Requirement, state ...string) (int64, error) {
+func (tbl IssueTable) DeleteByState(ctx context.Context, req require.Requirement, state ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(state)
-	return support.DeleteByColumn(tbl, req, "state", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "state", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl IssueTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
+func (tbl IssueTable) Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := deleteRowsIssueTableSql(tbl, wh)
-	return tbl.Exec(req, query, args...)
+	return tbl.Exec(ctx, req, query, args...)
 }
 
 func deleteRowsIssueTableSql(tbl IssueTabler, wh where.Expression) (string, []interface{}) {

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
+// sqlapi v0.47.0; sqlgen v0.66.0
 
 package demo
 
@@ -33,34 +33,21 @@ type DatesTabler interface {
 	// WithPrefix returns a modified DatesTabler with a given table name prefix.
 	WithPrefix(pfx string) DatesTabler
 
-	// WithContext returns a modified DatesTabler with a given context.
-	WithContext(ctx context.Context) DatesTabler
-
 	// CreateTable creates the table.
-	CreateTable(ifNotExists bool) (int64, error)
+	CreateTable(ctx context.Context, ifNotExists bool) (int64, error)
 
 	// DropTable drops the table, destroying all its data.
-	DropTable(ifExists bool) (int64, error)
+	DropTable(ctx context.Context, ifExists bool) (int64, error)
 
 	// Truncate drops every record from the table, if possible.
-	Truncate(force bool) (err error)
+	Truncate(ctx context.Context, force bool) (err error)
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // DatesQueryer lists query methods provided by DatesTable.
 type DatesQueryer interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Database gets the shared database information.
-	Database() sqlapi.Database
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Using returns a modified DatesQueryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
@@ -68,107 +55,97 @@ type DatesQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(DatesQueryer) error) error
-
-	// Execer gets the wrapped database or transaction handle.
-	Execer() sqlapi.Execer
-
-	// Tx gets the wrapped transaction handle, provided this is within a transaction.
-	// Panics if it is in the wrong state - use IsTx() if necessary.
-	Tx() sqlapi.SqlTx
-
-	// IsTx tests whether this is within a transaction.
-	IsTx() bool
+	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(DatesQueryer) error) error
 
 	// Exec executes a query without returning any rows.
-	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
+	Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error)
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for Dates values.
-	Query(req require.Requirement, query string, args ...interface{}) ([]*Dates, error)
+	Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Dates, error)
 
 	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 
 	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+	QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
 	// GetDatesById gets the record with a given primary key value.
-	GetDatesById(req require.Requirement, id uint64) (*Dates, error)
+	GetDatesById(ctx context.Context, req require.Requirement, id uint64) (*Dates, error)
 
 	// GetDatessById gets records from the table according to a list of primary keys.
-	GetDatessById(req require.Requirement, qc where.QueryConstraint, id ...uint64) (list []*Dates, err error)
+	GetDatessById(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...uint64) (list []*Dates, err error)
 
 	// SelectOneWhere allows a single Dates to be obtained from the table that matches a 'where' clause.
-	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Dates, error)
+	SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Dates, error)
 
 	// SelectOne allows a single Dates to be obtained from the table that matches a 'where' clause.
-	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Dates, error)
+	SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Dates, error)
 
 	// SelectWhere allows Datess to be obtained from the table that match a 'where' clause.
-	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Dates, error)
+	SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*Dates, error)
 
 	// Select allows Datess to be obtained from the table that match a 'where' clause.
-	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Dates, error)
+	Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Dates, error)
 
 	// CountWhere counts Datess in the table that match a 'where' clause.
-	CountWhere(where string, args ...interface{}) (count int64, err error)
+	CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error)
 
 	// Count counts the Datess in the table that match a 'where' clause.
-	Count(wh where.Expression) (count int64, err error)
+	Count(ctx context.Context, wh where.Expression) (count int64, err error)
 
 	// SliceId gets the id column for all rows that match the 'where' condition.
-	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
+	SliceId(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
 
 	// SliceInteger gets the integer column for all rows that match the 'where' condition.
-	SliceInteger(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error)
+	SliceInteger(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error)
 
 	// SliceString gets the string column for all rows that match the 'where' condition.
-	SliceString(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error)
+	SliceString(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error)
 
 	// Insert adds new records for the Datess, setting the primary key field for each one.
-	Insert(req require.Requirement, vv ...*Dates) error
+	Insert(ctx context.Context, req require.Requirement, vv ...*Dates) error
 
 	// UpdateById updates one or more columns, given a id value.
-	UpdateById(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error)
+	UpdateById(ctx context.Context, req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByInteger updates one or more columns, given a integer value.
-	UpdateByInteger(req require.Requirement, integer date.Date, fields ...sql.NamedArg) (int64, error)
+	UpdateByInteger(ctx context.Context, req require.Requirement, integer date.Date, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByString updates one or more columns, given a string value.
-	UpdateByString(req require.Requirement, string date.DateString, fields ...sql.NamedArg) (int64, error)
+	UpdateByString(ctx context.Context, req require.Requirement, string date.DateString, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateFields updates one or more columns, given a 'where' clause.
-	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+	UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
 
 	// Update updates records, matching them by primary key.
-	Update(req require.Requirement, vv ...*Dates) (int64, error)
+	Update(ctx context.Context, req require.Requirement, vv ...*Dates) (int64, error)
 
 	// Upsert inserts or updates a record, matching it using the expression supplied.
 	// This expression is used to search for an existing record based on some specified
 	// key column(s). It must match either zero or one existing record. If it matches
 	// none, a new record is inserted; otherwise the matching record is updated. An
 	// error results if these conditions are not met.
-	Upsert(v *Dates, wh where.Expression) error
+	Upsert(ctx context.Context, v *Dates, wh where.Expression) error
 
 	// DeleteById deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteById(req require.Requirement, id ...uint64) (int64, error)
+	DeleteById(ctx context.Context, req require.Requirement, id ...uint64) (int64, error)
 
 	// DeleteByInteger deletes rows from the table, given some integer values.
 	// The list of ids can be arbitrarily long.
-	DeleteByInteger(req require.Requirement, integer ...date.Date) (int64, error)
+	DeleteByInteger(ctx context.Context, req require.Requirement, integer ...date.Date) (int64, error)
 
 	// DeleteByString deletes rows from the table, given some string values.
 	// The list of ids can be arbitrarily long.
-	DeleteByString(req require.Requirement, string ...date.DateString) (int64, error)
+	DeleteByString(ctx context.Context, req require.Requirement, string ...date.DateString) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
-	Delete(req require.Requirement, wh where.Expression) (int64, error)
+	Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -181,7 +158,6 @@ type DatesTable struct {
 	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
-	ctx         context.Context
 	pk          string
 }
 
@@ -201,7 +177,6 @@ func NewDatesTable(name string, d sqlapi.Database) DatesTable {
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
-		ctx:         context.Background(),
 		pk:          "id",
 	}
 }
@@ -217,7 +192,6 @@ func CopyTableAsDatesTable(origin sqlapi.Table) DatesTable {
 		database:    origin.Database(),
 		db:          origin.Execer(),
 		constraints: nil,
-		ctx:         context.Background(),
 		pk:          "id",
 	}
 }
@@ -233,16 +207,6 @@ func CopyTableAsDatesTable(origin sqlapi.Table) DatesTable {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DatesTable) WithPrefix(pfx string) DatesTabler {
 	tbl.name.Prefix = pfx
-	return tbl
-}
-
-// WithContext sets the context for subsequent queries via this table.
-// The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
-func (tbl DatesTable) WithContext(ctx context.Context) DatesTabler {
-	tbl.ctx = ctx
 	return tbl
 }
 
@@ -265,11 +229,6 @@ func (tbl DatesTable) WithConstraint(cc ...constraint.Constraint) DatesTabler {
 // Constraints returns the table's constraints.
 func (tbl DatesTable) Constraints() constraint.Constraints {
 	return tbl.constraints
-}
-
-// Ctx gets the current request context.
-func (tbl DatesTable) Ctx() context.Context {
-	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -326,12 +285,12 @@ func (tbl DatesTable) Using(tx sqlapi.Execer) DatesQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl DatesTable) Transact(txOptions *sql.TxOptions, fn func(DatesQueryer) error) error {
+func (tbl DatesTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(DatesQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -391,8 +350,8 @@ var sqlDatesTableCreateColumnsPgx = []string{
 //-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl DatesTable) CreateTable(ifNotExists bool) (int64, error) {
-	return support.Exec(tbl, nil, createDatesTableSql(tbl, ifNotExists))
+func (tbl DatesTable) CreateTable(ctx context.Context, ifNotExists bool) (int64, error) {
+	return support.Exec(ctx, tbl, nil, createDatesTableSql(tbl, ifNotExists))
 }
 
 func createDatesTableSql(tbl DatesTabler, ifNotExists bool) string {
@@ -444,8 +403,8 @@ func ternaryDatesTable(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl DatesTable) DropTable(ifExists bool) (int64, error) {
-	return support.Exec(tbl, nil, dropDatesTableSql(tbl, ifExists))
+func (tbl DatesTable) DropTable(ctx context.Context, ifExists bool) (int64, error) {
+	return support.Exec(ctx, tbl, nil, dropDatesTableSql(tbl, ifExists))
 }
 
 func dropDatesTableSql(tbl DatesTabler, ifExists bool) string {
@@ -464,9 +423,9 @@ func dropDatesTableSql(tbl DatesTabler, ifExists bool) string {
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl DatesTable) Truncate(force bool) (err error) {
+func (tbl DatesTable) Truncate(ctx context.Context, force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(tbl, nil, query)
+		_, err = support.Exec(ctx, tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -480,8 +439,10 @@ func (tbl DatesTable) Truncate(force bool) (err error) {
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DatesTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(tbl, req, query, args...)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl DatesTable) Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(ctx, tbl, req, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -492,18 +453,18 @@ func (tbl DatesTable) Exec(req require.Requirement, query string, args ...interf
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
-// If you need a context other than the background, use WithContext before calling Query.
-//
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-func (tbl DatesTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Dates, error) {
-	return doDatesTableQueryAndScan(tbl, req, false, query, args)
+//
+// If the context ctx is nil, it defaults to context.Background().
+func (tbl DatesTable) Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Dates, error) {
+	return doDatesTableQueryAndScan(ctx, tbl, req, false, query, args)
 }
 
-func doDatesTableQueryAndScan(tbl DatesTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Dates, error) {
-	rows, err := support.Query(tbl, query, args...)
+func doDatesTableQueryAndScan(ctx context.Context, tbl DatesTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Dates, error) {
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -522,8 +483,8 @@ func doDatesTableQueryAndScan(tbl DatesTabler, req require.Requirement, firstOnl
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DatesTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl DatesTable) QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -534,8 +495,8 @@ func (tbl DatesTable) QueryOneNullString(req require.Requirement, query string, 
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DatesTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl DatesTable) QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -546,8 +507,8 @@ func (tbl DatesTable) QueryOneNullInt64(req require.Requirement, query string, a
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DatesTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
+func (tbl DatesTable) QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -607,8 +568,8 @@ func allDatesColumnNamesQuoted(q quote.Quoter) string {
 
 // GetDatesById gets the record with a given primary key value.
 // If not found, *Dates will be nil.
-func (tbl DatesTable) GetDatesById(req require.Requirement, id uint64) (*Dates, error) {
-	return tbl.SelectOne(req, where.Eq("id", id), nil)
+func (tbl DatesTable) GetDatesById(ctx context.Context, req require.Requirement, id uint64) (*Dates, error) {
+	return tbl.SelectOne(ctx, req, where.Eq("id", id), nil)
 }
 
 // GetDatessById gets records from the table according to a list of primary keys.
@@ -617,15 +578,15 @@ func (tbl DatesTable) GetDatesById(req require.Requirement, id uint64) (*Dates, 
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl DatesTable) GetDatessById(req require.Requirement, qc where.QueryConstraint, id ...uint64) (list []*Dates, err error) {
+func (tbl DatesTable) GetDatessById(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...uint64) (list []*Dates, err error) {
 	if req == require.All {
 		req = require.Exactly(len(id))
 	}
-	return tbl.Select(req, where.In("id", id), qc)
+	return tbl.Select(ctx, req, where.In("id", id), qc)
 }
 
-func doDatesTableQueryAndScanOne(tbl DatesTabler, req require.Requirement, query string, args ...interface{}) (*Dates, error) {
-	list, err := doDatesTableQueryAndScan(tbl, req, true, query, args...)
+func doDatesTableQueryAndScanOne(ctx context.Context, tbl DatesTabler, req require.Requirement, query string, args ...interface{}) (*Dates, error) {
+	list, err := doDatesTableQueryAndScan(ctx, tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -634,8 +595,8 @@ func doDatesTableQueryAndScanOne(tbl DatesTabler, req require.Requirement, query
 
 // Fetch fetches a list of Dates based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of Dates. Other queries might be better handled by GetXxx or Select methods.
-func (tbl DatesTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Dates, error) {
-	return doDatesTableQueryAndScan(tbl, req, false, query, args...)
+func (tbl DatesTable) Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Dates, error) {
+	return doDatesTableQueryAndScan(ctx, tbl, req, false, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -649,11 +610,11 @@ func (tbl DatesTable) Fetch(req require.Requirement, query string, args ...inter
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DatesTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Dates, error) {
+func (tbl DatesTable) SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Dates, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		allDatesColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	v, err := doDatesTableQueryAndScanOne(tbl, req, query, args...)
+	v, err := doDatesTableQueryAndScanOne(ctx, tbl, req, query, args...)
 	return v, err
 }
 
@@ -664,11 +625,11 @@ func (tbl DatesTable) SelectOneWhere(req require.Requirement, where, orderBy str
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl DatesTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Dates, error) {
+func (tbl DatesTable) SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Dates, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectOneWhere(req, whs, orderBy, args...)
+	return tbl.SelectOneWhere(ctx, req, whs, orderBy, args...)
 }
 
 // SelectWhere allows Datess to be obtained from the table that match a 'where' clause.
@@ -679,11 +640,11 @@ func (tbl DatesTable) SelectOne(req require.Requirement, wh where.Expression, qc
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DatesTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Dates, error) {
+func (tbl DatesTable) SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*Dates, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
 		allDatesColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	vv, err := doDatesTableQueryAndScan(tbl, req, false, query, args...)
+	vv, err := doDatesTableQueryAndScan(ctx, tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -693,11 +654,11 @@ func (tbl DatesTable) SelectWhere(req require.Requirement, where, orderBy string
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
-func (tbl DatesTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Dates, error) {
+func (tbl DatesTable) Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Dates, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectWhere(req, whs, orderBy, args...)
+	return tbl.SelectWhere(ctx, req, whs, orderBy, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -706,10 +667,10 @@ func (tbl DatesTable) Select(req require.Requirement, wh where.Expression, qc wh
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl DatesTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
+func (tbl DatesTable) CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -722,9 +683,9 @@ func (tbl DatesTable) CountWhere(where string, args ...interface{}) (count int64
 
 // Count counts the Datess in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl DatesTable) Count(wh where.Expression) (count int64, err error) {
+func (tbl DatesTable) Count(ctx context.Context, wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	return tbl.CountWhere(whs, args...)
+	return tbl.CountWhere(ctx, whs, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -732,31 +693,31 @@ func (tbl DatesTable) Count(wh where.Expression) (count int64, err error) {
 // SliceId gets the id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DatesTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
-	return support.SliceUint64List(tbl, req, tbl.pk, wh, qc)
+func (tbl DatesTable) SliceId(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+	return support.SliceUint64List(ctx, tbl, req, tbl.pk, wh, qc)
 }
 
 // SliceInteger gets the integer column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DatesTable) SliceInteger(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error) {
-	return sliceDatesTableDateList(tbl, req, "integer", wh, qc)
+func (tbl DatesTable) SliceInteger(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error) {
+	return sliceDatesTableDateList(ctx, tbl, req, "integer", wh, qc)
 }
 
 // SliceString gets the string column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DatesTable) SliceString(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error) {
-	return sliceDatesTableDateStringList(tbl, req, "string", wh, qc)
+func (tbl DatesTable) SliceString(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error) {
+	return sliceDatesTableDateStringList(ctx, tbl, req, "string", wh, qc)
 }
 
-func sliceDatesTableDateList(tbl DatesTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error) {
+func sliceDatesTableDateList(ctx context.Context, tbl DatesTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -776,13 +737,13 @@ func sliceDatesTableDateList(tbl DatesTabler, req require.Requirement, sqlname s
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceDatesTableDateStringList(tbl DatesTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error) {
+func sliceDatesTableDateStringList(ctx context.Context, tbl DatesTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -854,9 +815,13 @@ func constructDatesTableUpdate(tbl DatesTable, w dialect.StringWriter, v *Dates)
 
 // Insert adds new records for the Datess.// The Datess have their primary key fields set to the new record identifiers.
 // The Dates.PreInsert() method will be called, if it exists.
-func (tbl DatesTable) Insert(req require.Requirement, vv ...*Dates) error {
+func (tbl DatesTable) Insert(ctx context.Context, req require.Requirement, vv ...*Dates) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
 	var count int64
@@ -894,13 +859,13 @@ func (tbl DatesTable) Insert(req require.Requirement, vv ...*Dates) error {
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.db.QueryRowContext(ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Id = uint64(i64)
 
 		} else {
-			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.db.InsertContext(ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
@@ -917,31 +882,31 @@ func (tbl DatesTable) Insert(req require.Requirement, vv ...*Dates) error {
 }
 
 // UpdateById updates one or more columns, given a id value.
-func (tbl DatesTable) UpdateById(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
+func (tbl DatesTable) UpdateById(ctx context.Context, req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("id", id), fields...)
 }
 
 // UpdateByInteger updates one or more columns, given a integer value.
-func (tbl DatesTable) UpdateByInteger(req require.Requirement, integer date.Date, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("integer", integer), fields...)
+func (tbl DatesTable) UpdateByInteger(ctx context.Context, req require.Requirement, integer date.Date, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("integer", integer), fields...)
 }
 
 // UpdateByString updates one or more columns, given a string value.
-func (tbl DatesTable) UpdateByString(req require.Requirement, string date.DateString, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(req, where.Eq("string", string), fields...)
+func (tbl DatesTable) UpdateByString(ctx context.Context, req require.Requirement, string date.DateString, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(ctx, req, where.Eq("string", string), fields...)
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
-func (tbl DatesTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(tbl, req, wh, fields...)
+func (tbl DatesTable) UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	return support.UpdateFields(ctx, tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Dates.PreUpdate(Execer) method will be called, if it exists.
-func (tbl DatesTable) Update(req require.Requirement, vv ...*Dates) (int64, error) {
+func (tbl DatesTable) Update(ctx context.Context, req require.Requirement, vv ...*Dates) (int64, error) {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -975,7 +940,7 @@ func (tbl DatesTable) Update(req require.Requirement, vv ...*Dates) (int64, erro
 		b.WriteString("=?")
 
 		query := b.String()
-		n, err := tbl.Exec(nil, query, args...)
+		n, err := tbl.Exec(ctx, nil, query, args...)
 		if err != nil {
 			return count, err
 		}
@@ -992,20 +957,20 @@ func (tbl DatesTable) Update(req require.Requirement, vv ...*Dates) (int64, erro
 // key column(s). It must match either zero or one existing record. If it matches
 // none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
-func (tbl DatesTable) Upsert(v *Dates, wh where.Expression) error {
+func (tbl DatesTable) Upsert(ctx context.Context, v *Dates, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)
 	qName := tbl.quotedName()
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 
 	query := fmt.Sprintf("SELECT %s FROM %s %s", col, qName, whs)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return tbl.Insert(require.One, v)
+		return tbl.Insert(ctx, require.One, v)
 	}
 
 	var id uint64
@@ -1019,7 +984,7 @@ func (tbl DatesTable) Upsert(v *Dates, wh where.Expression) error {
 	}
 
 	v.Id = id
-	_, err = tbl.Update(require.One, v)
+	_, err = tbl.Update(ctx, require.One, v)
 	return err
 }
 
@@ -1027,36 +992,36 @@ func (tbl DatesTable) Upsert(v *Dates, wh where.Expression) error {
 
 // DeleteById deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl DatesTable) DeleteById(req require.Requirement, id ...uint64) (int64, error) {
+func (tbl DatesTable) DeleteById(ctx context.Context, req require.Requirement, id ...uint64) (int64, error) {
 	ii := support.Uint64AsInterfaceSlice(id)
-	return support.DeleteByColumn(tbl, req, "id", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "id", ii...)
 }
 
 // DeleteByInteger deletes rows from the table, given some integer values.
 // The list of ids can be arbitrarily long.
-func (tbl DatesTable) DeleteByInteger(req require.Requirement, integer ...date.Date) (int64, error) {
+func (tbl DatesTable) DeleteByInteger(ctx context.Context, req require.Requirement, integer ...date.Date) (int64, error) {
 	ii := make([]interface{}, len(integer))
 	for i, v := range integer {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, "integer", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "integer", ii...)
 }
 
 // DeleteByString deletes rows from the table, given some string values.
 // The list of ids can be arbitrarily long.
-func (tbl DatesTable) DeleteByString(req require.Requirement, string ...date.DateString) (int64, error) {
+func (tbl DatesTable) DeleteByString(ctx context.Context, req require.Requirement, string ...date.DateString) (int64, error) {
 	ii := make([]interface{}, len(string))
 	for i, v := range string {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(tbl, req, "string", ii...)
+	return support.DeleteByColumn(ctx, tbl, req, "string", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl DatesTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
+func (tbl DatesTable) Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := deleteRowsDatesTableSql(tbl, wh)
-	return tbl.Exec(req, query, args...)
+	return tbl.Exec(ctx, req, query, args...)
 }
 
 func deleteRowsDatesTableSql(tbl DatesTabler, wh where.Expression) (string, []interface{}) {

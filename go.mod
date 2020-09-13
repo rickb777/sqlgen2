@@ -13,7 +13,7 @@ require (
 	github.com/rickb777/collection v0.5.0
 	github.com/rickb777/date v1.14.0
 	github.com/rickb777/filemod v0.9.0
-	github.com/rickb777/sqlapi v0.45.0
+	github.com/rickb777/sqlapi v0.47.1
 	github.com/rickb777/where v0.8.1
 	github.com/spf13/cast v1.3.1
 	golang.org/x/sys v0.0.0-20200908134130-d2e65c121b96 // indirect

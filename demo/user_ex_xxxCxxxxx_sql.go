@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.45.0; sqlgen v0.65.1-4-gb3e4024
+// sqlapi v0.47.0; sqlgen v0.66.0
 
 package demo
 
@@ -22,26 +22,13 @@ type CUserTabler interface {
 
 	// WithPrefix returns a modified CUserTabler with a given table name prefix.
 	WithPrefix(pfx string) CUserTabler
-
-	// WithContext returns a modified CUserTabler with a given context.
-	WithContext(ctx context.Context) CUserTabler
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // CUserQueryer lists query methods provided by CUserTable.
 type CUserQueryer interface {
-	// Name gets the table name. without prefix
-	Name() sqlapi.TableName
-
-	// Database gets the shared database information.
-	Database() sqlapi.Database
-
-	// Dialect gets the database dialect.
-	Dialect() dialect.Dialect
-
-	// Logger gets the trace logger.
-	Logger() sqlapi.Logger
+	sqlapi.Table
 
 	// Using returns a modified CUserQueryer using the Execer supplied,
 	// which will typically be a transaction (i.e. SqlTx).
@@ -49,23 +36,13 @@ type CUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(CUserQueryer) error) error
-
-	// Execer gets the wrapped database or transaction handle.
-	Execer() sqlapi.Execer
-
-	// Tx gets the wrapped transaction handle, provided this is within a transaction.
-	// Panics if it is in the wrong state - use IsTx() if necessary.
-	Tx() sqlapi.SqlTx
-
-	// IsTx tests whether this is within a transaction.
-	IsTx() bool
+	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(CUserQueryer) error) error
 
 	// CountWhere counts Users in the table that match a 'where' clause.
-	CountWhere(where string, args ...interface{}) (count int64, err error)
+	CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error)
 
 	// Count counts the Users in the table that match a 'where' clause.
-	Count(wh where.Expression) (count int64, err error)
+	Count(ctx context.Context, wh where.Expression) (count int64, err error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -77,7 +54,6 @@ type CUserTable struct {
 	name     sqlapi.TableName
 	database sqlapi.Database
 	db       sqlapi.Execer
-	ctx      context.Context
 	pk       string
 }
 
@@ -95,7 +71,6 @@ func NewCUserTable(name string, d sqlapi.Database) CUserTable {
 		name:     sqlapi.TableName{Prefix: "", Name: name},
 		database: d,
 		db:       d.DB(),
-		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -110,7 +85,6 @@ func CopyTableAsCUserTable(origin sqlapi.Table) CUserTable {
 		name:     origin.Name(),
 		database: origin.Database(),
 		db:       origin.Execer(),
-		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -129,16 +103,6 @@ func (tbl CUserTable) WithPrefix(pfx string) CUserTabler {
 	return tbl
 }
 
-// WithContext sets the context for subsequent queries via this table.
-// The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
-func (tbl CUserTable) WithContext(ctx context.Context) CUserTabler {
-	tbl.ctx = ctx
-	return tbl
-}
-
 // Database gets the shared database information.
 func (tbl CUserTable) Database() sqlapi.Database {
 	return tbl.database
@@ -147,11 +111,6 @@ func (tbl CUserTable) Database() sqlapi.Database {
 // Logger gets the trace logger.
 func (tbl CUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
-}
-
-// Ctx gets the current request context.
-func (tbl CUserTable) Ctx() context.Context {
-	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -208,12 +167,12 @@ func (tbl CUserTable) Using(tx sqlapi.Execer) CUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl CUserTable) Transact(txOptions *sql.TxOptions, fn func(CUserQueryer) error) error {
+func (tbl CUserTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(CUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -368,10 +327,10 @@ func scanCUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl CUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
+func (tbl CUserTable) CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
-	rows, err := support.Query(tbl, query, args...)
+	rows, err := support.Query(ctx, tbl, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -384,7 +343,7 @@ func (tbl CUserTable) CountWhere(where string, args ...interface{}) (count int64
 
 // Count counts the Users in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl CUserTable) Count(wh where.Expression) (count int64, err error) {
+func (tbl CUserTable) Count(ctx context.Context, wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	return tbl.CountWhere(whs, args...)
+	return tbl.CountWhere(ctx, whs, args...)
 }
