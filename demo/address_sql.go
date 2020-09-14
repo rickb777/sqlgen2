@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.47.1; sqlgen v0.67.0
+// sqlapi v0.49.0; sqlgen v0.68.0
 
 package demo
 
@@ -33,38 +33,41 @@ type AddressTabler interface {
 	// WithPrefix returns a modified AddressTabler with a given table name prefix.
 	WithPrefix(pfx string) AddressTabler
 
+	// WithContext returns a modified AddressTabler with a given context.
+	WithContext(ctx context.Context) AddressTabler
+
 	// CreateTable creates the table.
-	CreateTable(ctx context.Context, ifNotExists bool) (int64, error)
+	CreateTable(ifNotExists bool) (int64, error)
 
 	// DropTable drops the table, destroying all its data.
-	DropTable(ctx context.Context, ifExists bool) (int64, error)
+	DropTable(ifExists bool) (int64, error)
 
 	// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-	CreateTableWithIndexes(ctx context.Context, ifNotExist bool) (err error)
+	CreateTableWithIndexes(ifNotExist bool) (err error)
 
 	// CreateIndexes executes queries that create the indexes needed by the Address table.
-	CreateIndexes(ctx context.Context, ifNotExist bool) (err error)
+	CreateIndexes(ifNotExist bool) (err error)
 
 	// CreatePostcodeIdxIndex creates the postcodeIdx index.
-	CreatePostcodeIdxIndex(ctx context.Context, ifNotExist bool) error
+	CreatePostcodeIdxIndex(ifNotExist bool) error
 
 	// DropPostcodeIdxIndex drops the postcodeIdx index.
-	DropPostcodeIdxIndex(ctx context.Context, ifExists bool) error
+	DropPostcodeIdxIndex(ifExists bool) error
 
 	// CreateTownIdxIndex creates the townIdx index.
-	CreateTownIdxIndex(ctx context.Context, ifNotExist bool) error
+	CreateTownIdxIndex(ifNotExist bool) error
 
 	// DropTownIdxIndex drops the townIdx index.
-	DropTownIdxIndex(ctx context.Context, ifExists bool) error
+	DropTownIdxIndex(ifExists bool) error
 
 	// CreateUprnIdxIndex creates the uprn_idx index.
-	CreateUprnIdxIndex(ctx context.Context, ifNotExist bool) error
+	CreateUprnIdxIndex(ifNotExist bool) error
 
 	// DropUprnIdxIndex drops the uprn_idx index.
-	DropUprnIdxIndex(ctx context.Context, ifExists bool) error
+	DropUprnIdxIndex(ifExists bool) error
 
 	// Truncate drops every record from the table, if possible.
-	Truncate(ctx context.Context, force bool) (err error)
+	Truncate(force bool) (err error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -79,123 +82,123 @@ type AddressQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(AddressQueryer) error) error
+	Transact(txOptions *sql.TxOptions, fn func(AddressQueryer) error) error
 
 	// Exec executes a query without returning any rows.
-	Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error)
+	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for Address values.
-	Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Address, error)
+	Query(req require.Requirement, query string, args ...interface{}) ([]*Address, error)
 
 	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 
 	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
 	// GetAddressById gets the record with a given primary key value.
-	GetAddressById(ctx context.Context, req require.Requirement, id int64) (*Address, error)
+	GetAddressById(req require.Requirement, id int64) (*Address, error)
 
 	// GetAddressesById gets records from the table according to a list of primary keys.
-	GetAddressesById(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Address, err error)
+	GetAddressesById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Address, err error)
 
 	// GetAddressesByPostcode gets the records with a given postcode value.
-	GetAddressesByPostcode(ctx context.Context, req require.Requirement, qc where.QueryConstraint, postcode string) ([]*Address, error)
+	GetAddressesByPostcode(req require.Requirement, qc where.QueryConstraint, postcode string) ([]*Address, error)
 
 	// GetAddressesByTown gets the records with a given town value.
-	GetAddressesByTown(ctx context.Context, req require.Requirement, qc where.QueryConstraint, town string) ([]*Address, error)
+	GetAddressesByTown(req require.Requirement, qc where.QueryConstraint, town string) ([]*Address, error)
 
 	// GetAddressByUPRN gets the record with a given uprn value.
-	GetAddressByUPRN(ctx context.Context, req require.Requirement, uprn string) (*Address, error)
+	GetAddressByUPRN(req require.Requirement, uprn string) (*Address, error)
 
 	// GetAddressesByUPRN gets the record with a given uprn value.
-	GetAddressesByUPRN(ctx context.Context, req require.Requirement, qc where.QueryConstraint, uprn ...string) ([]*Address, error)
+	GetAddressesByUPRN(req require.Requirement, qc where.QueryConstraint, uprn ...string) ([]*Address, error)
 
 	// Fetch fetches a list of Address based on a supplied query. This is mostly used for join queries that map its
 	// result columns to the fields of Address. Other queries might be better handled by GetXxx or Select methods.
-	Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Address, error)
+	Fetch(req require.Requirement, query string, args ...interface{}) ([]*Address, error)
 
 	// SelectOneWhere allows a single Address to be obtained from the table that matches a 'where' clause.
-	SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error)
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error)
 
 	// SelectOne allows a single Address to be obtained from the table that matches a 'where' clause.
-	SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Address, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Address, error)
 
 	// SelectWhere allows Addresses to be obtained from the table that match a 'where' clause.
-	SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*Address, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Address, error)
 
 	// Select allows Addresses to be obtained from the table that match a 'where' clause.
-	Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Address, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Address, error)
 
 	// CountWhere counts Addresses in the table that match a 'where' clause.
-	CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error)
+	CountWhere(where string, args ...interface{}) (count int64, err error)
 
 	// Count counts the Addresses in the table that match a 'where' clause.
-	Count(ctx context.Context, wh where.Expression) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
 
 	// SliceId gets the id column for all rows that match the 'where' condition.
-	SliceId(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceTown gets the town column for all rows that match the 'where' condition.
-	SliceTown(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceTown(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SlicePostcode gets the postcode column for all rows that match the 'where' condition.
-	SlicePostcode(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SlicePostcode(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceUprn gets the uprn column for all rows that match the 'where' condition.
-	SliceUprn(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceUprn(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// Insert adds new records for the Addresses, setting the primary key field for each one.
-	Insert(ctx context.Context, req require.Requirement, vv ...*Address) error
+	Insert(req require.Requirement, vv ...*Address) error
 
 	// UpdateById updates one or more columns, given a id value.
-	UpdateById(ctx context.Context, req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
+	UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByTown updates one or more columns, given a town value.
-	UpdateByTown(ctx context.Context, req require.Requirement, town string, fields ...sql.NamedArg) (int64, error)
+	UpdateByTown(req require.Requirement, town string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByPostcode updates one or more columns, given a postcode value.
-	UpdateByPostcode(ctx context.Context, req require.Requirement, postcode string, fields ...sql.NamedArg) (int64, error)
+	UpdateByPostcode(req require.Requirement, postcode string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByUprn updates one or more columns, given a uprn value.
-	UpdateByUprn(ctx context.Context, req require.Requirement, uprn string, fields ...sql.NamedArg) (int64, error)
+	UpdateByUprn(req require.Requirement, uprn string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateFields updates one or more columns, given a 'where' clause.
-	UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
 
 	// Update updates records, matching them by primary key.
-	Update(ctx context.Context, req require.Requirement, vv ...*Address) (int64, error)
+	Update(req require.Requirement, vv ...*Address) (int64, error)
 
 	// Upsert inserts or updates a record, matching it using the expression supplied.
 	// This expression is used to search for an existing record based on some specified
 	// key column(s). It must match either zero or one existing record. If it matches
 	// none, a new record is inserted; otherwise the matching record is updated. An
 	// error results if these conditions are not met.
-	Upsert(ctx context.Context, v *Address, wh where.Expression) error
+	Upsert(v *Address, wh where.Expression) error
 
 	// DeleteById deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteById(ctx context.Context, req require.Requirement, id ...int64) (int64, error)
+	DeleteById(req require.Requirement, id ...int64) (int64, error)
 
 	// DeleteByTown deletes rows from the table, given some town values.
 	// The list of ids can be arbitrarily long.
-	DeleteByTown(ctx context.Context, req require.Requirement, town ...string) (int64, error)
+	DeleteByTown(req require.Requirement, town ...string) (int64, error)
 
 	// DeleteByPostcode deletes rows from the table, given some postcode values.
 	// The list of ids can be arbitrarily long.
-	DeleteByPostcode(ctx context.Context, req require.Requirement, postcode ...string) (int64, error)
+	DeleteByPostcode(req require.Requirement, postcode ...string) (int64, error)
 
 	// DeleteByUprn deletes rows from the table, given some uprn values.
 	// The list of ids can be arbitrarily long.
-	DeleteByUprn(ctx context.Context, req require.Requirement, uprn ...string) (int64, error)
+	DeleteByUprn(req require.Requirement, uprn ...string) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
-	Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error)
+	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -208,6 +211,7 @@ type AddressTable struct {
 	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
+	ctx         context.Context
 	pk          string
 }
 
@@ -227,6 +231,7 @@ func NewAddressTable(name string, d sqlapi.Database) AddressTable {
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
+		ctx:         context.Background(),
 		pk:          "id",
 	}
 }
@@ -242,6 +247,7 @@ func CopyTableAsAddressTable(origin sqlapi.Table) AddressTable {
 		database:    origin.Database(),
 		db:          origin.Execer(),
 		constraints: nil,
+		ctx:         origin.Ctx(),
 		pk:          "id",
 	}
 }
@@ -257,6 +263,16 @@ func CopyTableAsAddressTable(origin sqlapi.Table) AddressTable {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AddressTable) WithPrefix(pfx string) AddressTabler {
 	tbl.name.Prefix = pfx
+	return tbl
+}
+
+// WithContext sets the context for subsequent queries via this table.
+// The result is a modified copy of the table; the original is unchanged.
+//
+// The shared context in the *Database is not altered by this method. So it
+// is possible to use different contexts for different (groups of) queries.
+func (tbl AddressTable) WithContext(ctx context.Context) AddressTabler {
+	tbl.ctx = ctx
 	return tbl
 }
 
@@ -279,6 +295,11 @@ func (tbl AddressTable) WithConstraint(cc ...constraint.Constraint) AddressTable
 // Constraints returns the table's constraints.
 func (tbl AddressTable) Constraints() constraint.Constraints {
 	return tbl.constraints
+}
+
+// Ctx gets the current request context.
+func (tbl AddressTable) Ctx() context.Context {
+	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -335,12 +356,12 @@ func (tbl AddressTable) Using(tx sqlapi.Execer) AddressQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl AddressTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(AddressQueryer) error) error {
+func (tbl AddressTable) Transact(txOptions *sql.TxOptions, fn func(AddressQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -422,8 +443,8 @@ var listOfUprnIdxIndexColumns = []string{"uprn"}
 //-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl AddressTable) CreateTable(ctx context.Context, ifNotExists bool) (int64, error) {
-	return support.Exec(ctx, tbl, nil, createAddressTableSql(tbl, ifNotExists))
+func (tbl AddressTable) CreateTable(ifNotExists bool) (int64, error) {
+	return support.Exec(tbl, nil, createAddressTableSql(tbl, ifNotExists))
 }
 
 func createAddressTableSql(tbl AddressTabler, ifNotExists bool) string {
@@ -475,8 +496,8 @@ func ternaryAddressTable(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl AddressTable) DropTable(ctx context.Context, ifExists bool) (int64, error) {
-	return support.Exec(ctx, tbl, nil, dropAddressTableSql(tbl, ifExists))
+func (tbl AddressTable) DropTable(ifExists bool) (int64, error) {
+	return support.Exec(tbl, nil, dropAddressTableSql(tbl, ifExists))
 }
 
 func dropAddressTableSql(tbl AddressTabler, ifExists bool) string {
@@ -489,29 +510,29 @@ func dropAddressTableSql(tbl AddressTabler, ifExists bool) string {
 //-------------------------------------------------------------------------------------------------
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl AddressTable) CreateTableWithIndexes(ctx context.Context, ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ctx, ifNotExist)
+func (tbl AddressTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	return tbl.CreateIndexes(ctx, ifNotExist)
+	return tbl.CreateIndexes(ifNotExist)
 }
 
 // CreateIndexes executes queries that create the indexes needed by the Address table.
-func (tbl AddressTable) CreateIndexes(ctx context.Context, ifNotExist bool) (err error) {
+func (tbl AddressTable) CreateIndexes(ifNotExist bool) (err error) {
 
-	err = tbl.CreatePostcodeIdxIndex(ctx, ifNotExist)
+	err = tbl.CreatePostcodeIdxIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	err = tbl.CreateTownIdxIndex(ctx, ifNotExist)
+	err = tbl.CreateTownIdxIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	err = tbl.CreateUprnIdxIndex(ctx, ifNotExist)
+	err = tbl.CreateUprnIdxIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
@@ -520,7 +541,7 @@ func (tbl AddressTable) CreateIndexes(ctx context.Context, ifNotExist bool) (err
 }
 
 // CreatePostcodeIdxIndex creates the postcodeIdx index.
-func (tbl AddressTable) CreatePostcodeIdxIndex(ctx context.Context, ifNotExist bool) error {
+func (tbl AddressTable) CreatePostcodeIdxIndex(ifNotExist bool) error {
 	ine := ternaryAddressTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -528,11 +549,11 @@ func (tbl AddressTable) CreatePostcodeIdxIndex(ctx context.Context, ifNotExist b
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(ctx, dropAddressTablePostcodeIdxSql(tbl, false))
+		tbl.Execer().ExecContext(tbl.ctx, dropAddressTablePostcodeIdxSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(ctx, nil, createAddressTablePostcodeIdxSql(tbl, ine))
+	_, err := tbl.Exec(nil, createAddressTablePostcodeIdxSql(tbl, ine))
 	return err
 }
 
@@ -547,8 +568,8 @@ func createAddressTablePostcodeIdxSql(tbl AddressTabler, ifNotExists string) str
 }
 
 // DropPostcodeIdxIndex drops the postcodeIdx index.
-func (tbl AddressTable) DropPostcodeIdxIndex(ctx context.Context, ifExists bool) error {
-	_, err := tbl.Exec(ctx, nil, dropAddressTablePostcodeIdxSql(tbl, ifExists))
+func (tbl AddressTable) DropPostcodeIdxIndex(ifExists bool) error {
+	_, err := tbl.Exec(nil, dropAddressTablePostcodeIdxSql(tbl, ifExists))
 	return err
 }
 
@@ -565,7 +586,7 @@ func dropAddressTablePostcodeIdxSql(tbl AddressTabler, ifExists bool) string {
 }
 
 // CreateTownIdxIndex creates the townIdx index.
-func (tbl AddressTable) CreateTownIdxIndex(ctx context.Context, ifNotExist bool) error {
+func (tbl AddressTable) CreateTownIdxIndex(ifNotExist bool) error {
 	ine := ternaryAddressTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -573,11 +594,11 @@ func (tbl AddressTable) CreateTownIdxIndex(ctx context.Context, ifNotExist bool)
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(ctx, dropAddressTableTownIdxSql(tbl, false))
+		tbl.Execer().ExecContext(tbl.ctx, dropAddressTableTownIdxSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(ctx, nil, createAddressTableTownIdxSql(tbl, ine))
+	_, err := tbl.Exec(nil, createAddressTableTownIdxSql(tbl, ine))
 	return err
 }
 
@@ -592,8 +613,8 @@ func createAddressTableTownIdxSql(tbl AddressTabler, ifNotExists string) string 
 }
 
 // DropTownIdxIndex drops the townIdx index.
-func (tbl AddressTable) DropTownIdxIndex(ctx context.Context, ifExists bool) error {
-	_, err := tbl.Exec(ctx, nil, dropAddressTableTownIdxSql(tbl, ifExists))
+func (tbl AddressTable) DropTownIdxIndex(ifExists bool) error {
+	_, err := tbl.Exec(nil, dropAddressTableTownIdxSql(tbl, ifExists))
 	return err
 }
 
@@ -610,7 +631,7 @@ func dropAddressTableTownIdxSql(tbl AddressTabler, ifExists bool) string {
 }
 
 // CreateUprnIdxIndex creates the uprn_idx index.
-func (tbl AddressTable) CreateUprnIdxIndex(ctx context.Context, ifNotExist bool) error {
+func (tbl AddressTable) CreateUprnIdxIndex(ifNotExist bool) error {
 	ine := ternaryAddressTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -618,11 +639,11 @@ func (tbl AddressTable) CreateUprnIdxIndex(ctx context.Context, ifNotExist bool)
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(ctx, dropAddressTableUprnIdxSql(tbl, false))
+		tbl.Execer().ExecContext(tbl.ctx, dropAddressTableUprnIdxSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(ctx, nil, createAddressTableUprnIdxSql(tbl, ine))
+	_, err := tbl.Exec(nil, createAddressTableUprnIdxSql(tbl, ine))
 	return err
 }
 
@@ -637,8 +658,8 @@ func createAddressTableUprnIdxSql(tbl AddressTabler, ifNotExists string) string 
 }
 
 // DropUprnIdxIndex drops the uprn_idx index.
-func (tbl AddressTable) DropUprnIdxIndex(ctx context.Context, ifExists bool) error {
-	_, err := tbl.Exec(ctx, nil, dropAddressTableUprnIdxSql(tbl, ifExists))
+func (tbl AddressTable) DropUprnIdxIndex(ifExists bool) error {
+	_, err := tbl.Exec(nil, dropAddressTableUprnIdxSql(tbl, ifExists))
 	return err
 }
 
@@ -655,19 +676,19 @@ func dropAddressTableUprnIdxSql(tbl AddressTabler, ifExists bool) string {
 }
 
 // DropIndexes executes queries that drop the indexes on by the Address table.
-func (tbl AddressTable) DropIndexes(ctx context.Context, ifExist bool) (err error) {
+func (tbl AddressTable) DropIndexes(ifExist bool) (err error) {
 
-	err = tbl.DropPostcodeIdxIndex(ctx, ifExist)
+	err = tbl.DropPostcodeIdxIndex(ifExist)
 	if err != nil {
 		return err
 	}
 
-	err = tbl.DropTownIdxIndex(ctx, ifExist)
+	err = tbl.DropTownIdxIndex(ifExist)
 	if err != nil {
 		return err
 	}
 
-	err = tbl.DropUprnIdxIndex(ctx, ifExist)
+	err = tbl.DropUprnIdxIndex(ifExist)
 	if err != nil {
 		return err
 	}
@@ -684,9 +705,9 @@ func (tbl AddressTable) DropIndexes(ctx context.Context, ifExist bool) (err erro
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl AddressTable) Truncate(ctx context.Context, force bool) (err error) {
+func (tbl AddressTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(ctx, tbl, nil, query)
+		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -700,10 +721,8 @@ func (tbl AddressTable) Truncate(ctx context.Context, force bool) (err error) {
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-//
-// If the context ctx is nil, it defaults to context.Background().
-func (tbl AddressTable) Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(ctx, tbl, req, query, args...)
+func (tbl AddressTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(tbl, req, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -714,18 +733,18 @@ func (tbl AddressTable) Exec(ctx context.Context, req require.Requirement, query
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
+// If you need a context other than the background, use WithContext before calling Query.
+//
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-//
-// If the context ctx is nil, it defaults to context.Background().
-func (tbl AddressTable) Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Address, error) {
-	return doAddressTableQueryAndScan(ctx, tbl, req, false, query, args)
+func (tbl AddressTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Address, error) {
+	return doAddressTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func doAddressTableQueryAndScan(ctx context.Context, tbl AddressTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
-	rows, err := support.Query(ctx, tbl, query, args...)
+func doAddressTableQueryAndScan(tbl AddressTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Address, error) {
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -744,8 +763,8 @@ func doAddressTableQueryAndScan(ctx context.Context, tbl AddressTabler, req requ
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AddressTable) QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl AddressTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -756,8 +775,8 @@ func (tbl AddressTable) QueryOneNullString(ctx context.Context, req require.Requ
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AddressTable) QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl AddressTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -768,8 +787,8 @@ func (tbl AddressTable) QueryOneNullInt64(ctx context.Context, req require.Requi
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AddressTable) QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl AddressTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -841,8 +860,8 @@ func allAddressColumnNamesQuoted(q quote.Quoter) string {
 
 // GetAddressById gets the record with a given primary key value.
 // If not found, *Address will be nil.
-func (tbl AddressTable) GetAddressById(ctx context.Context, req require.Requirement, id int64) (*Address, error) {
-	return tbl.SelectOne(ctx, req, where.Eq("id", id), nil)
+func (tbl AddressTable) GetAddressById(req require.Requirement, id int64) (*Address, error) {
+	return tbl.SelectOne(req, where.Eq("id", id), nil)
 }
 
 // GetAddressesById gets records from the table according to a list of primary keys.
@@ -851,41 +870,41 @@ func (tbl AddressTable) GetAddressById(ctx context.Context, req require.Requirem
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl AddressTable) GetAddressesById(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Address, err error) {
+func (tbl AddressTable) GetAddressesById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Address, err error) {
 	if req == require.All {
 		req = require.Exactly(len(id))
 	}
-	return tbl.Select(ctx, req, where.In("id", id), qc)
+	return tbl.Select(req, where.In("id", id), qc)
 }
 
 // GetAddressesByPostcode gets the records with a given postcode value.
 // If not found, the resulting slice will be empty (nil).
-func (tbl AddressTable) GetAddressesByPostcode(ctx context.Context, req require.Requirement, qc where.QueryConstraint, postcode string) ([]*Address, error) {
-	return tbl.Select(ctx, req, where.And(where.Eq("postcode", postcode)), qc)
+func (tbl AddressTable) GetAddressesByPostcode(req require.Requirement, qc where.QueryConstraint, postcode string) ([]*Address, error) {
+	return tbl.Select(req, where.And(where.Eq("postcode", postcode)), qc)
 }
 
 // GetAddressesByTown gets the records with a given town value.
 // If not found, the resulting slice will be empty (nil).
-func (tbl AddressTable) GetAddressesByTown(ctx context.Context, req require.Requirement, qc where.QueryConstraint, town string) ([]*Address, error) {
-	return tbl.Select(ctx, req, where.And(where.Eq("town", town)), qc)
+func (tbl AddressTable) GetAddressesByTown(req require.Requirement, qc where.QueryConstraint, town string) ([]*Address, error) {
+	return tbl.Select(req, where.And(where.Eq("town", town)), qc)
 }
 
 // GetAddressByUPRN gets the record with a given uprn value.
 // If not found, *Address will be nil.
-func (tbl AddressTable) GetAddressByUPRN(ctx context.Context, req require.Requirement, uprn string) (*Address, error) {
-	return tbl.SelectOne(ctx, req, where.And(where.Eq("uprn", uprn)), nil)
+func (tbl AddressTable) GetAddressByUPRN(req require.Requirement, uprn string) (*Address, error) {
+	return tbl.SelectOne(req, where.And(where.Eq("uprn", uprn)), nil)
 }
 
 // GetAddressesByUPRN gets the record with a given uprn value.
-func (tbl AddressTable) GetAddressesByUPRN(ctx context.Context, req require.Requirement, qc where.QueryConstraint, uprn ...string) ([]*Address, error) {
+func (tbl AddressTable) GetAddressesByUPRN(req require.Requirement, qc where.QueryConstraint, uprn ...string) ([]*Address, error) {
 	if req == require.All {
 		req = require.Exactly(len(uprn))
 	}
-	return tbl.Select(ctx, req, where.In("uprn", uprn), qc)
+	return tbl.Select(req, where.In("uprn", uprn), qc)
 }
 
-func doAddressTableQueryAndScanOne(ctx context.Context, tbl AddressTabler, req require.Requirement, query string, args ...interface{}) (*Address, error) {
-	list, err := doAddressTableQueryAndScan(ctx, tbl, req, true, query, args...)
+func doAddressTableQueryAndScanOne(tbl AddressTabler, req require.Requirement, query string, args ...interface{}) (*Address, error) {
+	list, err := doAddressTableQueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -894,8 +913,8 @@ func doAddressTableQueryAndScanOne(ctx context.Context, tbl AddressTabler, req r
 
 // Fetch fetches a list of Address based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of Address. Other queries might be better handled by GetXxx or Select methods.
-func (tbl AddressTable) Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Address, error) {
-	return doAddressTableQueryAndScan(ctx, tbl, req, false, query, args...)
+func (tbl AddressTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Address, error) {
+	return doAddressTableQueryAndScan(tbl, req, false, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -909,11 +928,11 @@ func (tbl AddressTable) Fetch(ctx context.Context, req require.Requirement, quer
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AddressTable) SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error) {
+func (tbl AddressTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Address, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	v, err := doAddressTableQueryAndScanOne(ctx, tbl, req, query, args...)
+	v, err := doAddressTableQueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -924,11 +943,11 @@ func (tbl AddressTable) SelectOneWhere(ctx context.Context, req require.Requirem
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl AddressTable) SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Address, error) {
+func (tbl AddressTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Address, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectOneWhere(ctx, req, whs, orderBy, args...)
+	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
 // SelectWhere allows Addresses to be obtained from the table that match a 'where' clause.
@@ -939,11 +958,11 @@ func (tbl AddressTable) SelectOne(ctx context.Context, req require.Requirement, 
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AddressTable) SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*Address, error) {
+func (tbl AddressTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Address, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
 		allAddressColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	vv, err := doAddressTableQueryAndScan(ctx, tbl, req, false, query, args...)
+	vv, err := doAddressTableQueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -953,11 +972,11 @@ func (tbl AddressTable) SelectWhere(ctx context.Context, req require.Requirement
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
-func (tbl AddressTable) Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Address, error) {
+func (tbl AddressTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Address, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectWhere(ctx, req, whs, orderBy, args...)
+	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -966,10 +985,10 @@ func (tbl AddressTable) Select(ctx context.Context, req require.Requirement, wh 
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AddressTable) CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error) {
+func (tbl AddressTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -982,9 +1001,9 @@ func (tbl AddressTable) CountWhere(ctx context.Context, where string, args ...in
 
 // Count counts the Addresses in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl AddressTable) Count(ctx context.Context, wh where.Expression) (count int64, err error) {
+func (tbl AddressTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	return tbl.CountWhere(ctx, whs, args...)
+	return tbl.CountWhere(whs, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -992,29 +1011,29 @@ func (tbl AddressTable) Count(ctx context.Context, wh where.Expression) (count i
 // SliceId gets the id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AddressTable) SliceId(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(ctx, tbl, req, tbl.pk, wh, qc)
+func (tbl AddressTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
 }
 
 // SliceTown gets the town column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AddressTable) SliceTown(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringPtrList(ctx, tbl, req, "town", wh, qc)
+func (tbl AddressTable) SliceTown(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringPtrList(tbl, req, "town", wh, qc)
 }
 
 // SlicePostcode gets the postcode column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AddressTable) SlicePostcode(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(ctx, tbl, req, "postcode", wh, qc)
+func (tbl AddressTable) SlicePostcode(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "postcode", wh, qc)
 }
 
 // SliceUprn gets the uprn column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AddressTable) SliceUprn(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(ctx, tbl, req, "uprn", wh, qc)
+func (tbl AddressTable) SliceUprn(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "uprn", wh, qc)
 }
 
 func constructAddressTableInsert(tbl AddressTable, w dialect.StringWriter, v *Address, withPk bool) (s []interface{}, err error) {
@@ -1105,13 +1124,9 @@ func constructAddressTableUpdate(tbl AddressTable, w dialect.StringWriter, v *Ad
 
 // Insert adds new records for the Addresses.// The Addresses have their primary key fields set to the new record identifiers.
 // The Address.PreInsert() method will be called, if it exists.
-func (tbl AddressTable) Insert(ctx context.Context, req require.Requirement, vv ...*Address) error {
+func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
 	}
 
 	var count int64
@@ -1149,13 +1164,13 @@ func (tbl AddressTable) Insert(ctx context.Context, req require.Requirement, vv 
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(ctx, query, fields...)
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Id = i64
 
 		} else {
-			i64, e2 := tbl.db.InsertContext(ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
@@ -1172,36 +1187,36 @@ func (tbl AddressTable) Insert(ctx context.Context, req require.Requirement, vv 
 }
 
 // UpdateById updates one or more columns, given a id value.
-func (tbl AddressTable) UpdateById(ctx context.Context, req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("id", id), fields...)
+func (tbl AddressTable) UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
 }
 
 // UpdateByTown updates one or more columns, given a town value.
-func (tbl AddressTable) UpdateByTown(ctx context.Context, req require.Requirement, town string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("town", town), fields...)
+func (tbl AddressTable) UpdateByTown(req require.Requirement, town string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("town", town), fields...)
 }
 
 // UpdateByPostcode updates one or more columns, given a postcode value.
-func (tbl AddressTable) UpdateByPostcode(ctx context.Context, req require.Requirement, postcode string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("postcode", postcode), fields...)
+func (tbl AddressTable) UpdateByPostcode(req require.Requirement, postcode string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("postcode", postcode), fields...)
 }
 
 // UpdateByUprn updates one or more columns, given a uprn value.
-func (tbl AddressTable) UpdateByUprn(ctx context.Context, req require.Requirement, uprn string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("uprn", uprn), fields...)
+func (tbl AddressTable) UpdateByUprn(req require.Requirement, uprn string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("uprn", uprn), fields...)
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
-func (tbl AddressTable) UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(ctx, tbl, req, wh, fields...)
+func (tbl AddressTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Address.PreUpdate(Execer) method will be called, if it exists.
-func (tbl AddressTable) Update(ctx context.Context, req require.Requirement, vv ...*Address) (int64, error) {
+func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, error) {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -1235,7 +1250,7 @@ func (tbl AddressTable) Update(ctx context.Context, req require.Requirement, vv 
 		b.WriteString("=?")
 
 		query := b.String()
-		n, err := tbl.Exec(ctx, nil, query, args...)
+		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
 		}
@@ -1252,20 +1267,20 @@ func (tbl AddressTable) Update(ctx context.Context, req require.Requirement, vv 
 // key column(s). It must match either zero or one existing record. If it matches
 // none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
-func (tbl AddressTable) Upsert(ctx context.Context, v *Address, wh where.Expression) error {
+func (tbl AddressTable) Upsert(v *Address, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)
 	qName := tbl.quotedName()
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 
 	query := fmt.Sprintf("SELECT %s FROM %s %s", col, qName, whs)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return tbl.Insert(ctx, require.One, v)
+		return tbl.Insert(require.One, v)
 	}
 
 	var id int64
@@ -1279,7 +1294,7 @@ func (tbl AddressTable) Upsert(ctx context.Context, v *Address, wh where.Express
 	}
 
 	v.Id = id
-	_, err = tbl.Update(ctx, require.One, v)
+	_, err = tbl.Update(require.One, v)
 	return err
 }
 
@@ -1287,37 +1302,37 @@ func (tbl AddressTable) Upsert(ctx context.Context, v *Address, wh where.Express
 
 // DeleteById deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl AddressTable) DeleteById(ctx context.Context, req require.Requirement, id ...int64) (int64, error) {
+func (tbl AddressTable) DeleteById(req require.Requirement, id ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(id)
-	return support.DeleteByColumn(ctx, tbl, req, "id", ii...)
+	return support.DeleteByColumn(tbl, req, "id", ii...)
 }
 
 // DeleteByTown deletes rows from the table, given some town values.
 // The list of ids can be arbitrarily long.
-func (tbl AddressTable) DeleteByTown(ctx context.Context, req require.Requirement, town ...string) (int64, error) {
+func (tbl AddressTable) DeleteByTown(req require.Requirement, town ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(town)
-	return support.DeleteByColumn(ctx, tbl, req, "town", ii...)
+	return support.DeleteByColumn(tbl, req, "town", ii...)
 }
 
 // DeleteByPostcode deletes rows from the table, given some postcode values.
 // The list of ids can be arbitrarily long.
-func (tbl AddressTable) DeleteByPostcode(ctx context.Context, req require.Requirement, postcode ...string) (int64, error) {
+func (tbl AddressTable) DeleteByPostcode(req require.Requirement, postcode ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(postcode)
-	return support.DeleteByColumn(ctx, tbl, req, "postcode", ii...)
+	return support.DeleteByColumn(tbl, req, "postcode", ii...)
 }
 
 // DeleteByUprn deletes rows from the table, given some uprn values.
 // The list of ids can be arbitrarily long.
-func (tbl AddressTable) DeleteByUprn(ctx context.Context, req require.Requirement, uprn ...string) (int64, error) {
+func (tbl AddressTable) DeleteByUprn(req require.Requirement, uprn ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(uprn)
-	return support.DeleteByColumn(ctx, tbl, req, "uprn", ii...)
+	return support.DeleteByColumn(tbl, req, "uprn", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl AddressTable) Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error) {
+func (tbl AddressTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := deleteRowsAddressTableSql(tbl, wh)
-	return tbl.Exec(ctx, req, query, args...)
+	return tbl.Exec(req, query, args...)
 }
 
 func deleteRowsAddressTableSql(tbl AddressTabler, wh where.Expression) (string, []interface{}) {

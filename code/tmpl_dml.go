@@ -4,7 +4,7 @@ import "text/template"
 
 const sExecDecl = `
 	// Exec executes a query without returning any rows.
-	Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error)
+	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
 `
 
 const sExecFunc = `
@@ -12,10 +12,8 @@ const sExecFunc = `
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-//
-// If the context ctx is nil, it defaults to context.Background().
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(ctx, tbl, req, query, args...)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(tbl, req, query, args...)
 }
 `
 
@@ -27,7 +25,7 @@ var tExecFunc = template.Must(template.New("ExecFunc").Funcs(funcMap).Parse(sExe
 const sQueryRowsDecl = `
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for {{.Type}} values.
-	Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ({{.List}}, error)
+	Query(req require.Requirement, query string, args ...interface{}) ({{.List}}, error)
 `
 
 const sQueryRowsFunc = `
@@ -37,18 +35,18 @@ const sQueryRowsFunc = `
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
+// If you need a context other than the background, use WithContext before calling Query.
+//
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *{{.Sqlapi}}.Rows if you need to access its data as a map.
-//
-// If the context ctx is nil, it defaults to context.Background().
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ({{.List}}, error) {
-	return do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(ctx, tbl, req, false, query, args)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Query(req require.Requirement, query string, args ...interface{}) ({{.List}}, error) {
+	return do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl, req, false, query, args)
 }
 
-func do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(ctx context.Context, tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
-	rows, err := support.Query(ctx, tbl, query, args...)
+func do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, firstOnly bool, query string, args ...interface{}) ({{.List}}, error) {
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -64,13 +62,13 @@ var tQueryRowsFunc = template.Must(template.New("QueryRowsFunc").Funcs(funcMap).
 
 const sQueryThingsDecl = `
 	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 
 	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 `
 
 const sQueryThingsFunc = `
@@ -81,8 +79,8 @@ const sQueryThingsFunc = `
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -93,8 +91,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullString(ctx context.Context
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -105,8 +103,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullInt64(ctx context.Context,
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 `
@@ -119,31 +117,31 @@ var tQueryThingsFunc = template.Must(template.New("QueryThingsFunc").Funcs(funcM
 const sGetRowDecl = `
 {{- if .Table.Primary}}
 	// Get{{.Type}}By{{.Table.Primary.Name}} gets the record with a given primary key value.
-	Get{{.Type}}By{{.Table.Primary.Name}}(ctx context.Context, req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.TypePkg}}{{.Type}}, error)
+	Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.TypePkg}}{{.Type}}, error)
 
 	// Get{{.Types}}By{{.Table.Primary.Name}} gets records from the table according to a list of primary keys.
-	Get{{.Types}}By{{.Table.Primary.Name}}(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...{{.Table.Primary.Type.Type}}) (list {{.List}}, err error)
+	Get{{.Types}}By{{.Table.Primary.Name}}(req require.Requirement, qc where.QueryConstraint, id ...{{.Table.Primary.Type.Type}}) (list {{.List}}, err error)
 {{- end}}
 {{- range .Table.Index}}
 {{- if .Unique}}
 
 	// Get{{$.Type}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
-	Get{{$.Type}}By{{.JoinedNames "And"}}(ctx context.Context, req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.TypePkg}}{{$.Type}}, error)
+	Get{{$.Type}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.TypePkg}}{{$.Type}}, error)
 {{- if eq (len .Fields) 1}}
 
 	// Get{{$.Types}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
-	Get{{$.Types}}By{{.JoinedNames "And"}}(ctx context.Context, req require.Requirement, qc where.QueryConstraint, {{(index .Fields 0).SqlName}} ...{{(index .Fields 0).Type.Type}}) ({{$.List}}, error)
+	Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, qc where.QueryConstraint, {{(index .Fields 0).SqlName}} ...{{(index .Fields 0).Type.Type}}) ({{$.List}}, error)
 {{- end}}
 {{- else}}
 
 	// Get{{$.Types}}By{{.JoinedNames "And"}} gets the records with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
-	Get{{$.Types}}By{{.JoinedNames "And"}}(ctx context.Context, req require.Requirement, qc where.QueryConstraint, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error)
+	Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, qc where.QueryConstraint, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error)
 {{- end}}
 {{- end}}
 
 	// Fetch fetches a list of {{.Type}} based on a supplied query. This is mostly used for join queries that map its
 	// result columns to the fields of {{.Type}}. Other queries might be better handled by GetXxx or Select methods.
-	Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ({{.List}}, error)
+	Fetch(req require.Requirement, query string, args ...interface{}) ({{.List}}, error)
 `
 
 const sGetRowFunc = `
@@ -158,8 +156,8 @@ func all{{.CamelName}}ColumnNamesQuoted(q quote.Quoter) string {
 
 // Get{{.Type}}By{{.Table.Primary.Name}} gets the record with a given primary key value.
 // If not found, *{{.Type}} will be nil.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(ctx context.Context, req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.TypePkg}}{{.Type}}, error) {
-	return tbl.SelectOne(ctx, req, where.Eq("{{.Table.Primary.SqlName}}", id), nil)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(req require.Requirement, id {{.Table.Primary.Type.Type}}) (*{{.TypePkg}}{{.Type}}, error) {
+	return tbl.SelectOne(req, where.Eq("{{.Table.Primary.SqlName}}", id), nil)
 }
 
 // Get{{.Types}}By{{.Table.Primary.Name}} gets records from the table according to a list of primary keys.
@@ -168,11 +166,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Type}}By{{.Table.Primary.Name}}(
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}(ctx context.Context, req require.Requirement, qc where.QueryConstraint, {{.Table.Primary.SqlName}} ...{{.Table.Primary.Type.Type}}) (list {{.List}}, err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}(req require.Requirement, qc where.QueryConstraint, {{.Table.Primary.SqlName}} ...{{.Table.Primary.Type.Type}}) (list {{.List}}, err error) {
 	if req == require.All {
 		req = require.Exactly(len({{.Table.Primary.SqlName}}))
 	}
-	return tbl.Select(ctx, req, where.In("{{.Table.Primary.SqlName}}", {{.Table.Primary.SqlName}}), qc)
+	return tbl.Select(req, where.In("{{.Table.Primary.SqlName}}", {{.Table.Primary.SqlName}}), qc)
 }
 {{- end}}
 {{- range .Table.Index}}
@@ -180,31 +178,31 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}
 
 // Get{{$.Type}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
 // If not found, *{{$.Type}} will be nil.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{.JoinedNames "And"}}(ctx context.Context, req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.TypePkg}}{{$.Type}}, error) {
-	return tbl.SelectOne(ctx, req, where.And({{.Fields.WhereClauses.MkString ", "}}), nil)
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Type}}By{{.JoinedNames "And"}}(req require.Requirement, {{.Fields.FormalParams.MkString ", "}}) (*{{$.TypePkg}}{{$.Type}}, error) {
+	return tbl.SelectOne(req, where.And({{.Fields.WhereClauses.MkString ", "}}), nil)
 }
 {{- if eq (len .Fields) 1}}
 
 // Get{{$.Types}}By{{.JoinedNames "And"}} gets the record with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And"}}(ctx context.Context, req require.Requirement, qc where.QueryConstraint, {{(index .Fields 0).SqlName}} ...{{(index .Fields 0).Type.Type}}) ({{$.List}}, error) {
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, qc where.QueryConstraint, {{(index .Fields 0).SqlName}} ...{{(index .Fields 0).Type.Type}}) ({{$.List}}, error) {
 	if req == require.All {
 		req = require.Exactly(len({{(index .Fields 0).SqlName}}))
 	}
-	return tbl.Select(ctx, req, where.In("{{(index .Fields 0).SqlName}}", {{(index .Fields 0).SqlName}}), qc)
+	return tbl.Select(req, where.In("{{(index .Fields 0).SqlName}}", {{(index .Fields 0).SqlName}}), qc)
 }
 {{- end}}
 {{- else }}
 
 // Get{{$.Types}}By{{.JoinedNames "And"}} gets the records with{{if .Single}} a{{end}} given {{.Fields.SqlNames.MkString "+"}} value{{if not .Single}}s{{end}}.
 // If not found, the resulting slice will be empty (nil).
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And"}}(ctx context.Context, req require.Requirement, qc where.QueryConstraint, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error) {
-	return tbl.Select(ctx, req, where.And({{.Fields.WhereClauses.MkString ", "}}), qc)
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And"}}(req require.Requirement, qc where.QueryConstraint, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error) {
+	return tbl.Select(req, where.And({{.Fields.WhereClauses.MkString ", "}}), qc)
 }
 {{- end}}
 {{- end}}
 
-func do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScanOne(ctx context.Context, tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, query string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error) {
-	list, err := do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(ctx, tbl, req, true, query, args...)
+func do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScanOne(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, req require.Requirement, query string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error) {
+	list, err := do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -213,8 +211,8 @@ func do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScanOne(ctx context.Context, tbl {{
 
 // Fetch fetches a list of {{.Type}} based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of {{.Type}}. Other queries might be better handled by GetXxx or Select methods.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ({{.List}}, error) {
-	return do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(ctx, tbl, req, false, query, args...)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Fetch(req require.Requirement, query string, args ...interface{}) ({{.List}}, error) {
+	return do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl, req, false, query, args...)
 }
 `
 
@@ -225,16 +223,16 @@ var tGetRowFunc = template.Must(template.New("GetRowFunc").Funcs(funcMap).Parse(
 
 const sSelectRowsDecl = `
 	// SelectOneWhere allows a single {{.Type}} to be obtained from the table that matches a 'where' clause.
-	SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error)
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error)
 
 	// SelectOne allows a single {{.Type}} to be obtained from the table that matches a 'where' clause.
-	SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*{{.TypePkg}}{{.Type}}, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*{{.TypePkg}}{{.Type}}, error)
 
 	// SelectWhere allows {{.Types}} to be obtained from the table that match a 'where' clause.
-	SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ({{.List}}, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ({{.List}}, error)
 
 	// Select allows {{.Types}} to be obtained from the table that match a 'where' clause.
-	Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ({{.List}}, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ({{.List}}, error)
 `
 
 const sSelectRowsFunc = `
@@ -247,11 +245,11 @@ const sSelectRowsFunc = `
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*{{.TypePkg}}{{.Type}}, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	v, err := do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScanOne(ctx, tbl, req, query, args...)
+	v, err := do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -262,11 +260,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(ctx context.Context, re
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*{{.TypePkg}}{{.Type}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*{{.TypePkg}}{{.Type}}, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectOneWhere(ctx, req, whs, orderBy, args...)
+	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
 // SelectWhere allows {{.Types}} to be obtained from the table that match a 'where' clause.
@@ -277,11 +275,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(ctx context.Context, req req
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ({{.List}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ({{.List}}, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
 		all{{.CamelName}}ColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	vv, err := do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(ctx, tbl, req, false, query, args...)
+	vv, err := do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -291,11 +289,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(ctx context.Context, req r
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ({{.List}}, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ({{.List}}, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectWhere(ctx, req, whs, orderBy, args...)
+	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 `
 
@@ -306,10 +304,10 @@ var tSelectRowsFunc = template.Must(template.New("SelectRowsFunc").Funcs(funcMap
 
 const sCountRowsDecl = `
 	// CountWhere counts {{.Types}} in the table that match a 'where' clause.
-	CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error)
+	CountWhere(where string, args ...interface{}) (count int64, err error)
 
 	// Count counts the {{.Types}} in the table that match a 'where' clause.
-	Count(ctx context.Context, wh where.Expression) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
 `
 
 const sCountRowsFunc = `
@@ -317,10 +315,10 @@ const sCountRowsFunc = `
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -333,9 +331,9 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(ctx context.Context, where 
 
 // Count counts the {{.Types}} in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Count(ctx context.Context, wh where.Expression) (count int64, err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	return tbl.CountWhere(ctx, whs, args...)
+	return tbl.CountWhere(whs, args...)
 }
 `
 
@@ -347,17 +345,17 @@ var tCountRowsFunc = template.Must(template.New("CountRowsFunc").Funcs(funcMap).
 const sSliceItemDecl = `
 {{- if .Table.HasPrimaryKey}}
 	// Slice{{camel .Table.Primary.SqlName}} gets the {{.Table.Primary.SqlName}} column for all rows that match the 'where' condition.
-	Slice{{camel .Table.Primary.SqlName}}(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Table.Primary.Type.Type}}, error)
+	Slice{{camel .Table.Primary.SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Table.Primary.Type.Type}}, error)
 {{- end}}
 {{- range .Table.SimpleFields.NoSkips.NoPrimary.BasicType}}
 
 	// Slice{{camel .SqlName}} gets the {{.SqlName}} column for all rows that match the 'where' condition.
-	Slice{{camel .SqlName}}(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error)
+	Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error)
 {{- end}}
 {{- range .Table.SimpleFields.NoSkips.NoPrimary.DerivedType}}
 
 	// Slice{{camel .SqlName}} gets the {{.SqlName}} column for all rows that match the 'where' condition.
-	Slice{{camel .SqlName}}(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error)
+	Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error)
 {{- end}}
 `
 
@@ -368,8 +366,8 @@ const sSliceItemFunc = `
 // Slice{{camel .Table.Primary.SqlName}} gets the {{.Table.Primary.SqlName}} column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Slice{{camel .Table.Primary.SqlName}}(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Table.Primary.Type.Type}}, error) {
-	return support.Slice{{camel .Table.Primary.Type.Tag}}List(ctx, tbl, req, tbl.pk, wh, qc)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Slice{{camel .Table.Primary.SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Table.Primary.Type.Type}}, error) {
+	return support.Slice{{camel .Table.Primary.Type.Tag}}List(tbl, req, tbl.pk, wh, qc)
 }
 {{- end}}
 {{- range .Table.SimpleFields.NoSkips.NoPrimary.BasicType}}
@@ -377,8 +375,8 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Slice{{camel .Table.Primary.SqlName}}(
 // Slice{{camel .SqlName}} gets the {{.SqlName}} column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error) {
-	return support.Slice{{camel .Type.Tag}}List(ctx, tbl, req, "{{.SqlName}}", wh, qc)
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error) {
+	return support.Slice{{camel .Type.Tag}}List(tbl, req, "{{.SqlName}}", wh, qc)
 }
 {{- end}}
 {{- range .Table.SimpleFields.NoSkips.NoPrimary.DerivedType}}
@@ -386,19 +384,19 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(ctx context
 // Slice{{camel .SqlName}} gets the {{.SqlName}} column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error) {
-	return slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Type.Tag}}List(ctx, tbl, req, "{{.SqlName}}", wh, qc)
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]{{.Type.Type}}, error) {
+	return slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Type.Tag}}List(tbl, req, "{{.SqlName}}", wh, qc)
 }
 {{- end}}
 {{- range .Table.SimpleFields.NoSkips.NoPrimary.DerivedType.DistinctTypes}}
 
-func slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Tag}}List(ctx context.Context, tbl {{$.Prefix}}{{$.Type}}{{$.Thinger}}, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
+func slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Tag}}List(tbl {{$.Prefix}}{{$.Type}}{{$.Thinger}}, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -451,7 +449,7 @@ var tConstructUpdateFunc = template.Must(template.New("ConstructUpdateFunc").Fun
 
 const sInsertDecl = `
 	// Insert adds new records for the {{.Types}}{{if .Table.HasIntegerPrimaryKey}}, setting the primary key field for each one{{end}}.
-	Insert(ctx context.Context, req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) error
+	Insert(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) error
 `
 
 const sInsertFunc = `
@@ -460,13 +458,9 @@ const sInsertFunc = `
 // Insert adds new records for the {{.Types}}.
 {{- if .Table.HasIntegerPrimaryKey}}// The {{.Types}} have their primary key fields set to the new record identifiers.{{end}}
 // The {{.Type}}.PreInsert() method will be called, if it exists.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(ctx context.Context, req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) error {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
 	}
 
 	var count int64
@@ -509,7 +503,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(ctx context.Context, req requir
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(ctx, query, fields...)
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			{{- if .Table.HasIntegerPrimaryKey}}
@@ -522,7 +516,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(ctx context.Context, req requir
 
 		} else {
 			{{- if .Table.HasIntegerPrimaryKey}}
-			i64, e2 := tbl.db.InsertContext(ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
@@ -533,7 +527,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(ctx context.Context, req requir
 			v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(i64)
 			{{- end}}
 			{{- else}}
-			_, e3 := tbl.db.ExecContext(ctx, query, fields...)
+			_, e3 := tbl.db.ExecContext(tbl.ctx, query, fields...)
 			if e3 != nil {
 				return tbl.Logger().LogError(e3)
 			}
@@ -558,25 +552,25 @@ var tInsertFunc = template.Must(template.New("InsertFunc").Funcs(funcMap).Parse(
 const sUpdateFieldsDecl = `
 {{- range .Table.SimpleFields.NoSkips}}
 	// UpdateBy{{camel .SqlName}} updates one or more columns, given a {{.SqlName}} value.
-	UpdateBy{{camel .SqlName}}(ctx context.Context, req require.Requirement, {{.SqlName}} {{.Type.Type}}, fields ...sql.NamedArg) (int64, error)
+	UpdateBy{{camel .SqlName}}(req require.Requirement, {{.SqlName}} {{.Type.Type}}, fields ...sql.NamedArg) (int64, error)
 {{end}}
 	// UpdateFields updates one or more columns, given a 'where' clause.
-	UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
 `
 
 const sUpdateFieldsFunc = `
 {{- range .Table.SimpleFields.NoSkips}}
 
 // UpdateBy{{camel .SqlName}} updates one or more columns, given a {{.SqlName}} value.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) UpdateBy{{camel .SqlName}}(ctx context.Context, req require.Requirement, {{.SqlName}} {{.Type.Type}}, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("{{.SqlName}}", {{.SqlName}}), fields...)
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) UpdateBy{{camel .SqlName}}(req require.Requirement, {{.SqlName}} {{.Type.Type}}, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("{{.SqlName}}", {{.SqlName}}), fields...)
 }
 {{- end}}
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(ctx, tbl, req, wh, fields...)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 `
 
@@ -587,7 +581,7 @@ var tUpdateFieldsFunc = template.Must(template.New("UpdateFieldsFunc").Funcs(fun
 
 const sUpdateDecl = `
 	// Update updates records, matching them by primary key.
-	Update(ctx context.Context, req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) (int64, error)
+	Update(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) (int64, error)
 `
 
 const sUpdateFunc = `
@@ -596,7 +590,7 @@ const sUpdateFunc = `
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The {{.Type}}.PreUpdate(Execer) method will be called, if it exists.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(ctx context.Context, req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) (int64, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...*{{.TypePkg}}{{.Type}}) (int64, error) {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -630,7 +624,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(ctx context.Context, req requir
 		b.WriteString("=?")
 
 		query := b.String()
-		n, err := tbl.Exec(ctx, nil, query, args...)
+		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
 		}
@@ -654,7 +648,7 @@ const sUpsertDecl = `
 	// key column(s). It must match either zero or one existing record. If it matches
 	// none, a new record is inserted; otherwise the matching record is updated. An
 	// error results if these conditions are not met.
-	Upsert(ctx context.Context, v *{{.TypePkg}}{{.Type}}, wh where.Expression) error
+	Upsert(v *{{.TypePkg}}{{.Type}}, wh where.Expression) error
 {{- end -}}
 `
 
@@ -667,20 +661,20 @@ const sUpsertFunc = `
 // key column(s). It must match either zero or one existing record. If it matches
 // none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Upsert(ctx context.Context, v *{{.TypePkg}}{{.Type}}, wh where.Expression) error {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Upsert(v *{{.TypePkg}}{{.Type}}, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)
 	qName := tbl.quotedName()
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 
 	query := fmt.Sprintf("SELECT %s FROM %s %s", col, qName, whs)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return tbl.Insert(ctx, require.One, v)
+		return tbl.Insert(require.One, v)
 	}
 
 	var id {{.Table.Primary.Type.Type}}
@@ -694,7 +688,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Upsert(ctx context.Context, v *{{.Type
 	}
 
 	v.{{.Table.Primary.Name}} = id
-	_, err = tbl.Update(ctx, require.One, v)
+	_, err = tbl.Update(require.One, v)
 	return err
 }
 {{- end -}}
@@ -710,12 +704,12 @@ const sDeleteDecl = `
 
 	// DeleteBy{{camel .SqlName}} deletes rows from the table, given some {{.SqlName}} values.
 	// The list of ids can be arbitrarily long.
-	DeleteBy{{camel .SqlName}}(ctx context.Context, req require.Requirement, {{.SqlName}} ...{{.Type.Type}}) (int64, error)
+	DeleteBy{{camel .SqlName}}(req require.Requirement, {{.SqlName}} ...{{.Type.Type}}) (int64, error)
 {{- end}}
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
-	Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error)
+	Delete(req require.Requirement, wh where.Expression) (int64, error)
 `
 
 const sDeleteFunc = `
@@ -723,7 +717,7 @@ const sDeleteFunc = `
 
 // DeleteBy{{camel .SqlName}} deletes rows from the table, given some {{.SqlName}} values.
 // The list of ids can be arbitrarily long.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) DeleteBy{{camel .SqlName}}(ctx context.Context, req require.Requirement, {{.SqlName}} ...{{.Type.Type}}) (int64, error) {
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) DeleteBy{{camel .SqlName}}(req require.Requirement, {{.SqlName}} ...{{.Type.Type}}) (int64, error) {
 	{{if .Type.IsBasicType}}ii := support.{{camel .Type.Type}}AsInterfaceSlice({{.SqlName}})
 	{{- else -}}
 	ii := make([]interface{}, len({{.SqlName}}))
@@ -731,15 +725,15 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) DeleteBy{{camel .SqlName}}(ctx cont
 		ii[i] = v
 	}
 	{{- end}}
-	return support.DeleteByColumn(ctx, tbl, req, "{{.SqlName}}", ii...)
+	return support.DeleteByColumn(tbl, req, "{{.SqlName}}", ii...)
 }
 {{- end}}
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Delete(req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := deleteRows{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl, wh)
-	return tbl.Exec(ctx, req, query, args...)
+	return tbl.Exec(req, query, args...)
 }
 
 func deleteRows{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, wh where.Expression) (string, []interface{}) {

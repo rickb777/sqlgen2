@@ -26,6 +26,9 @@ type {{.Prefix}}{{.Type}}{{.Thinger}} interface {
 
 	// WithPrefix returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with a given table name prefix.
 	WithPrefix(pfx string) {{.Prefix}}{{.Type}}{{.Thinger}}
+
+	// WithContext returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with a given context.
+	WithContext(ctx context.Context) {{.Prefix}}{{.Type}}{{.Thinger}}
 `
 
 const sQueryer = `
@@ -39,7 +42,7 @@ type {{.Prefix}}{{.Type}}Queryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(ctx context.Context, txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}Queryer) error) error
+	Transact(txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}Queryer) error) error
 `
 
 var tTabler = template.Must(template.New("Tabler").Funcs(funcMap).Parse(sTabler))
@@ -58,6 +61,7 @@ type {{.Prefix}}{{.Type}}{{.Thing}} struct {
 {{- if .HasConstraints}}
 	constraints constraint.Constraints
 {{- end}}
+	ctx         context.Context
 	pk          string
 }
 
@@ -86,6 +90,7 @@ return {{.Prefix}}{{.Type}}{{.Thing}}{
 {{- if .HasConstraints}}
 		constraints: constraints,
 {{- end}}
+		ctx:         context.Background(),
 		pk:          "{{.Table.SafePrimary.SqlName}}",
 	}
 }
@@ -103,6 +108,7 @@ func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin {{.Sqlapi}}.Ta
 {{- if .HasConstraints}}
 		constraints: nil,
 {{- end}}
+		ctx:         origin.Ctx(),
 		pk:          "{{.Table.SafePrimary.SqlName}}",
 	}
 }
@@ -120,6 +126,16 @@ func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin {{.Sqlapi}}.Ta
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithPrefix(pfx string) {{.Prefix}}{{.Type}}{{.Thinger}} {
 	tbl.name.Prefix = pfx
+	return tbl
+}
+
+// WithContext sets the context for subsequent queries via this table.
+// The result is a modified copy of the table; the original is unchanged.
+//
+// The shared context in the *Database is not altered by this method. So it
+// is possible to use different contexts for different (groups of) queries.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithContext(ctx context.Context) {{.Prefix}}{{.Type}}{{.Thinger}} {
+	tbl.ctx = ctx
 	return tbl
 }
 
@@ -145,6 +161,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Constraints() constraint.Constraints {
 	return tbl.constraints
 }
 {{- end}}
+
+// Ctx gets the current request context.
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Ctx() context.Context {
+	return tbl.ctx
+}
 
 // Dialect gets the database dialect.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Dialect() dialect.Dialect {
@@ -202,12 +223,12 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx {{.Sqlapi}}.Execer) {{.Prefix
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Transact(ctx context.Context, txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}Queryer) error) error {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Transact(txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}Queryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(ctx, txOptions, func(tx {{.Sqlapi}}.SqlTx) error {
+		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx {{.Sqlapi}}.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -295,7 +316,7 @@ var tSetterFunc = template.Must(template.New("SetterFunc").Funcs(funcMap).Parse(
 
 const sTruncateDecl = `
 	// Truncate drops every record from the table, if possible.
-	Truncate(ctx context.Context, force bool) (err error)
+	Truncate(force bool) (err error)
 `
 
 const sTruncateFunc = `
@@ -306,9 +327,9 @@ const sTruncateFunc = `
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Truncate(ctx context.Context, force bool) (err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(ctx, tbl, nil, query)
+		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -324,17 +345,17 @@ var tTruncateFunc = template.Must(template.New("TruncateFunc").Funcs(funcMap).Pa
 
 const sCreateTableDecl = `
 	// CreateTable creates the table.
-	CreateTable(ctx context.Context, ifNotExists bool) (int64, error)
+	CreateTable(ifNotExists bool) (int64, error)
 
 	// DropTable drops the table, destroying all its data.
-	DropTable(ctx context.Context, ifExists bool) (int64, error)
+	DropTable(ifExists bool) (int64, error)
 `
 
 // function template to create a table
 const sCreateTableFunc = `
 // CreateTable creates the table.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateTable(ctx context.Context, ifNotExists bool) (int64, error) {
-	return support.Exec(ctx, tbl, nil, create{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl, ifNotExists))
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateTable(ifNotExists bool) (int64, error) {
+	return support.Exec(tbl, nil, create{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl, ifNotExists))
 }
 
 func create{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, ifNotExists bool) string {
@@ -382,8 +403,8 @@ func ternary{{.Prefix}}{{.Type}}{{.Thing}}(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DropTable(ctx context.Context, ifExists bool) (int64, error) {
-	return support.Exec(ctx, tbl, nil, drop{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl, ifExists))
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DropTable(ifExists bool) (int64, error) {
+	return support.Exec(tbl, nil, drop{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl, ifExists))
 }
 
 func drop{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl {{.Prefix}}{{.Type}}{{.Thinger}}, ifExists bool) string {
@@ -399,36 +420,36 @@ var tCreateTableFunc = template.Must(template.New("CreateTableFunc").Funcs(funcM
 
 const sCreateIndexesDecl = `
 	// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-	CreateTableWithIndexes(ctx context.Context, ifNotExist bool) (err error)
+	CreateTableWithIndexes(ifNotExist bool) (err error)
 
 	// CreateIndexes executes queries that create the indexes needed by the {{.Type}} table.
-	CreateIndexes(ctx context.Context, ifNotExist bool) (err error)
+	CreateIndexes(ifNotExist bool) (err error)
 {{- range .Table.Index}}
 
 	// Create{{camel .Name}}Index creates the {{.Name}} index.
-	Create{{camel .Name}}Index(ctx context.Context, ifNotExist bool) error
+	Create{{camel .Name}}Index(ifNotExist bool) error
 
 	// Drop{{camel .Name}}Index drops the {{.Name}} index.
-	Drop{{camel .Name}}Index(ctx context.Context, ifExists bool) error
+	Drop{{camel .Name}}Index(ifExists bool) error
 {{- end}}
 `
 
 // function template to create DDL for indexes
 const sCreateIndexesFunc = `
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateTableWithIndexes(ctx context.Context, ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ctx, ifNotExist)
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	return tbl.CreateIndexes(ctx, ifNotExist)
+	return tbl.CreateIndexes(ifNotExist)
 }
 
 // CreateIndexes executes queries that create the indexes needed by the {{.Type}} table.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateIndexes(ctx context.Context, ifNotExist bool) (err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateIndexes(ifNotExist bool) (err error) {
 {{range .Table.Index}}
-	err = tbl.Create{{camel .Name}}Index(ctx, ifNotExist)
+	err = tbl.Create{{camel .Name}}Index(ifNotExist)
 	if err != nil {
 		return err
 	}
@@ -437,7 +458,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateIndexes(ctx context.Context, ifN
 }
 {{range .Table.Index}}
 // Create{{camel .Name}}Index creates the {{.Name}} index.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ctx context.Context, ifNotExist bool) error {
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ifNotExist bool) error {
 	ine := ternary{{$.Prefix}}{{$.Type}}{{$.Thing}}(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -445,11 +466,11 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ctx cont
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(ctx, drop{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl, false))
+		tbl.Execer().ExecContext(tbl.ctx, drop{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(ctx, nil, create{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl, ine))
+	_, err := tbl.Exec(nil, create{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl, ine))
 	return err
 }
 
@@ -464,8 +485,8 @@ func create{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl {{$.Prefix}}{
 }
 
 // Drop{{camel .Name}}Index drops the {{.Name}} index.
-func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Drop{{camel .Name}}Index(ctx context.Context, ifExists bool) error {
-	_, err := tbl.Exec(ctx, nil, drop{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl, ifExists))
+func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Drop{{camel .Name}}Index(ifExists bool) error {
+	_, err := tbl.Exec(nil, drop{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl, ifExists))
 	return err
 }
 
@@ -482,9 +503,9 @@ func drop{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl {{$.Prefix}}{{$
 }
 {{end}}
 // DropIndexes executes queries that drop the indexes on by the {{.Type}} table.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DropIndexes(ctx context.Context, ifExist bool) (err error) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DropIndexes(ifExist bool) (err error) {
 {{range .Table.Index}}
-	err = tbl.Drop{{camel .Name}}Index(ctx, ifExist)
+	err = tbl.Drop{{camel .Name}}Index(ifExist)
 	if err != nil {
 		return err
 	}

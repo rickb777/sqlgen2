@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.47.1; sqlgen v0.67.0
+// sqlapi v0.49.0; sqlgen v0.68.0
 
 package demo
 
@@ -24,6 +24,9 @@ type SUserTabler interface {
 
 	// WithPrefix returns a modified SUserTabler with a given table name prefix.
 	WithPrefix(pfx string) SUserTabler
+
+	// WithContext returns a modified SUserTabler with a given context.
+	WithContext(ctx context.Context) SUserTabler
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -38,60 +41,60 @@ type SUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(SUserQueryer) error) error
+	Transact(txOptions *sql.TxOptions, fn func(SUserQueryer) error) error
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for User values.
-	Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
 
 	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 
 	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
 	// GetUserByUid gets the record with a given primary key value.
-	GetUserByUid(ctx context.Context, req require.Requirement, id int64) (*User, error)
+	GetUserByUid(req require.Requirement, id int64) (*User, error)
 
 	// GetUsersByUid gets records from the table according to a list of primary keys.
-	GetUsersByUid(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*User, err error)
+	GetUsersByUid(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*User, err error)
 
 	// GetUserByEmailAddress gets the record with a given emailaddress value.
-	GetUserByEmailAddress(ctx context.Context, req require.Requirement, emailaddress string) (*User, error)
+	GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error)
 
 	// GetUsersByEmailAddress gets the record with a given emailaddress value.
-	GetUsersByEmailAddress(ctx context.Context, req require.Requirement, qc where.QueryConstraint, emailaddress ...string) ([]*User, error)
+	GetUsersByEmailAddress(req require.Requirement, qc where.QueryConstraint, emailaddress ...string) ([]*User, error)
 
 	// GetUserByName gets the record with a given name value.
-	GetUserByName(ctx context.Context, req require.Requirement, name string) (*User, error)
+	GetUserByName(req require.Requirement, name string) (*User, error)
 
 	// GetUsersByName gets the record with a given name value.
-	GetUsersByName(ctx context.Context, req require.Requirement, qc where.QueryConstraint, name ...string) ([]*User, error)
+	GetUsersByName(req require.Requirement, qc where.QueryConstraint, name ...string) ([]*User, error)
 
 	// Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
 	// result columns to the fields of User. Other queries might be better handled by GetXxx or Select methods.
-	Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	Fetch(req require.Requirement, query string, args ...interface{}) ([]*User, error)
 
 	// SelectOneWhere allows a single User to be obtained from the table that matches a 'where' clause.
-	SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*User, error)
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error)
 
 	// SelectOne allows a single User to be obtained from the table that matches a 'where' clause.
-	SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error)
 
 	// SelectWhere allows Users to be obtained from the table that match a 'where' clause.
-	SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error)
 
 	// Select allows Users to be obtained from the table that match a 'where' clause.
-	Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error)
 
 	// CountWhere counts Users in the table that match a 'where' clause.
-	CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error)
+	CountWhere(where string, args ...interface{}) (count int64, err error)
 
 	// Count counts the Users in the table that match a 'where' clause.
-	Count(ctx context.Context, wh where.Expression) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -103,6 +106,7 @@ type SUserTable struct {
 	name     sqlapi.TableName
 	database sqlapi.Database
 	db       sqlapi.Execer
+	ctx      context.Context
 	pk       string
 }
 
@@ -120,6 +124,7 @@ func NewSUserTable(name string, d sqlapi.Database) SUserTable {
 		name:     sqlapi.TableName{Prefix: "", Name: name},
 		database: d,
 		db:       d.DB(),
+		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -134,6 +139,7 @@ func CopyTableAsSUserTable(origin sqlapi.Table) SUserTable {
 		name:     origin.Name(),
 		database: origin.Database(),
 		db:       origin.Execer(),
+		ctx:      origin.Ctx(),
 		pk:       "uid",
 	}
 }
@@ -152,6 +158,16 @@ func (tbl SUserTable) WithPrefix(pfx string) SUserTabler {
 	return tbl
 }
 
+// WithContext sets the context for subsequent queries via this table.
+// The result is a modified copy of the table; the original is unchanged.
+//
+// The shared context in the *Database is not altered by this method. So it
+// is possible to use different contexts for different (groups of) queries.
+func (tbl SUserTable) WithContext(ctx context.Context) SUserTabler {
+	tbl.ctx = ctx
+	return tbl
+}
+
 // Database gets the shared database information.
 func (tbl SUserTable) Database() sqlapi.Database {
 	return tbl.database
@@ -160,6 +176,11 @@ func (tbl SUserTable) Database() sqlapi.Database {
 // Logger gets the trace logger.
 func (tbl SUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
+}
+
+// Ctx gets the current request context.
+func (tbl SUserTable) Ctx() context.Context {
+	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -216,12 +237,12 @@ func (tbl SUserTable) Using(tx sqlapi.Execer) SUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl SUserTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(SUserQueryer) error) error {
+func (tbl SUserTable) Transact(txOptions *sql.TxOptions, fn func(SUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -260,18 +281,18 @@ var listOfSUserTableColumnNames = strings.Split(SUserTableColumnNames, ",")
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
+// If you need a context other than the background, use WithContext before calling Query.
+//
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-//
-// If the context ctx is nil, it defaults to context.Background().
-func (tbl SUserTable) Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return doSUserTableQueryAndScan(ctx, tbl, req, false, query, args)
+func (tbl SUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return doSUserTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func doSUserTableQueryAndScan(ctx context.Context, tbl SUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
-	rows, err := support.Query(ctx, tbl, query, args...)
+func doSUserTableQueryAndScan(tbl SUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -290,8 +311,8 @@ func doSUserTableQueryAndScan(ctx context.Context, tbl SUserTabler, req require.
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl SUserTable) QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl SUserTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -302,8 +323,8 @@ func (tbl SUserTable) QueryOneNullString(ctx context.Context, req require.Requir
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl SUserTable) QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl SUserTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -314,8 +335,8 @@ func (tbl SUserTable) QueryOneNullInt64(ctx context.Context, req require.Require
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl SUserTable) QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl SUserTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -447,8 +468,8 @@ func allSUserColumnNamesQuoted(q quote.Quoter) string {
 
 // GetUserByUid gets the record with a given primary key value.
 // If not found, *User will be nil.
-func (tbl SUserTable) GetUserByUid(ctx context.Context, req require.Requirement, id int64) (*User, error) {
-	return tbl.SelectOne(ctx, req, where.Eq("uid", id), nil)
+func (tbl SUserTable) GetUserByUid(req require.Requirement, id int64) (*User, error) {
+	return tbl.SelectOne(req, where.Eq("uid", id), nil)
 }
 
 // GetUsersByUid gets records from the table according to a list of primary keys.
@@ -457,43 +478,43 @@ func (tbl SUserTable) GetUserByUid(ctx context.Context, req require.Requirement,
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl SUserTable) GetUsersByUid(ctx context.Context, req require.Requirement, qc where.QueryConstraint, uid ...int64) (list []*User, err error) {
+func (tbl SUserTable) GetUsersByUid(req require.Requirement, qc where.QueryConstraint, uid ...int64) (list []*User, err error) {
 	if req == require.All {
 		req = require.Exactly(len(uid))
 	}
-	return tbl.Select(ctx, req, where.In("uid", uid), qc)
+	return tbl.Select(req, where.In("uid", uid), qc)
 }
 
 // GetUserByEmailAddress gets the record with a given emailaddress value.
 // If not found, *User will be nil.
-func (tbl SUserTable) GetUserByEmailAddress(ctx context.Context, req require.Requirement, emailaddress string) (*User, error) {
-	return tbl.SelectOne(ctx, req, where.And(where.Eq("emailaddress", emailaddress)), nil)
+func (tbl SUserTable) GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error) {
+	return tbl.SelectOne(req, where.And(where.Eq("emailaddress", emailaddress)), nil)
 }
 
 // GetUsersByEmailAddress gets the record with a given emailaddress value.
-func (tbl SUserTable) GetUsersByEmailAddress(ctx context.Context, req require.Requirement, qc where.QueryConstraint, emailaddress ...string) ([]*User, error) {
+func (tbl SUserTable) GetUsersByEmailAddress(req require.Requirement, qc where.QueryConstraint, emailaddress ...string) ([]*User, error) {
 	if req == require.All {
 		req = require.Exactly(len(emailaddress))
 	}
-	return tbl.Select(ctx, req, where.In("emailaddress", emailaddress), qc)
+	return tbl.Select(req, where.In("emailaddress", emailaddress), qc)
 }
 
 // GetUserByName gets the record with a given name value.
 // If not found, *User will be nil.
-func (tbl SUserTable) GetUserByName(ctx context.Context, req require.Requirement, name string) (*User, error) {
-	return tbl.SelectOne(ctx, req, where.And(where.Eq("name", name)), nil)
+func (tbl SUserTable) GetUserByName(req require.Requirement, name string) (*User, error) {
+	return tbl.SelectOne(req, where.And(where.Eq("name", name)), nil)
 }
 
 // GetUsersByName gets the record with a given name value.
-func (tbl SUserTable) GetUsersByName(ctx context.Context, req require.Requirement, qc where.QueryConstraint, name ...string) ([]*User, error) {
+func (tbl SUserTable) GetUsersByName(req require.Requirement, qc where.QueryConstraint, name ...string) ([]*User, error) {
 	if req == require.All {
 		req = require.Exactly(len(name))
 	}
-	return tbl.Select(ctx, req, where.In("name", name), qc)
+	return tbl.Select(req, where.In("name", name), qc)
 }
 
-func doSUserTableQueryAndScanOne(ctx context.Context, tbl SUserTabler, req require.Requirement, query string, args ...interface{}) (*User, error) {
-	list, err := doSUserTableQueryAndScan(ctx, tbl, req, true, query, args...)
+func doSUserTableQueryAndScanOne(tbl SUserTabler, req require.Requirement, query string, args ...interface{}) (*User, error) {
+	list, err := doSUserTableQueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -502,8 +523,8 @@ func doSUserTableQueryAndScanOne(ctx context.Context, tbl SUserTabler, req requi
 
 // Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of User. Other queries might be better handled by GetXxx or Select methods.
-func (tbl SUserTable) Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return doSUserTableQueryAndScan(ctx, tbl, req, false, query, args...)
+func (tbl SUserTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return doSUserTableQueryAndScan(tbl, req, false, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -517,11 +538,11 @@ func (tbl SUserTable) Fetch(ctx context.Context, req require.Requirement, query 
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl SUserTable) SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
+func (tbl SUserTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		allSUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	v, err := doSUserTableQueryAndScanOne(ctx, tbl, req, query, args...)
+	v, err := doSUserTableQueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -532,11 +553,11 @@ func (tbl SUserTable) SelectOneWhere(ctx context.Context, req require.Requiremen
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl SUserTable) SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
+func (tbl SUserTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectOneWhere(ctx, req, whs, orderBy, args...)
+	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
 // SelectWhere allows Users to be obtained from the table that match a 'where' clause.
@@ -547,11 +568,11 @@ func (tbl SUserTable) SelectOne(ctx context.Context, req require.Requirement, wh
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl SUserTable) SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
+func (tbl SUserTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
 		allSUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	vv, err := doSUserTableQueryAndScan(ctx, tbl, req, false, query, args...)
+	vv, err := doSUserTableQueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -561,11 +582,11 @@ func (tbl SUserTable) SelectWhere(ctx context.Context, req require.Requirement, 
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
-func (tbl SUserTable) Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
+func (tbl SUserTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectWhere(ctx, req, whs, orderBy, args...)
+	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -574,10 +595,10 @@ func (tbl SUserTable) Select(ctx context.Context, req require.Requirement, wh wh
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl SUserTable) CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error) {
+func (tbl SUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -590,7 +611,7 @@ func (tbl SUserTable) CountWhere(ctx context.Context, where string, args ...inte
 
 // Count counts the Users in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl SUserTable) Count(ctx context.Context, wh where.Expression) (count int64, err error) {
+func (tbl SUserTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	return tbl.CountWhere(ctx, whs, args...)
+	return tbl.CountWhere(whs, args...)
 }

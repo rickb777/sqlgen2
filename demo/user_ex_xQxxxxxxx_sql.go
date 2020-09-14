@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.47.1; sqlgen v0.67.0
+// sqlapi v0.49.0; sqlgen v0.68.0
 
 package demo
 
@@ -21,6 +21,9 @@ type QUserTabler interface {
 
 	// WithPrefix returns a modified QUserTabler with a given table name prefix.
 	WithPrefix(pfx string) QUserTabler
+
+	// WithContext returns a modified QUserTabler with a given context.
+	WithContext(ctx context.Context) QUserTabler
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -35,20 +38,20 @@ type QUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(QUserQueryer) error) error
+	Transact(txOptions *sql.TxOptions, fn func(QUserQueryer) error) error
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for User values.
-	Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
 
 	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 
 	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -60,6 +63,7 @@ type QUserTable struct {
 	name     sqlapi.TableName
 	database sqlapi.Database
 	db       sqlapi.Execer
+	ctx      context.Context
 	pk       string
 }
 
@@ -77,6 +81,7 @@ func NewQUserTable(name string, d sqlapi.Database) QUserTable {
 		name:     sqlapi.TableName{Prefix: "", Name: name},
 		database: d,
 		db:       d.DB(),
+		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -91,6 +96,7 @@ func CopyTableAsQUserTable(origin sqlapi.Table) QUserTable {
 		name:     origin.Name(),
 		database: origin.Database(),
 		db:       origin.Execer(),
+		ctx:      origin.Ctx(),
 		pk:       "uid",
 	}
 }
@@ -109,6 +115,16 @@ func (tbl QUserTable) WithPrefix(pfx string) QUserTabler {
 	return tbl
 }
 
+// WithContext sets the context for subsequent queries via this table.
+// The result is a modified copy of the table; the original is unchanged.
+//
+// The shared context in the *Database is not altered by this method. So it
+// is possible to use different contexts for different (groups of) queries.
+func (tbl QUserTable) WithContext(ctx context.Context) QUserTabler {
+	tbl.ctx = ctx
+	return tbl
+}
+
 // Database gets the shared database information.
 func (tbl QUserTable) Database() sqlapi.Database {
 	return tbl.database
@@ -117,6 +133,11 @@ func (tbl QUserTable) Database() sqlapi.Database {
 // Logger gets the trace logger.
 func (tbl QUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
+}
+
+// Ctx gets the current request context.
+func (tbl QUserTable) Ctx() context.Context {
+	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -173,12 +194,12 @@ func (tbl QUserTable) Using(tx sqlapi.Execer) QUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl QUserTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(QUserQueryer) error) error {
+func (tbl QUserTable) Transact(txOptions *sql.TxOptions, fn func(QUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -217,18 +238,18 @@ var listOfQUserTableColumnNames = strings.Split(QUserTableColumnNames, ",")
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
+// If you need a context other than the background, use WithContext before calling Query.
+//
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-//
-// If the context ctx is nil, it defaults to context.Background().
-func (tbl QUserTable) Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return doQUserTableQueryAndScan(ctx, tbl, req, false, query, args)
+func (tbl QUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return doQUserTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func doQUserTableQueryAndScan(ctx context.Context, tbl QUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
-	rows, err := support.Query(ctx, tbl, query, args...)
+func doQUserTableQueryAndScan(tbl QUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -247,8 +268,8 @@ func doQUserTableQueryAndScan(ctx context.Context, tbl QUserTabler, req require.
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl QUserTable) QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl QUserTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -259,8 +280,8 @@ func (tbl QUserTable) QueryOneNullString(ctx context.Context, req require.Requir
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl QUserTable) QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl QUserTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -271,8 +292,8 @@ func (tbl QUserTable) QueryOneNullInt64(ctx context.Context, req require.Require
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl QUserTable) QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl QUserTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 

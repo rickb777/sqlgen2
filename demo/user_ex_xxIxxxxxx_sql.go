@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.47.1; sqlgen v0.67.0
+// sqlapi v0.49.0; sqlgen v0.68.0
 
 package demo
 
@@ -22,6 +22,9 @@ type IUserTabler interface {
 
 	// WithPrefix returns a modified IUserTabler with a given table name prefix.
 	WithPrefix(pfx string) IUserTabler
+
+	// WithContext returns a modified IUserTabler with a given context.
+	WithContext(ctx context.Context) IUserTabler
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -36,10 +39,10 @@ type IUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(IUserQueryer) error) error
+	Transact(txOptions *sql.TxOptions, fn func(IUserQueryer) error) error
 
 	// Insert adds new records for the Users, setting the primary key field for each one.
-	Insert(ctx context.Context, req require.Requirement, vv ...*User) error
+	Insert(req require.Requirement, vv ...*User) error
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -51,6 +54,7 @@ type IUserTable struct {
 	name     sqlapi.TableName
 	database sqlapi.Database
 	db       sqlapi.Execer
+	ctx      context.Context
 	pk       string
 }
 
@@ -68,6 +72,7 @@ func NewIUserTable(name string, d sqlapi.Database) IUserTable {
 		name:     sqlapi.TableName{Prefix: "", Name: name},
 		database: d,
 		db:       d.DB(),
+		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -82,6 +87,7 @@ func CopyTableAsIUserTable(origin sqlapi.Table) IUserTable {
 		name:     origin.Name(),
 		database: origin.Database(),
 		db:       origin.Execer(),
+		ctx:      origin.Ctx(),
 		pk:       "uid",
 	}
 }
@@ -100,6 +106,16 @@ func (tbl IUserTable) WithPrefix(pfx string) IUserTabler {
 	return tbl
 }
 
+// WithContext sets the context for subsequent queries via this table.
+// The result is a modified copy of the table; the original is unchanged.
+//
+// The shared context in the *Database is not altered by this method. So it
+// is possible to use different contexts for different (groups of) queries.
+func (tbl IUserTable) WithContext(ctx context.Context) IUserTabler {
+	tbl.ctx = ctx
+	return tbl
+}
+
 // Database gets the shared database information.
 func (tbl IUserTable) Database() sqlapi.Database {
 	return tbl.database
@@ -108,6 +124,11 @@ func (tbl IUserTable) Database() sqlapi.Database {
 // Logger gets the trace logger.
 func (tbl IUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
+}
+
+// Ctx gets the current request context.
+func (tbl IUserTable) Ctx() context.Context {
+	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -164,12 +185,12 @@ func (tbl IUserTable) Using(tx sqlapi.Execer) IUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl IUserTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(IUserQueryer) error) error {
+func (tbl IUserTable) Transact(txOptions *sql.TxOptions, fn func(IUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -434,13 +455,9 @@ func constructIUserTableInsert(tbl IUserTable, w dialect.StringWriter, v *User, 
 
 // Insert adds new records for the Users.// The Users have their primary key fields set to the new record identifiers.
 // The User.PreInsert() method will be called, if it exists.
-func (tbl IUserTable) Insert(ctx context.Context, req require.Requirement, vv ...*User) error {
+func (tbl IUserTable) Insert(req require.Requirement, vv ...*User) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
 	}
 
 	var count int64
@@ -478,13 +495,13 @@ func (tbl IUserTable) Insert(ctx context.Context, req require.Requirement, vv ..
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(ctx, query, fields...)
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Uid = i64
 
 		} else {
-			i64, e2 := tbl.db.InsertContext(ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}

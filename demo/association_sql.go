@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.47.1; sqlgen v0.67.0
+// sqlapi v0.49.0; sqlgen v0.68.0
 
 package demo
 
@@ -32,14 +32,17 @@ type AssociationTabler interface {
 	// WithPrefix returns a modified AssociationTabler with a given table name prefix.
 	WithPrefix(pfx string) AssociationTabler
 
+	// WithContext returns a modified AssociationTabler with a given context.
+	WithContext(ctx context.Context) AssociationTabler
+
 	// CreateTable creates the table.
-	CreateTable(ctx context.Context, ifNotExists bool) (int64, error)
+	CreateTable(ifNotExists bool) (int64, error)
 
 	// DropTable drops the table, destroying all its data.
-	DropTable(ctx context.Context, ifExists bool) (int64, error)
+	DropTable(ifExists bool) (int64, error)
 
 	// Truncate drops every record from the table, if possible.
-	Truncate(ctx context.Context, force bool) (err error)
+	Truncate(force bool) (err error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -54,131 +57,131 @@ type AssociationQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(AssociationQueryer) error) error
+	Transact(txOptions *sql.TxOptions, fn func(AssociationQueryer) error) error
 
 	// Exec executes a query without returning any rows.
-	Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error)
+	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for Association values.
-	Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Association, error)
+	Query(req require.Requirement, query string, args ...interface{}) ([]*Association, error)
 
 	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 
 	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
 	// GetAssociationById gets the record with a given primary key value.
-	GetAssociationById(ctx context.Context, req require.Requirement, id int64) (*Association, error)
+	GetAssociationById(req require.Requirement, id int64) (*Association, error)
 
 	// GetAssociationsById gets records from the table according to a list of primary keys.
-	GetAssociationsById(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Association, err error)
+	GetAssociationsById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Association, err error)
 
 	// Fetch fetches a list of Association based on a supplied query. This is mostly used for join queries that map its
 	// result columns to the fields of Association. Other queries might be better handled by GetXxx or Select methods.
-	Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Association, error)
+	Fetch(req require.Requirement, query string, args ...interface{}) ([]*Association, error)
 
 	// SelectOneWhere allows a single Association to be obtained from the table that matches a 'where' clause.
-	SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error)
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error)
 
 	// SelectOne allows a single Association to be obtained from the table that matches a 'where' clause.
-	SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Association, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Association, error)
 
 	// SelectWhere allows Associations to be obtained from the table that match a 'where' clause.
-	SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error)
 
 	// Select allows Associations to be obtained from the table that match a 'where' clause.
-	Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Association, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Association, error)
 
 	// CountWhere counts Associations in the table that match a 'where' clause.
-	CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error)
+	CountWhere(where string, args ...interface{}) (count int64, err error)
 
 	// Count counts the Associations in the table that match a 'where' clause.
-	Count(ctx context.Context, wh where.Expression) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
 
 	// SliceId gets the id column for all rows that match the 'where' condition.
-	SliceId(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceName gets the name column for all rows that match the 'where' condition.
-	SliceName(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceRef1 gets the ref1 column for all rows that match the 'where' condition.
-	SliceRef1(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceRef1(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceRef2 gets the ref2 column for all rows that match the 'where' condition.
-	SliceRef2(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceRef2(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceQuality gets the quality column for all rows that match the 'where' condition.
-	SliceQuality(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]QualName, error)
+	SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]QualName, error)
 
 	// SliceCategory gets the category column for all rows that match the 'where' condition.
-	SliceCategory(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
+	SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error)
 
 	// Insert adds new records for the Associations, setting the primary key field for each one.
-	Insert(ctx context.Context, req require.Requirement, vv ...*Association) error
+	Insert(req require.Requirement, vv ...*Association) error
 
 	// UpdateById updates one or more columns, given a id value.
-	UpdateById(ctx context.Context, req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
+	UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByName updates one or more columns, given a name value.
-	UpdateByName(ctx context.Context, req require.Requirement, name string, fields ...sql.NamedArg) (int64, error)
+	UpdateByName(req require.Requirement, name string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByQuality updates one or more columns, given a quality value.
-	UpdateByQuality(ctx context.Context, req require.Requirement, quality QualName, fields ...sql.NamedArg) (int64, error)
+	UpdateByQuality(req require.Requirement, quality QualName, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByRef1 updates one or more columns, given a ref1 value.
-	UpdateByRef1(ctx context.Context, req require.Requirement, ref1 int64, fields ...sql.NamedArg) (int64, error)
+	UpdateByRef1(req require.Requirement, ref1 int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByRef2 updates one or more columns, given a ref2 value.
-	UpdateByRef2(ctx context.Context, req require.Requirement, ref2 int64, fields ...sql.NamedArg) (int64, error)
+	UpdateByRef2(req require.Requirement, ref2 int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByCategory updates one or more columns, given a category value.
-	UpdateByCategory(ctx context.Context, req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error)
+	UpdateByCategory(req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateFields updates one or more columns, given a 'where' clause.
-	UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
 
 	// Update updates records, matching them by primary key.
-	Update(ctx context.Context, req require.Requirement, vv ...*Association) (int64, error)
+	Update(req require.Requirement, vv ...*Association) (int64, error)
 
 	// Upsert inserts or updates a record, matching it using the expression supplied.
 	// This expression is used to search for an existing record based on some specified
 	// key column(s). It must match either zero or one existing record. If it matches
 	// none, a new record is inserted; otherwise the matching record is updated. An
 	// error results if these conditions are not met.
-	Upsert(ctx context.Context, v *Association, wh where.Expression) error
+	Upsert(v *Association, wh where.Expression) error
 
 	// DeleteById deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteById(ctx context.Context, req require.Requirement, id ...int64) (int64, error)
+	DeleteById(req require.Requirement, id ...int64) (int64, error)
 
 	// DeleteByName deletes rows from the table, given some name values.
 	// The list of ids can be arbitrarily long.
-	DeleteByName(ctx context.Context, req require.Requirement, name ...string) (int64, error)
+	DeleteByName(req require.Requirement, name ...string) (int64, error)
 
 	// DeleteByQuality deletes rows from the table, given some quality values.
 	// The list of ids can be arbitrarily long.
-	DeleteByQuality(ctx context.Context, req require.Requirement, quality ...QualName) (int64, error)
+	DeleteByQuality(req require.Requirement, quality ...QualName) (int64, error)
 
 	// DeleteByRef1 deletes rows from the table, given some ref1 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByRef1(ctx context.Context, req require.Requirement, ref1 ...int64) (int64, error)
+	DeleteByRef1(req require.Requirement, ref1 ...int64) (int64, error)
 
 	// DeleteByRef2 deletes rows from the table, given some ref2 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByRef2(ctx context.Context, req require.Requirement, ref2 ...int64) (int64, error)
+	DeleteByRef2(req require.Requirement, ref2 ...int64) (int64, error)
 
 	// DeleteByCategory deletes rows from the table, given some category values.
 	// The list of ids can be arbitrarily long.
-	DeleteByCategory(ctx context.Context, req require.Requirement, category ...Category) (int64, error)
+	DeleteByCategory(req require.Requirement, category ...Category) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
-	Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error)
+	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -191,6 +194,7 @@ type AssociationTable struct {
 	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
+	ctx         context.Context
 	pk          string
 }
 
@@ -210,6 +214,7 @@ func NewAssociationTable(name string, d sqlapi.Database) AssociationTable {
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
+		ctx:         context.Background(),
 		pk:          "id",
 	}
 }
@@ -225,6 +230,7 @@ func CopyTableAsAssociationTable(origin sqlapi.Table) AssociationTable {
 		database:    origin.Database(),
 		db:          origin.Execer(),
 		constraints: nil,
+		ctx:         origin.Ctx(),
 		pk:          "id",
 	}
 }
@@ -240,6 +246,16 @@ func CopyTableAsAssociationTable(origin sqlapi.Table) AssociationTable {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AssociationTable) WithPrefix(pfx string) AssociationTabler {
 	tbl.name.Prefix = pfx
+	return tbl
+}
+
+// WithContext sets the context for subsequent queries via this table.
+// The result is a modified copy of the table; the original is unchanged.
+//
+// The shared context in the *Database is not altered by this method. So it
+// is possible to use different contexts for different (groups of) queries.
+func (tbl AssociationTable) WithContext(ctx context.Context) AssociationTabler {
+	tbl.ctx = ctx
 	return tbl
 }
 
@@ -262,6 +278,11 @@ func (tbl AssociationTable) WithConstraint(cc ...constraint.Constraint) Associat
 // Constraints returns the table's constraints.
 func (tbl AssociationTable) Constraints() constraint.Constraints {
 	return tbl.constraints
+}
+
+// Ctx gets the current request context.
+func (tbl AssociationTable) Ctx() context.Context {
+	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -318,12 +339,12 @@ func (tbl AssociationTable) Using(tx sqlapi.Execer) AssociationQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl AssociationTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(AssociationQueryer) error) error {
+func (tbl AssociationTable) Transact(txOptions *sql.TxOptions, fn func(AssociationQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -395,8 +416,8 @@ var sqlAssociationTableCreateColumnsPgx = []string{
 //-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl AssociationTable) CreateTable(ctx context.Context, ifNotExists bool) (int64, error) {
-	return support.Exec(ctx, tbl, nil, createAssociationTableSql(tbl, ifNotExists))
+func (tbl AssociationTable) CreateTable(ifNotExists bool) (int64, error) {
+	return support.Exec(tbl, nil, createAssociationTableSql(tbl, ifNotExists))
 }
 
 func createAssociationTableSql(tbl AssociationTabler, ifNotExists bool) string {
@@ -448,8 +469,8 @@ func ternaryAssociationTable(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl AssociationTable) DropTable(ctx context.Context, ifExists bool) (int64, error) {
-	return support.Exec(ctx, tbl, nil, dropAssociationTableSql(tbl, ifExists))
+func (tbl AssociationTable) DropTable(ifExists bool) (int64, error) {
+	return support.Exec(tbl, nil, dropAssociationTableSql(tbl, ifExists))
 }
 
 func dropAssociationTableSql(tbl AssociationTabler, ifExists bool) string {
@@ -468,9 +489,9 @@ func dropAssociationTableSql(tbl AssociationTabler, ifExists bool) string {
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl AssociationTable) Truncate(ctx context.Context, force bool) (err error) {
+func (tbl AssociationTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(ctx, tbl, nil, query)
+		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -484,10 +505,8 @@ func (tbl AssociationTable) Truncate(ctx context.Context, force bool) (err error
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-//
-// If the context ctx is nil, it defaults to context.Background().
-func (tbl AssociationTable) Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(ctx, tbl, req, query, args...)
+func (tbl AssociationTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(tbl, req, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -498,18 +517,18 @@ func (tbl AssociationTable) Exec(ctx context.Context, req require.Requirement, q
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
+// If you need a context other than the background, use WithContext before calling Query.
+//
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-//
-// If the context ctx is nil, it defaults to context.Background().
-func (tbl AssociationTable) Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Association, error) {
-	return doAssociationTableQueryAndScan(ctx, tbl, req, false, query, args)
+func (tbl AssociationTable) Query(req require.Requirement, query string, args ...interface{}) ([]*Association, error) {
+	return doAssociationTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func doAssociationTableQueryAndScan(ctx context.Context, tbl AssociationTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Association, error) {
-	rows, err := support.Query(ctx, tbl, query, args...)
+func doAssociationTableQueryAndScan(tbl AssociationTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*Association, error) {
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -528,8 +547,8 @@ func doAssociationTableQueryAndScan(ctx context.Context, tbl AssociationTabler, 
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl AssociationTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -540,8 +559,8 @@ func (tbl AssociationTable) QueryOneNullString(ctx context.Context, req require.
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl AssociationTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -552,8 +571,8 @@ func (tbl AssociationTable) QueryOneNullInt64(ctx context.Context, req require.R
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl AssociationTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -637,8 +656,8 @@ func allAssociationColumnNamesQuoted(q quote.Quoter) string {
 
 // GetAssociationById gets the record with a given primary key value.
 // If not found, *Association will be nil.
-func (tbl AssociationTable) GetAssociationById(ctx context.Context, req require.Requirement, id int64) (*Association, error) {
-	return tbl.SelectOne(ctx, req, where.Eq("id", id), nil)
+func (tbl AssociationTable) GetAssociationById(req require.Requirement, id int64) (*Association, error) {
+	return tbl.SelectOne(req, where.Eq("id", id), nil)
 }
 
 // GetAssociationsById gets records from the table according to a list of primary keys.
@@ -647,15 +666,15 @@ func (tbl AssociationTable) GetAssociationById(ctx context.Context, req require.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl AssociationTable) GetAssociationsById(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Association, err error) {
+func (tbl AssociationTable) GetAssociationsById(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*Association, err error) {
 	if req == require.All {
 		req = require.Exactly(len(id))
 	}
-	return tbl.Select(ctx, req, where.In("id", id), qc)
+	return tbl.Select(req, where.In("id", id), qc)
 }
 
-func doAssociationTableQueryAndScanOne(ctx context.Context, tbl AssociationTabler, req require.Requirement, query string, args ...interface{}) (*Association, error) {
-	list, err := doAssociationTableQueryAndScan(ctx, tbl, req, true, query, args...)
+func doAssociationTableQueryAndScanOne(tbl AssociationTabler, req require.Requirement, query string, args ...interface{}) (*Association, error) {
+	list, err := doAssociationTableQueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -664,8 +683,8 @@ func doAssociationTableQueryAndScanOne(ctx context.Context, tbl AssociationTable
 
 // Fetch fetches a list of Association based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of Association. Other queries might be better handled by GetXxx or Select methods.
-func (tbl AssociationTable) Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Association, error) {
-	return doAssociationTableQueryAndScan(ctx, tbl, req, false, query, args...)
+func (tbl AssociationTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*Association, error) {
+	return doAssociationTableQueryAndScan(tbl, req, false, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -679,11 +698,11 @@ func (tbl AssociationTable) Fetch(ctx context.Context, req require.Requirement, 
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error) {
+func (tbl AssociationTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*Association, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	v, err := doAssociationTableQueryAndScanOne(ctx, tbl, req, query, args...)
+	v, err := doAssociationTableQueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -694,11 +713,11 @@ func (tbl AssociationTable) SelectOneWhere(ctx context.Context, req require.Requ
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl AssociationTable) SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Association, error) {
+func (tbl AssociationTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Association, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectOneWhere(ctx, req, whs, orderBy, args...)
+	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
 // SelectWhere allows Associations to be obtained from the table that match a 'where' clause.
@@ -709,11 +728,11 @@ func (tbl AssociationTable) SelectOne(ctx context.Context, req require.Requireme
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error) {
+func (tbl AssociationTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Association, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
 		allAssociationColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	vv, err := doAssociationTableQueryAndScan(ctx, tbl, req, false, query, args...)
+	vv, err := doAssociationTableQueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -723,11 +742,11 @@ func (tbl AssociationTable) SelectWhere(ctx context.Context, req require.Require
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
-func (tbl AssociationTable) Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Association, error) {
+func (tbl AssociationTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Association, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectWhere(ctx, req, whs, orderBy, args...)
+	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -736,10 +755,10 @@ func (tbl AssociationTable) Select(ctx context.Context, req require.Requirement,
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AssociationTable) CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error) {
+func (tbl AssociationTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -752,9 +771,9 @@ func (tbl AssociationTable) CountWhere(ctx context.Context, where string, args .
 
 // Count counts the Associations in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl AssociationTable) Count(ctx context.Context, wh where.Expression) (count int64, err error) {
+func (tbl AssociationTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	return tbl.CountWhere(ctx, whs, args...)
+	return tbl.CountWhere(whs, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -762,52 +781,52 @@ func (tbl AssociationTable) Count(ctx context.Context, wh where.Expression) (cou
 // SliceId gets the id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceId(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(ctx, tbl, req, tbl.pk, wh, qc)
+func (tbl AssociationTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
 }
 
 // SliceName gets the name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceName(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringPtrList(ctx, tbl, req, "name", wh, qc)
+func (tbl AssociationTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringPtrList(tbl, req, "name", wh, qc)
 }
 
 // SliceRef1 gets the ref1 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceRef1(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64PtrList(ctx, tbl, req, "ref1", wh, qc)
+func (tbl AssociationTable) SliceRef1(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64PtrList(tbl, req, "ref1", wh, qc)
 }
 
 // SliceRef2 gets the ref2 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceRef2(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64PtrList(ctx, tbl, req, "ref2", wh, qc)
+func (tbl AssociationTable) SliceRef2(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64PtrList(tbl, req, "ref2", wh, qc)
 }
 
 // SliceQuality gets the quality column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceQuality(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
-	return sliceAssociationTableQualNamePtrList(ctx, tbl, req, "quality", wh, qc)
+func (tbl AssociationTable) SliceQuality(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
+	return sliceAssociationTableQualNamePtrList(tbl, req, "quality", wh, qc)
 }
 
 // SliceCategory gets the category column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AssociationTable) SliceCategory(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	return sliceAssociationTableCategoryPtrList(ctx, tbl, req, "category", wh, qc)
+func (tbl AssociationTable) SliceCategory(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+	return sliceAssociationTableCategoryPtrList(tbl, req, "category", wh, qc)
 }
 
-func sliceAssociationTableCategoryPtrList(ctx context.Context, tbl AssociationTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
+func sliceAssociationTableCategoryPtrList(tbl AssociationTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -827,13 +846,13 @@ func sliceAssociationTableCategoryPtrList(ctx context.Context, tbl AssociationTa
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceAssociationTableQualNamePtrList(ctx context.Context, tbl AssociationTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
+func sliceAssociationTableQualNamePtrList(tbl AssociationTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -978,13 +997,9 @@ func constructAssociationTableUpdate(tbl AssociationTable, w dialect.StringWrite
 
 // Insert adds new records for the Associations.// The Associations have their primary key fields set to the new record identifiers.
 // The Association.PreInsert() method will be called, if it exists.
-func (tbl AssociationTable) Insert(ctx context.Context, req require.Requirement, vv ...*Association) error {
+func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
 	}
 
 	var count int64
@@ -1022,13 +1037,13 @@ func (tbl AssociationTable) Insert(ctx context.Context, req require.Requirement,
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(ctx, query, fields...)
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Id = i64
 
 		} else {
-			i64, e2 := tbl.db.InsertContext(ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
@@ -1045,46 +1060,46 @@ func (tbl AssociationTable) Insert(ctx context.Context, req require.Requirement,
 }
 
 // UpdateById updates one or more columns, given a id value.
-func (tbl AssociationTable) UpdateById(ctx context.Context, req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("id", id), fields...)
+func (tbl AssociationTable) UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
 }
 
 // UpdateByName updates one or more columns, given a name value.
-func (tbl AssociationTable) UpdateByName(ctx context.Context, req require.Requirement, name string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("name", name), fields...)
+func (tbl AssociationTable) UpdateByName(req require.Requirement, name string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("name", name), fields...)
 }
 
 // UpdateByQuality updates one or more columns, given a quality value.
-func (tbl AssociationTable) UpdateByQuality(ctx context.Context, req require.Requirement, quality QualName, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("quality", quality), fields...)
+func (tbl AssociationTable) UpdateByQuality(req require.Requirement, quality QualName, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("quality", quality), fields...)
 }
 
 // UpdateByRef1 updates one or more columns, given a ref1 value.
-func (tbl AssociationTable) UpdateByRef1(ctx context.Context, req require.Requirement, ref1 int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("ref1", ref1), fields...)
+func (tbl AssociationTable) UpdateByRef1(req require.Requirement, ref1 int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("ref1", ref1), fields...)
 }
 
 // UpdateByRef2 updates one or more columns, given a ref2 value.
-func (tbl AssociationTable) UpdateByRef2(ctx context.Context, req require.Requirement, ref2 int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("ref2", ref2), fields...)
+func (tbl AssociationTable) UpdateByRef2(req require.Requirement, ref2 int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("ref2", ref2), fields...)
 }
 
 // UpdateByCategory updates one or more columns, given a category value.
-func (tbl AssociationTable) UpdateByCategory(ctx context.Context, req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("category", category), fields...)
+func (tbl AssociationTable) UpdateByCategory(req require.Requirement, category Category, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("category", category), fields...)
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
-func (tbl AssociationTable) UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(ctx, tbl, req, wh, fields...)
+func (tbl AssociationTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The Association.PreUpdate(Execer) method will be called, if it exists.
-func (tbl AssociationTable) Update(ctx context.Context, req require.Requirement, vv ...*Association) (int64, error) {
+func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) (int64, error) {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -1118,7 +1133,7 @@ func (tbl AssociationTable) Update(ctx context.Context, req require.Requirement,
 		b.WriteString("=?")
 
 		query := b.String()
-		n, err := tbl.Exec(ctx, nil, query, args...)
+		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
 		}
@@ -1135,20 +1150,20 @@ func (tbl AssociationTable) Update(ctx context.Context, req require.Requirement,
 // key column(s). It must match either zero or one existing record. If it matches
 // none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
-func (tbl AssociationTable) Upsert(ctx context.Context, v *Association, wh where.Expression) error {
+func (tbl AssociationTable) Upsert(v *Association, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)
 	qName := tbl.quotedName()
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 
 	query := fmt.Sprintf("SELECT %s FROM %s %s", col, qName, whs)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return tbl.Insert(ctx, require.One, v)
+		return tbl.Insert(require.One, v)
 	}
 
 	var id int64
@@ -1162,7 +1177,7 @@ func (tbl AssociationTable) Upsert(ctx context.Context, v *Association, wh where
 	}
 
 	v.Id = id
-	_, err = tbl.Update(ctx, require.One, v)
+	_, err = tbl.Update(require.One, v)
 	return err
 }
 
@@ -1170,57 +1185,57 @@ func (tbl AssociationTable) Upsert(ctx context.Context, v *Association, wh where
 
 // DeleteById deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteById(ctx context.Context, req require.Requirement, id ...int64) (int64, error) {
+func (tbl AssociationTable) DeleteById(req require.Requirement, id ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(id)
-	return support.DeleteByColumn(ctx, tbl, req, "id", ii...)
+	return support.DeleteByColumn(tbl, req, "id", ii...)
 }
 
 // DeleteByName deletes rows from the table, given some name values.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteByName(ctx context.Context, req require.Requirement, name ...string) (int64, error) {
+func (tbl AssociationTable) DeleteByName(req require.Requirement, name ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(name)
-	return support.DeleteByColumn(ctx, tbl, req, "name", ii...)
+	return support.DeleteByColumn(tbl, req, "name", ii...)
 }
 
 // DeleteByQuality deletes rows from the table, given some quality values.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteByQuality(ctx context.Context, req require.Requirement, quality ...QualName) (int64, error) {
+func (tbl AssociationTable) DeleteByQuality(req require.Requirement, quality ...QualName) (int64, error) {
 	ii := make([]interface{}, len(quality))
 	for i, v := range quality {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(ctx, tbl, req, "quality", ii...)
+	return support.DeleteByColumn(tbl, req, "quality", ii...)
 }
 
 // DeleteByRef1 deletes rows from the table, given some ref1 values.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteByRef1(ctx context.Context, req require.Requirement, ref1 ...int64) (int64, error) {
+func (tbl AssociationTable) DeleteByRef1(req require.Requirement, ref1 ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(ref1)
-	return support.DeleteByColumn(ctx, tbl, req, "ref1", ii...)
+	return support.DeleteByColumn(tbl, req, "ref1", ii...)
 }
 
 // DeleteByRef2 deletes rows from the table, given some ref2 values.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteByRef2(ctx context.Context, req require.Requirement, ref2 ...int64) (int64, error) {
+func (tbl AssociationTable) DeleteByRef2(req require.Requirement, ref2 ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(ref2)
-	return support.DeleteByColumn(ctx, tbl, req, "ref2", ii...)
+	return support.DeleteByColumn(tbl, req, "ref2", ii...)
 }
 
 // DeleteByCategory deletes rows from the table, given some category values.
 // The list of ids can be arbitrarily long.
-func (tbl AssociationTable) DeleteByCategory(ctx context.Context, req require.Requirement, category ...Category) (int64, error) {
+func (tbl AssociationTable) DeleteByCategory(req require.Requirement, category ...Category) (int64, error) {
 	ii := make([]interface{}, len(category))
 	for i, v := range category {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(ctx, tbl, req, "category", ii...)
+	return support.DeleteByColumn(tbl, req, "category", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl AssociationTable) Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error) {
+func (tbl AssociationTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := deleteRowsAssociationTableSql(tbl, wh)
-	return tbl.Exec(ctx, req, query, args...)
+	return tbl.Exec(req, query, args...)
 }
 
 func deleteRowsAssociationTableSql(tbl AssociationTabler, wh where.Expression) (string, []interface{}) {

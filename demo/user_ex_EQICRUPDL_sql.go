@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.47.1; sqlgen v0.67.0
+// sqlapi v0.49.0; sqlgen v0.68.0
 
 package demo
 
@@ -33,32 +33,35 @@ type AUserTabler interface {
 	// WithPrefix returns a modified AUserTabler with a given table name prefix.
 	WithPrefix(pfx string) AUserTabler
 
+	// WithContext returns a modified AUserTabler with a given context.
+	WithContext(ctx context.Context) AUserTabler
+
 	// CreateTable creates the table.
-	CreateTable(ctx context.Context, ifNotExists bool) (int64, error)
+	CreateTable(ifNotExists bool) (int64, error)
 
 	// DropTable drops the table, destroying all its data.
-	DropTable(ctx context.Context, ifExists bool) (int64, error)
+	DropTable(ifExists bool) (int64, error)
 
 	// CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-	CreateTableWithIndexes(ctx context.Context, ifNotExist bool) (err error)
+	CreateTableWithIndexes(ifNotExist bool) (err error)
 
 	// CreateIndexes executes queries that create the indexes needed by the User table.
-	CreateIndexes(ctx context.Context, ifNotExist bool) (err error)
+	CreateIndexes(ifNotExist bool) (err error)
 
 	// CreateEmailaddressIdxIndex creates the emailaddress_idx index.
-	CreateEmailaddressIdxIndex(ctx context.Context, ifNotExist bool) error
+	CreateEmailaddressIdxIndex(ifNotExist bool) error
 
 	// DropEmailaddressIdxIndex drops the emailaddress_idx index.
-	DropEmailaddressIdxIndex(ctx context.Context, ifExists bool) error
+	DropEmailaddressIdxIndex(ifExists bool) error
 
 	// CreateUserLoginIndex creates the user_login index.
-	CreateUserLoginIndex(ctx context.Context, ifNotExist bool) error
+	CreateUserLoginIndex(ifNotExist bool) error
 
 	// DropUserLoginIndex drops the user_login index.
-	DropUserLoginIndex(ctx context.Context, ifExists bool) error
+	DropUserLoginIndex(ifExists bool) error
 
 	// Truncate drops every record from the table, if possible.
-	Truncate(ctx context.Context, force bool) (err error)
+	Truncate(force bool) (err error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -73,253 +76,253 @@ type AUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(AUserQueryer) error) error
+	Transact(txOptions *sql.TxOptions, fn func(AUserQueryer) error) error
 
 	// Exec executes a query without returning any rows.
-	Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error)
+	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for User values.
-	Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	Query(req require.Requirement, query string, args ...interface{}) ([]*User, error)
 
 	// QueryOneNullString is a low-level access method for one string, returning the first match.
-	QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
+	QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error)
 
 	// QueryOneNullInt64 is a low-level access method for one int64, returning the first match.
-	QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
+	QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error)
 
 	// QueryOneNullFloat64 is a low-level access method for one float64, returning the first match.
-	QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
+	QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error)
 
 	// GetUserByUid gets the record with a given primary key value.
-	GetUserByUid(ctx context.Context, req require.Requirement, id int64) (*User, error)
+	GetUserByUid(req require.Requirement, id int64) (*User, error)
 
 	// GetUsersByUid gets records from the table according to a list of primary keys.
-	GetUsersByUid(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*User, err error)
+	GetUsersByUid(req require.Requirement, qc where.QueryConstraint, id ...int64) (list []*User, err error)
 
 	// GetUserByEmailAddress gets the record with a given emailaddress value.
-	GetUserByEmailAddress(ctx context.Context, req require.Requirement, emailaddress string) (*User, error)
+	GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error)
 
 	// GetUsersByEmailAddress gets the record with a given emailaddress value.
-	GetUsersByEmailAddress(ctx context.Context, req require.Requirement, qc where.QueryConstraint, emailaddress ...string) ([]*User, error)
+	GetUsersByEmailAddress(req require.Requirement, qc where.QueryConstraint, emailaddress ...string) ([]*User, error)
 
 	// GetUserByName gets the record with a given name value.
-	GetUserByName(ctx context.Context, req require.Requirement, name string) (*User, error)
+	GetUserByName(req require.Requirement, name string) (*User, error)
 
 	// GetUsersByName gets the record with a given name value.
-	GetUsersByName(ctx context.Context, req require.Requirement, qc where.QueryConstraint, name ...string) ([]*User, error)
+	GetUsersByName(req require.Requirement, qc where.QueryConstraint, name ...string) ([]*User, error)
 
 	// Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
 	// result columns to the fields of User. Other queries might be better handled by GetXxx or Select methods.
-	Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*User, error)
+	Fetch(req require.Requirement, query string, args ...interface{}) ([]*User, error)
 
 	// SelectOneWhere allows a single User to be obtained from the table that matches a 'where' clause.
-	SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*User, error)
+	SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error)
 
 	// SelectOne allows a single User to be obtained from the table that matches a 'where' clause.
-	SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error)
+	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error)
 
 	// SelectWhere allows Users to be obtained from the table that match a 'where' clause.
-	SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error)
+	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error)
 
 	// Select allows Users to be obtained from the table that match a 'where' clause.
-	Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error)
+	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error)
 
 	// CountWhere counts Users in the table that match a 'where' clause.
-	CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error)
+	CountWhere(where string, args ...interface{}) (count int64, err error)
 
 	// Count counts the Users in the table that match a 'where' clause.
-	Count(ctx context.Context, wh where.Expression) (count int64, err error)
+	Count(wh where.Expression) (count int64, err error)
 
 	// SliceUid gets the uid column for all rows that match the 'where' condition.
-	SliceUid(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceName gets the name column for all rows that match the 'where' condition.
-	SliceName(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceEmailaddress gets the emailaddress column for all rows that match the 'where' condition.
-	SliceEmailaddress(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceAddressid gets the addressid column for all rows that match the 'where' condition.
-	SliceAddressid(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceAvatar gets the avatar column for all rows that match the 'where' condition.
-	SliceAvatar(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
+	SliceAvatar(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
 
 	// SliceLastupdated gets the lastupdated column for all rows that match the 'where' condition.
-	SliceLastupdated(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceLastupdated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceI8 gets the i8 column for all rows that match the 'where' condition.
-	SliceI8(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error)
+	SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error)
 
 	// SliceU8 gets the u8 column for all rows that match the 'where' condition.
-	SliceU8(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error)
+	SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error)
 
 	// SliceI16 gets the i16 column for all rows that match the 'where' condition.
-	SliceI16(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error)
+	SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error)
 
 	// SliceU16 gets the u16 column for all rows that match the 'where' condition.
-	SliceU16(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error)
+	SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error)
 
 	// SliceI32 gets the i32 column for all rows that match the 'where' condition.
-	SliceI32(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error)
+	SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error)
 
 	// SliceU32 gets the u32 column for all rows that match the 'where' condition.
-	SliceU32(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error)
+	SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error)
 
 	// SliceI64 gets the i64 column for all rows that match the 'where' condition.
-	SliceI64(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceU64 gets the u64 column for all rows that match the 'where' condition.
-	SliceU64(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
+	SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
 
 	// SliceRole gets the role column for all rows that match the 'where' condition.
-	SliceRole(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error)
+	SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error)
 
 	// SliceF32 gets the f32 column for all rows that match the 'where' condition.
-	SliceF32(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error)
+	SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error)
 
 	// SliceF64 gets the f64 column for all rows that match the 'where' condition.
-	SliceF64(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error)
+	SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error)
 
 	// Insert adds new records for the Users, setting the primary key field for each one.
-	Insert(ctx context.Context, req require.Requirement, vv ...*User) error
+	Insert(req require.Requirement, vv ...*User) error
 
 	// UpdateByUid updates one or more columns, given a uid value.
-	UpdateByUid(ctx context.Context, req require.Requirement, uid int64, fields ...sql.NamedArg) (int64, error)
+	UpdateByUid(req require.Requirement, uid int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByName updates one or more columns, given a name value.
-	UpdateByName(ctx context.Context, req require.Requirement, name string, fields ...sql.NamedArg) (int64, error)
+	UpdateByName(req require.Requirement, name string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByEmailaddress updates one or more columns, given a emailaddress value.
-	UpdateByEmailaddress(ctx context.Context, req require.Requirement, emailaddress string, fields ...sql.NamedArg) (int64, error)
+	UpdateByEmailaddress(req require.Requirement, emailaddress string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByAddressid updates one or more columns, given a addressid value.
-	UpdateByAddressid(ctx context.Context, req require.Requirement, addressid int64, fields ...sql.NamedArg) (int64, error)
+	UpdateByAddressid(req require.Requirement, addressid int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByAvatar updates one or more columns, given a avatar value.
-	UpdateByAvatar(ctx context.Context, req require.Requirement, avatar string, fields ...sql.NamedArg) (int64, error)
+	UpdateByAvatar(req require.Requirement, avatar string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByRole updates one or more columns, given a role value.
-	UpdateByRole(ctx context.Context, req require.Requirement, role Role, fields ...sql.NamedArg) (int64, error)
+	UpdateByRole(req require.Requirement, role Role, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByLastupdated updates one or more columns, given a lastupdated value.
-	UpdateByLastupdated(ctx context.Context, req require.Requirement, lastupdated int64, fields ...sql.NamedArg) (int64, error)
+	UpdateByLastupdated(req require.Requirement, lastupdated int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByI8 updates one or more columns, given a i8 value.
-	UpdateByI8(ctx context.Context, req require.Requirement, i8 int8, fields ...sql.NamedArg) (int64, error)
+	UpdateByI8(req require.Requirement, i8 int8, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByU8 updates one or more columns, given a u8 value.
-	UpdateByU8(ctx context.Context, req require.Requirement, u8 uint8, fields ...sql.NamedArg) (int64, error)
+	UpdateByU8(req require.Requirement, u8 uint8, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByI16 updates one or more columns, given a i16 value.
-	UpdateByI16(ctx context.Context, req require.Requirement, i16 int16, fields ...sql.NamedArg) (int64, error)
+	UpdateByI16(req require.Requirement, i16 int16, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByU16 updates one or more columns, given a u16 value.
-	UpdateByU16(ctx context.Context, req require.Requirement, u16 uint16, fields ...sql.NamedArg) (int64, error)
+	UpdateByU16(req require.Requirement, u16 uint16, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByI32 updates one or more columns, given a i32 value.
-	UpdateByI32(ctx context.Context, req require.Requirement, i32 int32, fields ...sql.NamedArg) (int64, error)
+	UpdateByI32(req require.Requirement, i32 int32, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByU32 updates one or more columns, given a u32 value.
-	UpdateByU32(ctx context.Context, req require.Requirement, u32 uint32, fields ...sql.NamedArg) (int64, error)
+	UpdateByU32(req require.Requirement, u32 uint32, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByI64 updates one or more columns, given a i64 value.
-	UpdateByI64(ctx context.Context, req require.Requirement, i64 int64, fields ...sql.NamedArg) (int64, error)
+	UpdateByI64(req require.Requirement, i64 int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByU64 updates one or more columns, given a u64 value.
-	UpdateByU64(ctx context.Context, req require.Requirement, u64 uint64, fields ...sql.NamedArg) (int64, error)
+	UpdateByU64(req require.Requirement, u64 uint64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByF32 updates one or more columns, given a f32 value.
-	UpdateByF32(ctx context.Context, req require.Requirement, f32 float32, fields ...sql.NamedArg) (int64, error)
+	UpdateByF32(req require.Requirement, f32 float32, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByF64 updates one or more columns, given a f64 value.
-	UpdateByF64(ctx context.Context, req require.Requirement, f64 float64, fields ...sql.NamedArg) (int64, error)
+	UpdateByF64(req require.Requirement, f64 float64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateFields updates one or more columns, given a 'where' clause.
-	UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
 
 	// Update updates records, matching them by primary key.
-	Update(ctx context.Context, req require.Requirement, vv ...*User) (int64, error)
+	Update(req require.Requirement, vv ...*User) (int64, error)
 
 	// Upsert inserts or updates a record, matching it using the expression supplied.
 	// This expression is used to search for an existing record based on some specified
 	// key column(s). It must match either zero or one existing record. If it matches
 	// none, a new record is inserted; otherwise the matching record is updated. An
 	// error results if these conditions are not met.
-	Upsert(ctx context.Context, v *User, wh where.Expression) error
+	Upsert(v *User, wh where.Expression) error
 
 	// DeleteByUid deletes rows from the table, given some uid values.
 	// The list of ids can be arbitrarily long.
-	DeleteByUid(ctx context.Context, req require.Requirement, uid ...int64) (int64, error)
+	DeleteByUid(req require.Requirement, uid ...int64) (int64, error)
 
 	// DeleteByName deletes rows from the table, given some name values.
 	// The list of ids can be arbitrarily long.
-	DeleteByName(ctx context.Context, req require.Requirement, name ...string) (int64, error)
+	DeleteByName(req require.Requirement, name ...string) (int64, error)
 
 	// DeleteByEmailaddress deletes rows from the table, given some emailaddress values.
 	// The list of ids can be arbitrarily long.
-	DeleteByEmailaddress(ctx context.Context, req require.Requirement, emailaddress ...string) (int64, error)
+	DeleteByEmailaddress(req require.Requirement, emailaddress ...string) (int64, error)
 
 	// DeleteByAddressid deletes rows from the table, given some addressid values.
 	// The list of ids can be arbitrarily long.
-	DeleteByAddressid(ctx context.Context, req require.Requirement, addressid ...int64) (int64, error)
+	DeleteByAddressid(req require.Requirement, addressid ...int64) (int64, error)
 
 	// DeleteByAvatar deletes rows from the table, given some avatar values.
 	// The list of ids can be arbitrarily long.
-	DeleteByAvatar(ctx context.Context, req require.Requirement, avatar ...string) (int64, error)
+	DeleteByAvatar(req require.Requirement, avatar ...string) (int64, error)
 
 	// DeleteByRole deletes rows from the table, given some role values.
 	// The list of ids can be arbitrarily long.
-	DeleteByRole(ctx context.Context, req require.Requirement, role ...Role) (int64, error)
+	DeleteByRole(req require.Requirement, role ...Role) (int64, error)
 
 	// DeleteByLastupdated deletes rows from the table, given some lastupdated values.
 	// The list of ids can be arbitrarily long.
-	DeleteByLastupdated(ctx context.Context, req require.Requirement, lastupdated ...int64) (int64, error)
+	DeleteByLastupdated(req require.Requirement, lastupdated ...int64) (int64, error)
 
 	// DeleteByI8 deletes rows from the table, given some i8 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByI8(ctx context.Context, req require.Requirement, i8 ...int8) (int64, error)
+	DeleteByI8(req require.Requirement, i8 ...int8) (int64, error)
 
 	// DeleteByU8 deletes rows from the table, given some u8 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByU8(ctx context.Context, req require.Requirement, u8 ...uint8) (int64, error)
+	DeleteByU8(req require.Requirement, u8 ...uint8) (int64, error)
 
 	// DeleteByI16 deletes rows from the table, given some i16 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByI16(ctx context.Context, req require.Requirement, i16 ...int16) (int64, error)
+	DeleteByI16(req require.Requirement, i16 ...int16) (int64, error)
 
 	// DeleteByU16 deletes rows from the table, given some u16 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByU16(ctx context.Context, req require.Requirement, u16 ...uint16) (int64, error)
+	DeleteByU16(req require.Requirement, u16 ...uint16) (int64, error)
 
 	// DeleteByI32 deletes rows from the table, given some i32 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByI32(ctx context.Context, req require.Requirement, i32 ...int32) (int64, error)
+	DeleteByI32(req require.Requirement, i32 ...int32) (int64, error)
 
 	// DeleteByU32 deletes rows from the table, given some u32 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByU32(ctx context.Context, req require.Requirement, u32 ...uint32) (int64, error)
+	DeleteByU32(req require.Requirement, u32 ...uint32) (int64, error)
 
 	// DeleteByI64 deletes rows from the table, given some i64 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByI64(ctx context.Context, req require.Requirement, i64 ...int64) (int64, error)
+	DeleteByI64(req require.Requirement, i64 ...int64) (int64, error)
 
 	// DeleteByU64 deletes rows from the table, given some u64 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByU64(ctx context.Context, req require.Requirement, u64 ...uint64) (int64, error)
+	DeleteByU64(req require.Requirement, u64 ...uint64) (int64, error)
 
 	// DeleteByF32 deletes rows from the table, given some f32 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByF32(ctx context.Context, req require.Requirement, f32 ...float32) (int64, error)
+	DeleteByF32(req require.Requirement, f32 ...float32) (int64, error)
 
 	// DeleteByF64 deletes rows from the table, given some f64 values.
 	// The list of ids can be arbitrarily long.
-	DeleteByF64(ctx context.Context, req require.Requirement, f64 ...float64) (int64, error)
+	DeleteByF64(req require.Requirement, f64 ...float64) (int64, error)
 
 	// Delete deletes one or more rows from the table, given a 'where' clause.
 	// Use a nil value for the 'wh' argument if it is not needed (very risky!).
-	Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error)
+	Delete(req require.Requirement, wh where.Expression) (int64, error)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -332,6 +335,7 @@ type AUserTable struct {
 	database    sqlapi.Database
 	db          sqlapi.Execer
 	constraints constraint.Constraints
+	ctx         context.Context
 	pk          string
 }
 
@@ -353,6 +357,7 @@ func NewAUserTable(name string, d sqlapi.Database) AUserTable {
 		database:    d,
 		db:          d.DB(),
 		constraints: constraints,
+		ctx:         context.Background(),
 		pk:          "uid",
 	}
 }
@@ -368,6 +373,7 @@ func CopyTableAsAUserTable(origin sqlapi.Table) AUserTable {
 		database:    origin.Database(),
 		db:          origin.Execer(),
 		constraints: nil,
+		ctx:         origin.Ctx(),
 		pk:          "uid",
 	}
 }
@@ -383,6 +389,16 @@ func CopyTableAsAUserTable(origin sqlapi.Table) AUserTable {
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AUserTable) WithPrefix(pfx string) AUserTabler {
 	tbl.name.Prefix = pfx
+	return tbl
+}
+
+// WithContext sets the context for subsequent queries via this table.
+// The result is a modified copy of the table; the original is unchanged.
+//
+// The shared context in the *Database is not altered by this method. So it
+// is possible to use different contexts for different (groups of) queries.
+func (tbl AUserTable) WithContext(ctx context.Context) AUserTabler {
+	tbl.ctx = ctx
 	return tbl
 }
 
@@ -405,6 +421,11 @@ func (tbl AUserTable) WithConstraint(cc ...constraint.Constraint) AUserTabler {
 // Constraints returns the table's constraints.
 func (tbl AUserTable) Constraints() constraint.Constraints {
 	return tbl.constraints
+}
+
+// Ctx gets the current request context.
+func (tbl AUserTable) Ctx() context.Context {
+	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -461,12 +482,12 @@ func (tbl AUserTable) Using(tx sqlapi.Execer) AUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl AUserTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(AUserQueryer) error) error {
+func (tbl AUserTable) Transact(txOptions *sql.TxOptions, fn func(AUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -612,8 +633,8 @@ var listOfAUserLoginIndexColumns = []string{"name"}
 //-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
-func (tbl AUserTable) CreateTable(ctx context.Context, ifNotExists bool) (int64, error) {
-	return support.Exec(ctx, tbl, nil, createAUserTableSql(tbl, ifNotExists))
+func (tbl AUserTable) CreateTable(ifNotExists bool) (int64, error) {
+	return support.Exec(tbl, nil, createAUserTableSql(tbl, ifNotExists))
 }
 
 func createAUserTableSql(tbl AUserTabler, ifNotExists bool) string {
@@ -665,8 +686,8 @@ func ternaryAUserTable(flag bool, a, b string) string {
 }
 
 // DropTable drops the table, destroying all its data.
-func (tbl AUserTable) DropTable(ctx context.Context, ifExists bool) (int64, error) {
-	return support.Exec(ctx, tbl, nil, dropAUserTableSql(tbl, ifExists))
+func (tbl AUserTable) DropTable(ifExists bool) (int64, error) {
+	return support.Exec(tbl, nil, dropAUserTableSql(tbl, ifExists))
 }
 
 func dropAUserTableSql(tbl AUserTabler, ifExists bool) string {
@@ -679,24 +700,24 @@ func dropAUserTableSql(tbl AUserTabler, ifExists bool) string {
 //-------------------------------------------------------------------------------------------------
 
 // CreateTableWithIndexes invokes CreateTable then CreateIndexes.
-func (tbl AUserTable) CreateTableWithIndexes(ctx context.Context, ifNotExist bool) (err error) {
-	_, err = tbl.CreateTable(ctx, ifNotExist)
+func (tbl AUserTable) CreateTableWithIndexes(ifNotExist bool) (err error) {
+	_, err = tbl.CreateTable(ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	return tbl.CreateIndexes(ctx, ifNotExist)
+	return tbl.CreateIndexes(ifNotExist)
 }
 
 // CreateIndexes executes queries that create the indexes needed by the User table.
-func (tbl AUserTable) CreateIndexes(ctx context.Context, ifNotExist bool) (err error) {
+func (tbl AUserTable) CreateIndexes(ifNotExist bool) (err error) {
 
-	err = tbl.CreateEmailaddressIdxIndex(ctx, ifNotExist)
+	err = tbl.CreateEmailaddressIdxIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
 
-	err = tbl.CreateUserLoginIndex(ctx, ifNotExist)
+	err = tbl.CreateUserLoginIndex(ifNotExist)
 	if err != nil {
 		return err
 	}
@@ -705,7 +726,7 @@ func (tbl AUserTable) CreateIndexes(ctx context.Context, ifNotExist bool) (err e
 }
 
 // CreateEmailaddressIdxIndex creates the emailaddress_idx index.
-func (tbl AUserTable) CreateEmailaddressIdxIndex(ctx context.Context, ifNotExist bool) error {
+func (tbl AUserTable) CreateEmailaddressIdxIndex(ifNotExist bool) error {
 	ine := ternaryAUserTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -713,11 +734,11 @@ func (tbl AUserTable) CreateEmailaddressIdxIndex(ctx context.Context, ifNotExist
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(ctx, dropAUserTableEmailaddressIdxSql(tbl, false))
+		tbl.Execer().ExecContext(tbl.ctx, dropAUserTableEmailaddressIdxSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(ctx, nil, createAUserTableEmailaddressIdxSql(tbl, ine))
+	_, err := tbl.Exec(nil, createAUserTableEmailaddressIdxSql(tbl, ine))
 	return err
 }
 
@@ -732,8 +753,8 @@ func createAUserTableEmailaddressIdxSql(tbl AUserTabler, ifNotExists string) str
 }
 
 // DropEmailaddressIdxIndex drops the emailaddress_idx index.
-func (tbl AUserTable) DropEmailaddressIdxIndex(ctx context.Context, ifExists bool) error {
-	_, err := tbl.Exec(ctx, nil, dropAUserTableEmailaddressIdxSql(tbl, ifExists))
+func (tbl AUserTable) DropEmailaddressIdxIndex(ifExists bool) error {
+	_, err := tbl.Exec(nil, dropAUserTableEmailaddressIdxSql(tbl, ifExists))
 	return err
 }
 
@@ -750,7 +771,7 @@ func dropAUserTableEmailaddressIdxSql(tbl AUserTabler, ifExists bool) string {
 }
 
 // CreateUserLoginIndex creates the user_login index.
-func (tbl AUserTable) CreateUserLoginIndex(ctx context.Context, ifNotExist bool) error {
+func (tbl AUserTable) CreateUserLoginIndex(ifNotExist bool) error {
 	ine := ternaryAUserTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
@@ -758,11 +779,11 @@ func (tbl AUserTable) CreateUserLoginIndex(ctx context.Context, ifNotExist bool)
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(ctx, dropAUserTableUserLoginSql(tbl, false))
+		tbl.Execer().ExecContext(tbl.ctx, dropAUserTableUserLoginSql(tbl, false))
 		ine = ""
 	}
 
-	_, err := tbl.Exec(ctx, nil, createAUserTableUserLoginSql(tbl, ine))
+	_, err := tbl.Exec(nil, createAUserTableUserLoginSql(tbl, ine))
 	return err
 }
 
@@ -777,8 +798,8 @@ func createAUserTableUserLoginSql(tbl AUserTabler, ifNotExists string) string {
 }
 
 // DropUserLoginIndex drops the user_login index.
-func (tbl AUserTable) DropUserLoginIndex(ctx context.Context, ifExists bool) error {
-	_, err := tbl.Exec(ctx, nil, dropAUserTableUserLoginSql(tbl, ifExists))
+func (tbl AUserTable) DropUserLoginIndex(ifExists bool) error {
+	_, err := tbl.Exec(nil, dropAUserTableUserLoginSql(tbl, ifExists))
 	return err
 }
 
@@ -795,14 +816,14 @@ func dropAUserTableUserLoginSql(tbl AUserTabler, ifExists bool) string {
 }
 
 // DropIndexes executes queries that drop the indexes on by the User table.
-func (tbl AUserTable) DropIndexes(ctx context.Context, ifExist bool) (err error) {
+func (tbl AUserTable) DropIndexes(ifExist bool) (err error) {
 
-	err = tbl.DropEmailaddressIdxIndex(ctx, ifExist)
+	err = tbl.DropEmailaddressIdxIndex(ifExist)
 	if err != nil {
 		return err
 	}
 
-	err = tbl.DropUserLoginIndex(ctx, ifExist)
+	err = tbl.DropUserLoginIndex(ifExist)
 	if err != nil {
 		return err
 	}
@@ -819,9 +840,9 @@ func (tbl AUserTable) DropIndexes(ctx context.Context, ifExist bool) (err error)
 // When using Mysql, foreign keys in other tables can be left dangling.
 // When using Postgres, a cascade happens, so all 'adjacent' tables (i.e. linked by foreign keys)
 // are also truncated.
-func (tbl AUserTable) Truncate(ctx context.Context, force bool) (err error) {
+func (tbl AUserTable) Truncate(force bool) (err error) {
 	for _, query := range tbl.Dialect().TruncateDDL(tbl.Name().String(), force) {
-		_, err = support.Exec(ctx, tbl, nil, query)
+		_, err = support.Exec(tbl, nil, query)
 		if err != nil {
 			return err
 		}
@@ -835,10 +856,8 @@ func (tbl AUserTable) Truncate(ctx context.Context, force bool) (err error) {
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-//
-// If the context ctx is nil, it defaults to context.Background().
-func (tbl AUserTable) Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(ctx, tbl, req, query, args...)
+func (tbl AUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(tbl, req, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -849,18 +868,18 @@ func (tbl AUserTable) Exec(ctx context.Context, req require.Requirement, query s
 //
 // The query is logged using whatever logger is configured. If an error arises, this too is logged.
 //
+// If you need a context other than the background, use WithContext before calling Query.
+//
 // The args are for any placeholder parameters in the query.
 //
 // The support API provides a core 'support.Query' function, on which this method depends. If appropriate,
 // use that function directly; wrap the result in *sqlapi.Rows if you need to access its data as a map.
-//
-// If the context ctx is nil, it defaults to context.Background().
-func (tbl AUserTable) Query(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return doAUserTableQueryAndScan(ctx, tbl, req, false, query, args)
+func (tbl AUserTable) Query(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return doAUserTableQueryAndScan(tbl, req, false, query, args)
 }
 
-func doAUserTableQueryAndScan(ctx context.Context, tbl AUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
-	rows, err := support.Query(ctx, tbl, query, args...)
+func doAUserTableQueryAndScan(tbl AUserTabler, req require.Requirement, firstOnly bool, query string, args ...interface{}) ([]*User, error) {
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -879,8 +898,8 @@ func doAUserTableQueryAndScan(ctx context.Context, tbl AUserTabler, req require.
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AUserTable) QueryOneNullString(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl AUserTable) QueryOneNullString(req require.Requirement, query string, args ...interface{}) (result sql.NullString, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -891,8 +910,8 @@ func (tbl AUserTable) QueryOneNullString(ctx context.Context, req require.Requir
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AUserTable) QueryOneNullInt64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl AUserTable) QueryOneNullInt64(req require.Requirement, query string, args ...interface{}) (result sql.NullInt64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -903,8 +922,8 @@ func (tbl AUserTable) QueryOneNullInt64(ctx context.Context, req require.Require
 // Note that this applies ReplaceTableName to the query string.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AUserTable) QueryOneNullFloat64(ctx context.Context, req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
-	err = support.QueryOneNullThing(ctx, tbl, req, &result, query, args...)
+func (tbl AUserTable) QueryOneNullFloat64(req require.Requirement, query string, args ...interface{}) (result sql.NullFloat64, err error) {
+	err = support.QueryOneNullThing(tbl, req, &result, query, args...)
 	return result, err
 }
 
@@ -1036,8 +1055,8 @@ func allAUserColumnNamesQuoted(q quote.Quoter) string {
 
 // GetUserByUid gets the record with a given primary key value.
 // If not found, *User will be nil.
-func (tbl AUserTable) GetUserByUid(ctx context.Context, req require.Requirement, id int64) (*User, error) {
-	return tbl.SelectOne(ctx, req, where.Eq("uid", id), nil)
+func (tbl AUserTable) GetUserByUid(req require.Requirement, id int64) (*User, error) {
+	return tbl.SelectOne(req, where.Eq("uid", id), nil)
 }
 
 // GetUsersByUid gets records from the table according to a list of primary keys.
@@ -1046,43 +1065,43 @@ func (tbl AUserTable) GetUserByUid(ctx context.Context, req require.Requirement,
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl AUserTable) GetUsersByUid(ctx context.Context, req require.Requirement, qc where.QueryConstraint, uid ...int64) (list []*User, err error) {
+func (tbl AUserTable) GetUsersByUid(req require.Requirement, qc where.QueryConstraint, uid ...int64) (list []*User, err error) {
 	if req == require.All {
 		req = require.Exactly(len(uid))
 	}
-	return tbl.Select(ctx, req, where.In("uid", uid), qc)
+	return tbl.Select(req, where.In("uid", uid), qc)
 }
 
 // GetUserByEmailAddress gets the record with a given emailaddress value.
 // If not found, *User will be nil.
-func (tbl AUserTable) GetUserByEmailAddress(ctx context.Context, req require.Requirement, emailaddress string) (*User, error) {
-	return tbl.SelectOne(ctx, req, where.And(where.Eq("emailaddress", emailaddress)), nil)
+func (tbl AUserTable) GetUserByEmailAddress(req require.Requirement, emailaddress string) (*User, error) {
+	return tbl.SelectOne(req, where.And(where.Eq("emailaddress", emailaddress)), nil)
 }
 
 // GetUsersByEmailAddress gets the record with a given emailaddress value.
-func (tbl AUserTable) GetUsersByEmailAddress(ctx context.Context, req require.Requirement, qc where.QueryConstraint, emailaddress ...string) ([]*User, error) {
+func (tbl AUserTable) GetUsersByEmailAddress(req require.Requirement, qc where.QueryConstraint, emailaddress ...string) ([]*User, error) {
 	if req == require.All {
 		req = require.Exactly(len(emailaddress))
 	}
-	return tbl.Select(ctx, req, where.In("emailaddress", emailaddress), qc)
+	return tbl.Select(req, where.In("emailaddress", emailaddress), qc)
 }
 
 // GetUserByName gets the record with a given name value.
 // If not found, *User will be nil.
-func (tbl AUserTable) GetUserByName(ctx context.Context, req require.Requirement, name string) (*User, error) {
-	return tbl.SelectOne(ctx, req, where.And(where.Eq("name", name)), nil)
+func (tbl AUserTable) GetUserByName(req require.Requirement, name string) (*User, error) {
+	return tbl.SelectOne(req, where.And(where.Eq("name", name)), nil)
 }
 
 // GetUsersByName gets the record with a given name value.
-func (tbl AUserTable) GetUsersByName(ctx context.Context, req require.Requirement, qc where.QueryConstraint, name ...string) ([]*User, error) {
+func (tbl AUserTable) GetUsersByName(req require.Requirement, qc where.QueryConstraint, name ...string) ([]*User, error) {
 	if req == require.All {
 		req = require.Exactly(len(name))
 	}
-	return tbl.Select(ctx, req, where.In("name", name), qc)
+	return tbl.Select(req, where.In("name", name), qc)
 }
 
-func doAUserTableQueryAndScanOne(ctx context.Context, tbl AUserTabler, req require.Requirement, query string, args ...interface{}) (*User, error) {
-	list, err := doAUserTableQueryAndScan(ctx, tbl, req, true, query, args...)
+func doAUserTableQueryAndScanOne(tbl AUserTabler, req require.Requirement, query string, args ...interface{}) (*User, error) {
+	list, err := doAUserTableQueryAndScan(tbl, req, true, query, args...)
 	if err != nil || len(list) == 0 {
 		return nil, err
 	}
@@ -1091,8 +1110,8 @@ func doAUserTableQueryAndScanOne(ctx context.Context, tbl AUserTabler, req requi
 
 // Fetch fetches a list of User based on a supplied query. This is mostly used for join queries that map its
 // result columns to the fields of User. Other queries might be better handled by GetXxx or Select methods.
-func (tbl AUserTable) Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*User, error) {
-	return doAUserTableQueryAndScan(ctx, tbl, req, false, query, args...)
+func (tbl AUserTable) Fetch(req require.Requirement, query string, args ...interface{}) ([]*User, error) {
+	return doAUserTableQueryAndScan(tbl, req, false, query, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1106,11 +1125,11 @@ func (tbl AUserTable) Fetch(ctx context.Context, req require.Requirement, query 
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AUserTable) SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
+func (tbl AUserTable) SelectOneWhere(req require.Requirement, where, orderBy string, args ...interface{}) (*User, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s LIMIT 1",
 		allAUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	v, err := doAUserTableQueryAndScanOne(ctx, tbl, req, query, args...)
+	v, err := doAUserTableQueryAndScanOne(tbl, req, query, args...)
 	return v, err
 }
 
@@ -1121,11 +1140,11 @@ func (tbl AUserTable) SelectOneWhere(ctx context.Context, req require.Requiremen
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
-func (tbl AUserTable) SelectOne(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
+func (tbl AUserTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectOneWhere(ctx, req, whs, orderBy, args...)
+	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
 // SelectWhere allows Users to be obtained from the table that match a 'where' clause.
@@ -1136,11 +1155,11 @@ func (tbl AUserTable) SelectOne(ctx context.Context, req require.Requirement, wh
 // controls whether an error is generated when no result is found.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AUserTable) SelectWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
+func (tbl AUserTable) SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*User, error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s",
 		allAUserColumnNamesQuoted(tbl.Dialect().Quoter()), quotedName, where, orderBy)
-	vv, err := doAUserTableQueryAndScan(ctx, tbl, req, false, query, args...)
+	vv, err := doAUserTableQueryAndScan(tbl, req, false, query, args...)
 	return vv, err
 }
 
@@ -1150,11 +1169,11 @@ func (tbl AUserTable) SelectWhere(ctx context.Context, req require.Requirement, 
 //
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
-func (tbl AUserTable) Select(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
+func (tbl AUserTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
-	return tbl.SelectWhere(ctx, req, whs, orderBy, args...)
+	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1163,10 +1182,10 @@ func (tbl AUserTable) Select(ctx context.Context, req require.Requirement, wh wh
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
-func (tbl AUserTable) CountWhere(ctx context.Context, where string, args ...interface{}) (count int64, err error) {
+func (tbl AUserTable) CountWhere(where string, args ...interface{}) (count int64, err error) {
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT COUNT(1) FROM %s %s", quotedName, where)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -1179,9 +1198,9 @@ func (tbl AUserTable) CountWhere(ctx context.Context, where string, args ...inte
 
 // Count counts the Users in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
-func (tbl AUserTable) Count(ctx context.Context, wh where.Expression) (count int64, err error) {
+func (tbl AUserTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
-	return tbl.CountWhere(ctx, whs, args...)
+	return tbl.CountWhere(whs, args...)
 }
 
 //--------------------------------------------------------------------------------
@@ -1189,129 +1208,129 @@ func (tbl AUserTable) Count(ctx context.Context, wh where.Expression) (count int
 // SliceUid gets the uid column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceUid(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(ctx, tbl, req, tbl.pk, wh, qc)
+func (tbl AUserTable) SliceUid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
 }
 
 // SliceName gets the name column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceName(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(ctx, tbl, req, "name", wh, qc)
+func (tbl AUserTable) SliceName(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "name", wh, qc)
 }
 
 // SliceEmailaddress gets the emailaddress column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceEmailaddress(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringList(ctx, tbl, req, "emailaddress", wh, qc)
+func (tbl AUserTable) SliceEmailaddress(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringList(tbl, req, "emailaddress", wh, qc)
 }
 
 // SliceAddressid gets the addressid column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceAddressid(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64PtrList(ctx, tbl, req, "addressid", wh, qc)
+func (tbl AUserTable) SliceAddressid(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64PtrList(tbl, req, "addressid", wh, qc)
 }
 
 // SliceAvatar gets the avatar column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceAvatar(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
-	return support.SliceStringPtrList(ctx, tbl, req, "avatar", wh, qc)
+func (tbl AUserTable) SliceAvatar(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error) {
+	return support.SliceStringPtrList(tbl, req, "avatar", wh, qc)
 }
 
 // SliceLastupdated gets the lastupdated column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceLastupdated(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(ctx, tbl, req, "lastupdated", wh, qc)
+func (tbl AUserTable) SliceLastupdated(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64List(tbl, req, "lastupdated", wh, qc)
 }
 
 // SliceI8 gets the i8 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceI8(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
-	return support.SliceInt8List(ctx, tbl, req, "i8", wh, qc)
+func (tbl AUserTable) SliceI8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int8, error) {
+	return support.SliceInt8List(tbl, req, "i8", wh, qc)
 }
 
 // SliceU8 gets the u8 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceU8(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
-	return support.SliceUint8List(ctx, tbl, req, "u8", wh, qc)
+func (tbl AUserTable) SliceU8(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint8, error) {
+	return support.SliceUint8List(tbl, req, "u8", wh, qc)
 }
 
 // SliceI16 gets the i16 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceI16(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
-	return support.SliceInt16List(ctx, tbl, req, "i16", wh, qc)
+func (tbl AUserTable) SliceI16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int16, error) {
+	return support.SliceInt16List(tbl, req, "i16", wh, qc)
 }
 
 // SliceU16 gets the u16 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceU16(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
-	return support.SliceUint16List(ctx, tbl, req, "u16", wh, qc)
+func (tbl AUserTable) SliceU16(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint16, error) {
+	return support.SliceUint16List(tbl, req, "u16", wh, qc)
 }
 
 // SliceI32 gets the i32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceI32(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
-	return support.SliceInt32List(ctx, tbl, req, "i32", wh, qc)
+func (tbl AUserTable) SliceI32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int32, error) {
+	return support.SliceInt32List(tbl, req, "i32", wh, qc)
 }
 
 // SliceU32 gets the u32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceU32(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
-	return support.SliceUint32List(ctx, tbl, req, "u32", wh, qc)
+func (tbl AUserTable) SliceU32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint32, error) {
+	return support.SliceUint32List(tbl, req, "u32", wh, qc)
 }
 
 // SliceI64 gets the i64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceI64(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
-	return support.SliceInt64List(ctx, tbl, req, "i64", wh, qc)
+func (tbl AUserTable) SliceI64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+	return support.SliceInt64List(tbl, req, "i64", wh, qc)
 }
 
 // SliceU64 gets the u64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceU64(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
-	return support.SliceUint64List(ctx, tbl, req, "u64", wh, qc)
+func (tbl AUserTable) SliceU64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+	return support.SliceUint64List(tbl, req, "u64", wh, qc)
 }
 
 // SliceRole gets the role column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceRole(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
-	return sliceAUserTableRolePtrList(ctx, tbl, req, "role", wh, qc)
+func (tbl AUserTable) SliceRole(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
+	return sliceAUserTableRolePtrList(tbl, req, "role", wh, qc)
 }
 
 // SliceF32 gets the f32 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceF32(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
-	return sliceAUserTableFloat32List(ctx, tbl, req, "f32", wh, qc)
+func (tbl AUserTable) SliceF32(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+	return sliceAUserTableFloat32List(tbl, req, "f32", wh, qc)
 }
 
 // SliceF64 gets the f64 column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AUserTable) SliceF64(ctx context.Context, req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
-	return sliceAUserTableFloat64List(ctx, tbl, req, "f64", wh, qc)
+func (tbl AUserTable) SliceF64(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+	return sliceAUserTableFloat64List(tbl, req, "f64", wh, qc)
 }
 
-func sliceAUserTableRolePtrList(ctx context.Context, tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
+func sliceAUserTableRolePtrList(tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1331,13 +1350,13 @@ func sliceAUserTableRolePtrList(ctx context.Context, tbl AUserTabler, req requir
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceAUserTableFloat32List(ctx context.Context, tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
+func sliceAUserTableFloat32List(tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1357,13 +1376,13 @@ func sliceAUserTableFloat32List(ctx context.Context, tbl AUserTabler, req requir
 	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func sliceAUserTableFloat64List(ctx context.Context, tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
+func sliceAUserTableFloat64List(tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
 	q := tbl.Dialect().Quoter()
 	whs, args := where.Where(wh, q)
 	orderBy := where.Build(qc, q)
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
 	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1655,13 +1674,9 @@ func constructAUserTableUpdate(tbl AUserTable, w dialect.StringWriter, v *User) 
 
 // Insert adds new records for the Users.// The Users have their primary key fields set to the new record identifiers.
 // The User.PreInsert() method will be called, if it exists.
-func (tbl AUserTable) Insert(ctx context.Context, req require.Requirement, vv ...*User) error {
+func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
 	}
 
 	var count int64
@@ -1699,13 +1714,13 @@ func (tbl AUserTable) Insert(ctx context.Context, req require.Requirement, vv ..
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(ctx, query, fields...)
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Uid = i64
 
 		} else {
-			i64, e2 := tbl.db.InsertContext(ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
@@ -1722,101 +1737,101 @@ func (tbl AUserTable) Insert(ctx context.Context, req require.Requirement, vv ..
 }
 
 // UpdateByUid updates one or more columns, given a uid value.
-func (tbl AUserTable) UpdateByUid(ctx context.Context, req require.Requirement, uid int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("uid", uid), fields...)
+func (tbl AUserTable) UpdateByUid(req require.Requirement, uid int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("uid", uid), fields...)
 }
 
 // UpdateByName updates one or more columns, given a name value.
-func (tbl AUserTable) UpdateByName(ctx context.Context, req require.Requirement, name string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("name", name), fields...)
+func (tbl AUserTable) UpdateByName(req require.Requirement, name string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("name", name), fields...)
 }
 
 // UpdateByEmailaddress updates one or more columns, given a emailaddress value.
-func (tbl AUserTable) UpdateByEmailaddress(ctx context.Context, req require.Requirement, emailaddress string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("emailaddress", emailaddress), fields...)
+func (tbl AUserTable) UpdateByEmailaddress(req require.Requirement, emailaddress string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("emailaddress", emailaddress), fields...)
 }
 
 // UpdateByAddressid updates one or more columns, given a addressid value.
-func (tbl AUserTable) UpdateByAddressid(ctx context.Context, req require.Requirement, addressid int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("addressid", addressid), fields...)
+func (tbl AUserTable) UpdateByAddressid(req require.Requirement, addressid int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("addressid", addressid), fields...)
 }
 
 // UpdateByAvatar updates one or more columns, given a avatar value.
-func (tbl AUserTable) UpdateByAvatar(ctx context.Context, req require.Requirement, avatar string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("avatar", avatar), fields...)
+func (tbl AUserTable) UpdateByAvatar(req require.Requirement, avatar string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("avatar", avatar), fields...)
 }
 
 // UpdateByRole updates one or more columns, given a role value.
-func (tbl AUserTable) UpdateByRole(ctx context.Context, req require.Requirement, role Role, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("role", role), fields...)
+func (tbl AUserTable) UpdateByRole(req require.Requirement, role Role, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("role", role), fields...)
 }
 
 // UpdateByLastupdated updates one or more columns, given a lastupdated value.
-func (tbl AUserTable) UpdateByLastupdated(ctx context.Context, req require.Requirement, lastupdated int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("lastupdated", lastupdated), fields...)
+func (tbl AUserTable) UpdateByLastupdated(req require.Requirement, lastupdated int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("lastupdated", lastupdated), fields...)
 }
 
 // UpdateByI8 updates one or more columns, given a i8 value.
-func (tbl AUserTable) UpdateByI8(ctx context.Context, req require.Requirement, i8 int8, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("i8", i8), fields...)
+func (tbl AUserTable) UpdateByI8(req require.Requirement, i8 int8, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("i8", i8), fields...)
 }
 
 // UpdateByU8 updates one or more columns, given a u8 value.
-func (tbl AUserTable) UpdateByU8(ctx context.Context, req require.Requirement, u8 uint8, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("u8", u8), fields...)
+func (tbl AUserTable) UpdateByU8(req require.Requirement, u8 uint8, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("u8", u8), fields...)
 }
 
 // UpdateByI16 updates one or more columns, given a i16 value.
-func (tbl AUserTable) UpdateByI16(ctx context.Context, req require.Requirement, i16 int16, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("i16", i16), fields...)
+func (tbl AUserTable) UpdateByI16(req require.Requirement, i16 int16, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("i16", i16), fields...)
 }
 
 // UpdateByU16 updates one or more columns, given a u16 value.
-func (tbl AUserTable) UpdateByU16(ctx context.Context, req require.Requirement, u16 uint16, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("u16", u16), fields...)
+func (tbl AUserTable) UpdateByU16(req require.Requirement, u16 uint16, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("u16", u16), fields...)
 }
 
 // UpdateByI32 updates one or more columns, given a i32 value.
-func (tbl AUserTable) UpdateByI32(ctx context.Context, req require.Requirement, i32 int32, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("i32", i32), fields...)
+func (tbl AUserTable) UpdateByI32(req require.Requirement, i32 int32, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("i32", i32), fields...)
 }
 
 // UpdateByU32 updates one or more columns, given a u32 value.
-func (tbl AUserTable) UpdateByU32(ctx context.Context, req require.Requirement, u32 uint32, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("u32", u32), fields...)
+func (tbl AUserTable) UpdateByU32(req require.Requirement, u32 uint32, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("u32", u32), fields...)
 }
 
 // UpdateByI64 updates one or more columns, given a i64 value.
-func (tbl AUserTable) UpdateByI64(ctx context.Context, req require.Requirement, i64 int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("i64", i64), fields...)
+func (tbl AUserTable) UpdateByI64(req require.Requirement, i64 int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("i64", i64), fields...)
 }
 
 // UpdateByU64 updates one or more columns, given a u64 value.
-func (tbl AUserTable) UpdateByU64(ctx context.Context, req require.Requirement, u64 uint64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("u64", u64), fields...)
+func (tbl AUserTable) UpdateByU64(req require.Requirement, u64 uint64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("u64", u64), fields...)
 }
 
 // UpdateByF32 updates one or more columns, given a f32 value.
-func (tbl AUserTable) UpdateByF32(ctx context.Context, req require.Requirement, f32 float32, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("f32", f32), fields...)
+func (tbl AUserTable) UpdateByF32(req require.Requirement, f32 float32, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("f32", f32), fields...)
 }
 
 // UpdateByF64 updates one or more columns, given a f64 value.
-func (tbl AUserTable) UpdateByF64(ctx context.Context, req require.Requirement, f64 float64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("f64", f64), fields...)
+func (tbl AUserTable) UpdateByF64(req require.Requirement, f64 float64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("f64", f64), fields...)
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
-func (tbl AUserTable) UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(ctx, tbl, req, wh, fields...)
+func (tbl AUserTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The User.PreUpdate(Execer) method will be called, if it exists.
-func (tbl AUserTable) Update(ctx context.Context, req require.Requirement, vv ...*User) (int64, error) {
+func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error) {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -1850,7 +1865,7 @@ func (tbl AUserTable) Update(ctx context.Context, req require.Requirement, vv ..
 		b.WriteString("=?")
 
 		query := b.String()
-		n, err := tbl.Exec(ctx, nil, query, args...)
+		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
 		}
@@ -1867,20 +1882,20 @@ func (tbl AUserTable) Update(ctx context.Context, req require.Requirement, vv ..
 // key column(s). It must match either zero or one existing record. If it matches
 // none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
-func (tbl AUserTable) Upsert(ctx context.Context, v *User, wh where.Expression) error {
+func (tbl AUserTable) Upsert(v *User, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)
 	qName := tbl.quotedName()
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 
 	query := fmt.Sprintf("SELECT %s FROM %s %s", col, qName, whs)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return tbl.Insert(ctx, require.One, v)
+		return tbl.Insert(require.One, v)
 	}
 
 	var id int64
@@ -1894,7 +1909,7 @@ func (tbl AUserTable) Upsert(ctx context.Context, v *User, wh where.Expression) 
 	}
 
 	v.Uid = id
-	_, err = tbl.Update(ctx, require.One, v)
+	_, err = tbl.Update(require.One, v)
 	return err
 }
 
@@ -1902,137 +1917,137 @@ func (tbl AUserTable) Upsert(ctx context.Context, v *User, wh where.Expression) 
 
 // DeleteByUid deletes rows from the table, given some uid values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByUid(ctx context.Context, req require.Requirement, uid ...int64) (int64, error) {
+func (tbl AUserTable) DeleteByUid(req require.Requirement, uid ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(uid)
-	return support.DeleteByColumn(ctx, tbl, req, "uid", ii...)
+	return support.DeleteByColumn(tbl, req, "uid", ii...)
 }
 
 // DeleteByName deletes rows from the table, given some name values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByName(ctx context.Context, req require.Requirement, name ...string) (int64, error) {
+func (tbl AUserTable) DeleteByName(req require.Requirement, name ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(name)
-	return support.DeleteByColumn(ctx, tbl, req, "name", ii...)
+	return support.DeleteByColumn(tbl, req, "name", ii...)
 }
 
 // DeleteByEmailaddress deletes rows from the table, given some emailaddress values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByEmailaddress(ctx context.Context, req require.Requirement, emailaddress ...string) (int64, error) {
+func (tbl AUserTable) DeleteByEmailaddress(req require.Requirement, emailaddress ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(emailaddress)
-	return support.DeleteByColumn(ctx, tbl, req, "emailaddress", ii...)
+	return support.DeleteByColumn(tbl, req, "emailaddress", ii...)
 }
 
 // DeleteByAddressid deletes rows from the table, given some addressid values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByAddressid(ctx context.Context, req require.Requirement, addressid ...int64) (int64, error) {
+func (tbl AUserTable) DeleteByAddressid(req require.Requirement, addressid ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(addressid)
-	return support.DeleteByColumn(ctx, tbl, req, "addressid", ii...)
+	return support.DeleteByColumn(tbl, req, "addressid", ii...)
 }
 
 // DeleteByAvatar deletes rows from the table, given some avatar values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByAvatar(ctx context.Context, req require.Requirement, avatar ...string) (int64, error) {
+func (tbl AUserTable) DeleteByAvatar(req require.Requirement, avatar ...string) (int64, error) {
 	ii := support.StringAsInterfaceSlice(avatar)
-	return support.DeleteByColumn(ctx, tbl, req, "avatar", ii...)
+	return support.DeleteByColumn(tbl, req, "avatar", ii...)
 }
 
 // DeleteByRole deletes rows from the table, given some role values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByRole(ctx context.Context, req require.Requirement, role ...Role) (int64, error) {
+func (tbl AUserTable) DeleteByRole(req require.Requirement, role ...Role) (int64, error) {
 	ii := make([]interface{}, len(role))
 	for i, v := range role {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(ctx, tbl, req, "role", ii...)
+	return support.DeleteByColumn(tbl, req, "role", ii...)
 }
 
 // DeleteByLastupdated deletes rows from the table, given some lastupdated values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByLastupdated(ctx context.Context, req require.Requirement, lastupdated ...int64) (int64, error) {
+func (tbl AUserTable) DeleteByLastupdated(req require.Requirement, lastupdated ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(lastupdated)
-	return support.DeleteByColumn(ctx, tbl, req, "lastupdated", ii...)
+	return support.DeleteByColumn(tbl, req, "lastupdated", ii...)
 }
 
 // DeleteByI8 deletes rows from the table, given some i8 values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByI8(ctx context.Context, req require.Requirement, i8 ...int8) (int64, error) {
+func (tbl AUserTable) DeleteByI8(req require.Requirement, i8 ...int8) (int64, error) {
 	ii := support.Int8AsInterfaceSlice(i8)
-	return support.DeleteByColumn(ctx, tbl, req, "i8", ii...)
+	return support.DeleteByColumn(tbl, req, "i8", ii...)
 }
 
 // DeleteByU8 deletes rows from the table, given some u8 values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByU8(ctx context.Context, req require.Requirement, u8 ...uint8) (int64, error) {
+func (tbl AUserTable) DeleteByU8(req require.Requirement, u8 ...uint8) (int64, error) {
 	ii := support.Uint8AsInterfaceSlice(u8)
-	return support.DeleteByColumn(ctx, tbl, req, "u8", ii...)
+	return support.DeleteByColumn(tbl, req, "u8", ii...)
 }
 
 // DeleteByI16 deletes rows from the table, given some i16 values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByI16(ctx context.Context, req require.Requirement, i16 ...int16) (int64, error) {
+func (tbl AUserTable) DeleteByI16(req require.Requirement, i16 ...int16) (int64, error) {
 	ii := support.Int16AsInterfaceSlice(i16)
-	return support.DeleteByColumn(ctx, tbl, req, "i16", ii...)
+	return support.DeleteByColumn(tbl, req, "i16", ii...)
 }
 
 // DeleteByU16 deletes rows from the table, given some u16 values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByU16(ctx context.Context, req require.Requirement, u16 ...uint16) (int64, error) {
+func (tbl AUserTable) DeleteByU16(req require.Requirement, u16 ...uint16) (int64, error) {
 	ii := support.Uint16AsInterfaceSlice(u16)
-	return support.DeleteByColumn(ctx, tbl, req, "u16", ii...)
+	return support.DeleteByColumn(tbl, req, "u16", ii...)
 }
 
 // DeleteByI32 deletes rows from the table, given some i32 values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByI32(ctx context.Context, req require.Requirement, i32 ...int32) (int64, error) {
+func (tbl AUserTable) DeleteByI32(req require.Requirement, i32 ...int32) (int64, error) {
 	ii := support.Int32AsInterfaceSlice(i32)
-	return support.DeleteByColumn(ctx, tbl, req, "i32", ii...)
+	return support.DeleteByColumn(tbl, req, "i32", ii...)
 }
 
 // DeleteByU32 deletes rows from the table, given some u32 values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByU32(ctx context.Context, req require.Requirement, u32 ...uint32) (int64, error) {
+func (tbl AUserTable) DeleteByU32(req require.Requirement, u32 ...uint32) (int64, error) {
 	ii := support.Uint32AsInterfaceSlice(u32)
-	return support.DeleteByColumn(ctx, tbl, req, "u32", ii...)
+	return support.DeleteByColumn(tbl, req, "u32", ii...)
 }
 
 // DeleteByI64 deletes rows from the table, given some i64 values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByI64(ctx context.Context, req require.Requirement, i64 ...int64) (int64, error) {
+func (tbl AUserTable) DeleteByI64(req require.Requirement, i64 ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(i64)
-	return support.DeleteByColumn(ctx, tbl, req, "i64", ii...)
+	return support.DeleteByColumn(tbl, req, "i64", ii...)
 }
 
 // DeleteByU64 deletes rows from the table, given some u64 values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByU64(ctx context.Context, req require.Requirement, u64 ...uint64) (int64, error) {
+func (tbl AUserTable) DeleteByU64(req require.Requirement, u64 ...uint64) (int64, error) {
 	ii := support.Uint64AsInterfaceSlice(u64)
-	return support.DeleteByColumn(ctx, tbl, req, "u64", ii...)
+	return support.DeleteByColumn(tbl, req, "u64", ii...)
 }
 
 // DeleteByF32 deletes rows from the table, given some f32 values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByF32(ctx context.Context, req require.Requirement, f32 ...float32) (int64, error) {
+func (tbl AUserTable) DeleteByF32(req require.Requirement, f32 ...float32) (int64, error) {
 	ii := make([]interface{}, len(f32))
 	for i, v := range f32 {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(ctx, tbl, req, "f32", ii...)
+	return support.DeleteByColumn(tbl, req, "f32", ii...)
 }
 
 // DeleteByF64 deletes rows from the table, given some f64 values.
 // The list of ids can be arbitrarily long.
-func (tbl AUserTable) DeleteByF64(ctx context.Context, req require.Requirement, f64 ...float64) (int64, error) {
+func (tbl AUserTable) DeleteByF64(req require.Requirement, f64 ...float64) (int64, error) {
 	ii := make([]interface{}, len(f64))
 	for i, v := range f64 {
 		ii[i] = v
 	}
-	return support.DeleteByColumn(ctx, tbl, req, "f64", ii...)
+	return support.DeleteByColumn(tbl, req, "f64", ii...)
 }
 
 // Delete deletes one or more rows from the table, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (very risky!).
-func (tbl AUserTable) Delete(ctx context.Context, req require.Requirement, wh where.Expression) (int64, error) {
+func (tbl AUserTable) Delete(req require.Requirement, wh where.Expression) (int64, error) {
 	query, args := deleteRowsAUserTableSql(tbl, wh)
-	return tbl.Exec(ctx, req, query, args...)
+	return tbl.Exec(req, query, args...)
 }
 
 func deleteRowsAUserTableSql(tbl AUserTabler, wh where.Expression) (string, []interface{}) {

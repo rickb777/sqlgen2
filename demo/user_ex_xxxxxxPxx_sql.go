@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.47.1; sqlgen v0.67.0
+// sqlapi v0.49.0; sqlgen v0.68.0
 
 package demo
 
@@ -24,6 +24,9 @@ type PUserTabler interface {
 
 	// WithPrefix returns a modified PUserTabler with a given table name prefix.
 	WithPrefix(pfx string) PUserTabler
+
+	// WithContext returns a modified PUserTabler with a given context.
+	WithContext(ctx context.Context) PUserTabler
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -38,77 +41,77 @@ type PUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(PUserQueryer) error) error
+	Transact(txOptions *sql.TxOptions, fn func(PUserQueryer) error) error
 
 	// Exec executes a query without returning any rows.
-	Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error)
+	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
 
 	// Insert adds new records for the Users, setting the primary key field for each one.
-	Insert(ctx context.Context, req require.Requirement, vv ...*User) error
+	Insert(req require.Requirement, vv ...*User) error
 
 	// UpdateByUid updates one or more columns, given a uid value.
-	UpdateByUid(ctx context.Context, req require.Requirement, uid int64, fields ...sql.NamedArg) (int64, error)
+	UpdateByUid(req require.Requirement, uid int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByName updates one or more columns, given a name value.
-	UpdateByName(ctx context.Context, req require.Requirement, name string, fields ...sql.NamedArg) (int64, error)
+	UpdateByName(req require.Requirement, name string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByEmailaddress updates one or more columns, given a emailaddress value.
-	UpdateByEmailaddress(ctx context.Context, req require.Requirement, emailaddress string, fields ...sql.NamedArg) (int64, error)
+	UpdateByEmailaddress(req require.Requirement, emailaddress string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByAddressid updates one or more columns, given a addressid value.
-	UpdateByAddressid(ctx context.Context, req require.Requirement, addressid int64, fields ...sql.NamedArg) (int64, error)
+	UpdateByAddressid(req require.Requirement, addressid int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByAvatar updates one or more columns, given a avatar value.
-	UpdateByAvatar(ctx context.Context, req require.Requirement, avatar string, fields ...sql.NamedArg) (int64, error)
+	UpdateByAvatar(req require.Requirement, avatar string, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByRole updates one or more columns, given a role value.
-	UpdateByRole(ctx context.Context, req require.Requirement, role Role, fields ...sql.NamedArg) (int64, error)
+	UpdateByRole(req require.Requirement, role Role, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByLastupdated updates one or more columns, given a lastupdated value.
-	UpdateByLastupdated(ctx context.Context, req require.Requirement, lastupdated int64, fields ...sql.NamedArg) (int64, error)
+	UpdateByLastupdated(req require.Requirement, lastupdated int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByI8 updates one or more columns, given a i8 value.
-	UpdateByI8(ctx context.Context, req require.Requirement, i8 int8, fields ...sql.NamedArg) (int64, error)
+	UpdateByI8(req require.Requirement, i8 int8, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByU8 updates one or more columns, given a u8 value.
-	UpdateByU8(ctx context.Context, req require.Requirement, u8 uint8, fields ...sql.NamedArg) (int64, error)
+	UpdateByU8(req require.Requirement, u8 uint8, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByI16 updates one or more columns, given a i16 value.
-	UpdateByI16(ctx context.Context, req require.Requirement, i16 int16, fields ...sql.NamedArg) (int64, error)
+	UpdateByI16(req require.Requirement, i16 int16, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByU16 updates one or more columns, given a u16 value.
-	UpdateByU16(ctx context.Context, req require.Requirement, u16 uint16, fields ...sql.NamedArg) (int64, error)
+	UpdateByU16(req require.Requirement, u16 uint16, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByI32 updates one or more columns, given a i32 value.
-	UpdateByI32(ctx context.Context, req require.Requirement, i32 int32, fields ...sql.NamedArg) (int64, error)
+	UpdateByI32(req require.Requirement, i32 int32, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByU32 updates one or more columns, given a u32 value.
-	UpdateByU32(ctx context.Context, req require.Requirement, u32 uint32, fields ...sql.NamedArg) (int64, error)
+	UpdateByU32(req require.Requirement, u32 uint32, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByI64 updates one or more columns, given a i64 value.
-	UpdateByI64(ctx context.Context, req require.Requirement, i64 int64, fields ...sql.NamedArg) (int64, error)
+	UpdateByI64(req require.Requirement, i64 int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByU64 updates one or more columns, given a u64 value.
-	UpdateByU64(ctx context.Context, req require.Requirement, u64 uint64, fields ...sql.NamedArg) (int64, error)
+	UpdateByU64(req require.Requirement, u64 uint64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByF32 updates one or more columns, given a f32 value.
-	UpdateByF32(ctx context.Context, req require.Requirement, f32 float32, fields ...sql.NamedArg) (int64, error)
+	UpdateByF32(req require.Requirement, f32 float32, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByF64 updates one or more columns, given a f64 value.
-	UpdateByF64(ctx context.Context, req require.Requirement, f64 float64, fields ...sql.NamedArg) (int64, error)
+	UpdateByF64(req require.Requirement, f64 float64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateFields updates one or more columns, given a 'where' clause.
-	UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
+	UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error)
 
 	// Update updates records, matching them by primary key.
-	Update(ctx context.Context, req require.Requirement, vv ...*User) (int64, error)
+	Update(req require.Requirement, vv ...*User) (int64, error)
 
 	// Upsert inserts or updates a record, matching it using the expression supplied.
 	// This expression is used to search for an existing record based on some specified
 	// key column(s). It must match either zero or one existing record. If it matches
 	// none, a new record is inserted; otherwise the matching record is updated. An
 	// error results if these conditions are not met.
-	Upsert(ctx context.Context, v *User, wh where.Expression) error
+	Upsert(v *User, wh where.Expression) error
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -120,6 +123,7 @@ type PUserTable struct {
 	name     sqlapi.TableName
 	database sqlapi.Database
 	db       sqlapi.Execer
+	ctx      context.Context
 	pk       string
 }
 
@@ -137,6 +141,7 @@ func NewPUserTable(name string, d sqlapi.Database) PUserTable {
 		name:     sqlapi.TableName{Prefix: "", Name: name},
 		database: d,
 		db:       d.DB(),
+		ctx:      context.Background(),
 		pk:       "uid",
 	}
 }
@@ -151,6 +156,7 @@ func CopyTableAsPUserTable(origin sqlapi.Table) PUserTable {
 		name:     origin.Name(),
 		database: origin.Database(),
 		db:       origin.Execer(),
+		ctx:      origin.Ctx(),
 		pk:       "uid",
 	}
 }
@@ -169,6 +175,16 @@ func (tbl PUserTable) WithPrefix(pfx string) PUserTabler {
 	return tbl
 }
 
+// WithContext sets the context for subsequent queries via this table.
+// The result is a modified copy of the table; the original is unchanged.
+//
+// The shared context in the *Database is not altered by this method. So it
+// is possible to use different contexts for different (groups of) queries.
+func (tbl PUserTable) WithContext(ctx context.Context) PUserTabler {
+	tbl.ctx = ctx
+	return tbl
+}
+
 // Database gets the shared database information.
 func (tbl PUserTable) Database() sqlapi.Database {
 	return tbl.database
@@ -177,6 +193,11 @@ func (tbl PUserTable) Database() sqlapi.Database {
 // Logger gets the trace logger.
 func (tbl PUserTable) Logger() sqlapi.Logger {
 	return tbl.database.Logger()
+}
+
+// Ctx gets the current request context.
+func (tbl PUserTable) Ctx() context.Context {
+	return tbl.ctx
 }
 
 // Dialect gets the database dialect.
@@ -233,12 +254,12 @@ func (tbl PUserTable) Using(tx sqlapi.Execer) PUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl PUserTable) Transact(ctx context.Context, txOptions *sql.TxOptions, fn func(PUserQueryer) error) error {
+func (tbl PUserTable) Transact(txOptions *sql.TxOptions, fn func(PUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
 	} else {
-		err = tbl.DB().Transact(ctx, txOptions, func(tx sqlapi.SqlTx) error {
+		err = tbl.DB().Transact(tbl.ctx, txOptions, func(tx sqlapi.SqlTx) error {
 			return fn(tbl.Using(tx))
 		})
 	}
@@ -275,10 +296,8 @@ var listOfPUserTableColumnNames = strings.Split(PUserTableColumnNames, ",")
 // It returns the number of rows affected (if the database driver supports this).
 //
 // The args are for any placeholder parameters in the query.
-//
-// If the context ctx is nil, it defaults to context.Background().
-func (tbl PUserTable) Exec(ctx context.Context, req require.Requirement, query string, args ...interface{}) (int64, error) {
-	return support.Exec(ctx, tbl, req, query, args...)
+func (tbl PUserTable) Exec(req require.Requirement, query string, args ...interface{}) (int64, error) {
+	return support.Exec(tbl, req, query, args...)
 }
 
 // scanPUsers reads rows from the database and returns a slice of corresponding values.
@@ -671,13 +690,9 @@ func constructPUserTableUpdate(tbl PUserTable, w dialect.StringWriter, v *User) 
 
 // Insert adds new records for the Users.// The Users have their primary key fields set to the new record identifiers.
 // The User.PreInsert() method will be called, if it exists.
-func (tbl PUserTable) Insert(ctx context.Context, req require.Requirement, vv ...*User) error {
+func (tbl PUserTable) Insert(req require.Requirement, vv ...*User) error {
 	if req == require.All {
 		req = require.Exactly(len(vv))
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
 	}
 
 	var count int64
@@ -715,13 +730,13 @@ func (tbl PUserTable) Insert(ctx context.Context, req require.Requirement, vv ..
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(ctx, query, fields...)
+			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Uid = i64
 
 		} else {
-			i64, e2 := tbl.db.InsertContext(ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
@@ -738,101 +753,101 @@ func (tbl PUserTable) Insert(ctx context.Context, req require.Requirement, vv ..
 }
 
 // UpdateByUid updates one or more columns, given a uid value.
-func (tbl PUserTable) UpdateByUid(ctx context.Context, req require.Requirement, uid int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("uid", uid), fields...)
+func (tbl PUserTable) UpdateByUid(req require.Requirement, uid int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("uid", uid), fields...)
 }
 
 // UpdateByName updates one or more columns, given a name value.
-func (tbl PUserTable) UpdateByName(ctx context.Context, req require.Requirement, name string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("name", name), fields...)
+func (tbl PUserTable) UpdateByName(req require.Requirement, name string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("name", name), fields...)
 }
 
 // UpdateByEmailaddress updates one or more columns, given a emailaddress value.
-func (tbl PUserTable) UpdateByEmailaddress(ctx context.Context, req require.Requirement, emailaddress string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("emailaddress", emailaddress), fields...)
+func (tbl PUserTable) UpdateByEmailaddress(req require.Requirement, emailaddress string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("emailaddress", emailaddress), fields...)
 }
 
 // UpdateByAddressid updates one or more columns, given a addressid value.
-func (tbl PUserTable) UpdateByAddressid(ctx context.Context, req require.Requirement, addressid int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("addressid", addressid), fields...)
+func (tbl PUserTable) UpdateByAddressid(req require.Requirement, addressid int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("addressid", addressid), fields...)
 }
 
 // UpdateByAvatar updates one or more columns, given a avatar value.
-func (tbl PUserTable) UpdateByAvatar(ctx context.Context, req require.Requirement, avatar string, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("avatar", avatar), fields...)
+func (tbl PUserTable) UpdateByAvatar(req require.Requirement, avatar string, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("avatar", avatar), fields...)
 }
 
 // UpdateByRole updates one or more columns, given a role value.
-func (tbl PUserTable) UpdateByRole(ctx context.Context, req require.Requirement, role Role, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("role", role), fields...)
+func (tbl PUserTable) UpdateByRole(req require.Requirement, role Role, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("role", role), fields...)
 }
 
 // UpdateByLastupdated updates one or more columns, given a lastupdated value.
-func (tbl PUserTable) UpdateByLastupdated(ctx context.Context, req require.Requirement, lastupdated int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("lastupdated", lastupdated), fields...)
+func (tbl PUserTable) UpdateByLastupdated(req require.Requirement, lastupdated int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("lastupdated", lastupdated), fields...)
 }
 
 // UpdateByI8 updates one or more columns, given a i8 value.
-func (tbl PUserTable) UpdateByI8(ctx context.Context, req require.Requirement, i8 int8, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("i8", i8), fields...)
+func (tbl PUserTable) UpdateByI8(req require.Requirement, i8 int8, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("i8", i8), fields...)
 }
 
 // UpdateByU8 updates one or more columns, given a u8 value.
-func (tbl PUserTable) UpdateByU8(ctx context.Context, req require.Requirement, u8 uint8, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("u8", u8), fields...)
+func (tbl PUserTable) UpdateByU8(req require.Requirement, u8 uint8, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("u8", u8), fields...)
 }
 
 // UpdateByI16 updates one or more columns, given a i16 value.
-func (tbl PUserTable) UpdateByI16(ctx context.Context, req require.Requirement, i16 int16, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("i16", i16), fields...)
+func (tbl PUserTable) UpdateByI16(req require.Requirement, i16 int16, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("i16", i16), fields...)
 }
 
 // UpdateByU16 updates one or more columns, given a u16 value.
-func (tbl PUserTable) UpdateByU16(ctx context.Context, req require.Requirement, u16 uint16, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("u16", u16), fields...)
+func (tbl PUserTable) UpdateByU16(req require.Requirement, u16 uint16, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("u16", u16), fields...)
 }
 
 // UpdateByI32 updates one or more columns, given a i32 value.
-func (tbl PUserTable) UpdateByI32(ctx context.Context, req require.Requirement, i32 int32, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("i32", i32), fields...)
+func (tbl PUserTable) UpdateByI32(req require.Requirement, i32 int32, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("i32", i32), fields...)
 }
 
 // UpdateByU32 updates one or more columns, given a u32 value.
-func (tbl PUserTable) UpdateByU32(ctx context.Context, req require.Requirement, u32 uint32, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("u32", u32), fields...)
+func (tbl PUserTable) UpdateByU32(req require.Requirement, u32 uint32, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("u32", u32), fields...)
 }
 
 // UpdateByI64 updates one or more columns, given a i64 value.
-func (tbl PUserTable) UpdateByI64(ctx context.Context, req require.Requirement, i64 int64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("i64", i64), fields...)
+func (tbl PUserTable) UpdateByI64(req require.Requirement, i64 int64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("i64", i64), fields...)
 }
 
 // UpdateByU64 updates one or more columns, given a u64 value.
-func (tbl PUserTable) UpdateByU64(ctx context.Context, req require.Requirement, u64 uint64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("u64", u64), fields...)
+func (tbl PUserTable) UpdateByU64(req require.Requirement, u64 uint64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("u64", u64), fields...)
 }
 
 // UpdateByF32 updates one or more columns, given a f32 value.
-func (tbl PUserTable) UpdateByF32(ctx context.Context, req require.Requirement, f32 float32, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("f32", f32), fields...)
+func (tbl PUserTable) UpdateByF32(req require.Requirement, f32 float32, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("f32", f32), fields...)
 }
 
 // UpdateByF64 updates one or more columns, given a f64 value.
-func (tbl PUserTable) UpdateByF64(ctx context.Context, req require.Requirement, f64 float64, fields ...sql.NamedArg) (int64, error) {
-	return tbl.UpdateFields(ctx, req, where.Eq("f64", f64), fields...)
+func (tbl PUserTable) UpdateByF64(req require.Requirement, f64 float64, fields ...sql.NamedArg) (int64, error) {
+	return tbl.UpdateFields(req, where.Eq("f64", f64), fields...)
 }
 
 // UpdateFields updates one or more columns, given a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed (but note that this is risky!).
-func (tbl PUserTable) UpdateFields(ctx context.Context, req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
-	return support.UpdateFields(ctx, tbl, req, wh, fields...)
+func (tbl PUserTable) UpdateFields(req require.Requirement, wh where.Expression, fields ...sql.NamedArg) (int64, error) {
+	return support.UpdateFields(tbl, req, wh, fields...)
 }
 
 //--------------------------------------------------------------------------------
 
 // Update updates records, matching them by primary key. It returns the number of rows affected.
 // The User.PreUpdate(Execer) method will be called, if it exists.
-func (tbl PUserTable) Update(ctx context.Context, req require.Requirement, vv ...*User) (int64, error) {
+func (tbl PUserTable) Update(req require.Requirement, vv ...*User) (int64, error) {
 	if req == require.All {
 		req = require.Exactly(len(vv))
 	}
@@ -866,7 +881,7 @@ func (tbl PUserTable) Update(ctx context.Context, req require.Requirement, vv ..
 		b.WriteString("=?")
 
 		query := b.String()
-		n, err := tbl.Exec(ctx, nil, query, args...)
+		n, err := tbl.Exec(nil, query, args...)
 		if err != nil {
 			return count, err
 		}
@@ -883,20 +898,20 @@ func (tbl PUserTable) Update(ctx context.Context, req require.Requirement, vv ..
 // key column(s). It must match either zero or one existing record. If it matches
 // none, a new record is inserted; otherwise the matching record is updated. An
 // error results if these conditions are not met.
-func (tbl PUserTable) Upsert(ctx context.Context, v *User, wh where.Expression) error {
+func (tbl PUserTable) Upsert(v *User, wh where.Expression) error {
 	col := tbl.Dialect().Quoter().Quote(tbl.pk)
 	qName := tbl.quotedName()
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
 
 	query := fmt.Sprintf("SELECT %s FROM %s %s", col, qName, whs)
-	rows, err := support.Query(ctx, tbl, query, args...)
+	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return tbl.Insert(ctx, require.One, v)
+		return tbl.Insert(require.One, v)
 	}
 
 	var id int64
@@ -910,6 +925,6 @@ func (tbl PUserTable) Upsert(ctx context.Context, v *User, wh where.Expression) 
 	}
 
 	v.Uid = id
-	_, err = tbl.Update(ctx, require.One, v)
+	_, err = tbl.Update(require.One, v)
 	return err
 }
