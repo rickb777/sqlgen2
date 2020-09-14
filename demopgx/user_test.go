@@ -751,7 +751,7 @@ func (m mockExecer) Logger() pgxapi.Logger {
 	return m
 }
 
-func (m mockExecer) SingleConn(ctx context.Context, fn func(conn *pgx.Conn) error) error {
+func (m mockExecer) SingleConn(ctx context.Context, fn func(conn pgxapi.Execer) error) error {
 	panic("implement me")
 }
 

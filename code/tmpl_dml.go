@@ -140,6 +140,10 @@ const sGetRowDecl = `
 	Get{{$.Types}}By{{.JoinedNames "And"}}(ctx context.Context, req require.Requirement, qc where.QueryConstraint, {{.Fields.FormalParams.MkString ", "}}) ({{$.List}}, error)
 {{- end}}
 {{- end}}
+
+	// Fetch fetches a list of {{.Type}} based on a supplied query. This is mostly used for join queries that map its
+	// result columns to the fields of {{.Type}}. Other queries might be better handled by GetXxx or Select methods.
+	Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ({{.List}}, error)
 `
 
 const sGetRowFunc = `

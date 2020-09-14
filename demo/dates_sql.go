@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.47.0; sqlgen v0.66.0
+// sqlapi v0.47.1; sqlgen v0.67.0
 
 package demo
 
@@ -78,6 +78,10 @@ type DatesQueryer interface {
 
 	// GetDatessById gets records from the table according to a list of primary keys.
 	GetDatessById(ctx context.Context, req require.Requirement, qc where.QueryConstraint, id ...uint64) (list []*Dates, err error)
+
+	// Fetch fetches a list of Dates based on a supplied query. This is mostly used for join queries that map its
+	// result columns to the fields of Dates. Other queries might be better handled by GetXxx or Select methods.
+	Fetch(ctx context.Context, req require.Requirement, query string, args ...interface{}) ([]*Dates, error)
 
 	// SelectOneWhere allows a single Dates to be obtained from the table that matches a 'where' clause.
 	SelectOneWhere(ctx context.Context, req require.Requirement, where, orderBy string, args ...interface{}) (*Dates, error)

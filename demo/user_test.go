@@ -831,7 +831,7 @@ func (m mockExecer) IsTx() bool {
 	panic("implement me")
 }
 
-func (m mockExecer) SingleConn(ctx context.Context, fn func(conn *sql.Conn) error) error {
+func (m mockExecer) SingleConn(ctx context.Context, fn func(conn sqlapi.Execer) error) error {
 	panic("implement me")
 }
 
