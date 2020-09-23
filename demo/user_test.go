@@ -150,7 +150,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		d := sqlapi.WrapDB(nil, nil, c.dialect)
+		d := sqlapi.WrapDB(nil, c.dialect, nil)
 		tbl := NewDbUserTable("users", d).
 			WithPrefix("prefix_").
 			WithConstraint(constraint.CheckConstraint{"role < 3"})
@@ -179,7 +179,7 @@ func outputDiff(a, name string) {
 func TestCreateIndexSql(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	d := sqlapi.WrapDB(nil, nil, dialect.Postgres)
+	d := sqlapi.WrapDB(nil, dialect.Postgres, nil)
 	tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
 	s := createDbUserTableEmailaddressIdxSql(tbl, "IF NOT EXISTS ")
 	expected := `CREATE UNIQUE INDEX IF NOT EXISTS "prefix_users_emailaddress_idx" ON "prefix_users" ("emailaddress")`
@@ -199,7 +199,7 @@ func TestDropIndexSql(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		d := sqlapi.WrapDB(nil, nil, c.d)
+		d := sqlapi.WrapDB(nil, c.d, nil)
 		tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
 		s := dropDbUserTableEmailaddressIdxSql(tbl, true)
 		g.Expect(s).To(Equal(c.expected))
