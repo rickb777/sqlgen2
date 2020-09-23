@@ -36,11 +36,18 @@ unset GO_DRIVER GO_DSN PGQUOTE
 export DB_CONNECT_TIMEOUT=1s
 export PGHOST=localhost
 export PGDATABASE=test
-export PGUSER PGPASSWORD
 if [[ -z $PGUSER ]]; then
+  echo PGUSER=testuser
   PGUSER=testuser
   PGPASSWORD=TestPasswd.9.9.9
 fi
+if [[ -z $MYUSER ]]; then
+  echo MYUSER=testuser
+  MYUSER=testuser
+  MYPASSWORD=TestPasswd.9.9.9
+fi
+export PGUSER PGPASSWORD
+export MYUSER MYPASSWORD
 
 DBS=$@
 if [ "$1" = "all" ]; then
@@ -55,25 +62,25 @@ for db in $DBS; do
     mysql)
       echo
       echo "MySQL...."
-      GO_DRIVER=mysql GO_DSN="$PGUSER:$PGPASSWORD@/test" go test $V .
+      GO_DRIVER=mysql GO_DSN="$MYUSER:$MYPASSWORD@/test" go test $V .
       ;;
 
     postgres)
       echo
       echo "PostgreSQL (no quotes)...."
-      GO_DRIVER=postgres GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" PGQUOTE=none go test $V . ||:
+      GO_DRIVER=postgres GO_DSN="postgres://$PGUSER:$PGPASSWORD@/$PGDATABASE" PGQUOTE=none go test $V . ||:
       echo
       echo "PostgreSQL (ANSI)...."
-      GO_DRIVER=postgres GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" PGQUOTE=ansi go test $V . ||:
+      GO_DRIVER=postgres GO_DSN="postgres://$PGUSER:$PGPASSWORD@/$PGDATABASE" PGQUOTE=ansi go test $V . ||:
       ;;
 
     pgx)
       echo
       echo "PGX (no quotes)...."
-      GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" PGQUOTE=none go test $V . ||:
+      GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/$PGDATABASE" PGQUOTE=none go test $V . ||:
       echo
       echo "PGX (ANSI)...."
-      GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" PGQUOTE=ansi go test $V . ||:
+      GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/$PGDATABASE" PGQUOTE=ansi go test $V . ||:
       ;;
 
     sqlite)

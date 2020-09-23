@@ -10,13 +10,15 @@ env:
     - PGUSER=postgres
     - PGPASSWORD=
     - PGDATABASE=postgres
+    - MYUSER=travis
+    - MYPASSWORD=
 
 services:
   - mysql
   - postgresql
 
 before_install:
-  - mysql -e 'CREATE DATABASE test;'
+  - mysql -e 'CREATE DATABASE IF NOT EXISTS test;'
 
 install:
   - go mod download
