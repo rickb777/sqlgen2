@@ -503,7 +503,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.Execer().QueryRowContext(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			{{- if .Table.HasIntegerPrimaryKey}}
@@ -516,7 +516,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 
 		} else {
 			{{- if .Table.HasIntegerPrimaryKey}}
-			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.Execer().InsertContext(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
@@ -527,7 +527,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 			v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(i64)
 			{{- end}}
 			{{- else}}
-			_, e3 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			_, e3 := tbl.Execer().ExecContext(tbl.ctx, query, fields...)
 			if e3 != nil {
 				return tbl.Logger().LogError(e3)
 			}

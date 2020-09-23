@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.49.0; sqlgen v0.68.0
+// sqlapi v0.51.0; sqlgen v0.70.0
 
 package demo
 
@@ -161,9 +161,7 @@ type DatesQueryer interface {
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DatesTable struct {
-	name        sqlapi.TableName
-	database    sqlapi.Database
-	db          sqlapi.Execer
+	sqlapi.CoreTable
 	constraints constraint.Constraints
 	ctx         context.Context
 	pk          string
@@ -175,15 +173,16 @@ var _ sqlapi.TableCreator = &DatesTable{}
 // NewDatesTable returns a new table instance.
 // If a blank table name is supplied, the default name "datess" will be used instead.
 // The request context is initialised with the background.
-func NewDatesTable(name string, d sqlapi.Database) DatesTable {
+func NewDatesTable(name string, d sqlapi.SqlDB) DatesTable {
 	if name == "" {
 		name = "datess"
 	}
 	var constraints constraint.Constraints
 	return DatesTable{
-		name:        sqlapi.TableName{Prefix: "", Name: name},
-		database:    d,
-		db:          d.DB(),
+		CoreTable: sqlapi.CoreTable{
+			Nm: sqlapi.TableName{Prefix: "", Name: name},
+			Ex: d,
+		},
 		constraints: constraints,
 		ctx:         context.Background(),
 		pk:          "id",
@@ -197,9 +196,10 @@ func NewDatesTable(name string, d sqlapi.Database) DatesTable {
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsDatesTable(origin sqlapi.Table) DatesTable {
 	return DatesTable{
-		name:        origin.Name(),
-		database:    origin.Database(),
-		db:          origin.Execer(),
+		CoreTable: sqlapi.CoreTable{
+			Nm: origin.Name(),
+			Ex: origin.Execer(),
+		},
 		constraints: nil,
 		ctx:         origin.Ctx(),
 		pk:          "id",
@@ -216,28 +216,15 @@ func CopyTableAsDatesTable(origin sqlapi.Table) DatesTable {
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DatesTable) WithPrefix(pfx string) DatesTabler {
-	tbl.name.Prefix = pfx
+	tbl.Nm.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries via this table.
 // The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
 func (tbl DatesTable) WithContext(ctx context.Context) DatesTabler {
 	tbl.ctx = ctx
 	return tbl
-}
-
-// Database gets the shared database information.
-func (tbl DatesTable) Database() sqlapi.Database {
-	return tbl.database
-}
-
-// Logger gets the trace logger.
-func (tbl DatesTable) Logger() sqlapi.Logger {
-	return tbl.database.Logger()
 }
 
 // WithConstraint returns a modified DatesTabler with added data consistency constraints.
@@ -256,41 +243,9 @@ func (tbl DatesTable) Ctx() context.Context {
 	return tbl.ctx
 }
 
-// Dialect gets the database dialect.
-func (tbl DatesTable) Dialect() dialect.Dialect {
-	return tbl.database.Dialect()
-}
-
-// Name gets the table name.
-func (tbl DatesTable) Name() sqlapi.TableName {
-	return tbl.name
-}
-
 // PkColumn gets the column name used as a primary key.
 func (tbl DatesTable) PkColumn() string {
 	return tbl.pk
-}
-
-// DB gets the wrapped database handle, provided this is not within a transaction.
-// Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl DatesTable) DB() sqlapi.SqlDB {
-	return tbl.db.(sqlapi.SqlDB)
-}
-
-// Execer gets the wrapped database or transaction handle.
-func (tbl DatesTable) Execer() sqlapi.Execer {
-	return tbl.db
-}
-
-// Tx gets the wrapped transaction handle, provided this is within a transaction.
-// Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl DatesTable) Tx() sqlapi.SqlTx {
-	return tbl.db.(sqlapi.SqlTx)
-}
-
-// IsTx tests whether this is within a transaction.
-func (tbl DatesTable) IsTx() bool {
-	return tbl.db.IsTx()
 }
 
 // Using returns a modified DatesTabler using the the Execer supplied,
@@ -299,7 +254,7 @@ func (tbl DatesTable) IsTx() bool {
 //
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DatesTable) Using(tx sqlapi.Execer) DatesQueryer {
-	tbl.db = tx
+	tbl.Ex = tx
 	return tbl
 }
 
@@ -323,11 +278,11 @@ func (tbl DatesTable) Transact(txOptions *sql.TxOptions, fn func(DatesQueryer) e
 }
 
 func (tbl DatesTable) quotedName() string {
-	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
 func (tbl DatesTable) quotedNameW(w dialect.StringWriter) {
-	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
+	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -878,13 +833,13 @@ func (tbl DatesTable) Insert(req require.Requirement, vv ...*Dates) error {
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.Execer().QueryRowContext(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Id = uint64(i64)
 
 		} else {
-			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.Execer().InsertContext(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}

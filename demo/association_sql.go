@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.49.0; sqlgen v0.68.0
+// sqlapi v0.51.0; sqlgen v0.70.0
 
 package demo
 
@@ -190,9 +190,7 @@ type AssociationQueryer interface {
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type AssociationTable struct {
-	name        sqlapi.TableName
-	database    sqlapi.Database
-	db          sqlapi.Execer
+	sqlapi.CoreTable
 	constraints constraint.Constraints
 	ctx         context.Context
 	pk          string
@@ -204,15 +202,16 @@ var _ sqlapi.TableCreator = &AssociationTable{}
 // NewAssociationTable returns a new table instance.
 // If a blank table name is supplied, the default name "associations" will be used instead.
 // The request context is initialised with the background.
-func NewAssociationTable(name string, d sqlapi.Database) AssociationTable {
+func NewAssociationTable(name string, d sqlapi.SqlDB) AssociationTable {
 	if name == "" {
 		name = "associations"
 	}
 	var constraints constraint.Constraints
 	return AssociationTable{
-		name:        sqlapi.TableName{Prefix: "", Name: name},
-		database:    d,
-		db:          d.DB(),
+		CoreTable: sqlapi.CoreTable{
+			Nm: sqlapi.TableName{Prefix: "", Name: name},
+			Ex: d,
+		},
 		constraints: constraints,
 		ctx:         context.Background(),
 		pk:          "id",
@@ -226,9 +225,10 @@ func NewAssociationTable(name string, d sqlapi.Database) AssociationTable {
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsAssociationTable(origin sqlapi.Table) AssociationTable {
 	return AssociationTable{
-		name:        origin.Name(),
-		database:    origin.Database(),
-		db:          origin.Execer(),
+		CoreTable: sqlapi.CoreTable{
+			Nm: origin.Name(),
+			Ex: origin.Execer(),
+		},
 		constraints: nil,
 		ctx:         origin.Ctx(),
 		pk:          "id",
@@ -245,28 +245,15 @@ func CopyTableAsAssociationTable(origin sqlapi.Table) AssociationTable {
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AssociationTable) WithPrefix(pfx string) AssociationTabler {
-	tbl.name.Prefix = pfx
+	tbl.Nm.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries via this table.
 // The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
 func (tbl AssociationTable) WithContext(ctx context.Context) AssociationTabler {
 	tbl.ctx = ctx
 	return tbl
-}
-
-// Database gets the shared database information.
-func (tbl AssociationTable) Database() sqlapi.Database {
-	return tbl.database
-}
-
-// Logger gets the trace logger.
-func (tbl AssociationTable) Logger() sqlapi.Logger {
-	return tbl.database.Logger()
 }
 
 // WithConstraint returns a modified AssociationTabler with added data consistency constraints.
@@ -285,41 +272,9 @@ func (tbl AssociationTable) Ctx() context.Context {
 	return tbl.ctx
 }
 
-// Dialect gets the database dialect.
-func (tbl AssociationTable) Dialect() dialect.Dialect {
-	return tbl.database.Dialect()
-}
-
-// Name gets the table name.
-func (tbl AssociationTable) Name() sqlapi.TableName {
-	return tbl.name
-}
-
 // PkColumn gets the column name used as a primary key.
 func (tbl AssociationTable) PkColumn() string {
 	return tbl.pk
-}
-
-// DB gets the wrapped database handle, provided this is not within a transaction.
-// Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AssociationTable) DB() sqlapi.SqlDB {
-	return tbl.db.(sqlapi.SqlDB)
-}
-
-// Execer gets the wrapped database or transaction handle.
-func (tbl AssociationTable) Execer() sqlapi.Execer {
-	return tbl.db
-}
-
-// Tx gets the wrapped transaction handle, provided this is within a transaction.
-// Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AssociationTable) Tx() sqlapi.SqlTx {
-	return tbl.db.(sqlapi.SqlTx)
-}
-
-// IsTx tests whether this is within a transaction.
-func (tbl AssociationTable) IsTx() bool {
-	return tbl.db.IsTx()
 }
 
 // Using returns a modified AssociationTabler using the the Execer supplied,
@@ -328,7 +283,7 @@ func (tbl AssociationTable) IsTx() bool {
 //
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AssociationTable) Using(tx sqlapi.Execer) AssociationQueryer {
-	tbl.db = tx
+	tbl.Ex = tx
 	return tbl
 }
 
@@ -352,11 +307,11 @@ func (tbl AssociationTable) Transact(txOptions *sql.TxOptions, fn func(Associati
 }
 
 func (tbl AssociationTable) quotedName() string {
-	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
 func (tbl AssociationTable) quotedNameW(w dialect.StringWriter) {
-	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
+	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1037,13 +992,13 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.Execer().QueryRowContext(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Id = i64
 
 		} else {
-			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.Execer().InsertContext(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}

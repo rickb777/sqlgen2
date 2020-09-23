@@ -31,7 +31,7 @@ sqlgen -type demo.User -o user_ex_EQICRUPDL_sql.go $V -prefix A -all          us
 #mkdir -p sub
 #sqlgen -type demo.Hook -pkg github.com/rickb777/sqlgen2/demo -o sub/xhook_sql.go -list demo.HookList -all $V .
 
-unset GO_DRIVER GO_DSN GO_QUOTER
+unset GO_DRIVER GO_DSN PGQUOTE
 
 export DB_CONNECT_TIMEOUT=1s
 export PGHOST=localhost
@@ -61,29 +61,29 @@ for db in $DBS; do
     postgres)
       echo
       echo "PostgreSQL (no quotes)...."
-      GO_DRIVER=postgres GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=none go test $V . ||:
+      GO_DRIVER=postgres GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" PGQUOTE=none go test $V . ||:
       echo
       echo "PostgreSQL (ANSI)...."
-      GO_DRIVER=postgres GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=ansi go test $V . ||:
+      GO_DRIVER=postgres GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" PGQUOTE=ansi go test $V . ||:
       ;;
 
     pgx)
       echo
       echo "PGX (no quotes)...."
-      GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=none go test $V . ||:
+      GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" PGQUOTE=none go test $V . ||:
       echo
       echo "PGX (ANSI)...."
-      GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=ansi go test $V . ||:
+      GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" PGQUOTE=ansi go test $V . ||:
       ;;
 
     sqlite)
       unset GO_DRIVER GO_DSN
       echo
       echo "SQLite3 (no quotes)..."
-      GO_QUOTER=none go test $V .
+      PGQUOTE=none go test $V .
       echo
       echo "SQLite3 (ANSI)..."
-      GO_QUOTER=ansi go test $V .
+      PGQUOTE=ansi go test $V .
       ;;
 
     *)

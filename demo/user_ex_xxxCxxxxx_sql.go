@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.49.0; sqlgen v0.68.0
+// sqlapi v0.51.0; sqlgen v0.70.0
 
 package demo
 
@@ -54,11 +54,9 @@ type CUserQueryer interface {
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type CUserTable struct {
-	name     sqlapi.TableName
-	database sqlapi.Database
-	db       sqlapi.Execer
-	ctx      context.Context
-	pk       string
+	sqlapi.CoreTable
+	ctx context.Context
+	pk  string
 }
 
 // Type conformance checks
@@ -67,16 +65,17 @@ var _ sqlapi.Table = &CUserTable{}
 // NewCUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewCUserTable(name string, d sqlapi.Database) CUserTable {
+func NewCUserTable(name string, d sqlapi.SqlDB) CUserTable {
 	if name == "" {
 		name = "users"
 	}
 	return CUserTable{
-		name:     sqlapi.TableName{Prefix: "", Name: name},
-		database: d,
-		db:       d.DB(),
-		ctx:      context.Background(),
-		pk:       "uid",
+		CoreTable: sqlapi.CoreTable{
+			Nm: sqlapi.TableName{Prefix: "", Name: name},
+			Ex: d,
+		},
+		ctx: context.Background(),
+		pk:  "uid",
 	}
 }
 
@@ -87,11 +86,12 @@ func NewCUserTable(name string, d sqlapi.Database) CUserTable {
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsCUserTable(origin sqlapi.Table) CUserTable {
 	return CUserTable{
-		name:     origin.Name(),
-		database: origin.Database(),
-		db:       origin.Execer(),
-		ctx:      origin.Ctx(),
-		pk:       "uid",
+		CoreTable: sqlapi.CoreTable{
+			Nm: origin.Name(),
+			Ex: origin.Execer(),
+		},
+		ctx: origin.Ctx(),
+		pk:  "uid",
 	}
 }
 
@@ -105,28 +105,15 @@ func CopyTableAsCUserTable(origin sqlapi.Table) CUserTable {
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl CUserTable) WithPrefix(pfx string) CUserTabler {
-	tbl.name.Prefix = pfx
+	tbl.Nm.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries via this table.
 // The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
 func (tbl CUserTable) WithContext(ctx context.Context) CUserTabler {
 	tbl.ctx = ctx
 	return tbl
-}
-
-// Database gets the shared database information.
-func (tbl CUserTable) Database() sqlapi.Database {
-	return tbl.database
-}
-
-// Logger gets the trace logger.
-func (tbl CUserTable) Logger() sqlapi.Logger {
-	return tbl.database.Logger()
 }
 
 // Ctx gets the current request context.
@@ -134,41 +121,9 @@ func (tbl CUserTable) Ctx() context.Context {
 	return tbl.ctx
 }
 
-// Dialect gets the database dialect.
-func (tbl CUserTable) Dialect() dialect.Dialect {
-	return tbl.database.Dialect()
-}
-
-// Name gets the table name.
-func (tbl CUserTable) Name() sqlapi.TableName {
-	return tbl.name
-}
-
 // PkColumn gets the column name used as a primary key.
 func (tbl CUserTable) PkColumn() string {
 	return tbl.pk
-}
-
-// DB gets the wrapped database handle, provided this is not within a transaction.
-// Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl CUserTable) DB() sqlapi.SqlDB {
-	return tbl.db.(sqlapi.SqlDB)
-}
-
-// Execer gets the wrapped database or transaction handle.
-func (tbl CUserTable) Execer() sqlapi.Execer {
-	return tbl.db
-}
-
-// Tx gets the wrapped transaction handle, provided this is within a transaction.
-// Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl CUserTable) Tx() sqlapi.SqlTx {
-	return tbl.db.(sqlapi.SqlTx)
-}
-
-// IsTx tests whether this is within a transaction.
-func (tbl CUserTable) IsTx() bool {
-	return tbl.db.IsTx()
 }
 
 // Using returns a modified CUserTabler using the the Execer supplied,
@@ -177,7 +132,7 @@ func (tbl CUserTable) IsTx() bool {
 //
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl CUserTable) Using(tx sqlapi.Execer) CUserQueryer {
-	tbl.db = tx
+	tbl.Ex = tx
 	return tbl
 }
 
@@ -201,11 +156,11 @@ func (tbl CUserTable) Transact(txOptions *sql.TxOptions, fn func(CUserQueryer) e
 }
 
 func (tbl CUserTable) quotedName() string {
-	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
 func (tbl CUserTable) quotedNameW(w dialect.StringWriter) {
-	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
+	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
 //-------------------------------------------------------------------------------------------------

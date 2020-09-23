@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.49.0; sqlgen v0.68.0
+// sqlapi v0.51.0; sqlgen v0.70.0
 
 package demo
 
@@ -159,12 +159,9 @@ type DbCompoundQueryer interface {
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type DbCompoundTable struct {
-	name        sqlapi.TableName
-	database    sqlapi.Database
-	db          sqlapi.Execer
+	sqlapi.CoreTable
 	constraints constraint.Constraints
 	ctx         context.Context
-	pk          string
 }
 
 // Type conformance checks
@@ -173,18 +170,18 @@ var _ sqlapi.TableWithIndexes = &DbCompoundTable{}
 // NewDbCompoundTable returns a new table instance.
 // If a blank table name is supplied, the default name "compounds" will be used instead.
 // The request context is initialised with the background.
-func NewDbCompoundTable(name string, d sqlapi.Database) DbCompoundTable {
+func NewDbCompoundTable(name string, d sqlapi.SqlDB) DbCompoundTable {
 	if name == "" {
 		name = "compounds"
 	}
 	var constraints constraint.Constraints
 	return DbCompoundTable{
-		name:        sqlapi.TableName{Prefix: "", Name: name},
-		database:    d,
-		db:          d.DB(),
+		CoreTable: sqlapi.CoreTable{
+			Nm: sqlapi.TableName{Prefix: "", Name: name},
+			Ex: d,
+		},
 		constraints: constraints,
 		ctx:         context.Background(),
-		pk:          "",
 	}
 }
 
@@ -195,40 +192,27 @@ func NewDbCompoundTable(name string, d sqlapi.Database) DbCompoundTable {
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsDbCompoundTable(origin sqlapi.Table) DbCompoundTable {
 	return DbCompoundTable{
-		name:        origin.Name(),
-		database:    origin.Database(),
-		db:          origin.Execer(),
+		CoreTable: sqlapi.CoreTable{
+			Nm: origin.Name(),
+			Ex: origin.Execer(),
+		},
 		constraints: nil,
 		ctx:         origin.Ctx(),
-		pk:          "",
 	}
 }
 
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DbCompoundTable) WithPrefix(pfx string) DbCompoundTabler {
-	tbl.name.Prefix = pfx
+	tbl.Nm.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries via this table.
 // The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
 func (tbl DbCompoundTable) WithContext(ctx context.Context) DbCompoundTabler {
 	tbl.ctx = ctx
 	return tbl
-}
-
-// Database gets the shared database information.
-func (tbl DbCompoundTable) Database() sqlapi.Database {
-	return tbl.database
-}
-
-// Logger gets the trace logger.
-func (tbl DbCompoundTable) Logger() sqlapi.Logger {
-	return tbl.database.Logger()
 }
 
 // WithConstraint returns a modified DbCompoundTabler with added data consistency constraints.
@@ -247,45 +231,13 @@ func (tbl DbCompoundTable) Ctx() context.Context {
 	return tbl.ctx
 }
 
-// Dialect gets the database dialect.
-func (tbl DbCompoundTable) Dialect() dialect.Dialect {
-	return tbl.database.Dialect()
-}
-
-// Name gets the table name.
-func (tbl DbCompoundTable) Name() sqlapi.TableName {
-	return tbl.name
-}
-
-// DB gets the wrapped database handle, provided this is not within a transaction.
-// Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl DbCompoundTable) DB() sqlapi.SqlDB {
-	return tbl.db.(sqlapi.SqlDB)
-}
-
-// Execer gets the wrapped database or transaction handle.
-func (tbl DbCompoundTable) Execer() sqlapi.Execer {
-	return tbl.db
-}
-
-// Tx gets the wrapped transaction handle, provided this is within a transaction.
-// Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl DbCompoundTable) Tx() sqlapi.SqlTx {
-	return tbl.db.(sqlapi.SqlTx)
-}
-
-// IsTx tests whether this is within a transaction.
-func (tbl DbCompoundTable) IsTx() bool {
-	return tbl.db.IsTx()
-}
-
 // Using returns a modified DbCompoundTabler using the the Execer supplied,
 // which will typically be a transaction (i.e. SqlTx). This is needed when making multiple
 // queries across several tables within a single transaction.
 //
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl DbCompoundTable) Using(tx sqlapi.Execer) DbCompoundQueryer {
-	tbl.db = tx
+	tbl.Ex = tx
 	return tbl
 }
 
@@ -309,11 +261,11 @@ func (tbl DbCompoundTable) Transact(txOptions *sql.TxOptions, fn func(DbCompound
 }
 
 func (tbl DbCompoundTable) quotedName() string {
-	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
 func (tbl DbCompoundTable) quotedNameW(w dialect.StringWriter) {
-	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
+	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -906,12 +858,12 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.Execer().QueryRowContext(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 
 		} else {
-			_, e3 := tbl.db.ExecContext(tbl.ctx, query, fields...)
+			_, e3 := tbl.Execer().ExecContext(tbl.ctx, query, fields...)
 			if e3 != nil {
 				return tbl.Logger().LogError(e3)
 			}

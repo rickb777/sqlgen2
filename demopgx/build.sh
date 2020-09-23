@@ -23,7 +23,7 @@ go generate .
 #sqlgen -type demo.User -o user_ex_xxxxS_sql.go $V -prefix S -schema=false -create=false -read=false -update=false -delete=false -slice=true  user.go role.go
 #sqlgen -type demo.User -o user_ex_CRUDS_sql.go $V -prefix A -schema=false -all user.go role.go
 
-unset GO_DRIVER GO_DSN GO_QUOTER
+unset GO_DRIVER GO_DSN PGQUOTE
 
 go clean -testcache ||:
 
@@ -38,7 +38,7 @@ fi
 
 echo
 echo "PGX (no quotes)...."
-GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=none go test $V . ||:
+GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" PGQUOTE=none go test $V . ||:
 echo
 echo "PGX (ANSI)...."
-GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" GO_QUOTER=ansi go test $V . ||:
+GO_DRIVER=pgx GO_DSN="postgres://$PGUSER:$PGPASSWORD@/test" PGQUOTE=ansi go test $V . ||:

@@ -55,14 +55,14 @@ const sTable = `
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type {{.Prefix}}{{.Type}}{{.Thing}} struct {
-	name        {{.Sqlapi}}.TableName
-	database    {{.Sqlapi}}.Database
-	db          {{.Sqlapi}}.Execer
+	{{.Sqlapi}}.CoreTable
 {{- if .HasConstraints}}
 	constraints constraint.Constraints
 {{- end}}
-	ctx         context.Context
-	pk          string
+	ctx context.Context
+{{- if .Table.HasPrimaryKey}}
+	pk  string
+{{- end}}
 }
 
 // Type conformance checks
@@ -71,7 +71,7 @@ var _ {{.Interface1}} = &{{.Prefix}}{{.Type}}{{.Thing}}{}
 // New{{.Prefix}}{{.Type}}{{.Thing}} returns a new table instance.
 // If a blank table name is supplied, the default name "{{.DbName}}" will be used instead.
 // The request context is initialised with the background.
-func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d {{.Sqlapi}}.Database) {{.Prefix}}{{.Type}}{{.Thing}} {
+func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d {{.Sqlapi}}.SqlDB) {{.Prefix}}{{.Type}}{{.Thing}} {
 	if name == "" {
 		name = "{{.DbName}}"
 	}
@@ -83,15 +83,18 @@ func New{{.Prefix}}{{.Type}}{{.Thing}}(name string, d {{.Sqlapi}}.Database) {{.P
 
 	{{- end}}
 {{- end}}
-return {{.Prefix}}{{.Type}}{{.Thing}}{
-		name:        {{.Sqlapi}}.TableName{Prefix: "", Name: name},
-		database:    d,
-		db:          d.DB(),
+	return {{.Prefix}}{{.Type}}{{.Thing}}{
+		CoreTable: {{.Sqlapi}}.CoreTable{
+			Nm: {{.Sqlapi}}.TableName{Prefix: "", Name: name},
+			Ex: d,
+		},
 {{- if .HasConstraints}}
 		constraints: constraints,
 {{- end}}
-		ctx:         context.Background(),
-		pk:          "{{.Table.SafePrimary.SqlName}}",
+		ctx: context.Background(),
+{{- if .Table.HasPrimaryKey}}
+		pk:  "{{.Table.SafePrimary.SqlName}}",
+{{- end}}
 	}
 }
 
@@ -102,14 +105,17 @@ return {{.Prefix}}{{.Type}}{{.Thing}}{
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin {{.Sqlapi}}.Table) {{.Prefix}}{{.Type}}{{.Thing}} {
 	return {{.Prefix}}{{.Type}}{{.Thing}}{
-		name:        origin.Name(),
-		database:    origin.Database(),
-		db:          origin.Execer(),
+		CoreTable: {{.Sqlapi}}.CoreTable{
+			Nm: origin.Name(),
+			Ex: origin.Execer(),
+		},
 {{- if .HasConstraints}}
 		constraints: nil,
 {{- end}}
 		ctx:         origin.Ctx(),
+{{- if .Table.HasPrimaryKey}}
 		pk:          "{{.Table.SafePrimary.SqlName}}",
+{{- end}}
 	}
 }
 {{- if .Table.HasPrimaryKey}}
@@ -125,29 +131,17 @@ func CopyTableAs{{title .Prefix}}{{title .Type}}{{.Thing}}(origin {{.Sqlapi}}.Ta
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithPrefix(pfx string) {{.Prefix}}{{.Type}}{{.Thinger}} {
-	tbl.name.Prefix = pfx
+	tbl.Nm.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries via this table.
 // The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) WithContext(ctx context.Context) {{.Prefix}}{{.Type}}{{.Thinger}} {
 	tbl.ctx = ctx
 	return tbl
 }
 
-// Database gets the shared database information.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Database() {{.Sqlapi}}.Database {
-	return tbl.database
-}
-
-// Logger gets the trace logger.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Logger() {{.Sqlapi}}.Logger {
-	return tbl.database.Logger()
-}
 {{- if .HasConstraints}}
 
 // WithConstraint returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} with added data consistency constraints.
@@ -166,16 +160,6 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Constraints() constraint.Constraints {
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Ctx() context.Context {
 	return tbl.ctx
 }
-
-// Dialect gets the database dialect.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Dialect() dialect.Dialect {
-	return tbl.database.Dialect()
-}
-
-// Name gets the table name.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Name() {{.Sqlapi}}.TableName {
-	return tbl.name
-}
 {{- if .Table.HasPrimaryKey}}
 
 // PkColumn gets the column name used as a primary key.
@@ -184,35 +168,13 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) PkColumn() string {
 }
 {{- end}}
 
-// DB gets the wrapped database handle, provided this is not within a transaction.
-// Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) DB() {{.Sqlapi}}.SqlDB {
-	return tbl.db.({{.Sqlapi}}.SqlDB)
-}
-
-// Execer gets the wrapped database or transaction handle.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Execer() {{.Sqlapi}}.Execer {
-	return tbl.db
-}
-
-// Tx gets the wrapped transaction handle, provided this is within a transaction.
-// Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Tx() {{.Sqlapi}}.SqlTx {
-	return tbl.db.({{.Sqlapi}}.SqlTx)
-}
-
-// IsTx tests whether this is within a transaction.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) IsTx() bool {
-	return tbl.db.IsTx()
-}
-
 // Using returns a modified {{.Prefix}}{{.Type}}{{.Thinger}} using the the Execer supplied,
 // which will typically be a transaction (i.e. SqlTx). This is needed when making multiple
 // queries across several tables within a single transaction.
 //
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx {{.Sqlapi}}.Execer) {{.Prefix}}{{.Type}}Queryer {
-	tbl.db = tx
+	tbl.Ex = tx
 	return tbl
 }
 
@@ -236,11 +198,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Transact(txOptions *{{.Sql}}.TxOptions
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) quotedName() string {
-	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) quotedNameW(w dialect.StringWriter) {
-	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
+	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 `
 

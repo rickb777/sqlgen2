@@ -20,10 +20,7 @@ func TestDatesCrud_using_database(t *testing.T) {
 		date.New(2020, 12, 31),
 	}
 
-	d := newDatabase(t)
-	defer cleanup(d.DB())
-
-	dt := NewDatesTable("dates", d)
+	dt := NewDatesTable("dates", db)
 
 	_, err := dt.DropTable(true)
 	g.Expect(err).NotTo(HaveOccurred())

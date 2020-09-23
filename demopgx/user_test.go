@@ -1,103 +1,26 @@
 package demopgx
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
-	"github.com/jackc/pgx"
-	"github.com/jackc/pgx/log/testingadapter"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/pgxapi"
 	"github.com/rickb777/sqlapi/pgxapi/constraint"
+	"github.com/rickb777/sqlapi/pgxapi/support/test"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/where"
 	"github.com/rickb777/where/quote"
-	"io"
 	"math/big"
-	"net"
 	"os"
 	"strings"
 	"testing"
-	"time"
 )
 
 // Environment:
 // GO_DRIVER  - the driver (sqlite3, mysql, postgres, pgx)
-// GO_QUOTER  - the identifier quoter (ansi, mysql, none)
 // GO_DSN     - the database DSN
-
-func connect(t *testing.T) (pgxapi.SqlDB, dialect.Dialect) {
-	di := dialect.Postgres
-	quoter, ok := os.LookupEnv("GO_QUOTER")
-	if ok {
-		switch strings.ToLower(quoter) {
-		case "ansi":
-			di = di.WithQuoter(quote.AnsiQuoter)
-		case "none":
-			di = di.WithQuoter(quote.NoQuoter)
-		default:
-			t.Fatalf("Warning: unrecognised quoter %q.\n", quoter)
-		}
-	}
-
-	lgr := testingadapter.NewLogger(t)
-	var lvl pgx.LogLevel = pgx.LogLevelInfo
-	if !testing.Verbose() {
-		lvl = pgx.LogLevelWarn
-	}
-	db, err := pgxapi.ConnectEnv(lgr, lvl)
-	if err != nil {
-		if op, x := errors.Cause(err).(*net.OpError); x {
-			t.Log("ignored", op)
-			t.Skip()
-		} else {
-			t.Fatal(err)
-		}
-	}
-	return db, di
-}
-
-func newDatabase(t *testing.T) pgxapi.Database {
-	db, di := connect(t)
-
-	pd := pgxapi.NewDatabase(db, di, nil)
-	if !testing.Verbose() {
-		pd.Logger().TraceLogging(false)
-	}
-	return pd
-}
-
-func cleanup(db pgxapi.Execer) {
-	if db != nil {
-		if c, ok := db.(io.Closer); ok {
-			c.Close()
-		}
-		os.Remove("test.db")
-	}
-}
-
-func user(i int) *User {
-	return &User{
-		Name:         fmt.Sprintf("user%02d", i),
-		EmailAddress: fmt.Sprintf("foo%d@x.z", i),
-		Active:       true,
-		Fave:         big.NewInt(int64(i)),
-		Numbers: Numbers{
-			I8:  int8(i * 5),
-			U8:  uint8(i * 6),
-			I16: int16(i * 10),
-			U16: uint16(i * 11),
-			I32: int32(i * 100),
-			U32: uint32(i * 101),
-			I64: int64(i * 200),
-			U64: uint64(i * 201),
-			F32: float32(i * 300),
-			F64: float64(i * 301),
-		},
-	}
-}
+// PGQUOTE    - the identifier quoter (ansi, mysql, none)
 
 func TestCreateTable_sql_syntax(t *testing.T) {
 	g := NewGomegaWithT(t)
@@ -164,7 +87,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		d := pgxapi.NewDatabase(nil, c.dialect, nil)
+		d := pgxapi.WrapDB(nil, nil, c.dialect.Quoter())
 		tbl := NewDbUserTable("users", d).
 			WithPrefix("prefix_").
 			WithConstraint(constraint.CheckConstraint{"role < 3"})
@@ -193,7 +116,7 @@ func outputDiff(a, name string) {
 func TestCreateIndexSql(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	d := pgxapi.NewDatabase(nil, dialect.Postgres, nil)
+	d := pgxapi.WrapDB(nil, nil, quote.AnsiQuoter)
 	tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
 	s := createDbUserTableEmailaddressIdxSql(tbl, "IF NOT EXISTS ")
 	expected := `CREATE UNIQUE INDEX IF NOT EXISTS "prefix_users_emailaddress_idx" ON "prefix_users" ("emailaddress")`
@@ -207,13 +130,12 @@ func TestDropIndexSql(t *testing.T) {
 		d        dialect.Dialect
 		expected string
 	}{
-		{dialect.Sqlite, `DROP INDEX IF EXISTS "prefix_users_emailaddress_idx"`},
-		{dialect.Mysql, "DROP INDEX `prefix_users_emailaddress_idx` ON `prefix_users`"},
-		{dialect.Postgres, `DROP INDEX IF EXISTS "prefix_users_emailaddress_idx"`},
+		{dialect.Postgres.WithQuoter(quote.NoQuoter), `DROP INDEX IF EXISTS prefix_users_emailaddress_idx`},
+		{dialect.Postgres.WithQuoter(quote.AnsiQuoter), `DROP INDEX IF EXISTS "prefix_users_emailaddress_idx"`},
 	}
 
 	for _, c := range cases {
-		d := pgxapi.NewDatabase(nil, c.d, nil)
+		d := pgxapi.WrapDB(nil, nil, c.d.Quoter())
 		tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
 		s := dropDbUserTableEmailaddressIdxSql(tbl, true)
 		g.Expect(s).To(Equal(c.expected))
@@ -223,10 +145,10 @@ func TestDropIndexSql(t *testing.T) {
 func TestUpdateFields_ok_using_mock(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	mockDb := mockExecer{Result: 1}
+	lgr := &test.StubLogger{}
+	mockDb := &test.StubExecer{N: 1, Lgr: pgxapi.NewLogger(lgr)}
 
-	d := pgxapi.NewDatabase(mockDb, dialect.Mysql, nil)
-	tbl := NewDbUserTable("users", d)
+	tbl := NewDbUserTable("users", mockDb)
 
 	n, err := tbl.UpdateFields(require.One, where.NoOp(),
 		pgxapi.Named("EmailAddress", "foo@x.com"),
@@ -240,10 +162,10 @@ func TestUpdateFields_error_using_mock(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	exp := fmt.Errorf("foo")
-	mockDb := mockExecer{Error: exp}
+	lgr := &test.StubLogger{}
+	mockDb := &test.StubExecer{Err: exp, Lgr: pgxapi.NewLogger(lgr)}
 
-	d := pgxapi.NewDatabase(mockDb, dialect.Mysql, nil)
-	tbl := NewDbUserTable("users", d)
+	tbl := NewDbUserTable("users", mockDb)
 
 	_, err := tbl.UpdateFields(nil, where.NoOp(),
 		pgxapi.Named("EmailAddress", "foo@x.com"),
@@ -255,10 +177,10 @@ func TestUpdateFields_error_using_mock(t *testing.T) {
 func TestUpdate_ok_using_mock(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	mockDb := mockExecer{Result: 1}
+	lgr := &test.StubLogger{}
+	mockDb := &test.StubExecer{N: 1, Lgr: pgxapi.NewLogger(lgr)}
 
-	d := pgxapi.NewDatabase(mockDb, dialect.Mysql, nil)
-	tbl := NewDbUserTable("users", d)
+	tbl := NewDbUserTable("users", mockDb)
 
 	n, err := tbl.Update(require.One, &User{})
 
@@ -272,10 +194,10 @@ func TestUpdate_error_using_mock(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	exp := fmt.Errorf("foo")
-	mockDb := mockExecer{Error: exp}
+	lgr := &test.StubLogger{}
+	mockDb := &test.StubExecer{Err: exp, Lgr: pgxapi.NewLogger(lgr)}
 
-	d := pgxapi.NewDatabase(mockDb, dialect.Mysql, nil)
-	tbl := NewDbUserTable("users", d)
+	tbl := NewDbUserTable("users", mockDb)
 
 	_, err := tbl.Update(nil, &User{})
 
@@ -285,12 +207,9 @@ func TestUpdate_error_using_mock(t *testing.T) {
 func TestUserCrud_using_database(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	d := newDatabase(t)
-	defer cleanup(d.DB())
+	addresses := NewAddressTable("addresses", db)
 
-	addresses := NewAddressTable("addresses", d)
-
-	users := NewDbUserTable("users", d)
+	users := NewDbUserTable("users", db)
 
 	_, err := users.DropTable(true)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -495,12 +414,10 @@ func delete_one_should_return_1(g *GomegaWithT, tbl DbUserTable) {
 
 //-------------------------------------------------------------------------------------------------
 
-func xTestMultiSelect_using_database(t *testing.T) {
+func TestMultiSelect_using_database(t *testing.T) {
 	g := NewGomegaWithT(t)
-	d := newDatabase(t)
-	defer cleanup(d.DB())
 
-	tbl := NewDbUserTable("users", d)
+	tbl := NewDbUserTable("users", db)
 
 	_, err := tbl.DropTable(true)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -537,12 +454,10 @@ func xTestMultiSelect_using_database(t *testing.T) {
 	}
 }
 
-func xTestGetters_using_database(t *testing.T) {
+func TestGetters_using_database(t *testing.T) {
 	g := NewGomegaWithT(t)
-	d := newDatabase(t)
-	defer cleanup(d.DB())
 
-	tbl := NewDbUserTable("users", d)
+	tbl := NewDbUserTable("users", db)
 
 	err := tbl.CreateTableWithIndexes(true)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -630,180 +545,88 @@ func xTestGetters_using_database(t *testing.T) {
 //	g.Expect(i).To(Equal(n))
 //}
 
-//func xTestBulk_delete_using_database(t *testing.T) {
-//	g := NewGomegaWithT(t)
-//	d := newDatabase(t)
-//	defer cleanup(d.DB())
-//
-//	tbl := NewDbUserTable("users", d)
-//
-//	err := tbl.CreateTableWithIndexes(true)
-//	g.Expect(err).NotTo(HaveOccurred())
-//
-//	err = tbl.Truncate(true)
-//	g.Expect(err).NotTo(HaveOccurred())
-//
-//	const n = 17
-//
-//	list := make([]*User, n)
-//	for i := 0; i < n; i++ {
-//		list[i] = user(i)
-//	}
-//
-//	err = tbl.Insert(require.All, list...)
-//	g.Expect(err).NotTo(HaveOccurred())
-//
-//	ids := make([]int64, n)
-//	for i := 0; i < n; i++ {
-//		ids[i] = list[i].Uid
-//	}
-//
-//	j, err := tbl.DeleteUsers(require.All, ids...)
-//	g.Expect(err).NotTo(HaveOccurred())
-//	g.Expect(j).To(BeEquivalentTo(n))
-//}
+//-------------------------------------------------------------------------------------------------
+
+func TestBulk_delete_using_database(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	tbl := NewDbUserTable("users", db)
+
+	err := tbl.CreateTableWithIndexes(true)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	err = tbl.Truncate(true)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	const n = 17
+
+	list := make([]*User, n)
+	for i := 0; i < n; i++ {
+		list[i] = user(i)
+	}
+
+	err = tbl.Insert(require.All, list...)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	ids := make([]int64, n)
+	for i := 0; i < n; i++ {
+		ids[i] = list[i].Uid
+	}
+
+	j, err := tbl.DeleteByUid(require.All, ids...)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(j).To(BeEquivalentTo(n))
+}
 
 //-------------------------------------------------------------------------------------------------
 
-//func xTestNumericRanges_using_database(t *testing.T) {
-//	g := NewGomegaWithT(t)
-//	d := newDatabase(t)
-//	defer cleanup(d.DB())
-//
-//	tbl := NewDbUserTable("users", d)
-//
-//	err := tbl.CreateTableWithIndexes(true)
-//	g.Expect(err).NotTo(HaveOccurred())
-//
-//	err = tbl.Truncate(true)
-//	g.Expect(err).NotTo(HaveOccurred())
-//
-//	const n = 63 // note: cannot support 64 bits unsigned
-//
-//	list := make([]*User, n)
-//	for i := 0; i < n; i++ {
-//		j := uint64(1) << uint(i)
-//		u := user(i)
-//		u.Numbers.I8 = int8(j)
-//		u.Numbers.U8 = uint8(j)
-//		u.Numbers.I16 = int16(j)
-//		u.Numbers.U16 = uint16(j)
-//		u.Numbers.I32 = int32(j)
-//		u.Numbers.U32 = uint32(j)
-//		u.Numbers.I64 = int64(j)
-//		u.Numbers.U64 = j
-//		u.Numbers.F32 = float32(j)
-//		u.Numbers.F64 = float64(j)
-//		list[i] = u
-//	}
-//
-//	err = tbl.Insert(require.All, list...)
-//	g.Expect(err).NotTo(HaveOccurred())
-//
-//	for i := 0; i < n; i++ {
-//		j := uint64(1) << uint(i)
-//		name := fmt.Sprintf("user%02d", i)
-//		u, err := tbl.GetUserByName(require.One, name)
-//		g.Expect(err).NotTo(HaveOccurred())
-//		g.Expect(u.Numbers.I8).To(Equal(int8(j)), name)
-//		g.Expect(u.Numbers.U8).To(Equal(uint8(j)), name)
-//		g.Expect(u.Numbers.I16).To(Equal(int16(j)), name)
-//		g.Expect(u.Numbers.U16).To(Equal(uint16(j)), name)
-//		g.Expect(u.Numbers.I32).To(Equal(int32(j)), name)
-//		g.Expect(u.Numbers.U32).To(Equal(uint32(j)), name)
-//		g.Expect(u.Numbers.I64).To(Equal(int64(j)), name)
-//		g.Expect(u.Numbers.U64).To(Equal(j), name)
-//		g.Expect(u.Numbers.F32).To(Equal(float32(j)), name)
-//		g.Expect(u.Numbers.F64).To(Equal(float64(j)), name)
-//	}
-//}
+func TestNumericRanges_using_database(t *testing.T) {
+	g := NewGomegaWithT(t)
 
-//-------------------------------------------------------------------------------------------------
+	tbl := NewDbUserTable("users", db)
 
-type mockExecer struct {
-	Result int64
-	Error  error
-}
+	err := tbl.CreateTableWithIndexes(true)
+	g.Expect(err).NotTo(HaveOccurred())
 
-func (m mockExecer) InsertContext(ctx context.Context, pk, query string, args ...interface{}) (int64, error) {
-	if m.Error != nil {
-		return 0, m.Error
+	err = tbl.Truncate(true)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	const n = 63 // note: cannot support 64 bits unsigned
+
+	list := make([]*User, n)
+	for i := 0; i < n; i++ {
+		j := uint64(1) << uint(i)
+		u := user(i)
+		u.Numbers.I8 = int8(j)
+		u.Numbers.U8 = uint8(j)
+		u.Numbers.I16 = int16(j)
+		u.Numbers.U16 = uint16(j)
+		u.Numbers.I32 = int32(j)
+		u.Numbers.U32 = uint32(j)
+		u.Numbers.I64 = int64(j)
+		u.Numbers.U64 = j
+		u.Numbers.F32 = float32(j)
+		u.Numbers.F64 = float64(j)
+		list[i] = u
 	}
-	return m.Result, nil
-}
 
-func (m mockExecer) ExecContext(ctx context.Context, sql string, arguments ...interface{}) (int64, error) {
-	if m.Error != nil {
-		return 0, m.Error
+	err = tbl.Insert(require.All, list...)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	for i := 0; i < n; i++ {
+		j := uint64(1) << uint(i)
+		name := fmt.Sprintf("user%02d", i)
+		u, e2 := tbl.GetUserByName(require.One, name)
+		g.Expect(e2).NotTo(HaveOccurred())
+		g.Expect(u.Numbers.I8).To(Equal(int8(j)), name)
+		g.Expect(u.Numbers.U8).To(Equal(uint8(j)), name)
+		g.Expect(u.Numbers.I16).To(Equal(int16(j)), name)
+		g.Expect(u.Numbers.U16).To(Equal(uint16(j)), name)
+		g.Expect(u.Numbers.I32).To(Equal(int32(j)), name)
+		g.Expect(u.Numbers.U32).To(Equal(uint32(j)), name)
+		g.Expect(u.Numbers.I64).To(Equal(int64(j)), name)
+		g.Expect(u.Numbers.U64).To(Equal(j), name)
+		g.Expect(u.Numbers.F32).To(Equal(float32(j)), name)
+		g.Expect(u.Numbers.F64).To(Equal(float64(j)), name)
 	}
-	return m.Result, nil
-}
-
-func (m mockExecer) PrepareContext(ctx context.Context, name, sql string) (*pgx.PreparedStatement, error) {
-	panic("implement me")
-}
-
-func (m mockExecer) IsTx() bool {
-	panic("implement me")
-}
-
-func (m mockExecer) Logger() pgxapi.Logger {
-	return m
-}
-
-func (m mockExecer) SingleConn(ctx context.Context, fn func(conn pgxapi.Execer) error) error {
-	panic("implement me")
-}
-
-func (m mockExecer) Transact(ctx context.Context, txOptions *pgx.TxOptions, fn func(pgxapi.SqlTx) error) error {
-	panic("implement me")
-}
-
-func (m mockExecer) PingContext(ctx context.Context) error {
-	panic("implement me")
-}
-
-func (m mockExecer) Stats() sql.DBStats {
-	panic("implement me")
-}
-
-func (m mockExecer) Close() {
-	panic("implement me")
-}
-
-func (m mockExecer) QueryContext(ctx context.Context, sql string, args ...interface{}) (pgxapi.SqlRows, error) {
-	return nil, nil
-}
-
-func (m mockExecer) QueryExRaw(ctx context.Context, sql string, options *pgx.QueryExOptions, args ...interface{}) (pgxapi.SqlRows, error) {
-	return nil, nil
-}
-
-func (m mockExecer) QueryRowContext(ctx context.Context, query string, args ...interface{}) pgxapi.SqlRow {
-	return nil
-}
-
-func (m mockExecer) QueryRowExRaw(ctx context.Context, query string, options *pgx.QueryExOptions, args ...interface{}) pgxapi.SqlRow {
-	panic("implement me")
-}
-
-func (m mockExecer) BeginBatch() *pgx.Batch {
-	panic("implement me")
-}
-
-func (m mockExecer) Log(level pgx.LogLevel, msg string, data map[string]interface{}) {}
-
-func (m mockExecer) LogT(level pgx.LogLevel, msg string, startTime *time.Time, data ...interface{}) {}
-
-func (m mockExecer) LogQuery(query string, args ...interface{}) {}
-
-func (m mockExecer) LogIfError(err error) error {
-	return err
-}
-
-func (m mockExecer) LogError(err error) error {
-	return err
-}
-
-func (m mockExecer) TraceLogging(on bool) {
 }

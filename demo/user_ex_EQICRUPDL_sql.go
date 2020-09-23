@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.49.0; sqlgen v0.68.0
+// sqlapi v0.51.0; sqlgen v0.70.0
 
 package demo
 
@@ -331,9 +331,7 @@ type AUserQueryer interface {
 // The Prefix field is often blank but can be used to hold a table name prefix (e.g. ending in '_'). Or it can
 // specify the name of the schema, in which case it should have a trailing '.'.
 type AUserTable struct {
-	name        sqlapi.TableName
-	database    sqlapi.Database
-	db          sqlapi.Execer
+	sqlapi.CoreTable
 	constraints constraint.Constraints
 	ctx         context.Context
 	pk          string
@@ -345,7 +343,7 @@ var _ sqlapi.TableWithIndexes = &AUserTable{}
 // NewAUserTable returns a new table instance.
 // If a blank table name is supplied, the default name "users" will be used instead.
 // The request context is initialised with the background.
-func NewAUserTable(name string, d sqlapi.Database) AUserTable {
+func NewAUserTable(name string, d sqlapi.SqlDB) AUserTable {
 	if name == "" {
 		name = "users"
 	}
@@ -353,9 +351,10 @@ func NewAUserTable(name string, d sqlapi.Database) AUserTable {
 	constraints = append(constraints,
 		constraint.FkConstraint{"addressid", constraint.Reference{"addresses", "id"}, "restrict", "restrict"})
 	return AUserTable{
-		name:        sqlapi.TableName{Prefix: "", Name: name},
-		database:    d,
-		db:          d.DB(),
+		CoreTable: sqlapi.CoreTable{
+			Nm: sqlapi.TableName{Prefix: "", Name: name},
+			Ex: d,
+		},
 		constraints: constraints,
 		ctx:         context.Background(),
 		pk:          "uid",
@@ -369,9 +368,10 @@ func NewAUserTable(name string, d sqlapi.Database) AUserTable {
 // join result. In such cases, there won't be any need for DDL methods, nor Exec, Insert, Update or Delete.
 func CopyTableAsAUserTable(origin sqlapi.Table) AUserTable {
 	return AUserTable{
-		name:        origin.Name(),
-		database:    origin.Database(),
-		db:          origin.Execer(),
+		CoreTable: sqlapi.CoreTable{
+			Nm: origin.Name(),
+			Ex: origin.Execer(),
+		},
 		constraints: nil,
 		ctx:         origin.Ctx(),
 		pk:          "uid",
@@ -388,28 +388,15 @@ func CopyTableAsAUserTable(origin sqlapi.Table) AUserTable {
 // WithPrefix sets the table name prefix for subsequent queries.
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AUserTable) WithPrefix(pfx string) AUserTabler {
-	tbl.name.Prefix = pfx
+	tbl.Nm.Prefix = pfx
 	return tbl
 }
 
 // WithContext sets the context for subsequent queries via this table.
 // The result is a modified copy of the table; the original is unchanged.
-//
-// The shared context in the *Database is not altered by this method. So it
-// is possible to use different contexts for different (groups of) queries.
 func (tbl AUserTable) WithContext(ctx context.Context) AUserTabler {
 	tbl.ctx = ctx
 	return tbl
-}
-
-// Database gets the shared database information.
-func (tbl AUserTable) Database() sqlapi.Database {
-	return tbl.database
-}
-
-// Logger gets the trace logger.
-func (tbl AUserTable) Logger() sqlapi.Logger {
-	return tbl.database.Logger()
 }
 
 // WithConstraint returns a modified AUserTabler with added data consistency constraints.
@@ -428,41 +415,9 @@ func (tbl AUserTable) Ctx() context.Context {
 	return tbl.ctx
 }
 
-// Dialect gets the database dialect.
-func (tbl AUserTable) Dialect() dialect.Dialect {
-	return tbl.database.Dialect()
-}
-
-// Name gets the table name.
-func (tbl AUserTable) Name() sqlapi.TableName {
-	return tbl.name
-}
-
 // PkColumn gets the column name used as a primary key.
 func (tbl AUserTable) PkColumn() string {
 	return tbl.pk
-}
-
-// DB gets the wrapped database handle, provided this is not within a transaction.
-// Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AUserTable) DB() sqlapi.SqlDB {
-	return tbl.db.(sqlapi.SqlDB)
-}
-
-// Execer gets the wrapped database or transaction handle.
-func (tbl AUserTable) Execer() sqlapi.Execer {
-	return tbl.db
-}
-
-// Tx gets the wrapped transaction handle, provided this is within a transaction.
-// Panics if it is in the wrong state - use IsTx() if necessary.
-func (tbl AUserTable) Tx() sqlapi.SqlTx {
-	return tbl.db.(sqlapi.SqlTx)
-}
-
-// IsTx tests whether this is within a transaction.
-func (tbl AUserTable) IsTx() bool {
-	return tbl.db.IsTx()
 }
 
 // Using returns a modified AUserTabler using the the Execer supplied,
@@ -471,7 +426,7 @@ func (tbl AUserTable) IsTx() bool {
 //
 // The result is a modified copy of the table; the original is unchanged.
 func (tbl AUserTable) Using(tx sqlapi.Execer) AUserQueryer {
-	tbl.db = tx
+	tbl.Ex = tx
 	return tbl
 }
 
@@ -495,11 +450,11 @@ func (tbl AUserTable) Transact(txOptions *sql.TxOptions, fn func(AUserQueryer) e
 }
 
 func (tbl AUserTable) quotedName() string {
-	return tbl.Dialect().Quoter().Quote(tbl.name.String())
+	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
 func (tbl AUserTable) quotedNameW(w dialect.StringWriter) {
-	tbl.Dialect().Quoter().QuoteW(w, tbl.name.String())
+	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1714,13 +1669,13 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.db.QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.Execer().QueryRowContext(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Uid = i64
 
 		} else {
-			i64, e2 := tbl.db.InsertContext(tbl.ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.Execer().InsertContext(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
 				return tbl.Logger().LogError(e2)
 			}
