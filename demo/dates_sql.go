@@ -79,8 +79,8 @@ type DatesQueryer interface {
 	// GetDatesById gets the record with a given primary key value.
 	GetDatesById(req require.Requirement, id uint64) (*Dates, error)
 
-	// GetDatessById gets records from the table according to a list of primary keys.
-	GetDatessById(req require.Requirement, qc where.QueryConstraint, id ...uint64) (list []*Dates, err error)
+	// GetManyDatesById gets records from the table according to a list of primary keys.
+	GetManyDatesById(req require.Requirement, qc where.QueryConstraint, id ...uint64) (list []*Dates, err error)
 
 	// Fetch fetches a list of Dates based on a supplied query. This is mostly used for join queries that map its
 	// result columns to the fields of Dates. Other queries might be better handled by GetXxx or Select methods.
@@ -92,20 +92,20 @@ type DatesQueryer interface {
 	// SelectOne allows a single Dates to be obtained from the table that matches a 'where' clause.
 	SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Dates, error)
 
-	// SelectWhere allows Datess to be obtained from the table that match a 'where' clause.
+	// SelectWhere allows ManyDates to be obtained from the table that match a 'where' clause.
 	SelectWhere(req require.Requirement, where, orderBy string, args ...interface{}) ([]*Dates, error)
 
-	// Select allows Datess to be obtained from the table that match a 'where' clause.
+	// Select allows ManyDates to be obtained from the table that match a 'where' clause.
 	Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Dates, error)
 
-	// CountWhere counts Datess in the table that match a 'where' clause.
+	// CountWhere counts ManyDates in the table that match a 'where' clause.
 	CountWhere(where string, args ...interface{}) (count int64, err error)
 
-	// Count counts the Datess in the table that match a 'where' clause.
+	// Count counts the ManyDates in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 
-	// SliceId gets the id column for all rows that match the 'where' condition.
-	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
+	// SliceID gets the id column for all rows that match the 'where' condition.
+	SliceID(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
 
 	// SliceInteger gets the integer column for all rows that match the 'where' condition.
 	SliceInteger(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.Date, error)
@@ -113,11 +113,11 @@ type DatesQueryer interface {
 	// SliceString gets the string column for all rows that match the 'where' condition.
 	SliceString(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]date.DateString, error)
 
-	// Insert adds new records for the Datess, setting the primary key field for each one.
+	// Insert adds new records for the ManyDates, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Dates) error
 
-	// UpdateById updates one or more columns, given a id value.
-	UpdateById(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error)
+	// UpdateByID updates one or more columns, given a id value.
+	UpdateByID(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByInteger updates one or more columns, given a integer value.
 	UpdateByInteger(req require.Requirement, integer date.Date, fields ...sql.NamedArg) (int64, error)
@@ -138,9 +138,9 @@ type DatesQueryer interface {
 	// error results if these conditions are not met.
 	Upsert(v *Dates, wh where.Expression) error
 
-	// DeleteById deletes rows from the table, given some id values.
+	// DeleteByID deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteById(req require.Requirement, id ...uint64) (int64, error)
+	DeleteByID(req require.Requirement, id ...uint64) (int64, error)
 
 	// DeleteByInteger deletes rows from the table, given some integer values.
 	// The list of ids can be arbitrarily long.
@@ -171,11 +171,11 @@ type DatesTable struct {
 var _ sqlapi.TableCreator = &DatesTable{}
 
 // NewDatesTable returns a new table instance.
-// If a blank table name is supplied, the default name "datess" will be used instead.
+// If a blank table name is supplied, the default name "manydates" will be used instead.
 // The request context is initialised with the background.
 func NewDatesTable(name string, d sqlapi.SqlDB) DatesTable {
 	if name == "" {
-		name = "datess"
+		name = "manydates"
 	}
 	var constraints constraint.Constraints
 	return DatesTable{
@@ -448,7 +448,7 @@ func doDatesTableQueryAndScan(tbl DatesTabler, req require.Requirement, firstOnl
 	}
 	defer rows.Close()
 
-	vv, n, err := ScanDatess(query, rows, firstOnly)
+	vv, n, err := ScanManyDates(query, rows, firstOnly)
 	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
@@ -490,10 +490,10 @@ func (tbl DatesTable) QueryOneNullFloat64(req require.Requirement, query string,
 	return result, err
 }
 
-// ScanDatess reads rows from the database and returns a slice of corresponding values.
+// ScanManyDates reads rows from the database and returns a slice of corresponding values.
 // It also returns a number indicating how many rows were read; this will be larger than the length of the
 // slice if reading stopped after the first row.
-func ScanDatess(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Dates, n int64, err error) {
+func ScanManyDates(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*Dates, n int64, err error) {
 	for rows.Next() {
 		n++
 
@@ -550,13 +550,13 @@ func (tbl DatesTable) GetDatesById(req require.Requirement, id uint64) (*Dates, 
 	return tbl.SelectOne(req, where.Eq("id", id), nil)
 }
 
-// GetDatessById gets records from the table according to a list of primary keys.
+// GetManyDatesById gets records from the table according to a list of primary keys.
 // Although the list of ids can be arbitrarily long, there are practical limits;
 // note that Oracle DB has a limit of 1000.
 //
 // It places a requirement, which may be nil, on the size of the expected results: in particular, require.All
 // controls whether an error is generated not all the ids produce a result.
-func (tbl DatesTable) GetDatessById(req require.Requirement, qc where.QueryConstraint, id ...uint64) (list []*Dates, err error) {
+func (tbl DatesTable) GetManyDatesById(req require.Requirement, qc where.QueryConstraint, id ...uint64) (list []*Dates, err error) {
 	if req == require.All {
 		req = require.Exactly(len(id))
 	}
@@ -610,7 +610,7 @@ func (tbl DatesTable) SelectOne(req require.Requirement, wh where.Expression, qc
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
-// SelectWhere allows Datess to be obtained from the table that match a 'where' clause.
+// SelectWhere allows ManyDates to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in 'orderBy'.
 // Use blank strings for the 'where' and/or 'orderBy' arguments if they are not needed.
 //
@@ -626,7 +626,7 @@ func (tbl DatesTable) SelectWhere(req require.Requirement, where, orderBy string
 	return vv, err
 }
 
-// Select allows Datess to be obtained from the table that match a 'where' clause.
+// Select allows ManyDates to be obtained from the table that match a 'where' clause.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
 //
@@ -641,7 +641,7 @@ func (tbl DatesTable) Select(req require.Requirement, wh where.Expression, qc wh
 
 //-------------------------------------------------------------------------------------------------
 
-// CountWhere counts Datess in the table that match a 'where' clause.
+// CountWhere counts ManyDates in the table that match a 'where' clause.
 // Use a blank string for the 'where' argument if it is not needed.
 //
 // The args are for any placeholder parameters in the query.
@@ -659,7 +659,7 @@ func (tbl DatesTable) CountWhere(where string, args ...interface{}) (count int64
 	return count, tbl.Logger().LogIfError(err)
 }
 
-// Count counts the Datess in the table that match a 'where' clause.
+// Count counts the ManyDates in the table that match a 'where' clause.
 // Use a nil value for the 'wh' argument if it is not needed.
 func (tbl DatesTable) Count(wh where.Expression) (count int64, err error) {
 	whs, args := where.Where(wh, tbl.Dialect().Quoter())
@@ -668,10 +668,10 @@ func (tbl DatesTable) Count(wh where.Expression) (count int64, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SliceId gets the id column for all rows that match the 'where' condition.
+// SliceID gets the id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl DatesTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+func (tbl DatesTable) SliceID(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
 	return support.SliceUint64List(tbl, req, tbl.pk, wh, qc)
 }
 
@@ -791,7 +791,7 @@ func constructDatesTableUpdate(tbl DatesTable, w dialect.StringWriter, v *Dates)
 
 //--------------------------------------------------------------------------------
 
-// Insert adds new records for the Datess.// The Datess have their primary key fields set to the new record identifiers.
+// Insert adds new records for the ManyDates.// The ManyDates have their primary key fields set to the new record identifiers.
 // The Dates.PreInsert() method will be called, if it exists.
 func (tbl DatesTable) Insert(req require.Requirement, vv ...*Dates) error {
 	if req == require.All {
@@ -855,8 +855,8 @@ func (tbl DatesTable) Insert(req require.Requirement, vv ...*Dates) error {
 	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-// UpdateById updates one or more columns, given a id value.
-func (tbl DatesTable) UpdateById(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error) {
+// UpdateByID updates one or more columns, given a id value.
+func (tbl DatesTable) UpdateByID(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error) {
 	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
 }
 
@@ -964,9 +964,9 @@ func (tbl DatesTable) Upsert(v *Dates, wh where.Expression) error {
 
 //-------------------------------------------------------------------------------------------------
 
-// DeleteById deletes rows from the table, given some id values.
+// DeleteByID deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl DatesTable) DeleteById(req require.Requirement, id ...uint64) (int64, error) {
+func (tbl DatesTable) DeleteByID(req require.Requirement, id ...uint64) (int64, error) {
 	ii := support.Uint64AsInterfaceSlice(id)
 	return support.DeleteByColumn(tbl, req, "id", ii...)
 }

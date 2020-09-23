@@ -140,8 +140,8 @@ type AddressQueryer interface {
 	// Count counts the Addresses in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 
-	// SliceId gets the id column for all rows that match the 'where' condition.
-	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	// SliceID gets the id column for all rows that match the 'where' condition.
+	SliceID(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceTown gets the town column for all rows that match the 'where' condition.
 	SliceTown(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
@@ -155,8 +155,8 @@ type AddressQueryer interface {
 	// Insert adds new records for the Addresses, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Address) error
 
-	// UpdateById updates one or more columns, given a id value.
-	UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
+	// UpdateByID updates one or more columns, given a id value.
+	UpdateByID(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByTown updates one or more columns, given a town value.
 	UpdateByTown(req require.Requirement, town string, fields ...sql.NamedArg) (int64, error)
@@ -180,9 +180,9 @@ type AddressQueryer interface {
 	// error results if these conditions are not met.
 	Upsert(v *Address, wh where.Expression) error
 
-	// DeleteById deletes rows from the table, given some id values.
+	// DeleteByID deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteById(req require.Requirement, id ...int64) (int64, error)
+	DeleteByID(req require.Requirement, id ...int64) (int64, error)
 
 	// DeleteByTown deletes rows from the table, given some town values.
 	// The list of ids can be arbitrarily long.
@@ -963,10 +963,10 @@ func (tbl AddressTable) Count(wh where.Expression) (count int64, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SliceId gets the id column for all rows that match the 'where' condition.
+// SliceID gets the id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl AddressTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl AddressTable) SliceID(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
 }
 
@@ -1141,8 +1141,8 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-// UpdateById updates one or more columns, given a id value.
-func (tbl AddressTable) UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
+// UpdateByID updates one or more columns, given a id value.
+func (tbl AddressTable) UpdateByID(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
 	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
 }
 
@@ -1255,9 +1255,9 @@ func (tbl AddressTable) Upsert(v *Address, wh where.Expression) error {
 
 //-------------------------------------------------------------------------------------------------
 
-// DeleteById deletes rows from the table, given some id values.
+// DeleteByID deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl AddressTable) DeleteById(req require.Requirement, id ...int64) (int64, error) {
+func (tbl AddressTable) DeleteByID(req require.Requirement, id ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(id)
 	return support.DeleteByColumn(tbl, req, "id", ii...)
 }

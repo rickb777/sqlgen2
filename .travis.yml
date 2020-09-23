@@ -1,7 +1,15 @@
 language: go
 
 go:
-  - "1.13"
+  - "1.15"
+
+env:
+  global:
+    - GO111MODULE=on
+    - PGPORT=5432
+    - PGUSER=postgres
+    - PGPASSWORD=
+    - PGDATABASE=test
 
 services:
   - mysql
@@ -12,7 +20,6 @@ before_install:
   - psql -c 'CREATE DATABASE test;' -U postgres
 
 install:
-  - unset GOPATH
   - go mod download
 
 script:

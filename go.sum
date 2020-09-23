@@ -82,6 +82,7 @@ github.com/gobuffalo/envy v1.6.10/go.mod h1:X0CFllQjTV5ogsnUrg+Oks2yTI+PU2dGYBJO
 github.com/gobuffalo/envy v1.6.11/go.mod h1:Fiq52W7nrHGDggFPhn2ZCcHw4u/rqXkqo+i7FB6EAcg=
 github.com/gobuffalo/envy v1.6.12/go.mod h1:qJNrJhKkZpEW0glh5xP2syQHH5kgdmgsKss2Kk8PTP0=
 github.com/gobuffalo/envy v1.7.0/go.mod h1:n7DRkBerg/aorDM8kbduw5dN3oXGswK5liaSCx4T5NI=
+github.com/gobuffalo/envy v1.7.1 h1:OQl5ys5MBea7OGCdvPbBJWRgnhC/fGona6QKfvFeau8=
 github.com/gobuffalo/envy v1.7.1/go.mod h1:FurDp9+EDPE4aIUS3ZLyD+7/9fpx7YRt/ukY6jIHf0w=
 github.com/gobuffalo/events v1.0.3/go.mod h1:Txo8WmqScapa7zimEQIwgiJBvMECMe9gJjsKNPN3uZw=
 github.com/gobuffalo/events v1.0.7/go.mod h1:z8txf6H9jWhQ5Scr7YPLWg/cgXBRj8Q4uYI+rsVCCSQ=
@@ -265,6 +266,7 @@ github.com/jackc/pgx v3.6.2+incompatible h1:2zP5OD7kiyR3xzRYMhOcXVvkDZsImVXfj+yI
 github.com/jackc/pgx v3.6.2+incompatible/go.mod h1:0ZGrqGqkRlliWnWB4zKnWtjbSWbGkVEFm4TeybAXq+I=
 github.com/jmoiron/sqlx v0.0.0-20180614180643-0dae4fefe7c0/go.mod h1:IiEW3SEiiErVyFdH8NTuWjSifiEQKUoyK3LNqr2kCHU=
 github.com/joho/godotenv v1.2.0/go.mod h1:7hK45KPybAkOC6peb+G5yklZfMxEjkZhHbwpqxOKXbg=
+github.com/joho/godotenv v1.3.0 h1:Zjp+RcGpHhGlrMbJzXTrZZPrWj+1vfm90La1wgB6Bhc=
 github.com/joho/godotenv v1.3.0/go.mod h1:7hK45KPybAkOC6peb+G5yklZfMxEjkZhHbwpqxOKXbg=
 github.com/juju/clock v0.0.0-20180524022203-d293bb356ca4/go.mod h1:nD0vlnrUjcjJhqN5WuCWZyzfd5AHZAC9/ajvbSx69xA=
 github.com/juju/errors v0.0.0-20150916125642-1b5e39b83d18/go.mod h1:W54LbzXuIE0boCoNJfwqpmkKJ1O4TCTZMetAt6jGk7Q=
@@ -314,6 +316,7 @@ github.com/markbates/hmax v1.0.0/go.mod h1:cOkR9dktiESxIMu+65oc/r/bdY4bE8zZw3OLh
 github.com/markbates/inflect v1.0.0/go.mod h1:oTeZL2KHA7CUX6X+fovmK9OvIOFuqu0TwdQrZjLTh88=
 github.com/markbates/inflect v1.0.1/go.mod h1:uv3UVNBe5qBIfCm8O8Q+DW+S1EopeyINj+Ikhc7rnCk=
 github.com/markbates/inflect v1.0.3/go.mod h1:1fR9+pO2KHEO9ZRtto13gDwwZaAKstQzferVeWqbgNs=
+github.com/markbates/inflect v1.0.4 h1:5fh1gzTFhfae06u3hzHYO9xe3l3v3nW5Pwt3naLTP5g=
 github.com/markbates/inflect v1.0.4/go.mod h1:1fR9+pO2KHEO9ZRtto13gDwwZaAKstQzferVeWqbgNs=
 github.com/markbates/oncer v0.0.0-20180924031910-e862a676800b/go.mod h1:Ld9puTsIW75CHf65OeIOkyKbteujpZVXDpWK6YGZbxE=
 github.com/markbates/oncer v0.0.0-20180924034138-723ad0170a46/go.mod h1:Ld9puTsIW75CHf65OeIOkyKbteujpZVXDpWK6YGZbxE=
@@ -387,10 +390,6 @@ github.com/rickb777/filemod v0.9.0/go.mod h1:2QOdEqdw6ElI6SV/9XQVqYAkcz2F6X/QiCz
 github.com/rickb777/plural v1.2.1 h1:UitRAgR70+yHFt26Tmj/F9dU9aV6UfjGXSbO1DcC9/U=
 github.com/rickb777/plural v1.2.1/go.mod h1:j058+3M5QQFgcZZ2oKIOekcygoZUL8gKW5yRO14BuAw=
 github.com/rickb777/runtemplate/v3 v3.5.4/go.mod h1:8b30uPUenvvnN94neg3qNnar3d03FeJfhrF1hHDX/yM=
-github.com/rickb777/sqlapi v0.49.0 h1:F+jMFBJJ4BazEJFPhlsBQKB8J+on+gNR25nCHxA/6Gs=
-github.com/rickb777/sqlapi v0.49.0/go.mod h1:gXkEhWHc+OQkofDfrF7lq/O5Qh4R5u3JDNDTRQik+ZA=
-github.com/rickb777/sqlapi v0.50.0 h1:IyTFkhv5hfaO0onk3K5jnI8nmFnMvs/Iz5ZU2uW9Xww=
-github.com/rickb777/sqlapi v0.50.0/go.mod h1:gXkEhWHc+OQkofDfrF7lq/O5Qh4R5u3JDNDTRQik+ZA=
 github.com/rickb777/sqlapi v0.51.0 h1:lJYZYjUyhrDHz6aitWdmBzknVj/TE3jVKb7USn8iouw=
 github.com/rickb777/sqlapi v0.51.0/go.mod h1:gXkEhWHc+OQkofDfrF7lq/O5Qh4R5u3JDNDTRQik+ZA=
 github.com/rickb777/where v0.8.1 h1:D0iJDbmRk4/BTl71ZSBlsom6dVXArgeKNvWrlZd2OUI=
@@ -398,6 +397,7 @@ github.com/rickb777/where v0.8.1/go.mod h1:UTxc6SrkfKvtqsY5mKDQCAkqC3341varz4EHG
 github.com/rogpeppe/go-internal v1.0.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.1.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
+github.com/rogpeppe/go-internal v1.3.2 h1:XU784Pr0wdahMY2bYcyK6N1KuaRAdLtqD4qd8D18Bfs=
 github.com/rogpeppe/go-internal v1.3.2/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=

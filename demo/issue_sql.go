@@ -119,8 +119,8 @@ type IssueQueryer interface {
 	// Count counts the Issues in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 
-	// SliceId gets the id column for all rows that match the 'where' condition.
-	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
+	// SliceID gets the id column for all rows that match the 'where' condition.
+	SliceID(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error)
 
 	// SliceNumber gets the number column for all rows that match the 'where' condition.
 	SliceNumber(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int, error)
@@ -140,8 +140,8 @@ type IssueQueryer interface {
 	// Insert adds new records for the Issues, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Issue) error
 
-	// UpdateById updates one or more columns, given a id value.
-	UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
+	// UpdateByID updates one or more columns, given a id value.
+	UpdateByID(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateByNumber updates one or more columns, given a number value.
 	UpdateByNumber(req require.Requirement, number int, fields ...sql.NamedArg) (int64, error)
@@ -171,9 +171,9 @@ type IssueQueryer interface {
 	// error results if these conditions are not met.
 	Upsert(v *Issue, wh where.Expression) error
 
-	// DeleteById deletes rows from the table, given some id values.
+	// DeleteByID deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteById(req require.Requirement, id ...int64) (int64, error)
+	DeleteByID(req require.Requirement, id ...int64) (int64, error)
 
 	// DeleteByNumber deletes rows from the table, given some number values.
 	// The list of ids can be arbitrarily long.
@@ -842,10 +842,10 @@ func (tbl IssueTable) Count(wh where.Expression) (count int64, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SliceId gets the id column for all rows that match the 'where' condition.
+// SliceID gets the id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl IssueTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
+func (tbl IssueTable) SliceID(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]int64, error) {
 	return support.SliceInt64List(tbl, req, tbl.pk, wh, qc)
 }
 
@@ -1057,8 +1057,8 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-// UpdateById updates one or more columns, given a id value.
-func (tbl IssueTable) UpdateById(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
+// UpdateByID updates one or more columns, given a id value.
+func (tbl IssueTable) UpdateByID(req require.Requirement, id int64, fields ...sql.NamedArg) (int64, error) {
 	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
 }
 
@@ -1181,9 +1181,9 @@ func (tbl IssueTable) Upsert(v *Issue, wh where.Expression) error {
 
 //-------------------------------------------------------------------------------------------------
 
-// DeleteById deletes rows from the table, given some id values.
+// DeleteByID deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl IssueTable) DeleteById(req require.Requirement, id ...int64) (int64, error) {
+func (tbl IssueTable) DeleteByID(req require.Requirement, id ...int64) (int64, error) {
 	ii := support.Int64AsInterfaceSlice(id)
 	return support.DeleteByColumn(tbl, req, "id", ii...)
 }

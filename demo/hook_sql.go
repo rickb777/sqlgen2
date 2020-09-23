@@ -103,8 +103,8 @@ type HookQueryer interface {
 	// Count counts the Hooks in the table that match a 'where' clause.
 	Count(wh where.Expression) (count int64, err error)
 
-	// SliceId gets the id column for all rows that match the 'where' condition.
-	SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
+	// SliceID gets the id column for all rows that match the 'where' condition.
+	SliceID(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error)
 
 	// SliceSha gets the sha column for all rows that match the 'where' condition.
 	SliceSha(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]string, error)
@@ -148,8 +148,8 @@ type HookQueryer interface {
 	// Insert adds new records for the Hooks, setting the primary key field for each one.
 	Insert(req require.Requirement, vv ...*Hook) error
 
-	// UpdateById updates one or more columns, given a id value.
-	UpdateById(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error)
+	// UpdateByID updates one or more columns, given a id value.
+	UpdateByID(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error)
 
 	// UpdateBySha updates one or more columns, given a sha value.
 	UpdateBySha(req require.Requirement, sha string, fields ...sql.NamedArg) (int64, error)
@@ -203,9 +203,9 @@ type HookQueryer interface {
 	// error results if these conditions are not met.
 	Upsert(v *Hook, wh where.Expression) error
 
-	// DeleteById deletes rows from the table, given some id values.
+	// DeleteByID deletes rows from the table, given some id values.
 	// The list of ids can be arbitrarily long.
-	DeleteById(req require.Requirement, id ...uint64) (int64, error)
+	DeleteByID(req require.Requirement, id ...uint64) (int64, error)
 
 	// DeleteBySha deletes rows from the table, given some sha values.
 	// The list of ids can be arbitrarily long.
@@ -875,10 +875,10 @@ func (tbl HookTable) Count(wh where.Expression) (count int64, err error) {
 
 //--------------------------------------------------------------------------------
 
-// SliceId gets the id column for all rows that match the 'where' condition.
+// SliceID gets the id column for all rows that match the 'where' condition.
 // Any order, limit or offset clauses can be supplied in query constraint 'qc'.
 // Use nil values for the 'wh' and/or 'qc' arguments if they are not needed.
-func (tbl HookTable) SliceId(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
+func (tbl HookTable) SliceID(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]uint64, error) {
 	return support.SliceUint64List(tbl, req, tbl.pk, wh, qc)
 }
 
@@ -1279,8 +1279,8 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
-// UpdateById updates one or more columns, given a id value.
-func (tbl HookTable) UpdateById(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error) {
+// UpdateByID updates one or more columns, given a id value.
+func (tbl HookTable) UpdateByID(req require.Requirement, id uint64, fields ...sql.NamedArg) (int64, error) {
 	return tbl.UpdateFields(req, where.Eq("id", id), fields...)
 }
 
@@ -1443,9 +1443,9 @@ func (tbl HookTable) Upsert(v *Hook, wh where.Expression) error {
 
 //-------------------------------------------------------------------------------------------------
 
-// DeleteById deletes rows from the table, given some id values.
+// DeleteByID deletes rows from the table, given some id values.
 // The list of ids can be arbitrarily long.
-func (tbl HookTable) DeleteById(req require.Requirement, id ...uint64) (int64, error) {
+func (tbl HookTable) DeleteByID(req require.Requirement, id ...uint64) (int64, error) {
 	ii := support.Uint64AsInterfaceSlice(id)
 	return support.DeleteByColumn(tbl, req, "id", ii...)
 }

@@ -2,14 +2,12 @@ package code
 
 import (
 	"fmt"
-	"strings"
-	"text/template"
-
-	"bitbucket.org/pkg/inflect"
-	"github.com/acsellers/inflections"
+	"github.com/markbates/inflect"
 	"github.com/rickb777/sqlapi/constraint"
 	"github.com/rickb777/sqlapi/dialect"
 	"github.com/rickb777/sqlapi/schema"
+	"strings"
+	"text/template"
 )
 
 type View struct {
@@ -40,7 +38,10 @@ func NewView(typePkg, tablePkg, name, prefix, tableName, list, sql, api string) 
 	if list == "" {
 		list = fmt.Sprintf("[]*%s%s", typePkg, name)
 	}
-	pl := inflections.Pluralize(name)
+	pl := inflect.Pluralize(name)
+	if pl == name {
+		pl = "Many" + pl
+	}
 	tn := strings.ToLower(pl)
 	if tableName != "" {
 		tn = tableName

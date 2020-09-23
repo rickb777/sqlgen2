@@ -1,8 +1,8 @@
 package code
 
 import (
-	"bitbucket.org/pkg/inflect"
 	"fmt"
+	"github.com/markbates/inflect"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/dialect"
 	"io"
