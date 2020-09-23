@@ -9,7 +9,7 @@ env:
     - PGPORT=5432
     - PGUSER=postgres
     - PGPASSWORD=
-    - PGDATABASE=test
+    - PGDATABASE=postgres
 
 services:
   - mysql
@@ -17,7 +17,6 @@ services:
 
 before_install:
   - mysql -e 'CREATE DATABASE test;'
-  - psql -c 'CREATE DATABASE test;' -U postgres
 
 install:
   - go mod download
