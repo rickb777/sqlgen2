@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.53.0; sqlgen v0.72.0
+// sqlapi v0.56.0; sqlgen v0.73.0
 
 package demo
 
@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
@@ -69,7 +70,7 @@ type DbCompoundQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(DbCompoundQueryer) error) error
+	Transact(txOptions *pgx.TxOptions, fn func(DbCompoundQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
@@ -248,7 +249,7 @@ func (tbl DbCompoundTable) Using(tx sqlapi.Execer) DbCompoundQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl DbCompoundTable) Transact(txOptions *sql.TxOptions, fn func(DbCompoundQueryer) error) error {
+func (tbl DbCompoundTable) Transact(txOptions *pgx.TxOptions, fn func(DbCompoundQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -257,7 +258,7 @@ func (tbl DbCompoundTable) Transact(txOptions *sql.TxOptions, fn func(DbCompound
 			return fn(tbl.Using(tx))
 		})
 	}
-	return tbl.Logger().LogIfError(err)
+	return tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 func (tbl DbCompoundTable) quotedName() string {
@@ -412,7 +413,7 @@ func (tbl DbCompoundTable) CreateAlphaBetaIndex(ifNotExist bool) error {
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, dropDbCompoundTableAlphaBetaSql(tbl, false))
+		tbl.Execer().Exec(tbl.ctx, dropDbCompoundTableAlphaBetaSql(tbl, false))
 		ine = ""
 	}
 
@@ -514,7 +515,7 @@ func doDbCompoundTableQueryAndScan(tbl DbCompoundTabler, req require.Requirement
 	defer rows.Close()
 
 	vv, n, err := ScanDbCompounds(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -706,7 +707,7 @@ func (tbl DbCompoundTable) CountWhere(where string, args ...interface{}) (count 
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
-	return count, tbl.Logger().LogIfError(err)
+	return count, tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 // Count counts the Compounds in the table that match a 'where' clause.
@@ -757,12 +758,12 @@ func sliceDbCompoundTableCategoryList(tbl DbCompoundTabler, req require.Requirem
 		var v Category
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(tbl.Ctx(), require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func constructDbCompoundTableInsert(tbl DbCompoundTable, w dialect.StringWriter, v *Compound, withPk bool) (s []interface{}, err error) {
@@ -835,7 +836,7 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
-				return tbl.Logger().LogError(err)
+				return tbl.Logger().LogError(tbl.Ctx(), err)
 			}
 		}
 
@@ -845,7 +846,7 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 
 		fields, err := constructDbCompoundTableInsert(tbl, b, v, true)
 		if err != nil {
-			return tbl.Logger().LogError(err)
+			return tbl.Logger().LogError(tbl.Ctx(), err)
 		}
 
 		b.WriteString(" VALUES (")
@@ -854,28 +855,28 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 		b.WriteString(returning)
 
 		query := b.String()
-		tbl.Logger().LogQuery(query, fields...)
+		tbl.Logger().LogQuery(tbl.Ctx(), query, fields...)
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.Execer().QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.Execer().QueryRow(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 
 		} else {
-			_, e3 := tbl.Execer().ExecContext(tbl.ctx, query, fields...)
+			_, e3 := tbl.Execer().Exec(tbl.ctx, query, fields...)
 			if e3 != nil {
-				return tbl.Logger().LogError(e3)
+				return tbl.Logger().LogError(tbl.Ctx(), e3)
 			}
 		}
 
 		if err != nil {
-			return tbl.Logger().LogError(err)
+			return tbl.Logger().LogError(tbl.Ctx(), err)
 		}
 		count += n
 	}
 
-	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return tbl.Logger().LogIfError(tbl.Ctx(), require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 // UpdateByAlpha updates one or more columns, given a alpha value.

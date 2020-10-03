@@ -1,8 +1,8 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="sqlgen -type demo.User -o user_sql.go -list UserList -all" type="GoApplicationRunConfiguration" factoryName="Go Application">
+  <configuration default="false" name="sqlgen -type demo.Compound..." type="GoApplicationRunConfiguration" factoryName="Go Application">
     <module name="sqlgen2" />
     <working_directory value="$PROJECT_DIR$/demo" />
-    <parameters value="-type demo.User -o user_sql.go -list UserList -all -v -z user.go role.go" />
+    <parameters value="-yaml -type demo.Compound -o compound_sql.go -gofmt -all -v -prefix Db category.go compound.go" />
     <kind value="FILE" />
     <filePath value="../gen.go|../version.go" />
     <package value="github.com/rickb777/sqlgen2" />

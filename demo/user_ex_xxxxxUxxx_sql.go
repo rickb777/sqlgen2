@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.53.0; sqlgen v0.72.0
+// sqlapi v0.56.0; sqlgen v0.73.0
 
 package demo
 
@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/dialect"
@@ -40,7 +41,7 @@ type UUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(UUserQueryer) error) error
+	Transact(txOptions *pgx.TxOptions, fn func(UUserQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
@@ -198,7 +199,7 @@ func (tbl UUserTable) Using(tx sqlapi.Execer) UUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl UUserTable) Transact(txOptions *sql.TxOptions, fn func(UUserQueryer) error) error {
+func (tbl UUserTable) Transact(txOptions *pgx.TxOptions, fn func(UUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -207,7 +208,7 @@ func (tbl UUserTable) Transact(txOptions *sql.TxOptions, fn func(UUserQueryer) e
 			return fn(tbl.Using(tx))
 		})
 	}
-	return tbl.Logger().LogIfError(err)
+	return tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 func (tbl UUserTable) quotedName() string {
@@ -434,7 +435,7 @@ func constructUUserTableUpdate(tbl UUserTable, w dialect.StringWriter, v *User) 
 
 	x, err := json.Marshal(&v.Fave)
 	if err != nil {
-		return nil, tbl.Logger().LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(tbl.Ctx(), err)
 	}
 	s = append(s, x)
 
@@ -627,7 +628,7 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
-				return count, tbl.Logger().LogError(err)
+				return count, tbl.Logger().LogError(tbl.Ctx(), err)
 			}
 		}
 
@@ -654,5 +655,5 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 		count += n
 	}
 
-	return count, tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return count, tbl.Logger().LogIfError(tbl.Ctx(), require.ErrorIfExecNotSatisfiedBy(req, count))
 }

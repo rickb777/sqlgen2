@@ -48,7 +48,7 @@ func WriteSchemaDeclarations(w io.Writer, view View) {
 	fmt.Fprintln(w, sectionBreak)
 
 	for _, d := range dialect.AllDialects {
-		ds := d.String()
+		ds := d.Name()
 		fmt.Fprintf(w, "\nvar sql%sCreateColumns%s = []string{\n", fullName, ds)
 		for _, field := range view.Table.Fields {
 			fmt.Fprintf(w, "\t%q,\n", d.FieldAsColumn(field))

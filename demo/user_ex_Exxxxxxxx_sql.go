@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.53.0; sqlgen v0.72.0
+// sqlapi v0.56.0; sqlgen v0.73.0
 
 package demo
 
@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/dialect"
@@ -38,7 +39,7 @@ type EUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(EUserQueryer) error) error
+	Transact(txOptions *pgx.TxOptions, fn func(EUserQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
@@ -139,7 +140,7 @@ func (tbl EUserTable) Using(tx sqlapi.Execer) EUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl EUserTable) Transact(txOptions *sql.TxOptions, fn func(EUserQueryer) error) error {
+func (tbl EUserTable) Transact(txOptions *pgx.TxOptions, fn func(EUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -148,7 +149,7 @@ func (tbl EUserTable) Transact(txOptions *sql.TxOptions, fn func(EUserQueryer) e
 			return fn(tbl.Using(tx))
 		})
 	}
-	return tbl.Logger().LogIfError(err)
+	return tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 func (tbl EUserTable) quotedName() string {

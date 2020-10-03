@@ -269,10 +269,10 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 	code.ImportsForFields(table, importSet)
 	code.ImportsForSetters(setters, importSet)
 
-	headerBuf := &bytes.Buffer{}
-	tablerBuf := &bytes.Buffer{}
-	queryerBuf := &bytes.Buffer{}
-	structBuf := &bytes.Buffer{}
+	headerBuf := &strings.Builder{}
+	tablerBuf := &strings.Builder{}
+	queryerBuf := &strings.Builder{}
+	structBuf := &strings.Builder{}
 
 	code.WritePackageHeader(headerBuf, tablePkg, appVersion)
 
@@ -338,27 +338,30 @@ func writeSqlGo(o output.Output, name, prefix, tableName, kind, list, pkgImport,
 	code.WriteSetters(queryerBuf, structBuf, view, setters)
 	code.EndType(tablerBuf, queryerBuf, view)
 
-	finishWriting(o, gofmt, constructFullBuffer(headerBuf, tablerBuf, queryerBuf, structBuf))
+	finishWriting(o, gofmt, constructFullBuffer(headerBuf.String(), tablerBuf.String(), queryerBuf.String(), structBuf.String()))
 }
 
-func constructFullBuffer(headerBuf, tablerBuf, queryerBuf, structBuf io.Reader) *bytes.Buffer {
-	whole := &bytes.Buffer{}
-	io.Copy(whole, headerBuf)
-	io.Copy(whole, tablerBuf)
-	io.Copy(whole, queryerBuf)
-	io.Copy(whole, structBuf)
-	return whole
+func constructFullBuffer(header, tabler, queryer, structure string) string {
+	whole := &strings.Builder{}
+	io.WriteString(whole, header)
+	io.WriteString(whole, tabler)
+	io.WriteString(whole, queryer)
+	io.WriteString(whole, structure)
+	return whole.String()
 }
 
-func finishWriting(o output.Output, gofmt bool, buf *bytes.Buffer) {
-	var pretty io.Reader = buf
+func finishWriting(o output.Output, gofmt bool, buf string) {
+	var reader io.Reader = strings.NewReader(buf)
 	if gofmt {
 		var err error
-		pretty, err = load.GoFmt(buf)
-		output.Require(err == nil, "%s\n%v\n", buf.String(), err)
+		reader, err = load.GoFmt(reader)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: gofmt failed: %v", err)
+			reader = strings.NewReader(buf) // reset
+		}
 	}
 
-	o.Write(pretty)
+	o.Write(reader)
 }
 
 func ender(s string) string {

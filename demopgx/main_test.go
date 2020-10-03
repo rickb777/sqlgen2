@@ -1,10 +1,11 @@
 package demopgx
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"github.com/jackc/pgx"
-	"github.com/jackc/pgx/log/testingadapter"
+	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/log/testingadapter"
 	"github.com/rickb777/sqlapi/pgxapi"
 	"io"
 	"log"
@@ -36,7 +37,7 @@ func connect() pgxapi.SqlDB {
 	if !testing.Verbose() {
 		lvl = pgx.LogLevelWarn
 	}
-	d, err := pgxapi.ConnectEnv(lgr, lvl)
+	d, err := pgxapi.ConnectEnv(context.Background(), lgr, lvl, 1)
 	if err != nil {
 		log.Fatal(err)
 	}

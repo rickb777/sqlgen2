@@ -5,6 +5,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/stdlib"
+	"github.com/jackc/pgx/v4/log/testingadapter"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rickb777/sqlapi"
@@ -14,7 +15,6 @@ import (
 	"log"
 	"math/big"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -73,12 +73,7 @@ func connect() (*sql.DB, dialect.Dialect) {
 
 func newDatabase() sqlapi.SqlDB {
 	db, di := connect()
-	var lgr *log.Logger
-	goVerbose, ok := os.LookupEnv("GO_VERBOSE")
-	if ok && strings.ToLower(goVerbose) == "true" {
-		lgr = log.New(os.Stdout, "", log.LstdFlags)
-		verbose = true
-	}
+	lgr := testingadapter.NewLogger(simpleLogger{})
 	return sqlapi.WrapDB(db, di, sqlapi.NewLogger(lgr))
 }
 
@@ -109,5 +104,15 @@ func user(i int) *User {
 			F32: float32(i * 300),
 			F64: float64(i * 301),
 		},
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
+type simpleLogger struct{}
+
+func (l simpleLogger) Log(args ...interface{}) {
+	if testing.Verbose() {
+		log.Println(args...)
 	}
 }

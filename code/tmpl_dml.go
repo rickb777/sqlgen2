@@ -53,7 +53,7 @@ func do{{.Prefix}}{{.Type}}{{.Thing}}QueryAndScan(tbl {{.Prefix}}{{.Type}}{{.Thi
 	defer rows.Close()
 
 	vv, n, err := {{.Scan}}{{.Prefix}}{{.Types}}(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 `
 
@@ -326,7 +326,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CountWhere(where string, args ...inter
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
-	return count, tbl.Logger().LogIfError(err)
+	return count, tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 // Count counts the {{.Types}} in the table that match a 'where' clause.
@@ -408,12 +408,12 @@ func slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Tag}}List(tbl {{$.Prefix}}{{
 		var v {{.Type}}
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(tbl.Ctx(), require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 {{- end}}
 `
@@ -480,7 +480,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 		if hook, ok := iv.({{.Sqlapi}}.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
-				return tbl.Logger().LogError(err)
+				return tbl.Logger().LogError(tbl.Ctx(), err)
 			}
 		}
 
@@ -490,7 +490,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 
 		fields, err := construct{{.Prefix}}{{.Type}}{{.Thing}}Insert(tbl, b, v, {{not .Table.HasIntegerPrimaryKey}})
 		if err != nil {
-			return tbl.Logger().LogError(err)
+			return tbl.Logger().LogError(tbl.Ctx(), err)
 		}
 
 		b.WriteString(" VALUES (")
@@ -499,11 +499,11 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 		b.WriteString(returning)
 
 		query := b.String()
-		tbl.Logger().LogQuery(query, fields...)
+		tbl.Logger().LogQuery(tbl.Ctx(), query, fields...)
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.Execer().QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.Execer().QueryRow(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			{{- if .Table.HasIntegerPrimaryKey}}
@@ -516,9 +516,9 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 
 		} else {
 			{{- if .Table.HasIntegerPrimaryKey}}
-			i64, e2 := tbl.Execer().InsertContext(tbl.ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.Execer().Insert(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
-				return tbl.Logger().LogError(e2)
+				return tbl.Logger().LogError(tbl.Ctx(), e2)
 			}
 
 			{{- if eq .Table.Primary.Type.Name "int64"}}
@@ -527,20 +527,20 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 			v.{{.Table.Primary.Name}} = {{.Table.Primary.Type.Name}}(i64)
 			{{- end}}
 			{{- else}}
-			_, e3 := tbl.Execer().ExecContext(tbl.ctx, query, fields...)
+			_, e3 := tbl.Execer().Exec(tbl.ctx, query, fields...)
 			if e3 != nil {
-				return tbl.Logger().LogError(e3)
+				return tbl.Logger().LogError(tbl.Ctx(), e3)
 			}
 			{{- end}}
 		}
 
 		if err != nil {
-			return tbl.Logger().LogError(err)
+			return tbl.Logger().LogError(tbl.Ctx(), err)
 		}
 		count += n
 	}
 
-	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return tbl.Logger().LogIfError(tbl.Ctx(), require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 `
 
@@ -604,7 +604,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 		if hook, ok := iv.({{.Sqlapi}}.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
-				return count, tbl.Logger().LogError(err)
+				return count, tbl.Logger().LogError(tbl.Ctx(), err)
 			}
 		}
 
@@ -631,7 +631,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 		count += n
 	}
 
-	return count, tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return count, tbl.Logger().LogIfError(tbl.Ctx(), require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 {{- end}}
 `
@@ -680,7 +680,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Upsert(v *{{.TypePkg}}{{.Type}}, wh wh
 	var id {{.Table.Primary.Type.Type}}
 	err = rows.Scan(&id)
 	if err != nil {
-		return tbl.Logger().LogIfError(err)
+		return tbl.Logger().LogIfError(tbl.Ctx(), err)
 	}
 
 	if rows.Next() {

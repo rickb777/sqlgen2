@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.53.0; sqlgen v0.72.0
+// sqlapi v0.56.0; sqlgen v0.73.0
 
 package demo
 
@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/dialect"
@@ -41,7 +42,7 @@ type SUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(SUserQueryer) error) error
+	Transact(txOptions *pgx.TxOptions, fn func(SUserQueryer) error) error
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for User values.
@@ -192,7 +193,7 @@ func (tbl SUserTable) Using(tx sqlapi.Execer) SUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl SUserTable) Transact(txOptions *sql.TxOptions, fn func(SUserQueryer) error) error {
+func (tbl SUserTable) Transact(txOptions *pgx.TxOptions, fn func(SUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -201,7 +202,7 @@ func (tbl SUserTable) Transact(txOptions *sql.TxOptions, fn func(SUserQueryer) e
 			return fn(tbl.Using(tx))
 		})
 	}
-	return tbl.Logger().LogIfError(err)
+	return tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 func (tbl SUserTable) quotedName() string {
@@ -254,7 +255,7 @@ func doSUserTableQueryAndScan(tbl SUserTabler, req require.Requirement, firstOnl
 	defer rows.Close()
 
 	vv, n, err := scanSUsers(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -561,7 +562,7 @@ func (tbl SUserTable) CountWhere(where string, args ...interface{}) (count int64
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
-	return count, tbl.Logger().LogIfError(err)
+	return count, tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 // Count counts the Users in the table that match a 'where' clause.

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.53.0; sqlgen v0.72.0
+// sqlapi v0.56.0; sqlgen v0.73.0
 
 package demo
 
@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
@@ -82,7 +83,7 @@ type AddressQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(AddressQueryer) error) error
+	Transact(txOptions *pgx.TxOptions, fn func(AddressQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
@@ -311,7 +312,7 @@ func (tbl AddressTable) Using(tx sqlapi.Execer) AddressQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl AddressTable) Transact(txOptions *sql.TxOptions, fn func(AddressQueryer) error) error {
+func (tbl AddressTable) Transact(txOptions *pgx.TxOptions, fn func(AddressQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -320,7 +321,7 @@ func (tbl AddressTable) Transact(txOptions *sql.TxOptions, fn func(AddressQuerye
 			return fn(tbl.Using(tx))
 		})
 	}
-	return tbl.Logger().LogIfError(err)
+	return tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 func (tbl AddressTable) quotedName() string {
@@ -504,7 +505,7 @@ func (tbl AddressTable) CreatePostcodeIdxIndex(ifNotExist bool) error {
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, dropAddressTablePostcodeIdxSql(tbl, false))
+		tbl.Execer().Exec(tbl.ctx, dropAddressTablePostcodeIdxSql(tbl, false))
 		ine = ""
 	}
 
@@ -549,7 +550,7 @@ func (tbl AddressTable) CreateTownIdxIndex(ifNotExist bool) error {
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, dropAddressTableTownIdxSql(tbl, false))
+		tbl.Execer().Exec(tbl.ctx, dropAddressTableTownIdxSql(tbl, false))
 		ine = ""
 	}
 
@@ -594,7 +595,7 @@ func (tbl AddressTable) CreateUprnIdxIndex(ifNotExist bool) error {
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, dropAddressTableUprnIdxSql(tbl, false))
+		tbl.Execer().Exec(tbl.ctx, dropAddressTableUprnIdxSql(tbl, false))
 		ine = ""
 	}
 
@@ -706,7 +707,7 @@ func doAddressTableQueryAndScan(tbl AddressTabler, req require.Requirement, firs
 	defer rows.Close()
 
 	vv, n, err := ScanAddresses(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -951,7 +952,7 @@ func (tbl AddressTable) CountWhere(where string, args ...interface{}) (count int
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
-	return count, tbl.Logger().LogIfError(err)
+	return count, tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 // Count counts the Addresses in the table that match a 'where' clause.
@@ -1009,7 +1010,7 @@ func constructAddressTableInsert(tbl AddressTable, w dialect.StringWriter, v *Ad
 	comma = ","
 	x, err := json.Marshal(&v.AddressFields.Lines)
 	if err != nil {
-		return nil, tbl.Logger().LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(tbl.Ctx(), err)
 	}
 	s = append(s, x)
 
@@ -1046,7 +1047,7 @@ func constructAddressTableUpdate(tbl AddressTable, w dialect.StringWriter, v *Ad
 
 	x, err := json.Marshal(&v.AddressFields.Lines)
 	if err != nil {
-		return nil, tbl.Logger().LogError(errors.WithStack(err))
+		return nil, tbl.Logger().LogError(tbl.Ctx(), err)
 	}
 	s = append(s, x)
 
@@ -1096,7 +1097,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
-				return tbl.Logger().LogError(err)
+				return tbl.Logger().LogError(tbl.Ctx(), err)
 			}
 		}
 
@@ -1106,7 +1107,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 
 		fields, err := constructAddressTableInsert(tbl, b, v, false)
 		if err != nil {
-			return tbl.Logger().LogError(err)
+			return tbl.Logger().LogError(tbl.Ctx(), err)
 		}
 
 		b.WriteString(" VALUES (")
@@ -1115,30 +1116,30 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 		b.WriteString(returning)
 
 		query := b.String()
-		tbl.Logger().LogQuery(query, fields...)
+		tbl.Logger().LogQuery(tbl.Ctx(), query, fields...)
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.Execer().QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.Execer().QueryRow(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Id = i64
 
 		} else {
-			i64, e2 := tbl.Execer().InsertContext(tbl.ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.Execer().Insert(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
-				return tbl.Logger().LogError(e2)
+				return tbl.Logger().LogError(tbl.Ctx(), e2)
 			}
 			v.Id = i64
 		}
 
 		if err != nil {
-			return tbl.Logger().LogError(err)
+			return tbl.Logger().LogError(tbl.Ctx(), err)
 		}
 		count += n
 	}
 
-	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return tbl.Logger().LogIfError(tbl.Ctx(), require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 // UpdateByID updates one or more columns, given a id value.
@@ -1185,7 +1186,7 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
-				return count, tbl.Logger().LogError(err)
+				return count, tbl.Logger().LogError(tbl.Ctx(), err)
 			}
 		}
 
@@ -1212,7 +1213,7 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 		count += n
 	}
 
-	return count, tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return count, tbl.Logger().LogIfError(tbl.Ctx(), require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 //--------------------------------------------------------------------------------
@@ -1241,7 +1242,7 @@ func (tbl AddressTable) Upsert(v *Address, wh where.Expression) error {
 	var id int64
 	err = rows.Scan(&id)
 	if err != nil {
-		return tbl.Logger().LogIfError(err)
+		return tbl.Logger().LogIfError(tbl.Ctx(), err)
 	}
 
 	if rows.Next() {

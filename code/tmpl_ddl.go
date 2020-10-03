@@ -42,7 +42,7 @@ type {{.Prefix}}{{.Type}}Queryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}Queryer) error) error
+	Transact(txOptions *pgx.TxOptions, fn func({{.Prefix}}{{.Type}}Queryer) error) error
 `
 
 var tTabler = template.Must(template.New("Tabler").Funcs(funcMap).Parse(sTabler))
@@ -185,7 +185,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Using(tx {{.Sqlapi}}.Execer) {{.Prefix
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Transact(txOptions *{{.Sql}}.TxOptions, fn func({{.Prefix}}{{.Type}}Queryer) error) error {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Transact(txOptions *pgx.TxOptions, fn func({{.Prefix}}{{.Type}}Queryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -194,7 +194,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Transact(txOptions *{{.Sql}}.TxOptions
 			return fn(tbl.Using(tx))
 		})
 	}
-	return tbl.Logger().LogIfError(err)
+	return tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) quotedName() string {
@@ -333,8 +333,8 @@ func create{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl {{.Prefix}}{{.Type}}{{.Thinger}
 	var columns []string
 	switch tbl.Dialect().Index() {
 	{{- range .Dialects}}
-	case dialect.{{.String}}Index:
-		columns = sql{{$.Prefix}}{{$.Type}}{{$.Thing}}CreateColumns{{.}}
+	case dialect.{{.Name}}Index:
+		columns = sql{{$.Prefix}}{{$.Type}}{{$.Thing}}CreateColumns{{.Name}}
     {{- end}}
 	}
 
@@ -428,7 +428,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ifNotExi
 
 	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
 		// low-level no-logging Exec
-		tbl.Execer().ExecContext(tbl.ctx, drop{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl, false))
+		tbl.Execer().Exec(tbl.ctx, drop{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl, false))
 		ine = ""
 	}
 

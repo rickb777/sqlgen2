@@ -80,7 +80,7 @@ func doXExampleTableQueryAndScan(tbl XExampleTabler, req require.Requirement, fi
 	defer rows.Close()
 
 	vv, n, err := scanXExamples(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 `, "¬", "`", -1)
 	expectCodeEqual(t, code, expected)

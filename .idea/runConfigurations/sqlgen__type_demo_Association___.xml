@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="sqlgen -type demo.Association -o association_sql.go -all -v -z association.go category.go" type="GoApplicationRunConfiguration" factoryName="Go Application">
+  <configuration default="false" name="sqlgen -type demo.Association..." type="GoApplicationRunConfiguration" factoryName="Go Application">
     <module name="sqlgen2" />
     <working_directory value="$PROJECT_DIR$/demo" />
     <parameters value="-type demo.Association -o association_sql.go -all -v association.go category.go" />

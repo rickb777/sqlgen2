@@ -3,20 +3,23 @@ module github.com/rickb777/sqlgen2
 require (
 	github.com/acsellers/inflections v0.0.0-20141027155830-cb98bfe9e3ee
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/gobuffalo/buffalo-plugins v1.11.0 // indirect
+	github.com/gobuffalo/meta v0.0.0-20190120163247-50bbb1fa260d // indirect
 	github.com/jackc/pgx v3.6.2+incompatible
+	github.com/jackc/pgx/v4 v4.8.1
 	github.com/kortschak/utter v1.0.1
 	github.com/lib/pq v1.8.0
 	github.com/markbates/inflect v1.0.4
 	github.com/mattn/go-sqlite3 v1.14.3
 	github.com/onsi/gomega v1.10.2
 	github.com/pkg/errors v0.9.1
-	github.com/rickb777/collection v0.5.0
+	github.com/rickb777/collection v0.7.0
 	github.com/rickb777/date v1.14.0
 	github.com/rickb777/filemod v0.9.0
-	github.com/rickb777/sqlapi v0.53.0
+	github.com/rickb777/sqlapi v0.56.2
 	github.com/rickb777/where v0.8.1
 	github.com/spf13/cast v1.3.1
-	golang.org/x/tools v0.0.0-20190715221914-9b2cb0e5f602
+	golang.org/x/tools v0.0.0-20191029190741-b9c20aec41a5
 	gopkg.in/yaml.v2 v2.3.0
 )
 

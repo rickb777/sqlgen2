@@ -23,6 +23,7 @@ func PackagesToImport(flags FuncFlags, pgx bool) collection.StringSet {
 		"context",
 		"database/sql",
 		"strings",
+		"github.com/jackc/pgx/v4",
 		"github.com/pkg/errors",
 		"github.com/rickb777/sqlapi/dialect",
 	)
@@ -31,7 +32,6 @@ func PackagesToImport(flags FuncFlags, pgx bool) collection.StringSet {
 
 	if pgx {
 		base = "github.com/rickb777/sqlapi/pgxapi"
-		imports.Add("github.com/jackc/pgx")
 	} else {
 		base = "github.com/rickb777/sqlapi"
 	}

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.53.0; sqlgen v0.72.0
+// sqlapi v0.56.0; sqlgen v0.73.0
 
 package demo
 
@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
@@ -57,7 +58,7 @@ type HookQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(HookQueryer) error) error
+	Transact(txOptions *pgx.TxOptions, fn func(HookQueryer) error) error
 
 	// Exec executes a query without returning any rows.
 	Exec(req require.Requirement, query string, args ...interface{}) (int64, error)
@@ -374,7 +375,7 @@ func (tbl HookTable) Using(tx sqlapi.Execer) HookQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl HookTable) Transact(txOptions *sql.TxOptions, fn func(HookQueryer) error) error {
+func (tbl HookTable) Transact(txOptions *pgx.TxOptions, fn func(HookQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -383,7 +384,7 @@ func (tbl HookTable) Transact(txOptions *sql.TxOptions, fn func(HookQueryer) err
 			return fn(tbl.Using(tx))
 		})
 	}
-	return tbl.Logger().LogIfError(err)
+	return tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 func (tbl HookTable) quotedName() string {
@@ -614,7 +615,7 @@ func doHookTableQueryAndScan(tbl HookTabler, req require.Requirement, firstOnly 
 	defer rows.Close()
 
 	vv, n, err := ScanHooks(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -863,7 +864,7 @@ func (tbl HookTable) CountWhere(where string, args ...interface{}) (count int64,
 	if rows.Next() {
 		err = rows.Scan(&count)
 	}
-	return count, tbl.Logger().LogIfError(err)
+	return count, tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 // Count counts the Hooks in the table that match a 'where' clause.
@@ -991,12 +992,12 @@ func sliceHookTableCategoryList(tbl HookTabler, req require.Requirement, sqlname
 		var v Category
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(tbl.Ctx(), require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func sliceHookTableEmailList(tbl HookTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
@@ -1017,12 +1018,12 @@ func sliceHookTableEmailList(tbl HookTabler, req require.Requirement, sqlname st
 		var v Email
 		err = rows.Scan(&v)
 		if err == sql.ErrNoRows {
-			return list, tbl.Logger().LogIfError(require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
+			return list, tbl.Logger().LogIfError(tbl.Ctx(), require.ErrorIfQueryNotSatisfiedBy(req, int64(len(list))))
 		} else {
 			list = append(list, v)
 		}
 	}
-	return list, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
+	return list, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
 func constructHookTableInsert(tbl HookTable, w dialect.StringWriter, v *Hook, withPk bool) (s []interface{}, err error) {
@@ -1234,7 +1235,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 		if hook, ok := iv.(sqlapi.CanPreInsert); ok {
 			err := hook.PreInsert()
 			if err != nil {
-				return tbl.Logger().LogError(err)
+				return tbl.Logger().LogError(tbl.Ctx(), err)
 			}
 		}
 
@@ -1244,7 +1245,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 
 		fields, err := constructHookTableInsert(tbl, b, v, false)
 		if err != nil {
-			return tbl.Logger().LogError(err)
+			return tbl.Logger().LogError(tbl.Ctx(), err)
 		}
 
 		b.WriteString(" VALUES (")
@@ -1253,30 +1254,30 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 		b.WriteString(returning)
 
 		query := b.String()
-		tbl.Logger().LogQuery(query, fields...)
+		tbl.Logger().LogQuery(tbl.Ctx(), query, fields...)
 
 		var n int64 = 1
 		if insertHasReturningPhrase {
-			row := tbl.Execer().QueryRowContext(tbl.ctx, query, fields...)
+			row := tbl.Execer().QueryRow(tbl.ctx, query, fields...)
 			var i64 int64
 			err = row.Scan(&i64)
 			v.Id = uint64(i64)
 
 		} else {
-			i64, e2 := tbl.Execer().InsertContext(tbl.ctx, tbl.pk, query, fields...)
+			i64, e2 := tbl.Execer().Insert(tbl.ctx, tbl.pk, query, fields...)
 			if e2 != nil {
-				return tbl.Logger().LogError(e2)
+				return tbl.Logger().LogError(tbl.Ctx(), e2)
 			}
 			v.Id = uint64(i64)
 		}
 
 		if err != nil {
-			return tbl.Logger().LogError(err)
+			return tbl.Logger().LogError(tbl.Ctx(), err)
 		}
 		count += n
 	}
 
-	return tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return tbl.Logger().LogIfError(tbl.Ctx(), require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 // UpdateByID updates one or more columns, given a id value.
@@ -1373,7 +1374,7 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 		if hook, ok := iv.(sqlapi.CanPreUpdate); ok {
 			err := hook.PreUpdate()
 			if err != nil {
-				return count, tbl.Logger().LogError(err)
+				return count, tbl.Logger().LogError(tbl.Ctx(), err)
 			}
 		}
 
@@ -1400,7 +1401,7 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 		count += n
 	}
 
-	return count, tbl.Logger().LogIfError(require.ErrorIfExecNotSatisfiedBy(req, count))
+	return count, tbl.Logger().LogIfError(tbl.Ctx(), require.ErrorIfExecNotSatisfiedBy(req, count))
 }
 
 //--------------------------------------------------------------------------------
@@ -1429,7 +1430,7 @@ func (tbl HookTable) Upsert(v *Hook, wh where.Expression) error {
 	var id uint64
 	err = rows.Scan(&id)
 	if err != nil {
-		return tbl.Logger().LogIfError(err)
+		return tbl.Logger().LogIfError(tbl.Ctx(), err)
 	}
 
 	if rows.Next() {

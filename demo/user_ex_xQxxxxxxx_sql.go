@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.53.0; sqlgen v0.72.0
+// sqlapi v0.56.0; sqlgen v0.73.0
 
 package demo
 
@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/dialect"
@@ -38,7 +39,7 @@ type QUserQueryer interface {
 
 	// Transact runs the function provided within a transaction. The transction is committed
 	// unless an error occurs.
-	Transact(txOptions *sql.TxOptions, fn func(QUserQueryer) error) error
+	Transact(txOptions *pgx.TxOptions, fn func(QUserQueryer) error) error
 
 	// Query is the low-level request method for this table using an SQL query that must return all the columns
 	// necessary for User values.
@@ -149,7 +150,7 @@ func (tbl QUserTable) Using(tx sqlapi.Execer) QUserQueryer {
 //
 // Nested transactions (i.e. within 'fn') are permitted: they execute within the outermost transaction.
 // Therefore they do not commit until the outermost transaction commits.
-func (tbl QUserTable) Transact(txOptions *sql.TxOptions, fn func(QUserQueryer) error) error {
+func (tbl QUserTable) Transact(txOptions *pgx.TxOptions, fn func(QUserQueryer) error) error {
 	var err error
 	if tbl.IsTx() {
 		err = fn(tbl) // nested transactions are inlined
@@ -158,7 +159,7 @@ func (tbl QUserTable) Transact(txOptions *sql.TxOptions, fn func(QUserQueryer) e
 			return fn(tbl.Using(tx))
 		})
 	}
-	return tbl.Logger().LogIfError(err)
+	return tbl.Logger().LogIfError(tbl.Ctx(), err)
 }
 
 func (tbl QUserTable) quotedName() string {
@@ -211,7 +212,7 @@ func doQUserTableQueryAndScan(tbl QUserTabler, req require.Requirement, firstOnl
 	defer rows.Close()
 
 	vv, n, err := scanQUsers(query, rows, firstOnly)
-	return vv, tbl.Logger().LogIfError(require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
+	return vv, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(err, req, n))
 }
 
 //-------------------------------------------------------------------------------------------------
