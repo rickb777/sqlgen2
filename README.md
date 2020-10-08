@@ -1,6 +1,6 @@
 # sqlgen2
 
-[![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg?style=flat-square)](https://godoc.org/github.com/rickb777/sqlgen2)
+[![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg)](https://pkg.go.dev/github.com/rickb777/sqlgen2)
 [![Build Status](https://travis-ci.org/rickb777/sqlgen2.svg?branch=master)](https://travis-ci.org/rickb777/sqlgen2)
 [![Code Coverage](https://img.shields.io/coveralls/rickb777/sqlgen2.svg)](https://coveralls.io/r/rickb777/sqlgen2)
 [![Issues](https://img.shields.io/github/issues/rickb777/sqlgen2.svg)](https://github.com/rickb777/sqlgen2/issues)
