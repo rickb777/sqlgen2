@@ -1,7 +1,7 @@
 # sqlgen2
 
 [![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg)](https://pkg.go.dev/github.com/rickb777/sqlgen2)
-[![Build Status](https://travis-ci.org/rickb777/sqlgen2.svg?branch=master)](https://travis-ci.org/rickb777/sqlgen2)
+[![Build Status](https://travis-ci.org/rickb777/sqlgen2.svg?branch=master)](https://travis-ci.org/rickb777/sqlgen2/builds)
 [![Issues](https://img.shields.io/github/issues/rickb777/sqlgen2.svg)](https://github.com/rickb777/sqlgen2/issues)
 
 **sqlgen** generates SQL statements from your Go structs, used along with
