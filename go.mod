@@ -13,14 +13,13 @@ require (
 	github.com/onsi/gomega v1.10.4
 	github.com/pkg/errors v0.9.1
 	github.com/rickb777/collection v0.7.0
-	github.com/rickb777/date v1.14.3
+	github.com/rickb777/date v1.15.3
 	github.com/rickb777/filemod v0.9.1
 	github.com/rickb777/sqlapi v0.58.0
-	github.com/rickb777/where v0.11.0
+	github.com/rickb777/where v0.12.0
 	github.com/spf13/cast v1.3.1
-	golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9 // indirect
-	golang.org/x/net v0.0.0-20201209123823-ac852fbbde11 // indirect
-	golang.org/x/tools v0.0.0-20201208233053-a543418bbed2
+	golang.org/x/crypto v0.0.0-20201217014255-9d1352758620 // indirect
+	golang.org/x/tools v0.0.0-20201218024724-ae774e9781d2
 	gopkg.in/yaml.v2 v2.4.0
 )
 
