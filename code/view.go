@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/markbates/inflect"
 	"github.com/rickb777/sqlapi/constraint"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/sqlapi/schema"
 	"strings"
 	"text/template"
@@ -29,7 +29,7 @@ type View struct {
 	Body1          []string
 	Body2          []string
 	Body3          []string
-	Dialects       []dialect.Dialect
+	Dialects       []driver.Dialect
 	Table          *schema.TableDescription
 	Setter         *schema.Field
 }
@@ -58,7 +58,7 @@ func NewView(typePkg, tablePkg, name, prefix, tableName, list, sql, api string) 
 		Thinger:        "Tabler",
 		Interface1:     api + ".Table",
 		List:           list,
-		Dialects:       dialect.AllDialects,
+		Dialects:       allDriverDialects,
 		Sql:            sql,
 		Sqlapi:         api,
 		Scan:           "scan",

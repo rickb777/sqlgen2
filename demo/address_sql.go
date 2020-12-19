@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.56.3; sqlgen v0.73.0
+// sqlapi v0.57.0-2-gdefb875; sqlgen v0.74.0
 
 package demo
 
@@ -13,11 +13,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
+	"github.com/rickb777/where/dialect"
 	"github.com/rickb777/where/quote"
+	"io"
 	"strings"
 )
 
@@ -328,7 +330,7 @@ func (tbl AddressTable) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
-func (tbl AddressTable) quotedNameW(w dialect.StringWriter) {
+func (tbl AddressTable) quotedNameW(w driver.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
@@ -374,14 +376,6 @@ var sqlAddressTableCreateColumnsPostgres = []string{
 	"text not null",
 }
 
-var sqlAddressTableCreateColumnsPgx = []string{
-	"bigserial not null primary key",
-	"json",
-	"text default null",
-	"text not null",
-	"text not null",
-}
-
 //-------------------------------------------------------------------------------------------------
 
 const sqlPostcodeIdxIndexColumns = "postcode"
@@ -415,14 +409,12 @@ func createAddressTableSql(tbl AddressTabler, ifNotExists bool) string {
 
 	var columns []string
 	switch tbl.Dialect().Index() {
-	case dialect.SqliteIndex:
+	case dialect.Sqlite:
 		columns = sqlAddressTableCreateColumnsSqlite
-	case dialect.MysqlIndex:
+	case dialect.Mysql:
 		columns = sqlAddressTableCreateColumnsMysql
-	case dialect.PostgresIndex:
+	case dialect.Postgres:
 		columns = sqlAddressTableCreateColumnsPostgres
-	case dialect.PgxIndex:
-		columns = sqlAddressTableCreateColumnsPgx
 	}
 
 	comma := ""
@@ -498,12 +490,12 @@ func (tbl AddressTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreatePostcodeIdxIndex creates the postcodeIdx index.
 func (tbl AddressTable) CreatePostcodeIdxIndex(ifNotExist bool) error {
-	ine := ternaryAddressTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryAddressTable(ifNotExist && tbl.Dialect().Index() != dialect.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
+	if ifNotExist && tbl.Dialect().Index() == dialect.Mysql {
 		// low-level no-logging Exec
 		tbl.Execer().Exec(tbl.ctx, dropAddressTablePostcodeIdxSql(tbl, false))
 		ine = ""
@@ -531,24 +523,24 @@ func (tbl AddressTable) DropPostcodeIdxIndex(ifExists bool) error {
 
 func dropAddressTablePostcodeIdxSql(tbl AddressTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := ternaryAddressTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	ie := ternaryAddressTable(ifExists && tbl.Dialect().Index() != dialect.Mysql, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%s%s_postcodeIdx", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	onTbl := ternaryAddressTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
+	onTbl := ternaryAddressTable(tbl.Dialect().Index() == dialect.Mysql, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
 // CreateTownIdxIndex creates the townIdx index.
 func (tbl AddressTable) CreateTownIdxIndex(ifNotExist bool) error {
-	ine := ternaryAddressTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryAddressTable(ifNotExist && tbl.Dialect().Index() != dialect.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
+	if ifNotExist && tbl.Dialect().Index() == dialect.Mysql {
 		// low-level no-logging Exec
 		tbl.Execer().Exec(tbl.ctx, dropAddressTableTownIdxSql(tbl, false))
 		ine = ""
@@ -576,24 +568,24 @@ func (tbl AddressTable) DropTownIdxIndex(ifExists bool) error {
 
 func dropAddressTableTownIdxSql(tbl AddressTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := ternaryAddressTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	ie := ternaryAddressTable(ifExists && tbl.Dialect().Index() != dialect.Mysql, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%s%s_townIdx", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	onTbl := ternaryAddressTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
+	onTbl := ternaryAddressTable(tbl.Dialect().Index() == dialect.Mysql, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
 // CreateUprnIdxIndex creates the uprn_idx index.
 func (tbl AddressTable) CreateUprnIdxIndex(ifNotExist bool) error {
-	ine := ternaryAddressTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryAddressTable(ifNotExist && tbl.Dialect().Index() != dialect.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
+	if ifNotExist && tbl.Dialect().Index() == dialect.Mysql {
 		// low-level no-logging Exec
 		tbl.Execer().Exec(tbl.ctx, dropAddressTableUprnIdxSql(tbl, false))
 		ine = ""
@@ -621,13 +613,13 @@ func (tbl AddressTable) DropUprnIdxIndex(ifExists bool) error {
 
 func dropAddressTableUprnIdxSql(tbl AddressTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := ternaryAddressTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	ie := ternaryAddressTable(ifExists && tbl.Dialect().Index() != dialect.Mysql, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%s%s_uprn_idx", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	onTbl := ternaryAddressTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
+	onTbl := ternaryAddressTable(tbl.Dialect().Index() == dialect.Mysql, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
@@ -900,9 +892,9 @@ func (tbl AddressTable) SelectOneWhere(req require.Requirement, where, orderBy s
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl AddressTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Address, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -929,9 +921,9 @@ func (tbl AddressTable) SelectWhere(req require.Requirement, where, orderBy stri
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl AddressTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Address, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -992,7 +984,7 @@ func (tbl AddressTable) SliceUprn(req require.Requirement, wh where.Expression, 
 	return support.SliceStringList(tbl, req, "uprn", wh, qc)
 }
 
-func constructAddressTableInsert(tbl AddressTable, w dialect.StringWriter, v *Address, withPk bool) (s []interface{}, err error) {
+func constructAddressTableInsert(tbl AddressTable, w io.StringWriter, v *Address, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 5)
 
@@ -1032,7 +1024,7 @@ func constructAddressTableInsert(tbl AddressTable, w dialect.StringWriter, v *Ad
 	return s, nil
 }
 
-func constructAddressTableUpdate(tbl AddressTable, w dialect.StringWriter, v *Address) (s []interface{}, err error) {
+func constructAddressTableUpdate(tbl AddressTable, w io.StringWriter, v *Address) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 4)
@@ -1101,7 +1093,7 @@ func (tbl AddressTable) Insert(req require.Requirement, vv ...*Address) error {
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
@@ -1190,7 +1182,7 @@ func (tbl AddressTable) Update(req require.Requirement, vv ...*Address) (int64, 
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("UPDATE ")
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")

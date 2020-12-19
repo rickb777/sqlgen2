@@ -25,7 +25,7 @@ func PackagesToImport(flags FuncFlags, pgx bool) collection.StringSet {
 		"strings",
 		"github.com/jackc/pgx/v4",
 		"github.com/pkg/errors",
-		"github.com/rickb777/sqlapi/dialect",
+		"github.com/rickb777/sqlapi/driver",
 	)
 
 	base := ""
@@ -40,6 +40,8 @@ func PackagesToImport(flags FuncFlags, pgx bool) collection.StringSet {
 
 	if flags.Schema {
 		imports.Add(base + "/constraint")
+		imports.Add("io")
+		imports.Add("github.com/rickb777/where/dialect")
 	}
 
 	if flags.Exec || flags.Query || flags.Count || flags.Update || flags.Delete || flags.Slice {
@@ -53,12 +55,19 @@ func PackagesToImport(flags FuncFlags, pgx bool) collection.StringSet {
 	if flags.Insert || flags.Update || flags.Schema {
 		imports.Add("bytes")
 	}
+
+	if flags.Insert || flags.Update {
+		imports.Add("io")
+	}
+
 	if flags.Count || flags.Insert || flags.Select || flags.Slice || flags.Delete {
 		imports.Add("fmt")
 	}
+
 	if flags.Count || flags.Select || flags.Slice || flags.Update || flags.Delete {
 		imports.Add("github.com/rickb777/where")
 	}
+
 	if flags.Select {
 		imports.Add("github.com/rickb777/where/quote")
 	}

@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.56.3; sqlgen v0.73.0
+// sqlapi v0.57.0-2-gdefb875; sqlgen v0.74.0
 
 package demo
 
@@ -12,11 +12,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
+	"github.com/rickb777/where/dialect"
 	"github.com/rickb777/where/quote"
+	"io"
 	"strings"
 )
 
@@ -265,7 +267,7 @@ func (tbl DbCompoundTable) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
-func (tbl DbCompoundTable) quotedNameW(w dialect.StringWriter) {
+func (tbl DbCompoundTable) quotedNameW(w driver.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
@@ -302,12 +304,6 @@ var sqlDbCompoundTableCreateColumnsPostgres = []string{
 	"smallint not null",
 }
 
-var sqlDbCompoundTableCreateColumnsPgx = []string{
-	"text not null",
-	"text not null",
-	"smallint not null",
-}
-
 //-------------------------------------------------------------------------------------------------
 
 const sqlDbAlphaBetaIndexColumns = "alpha,beta"
@@ -333,14 +329,12 @@ func createDbCompoundTableSql(tbl DbCompoundTabler, ifNotExists bool) string {
 
 	var columns []string
 	switch tbl.Dialect().Index() {
-	case dialect.SqliteIndex:
+	case dialect.Sqlite:
 		columns = sqlDbCompoundTableCreateColumnsSqlite
-	case dialect.MysqlIndex:
+	case dialect.Mysql:
 		columns = sqlDbCompoundTableCreateColumnsMysql
-	case dialect.PostgresIndex:
+	case dialect.Postgres:
 		columns = sqlDbCompoundTableCreateColumnsPostgres
-	case dialect.PgxIndex:
-		columns = sqlDbCompoundTableCreateColumnsPgx
 	}
 
 	comma := ""
@@ -406,12 +400,12 @@ func (tbl DbCompoundTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreateAlphaBetaIndex creates the alpha_beta index.
 func (tbl DbCompoundTable) CreateAlphaBetaIndex(ifNotExist bool) error {
-	ine := ternaryDbCompoundTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryDbCompoundTable(ifNotExist && tbl.Dialect().Index() != dialect.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
+	if ifNotExist && tbl.Dialect().Index() == dialect.Mysql {
 		// low-level no-logging Exec
 		tbl.Execer().Exec(tbl.ctx, dropDbCompoundTableAlphaBetaSql(tbl, false))
 		ine = ""
@@ -439,13 +433,13 @@ func (tbl DbCompoundTable) DropAlphaBetaIndex(ifExists bool) error {
 
 func dropDbCompoundTableAlphaBetaSql(tbl DbCompoundTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := ternaryDbCompoundTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	ie := ternaryDbCompoundTable(ifExists && tbl.Dialect().Index() != dialect.Mysql, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%s%s_alpha_beta", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	onTbl := ternaryDbCompoundTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
+	onTbl := ternaryDbCompoundTable(tbl.Dialect().Index() == dialect.Mysql, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
@@ -655,9 +649,9 @@ func (tbl DbCompoundTable) SelectOneWhere(req require.Requirement, where, orderB
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl DbCompoundTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Compound, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -684,9 +678,9 @@ func (tbl DbCompoundTable) SelectWhere(req require.Requirement, where, orderBy s
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl DbCompoundTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Compound, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -741,11 +735,11 @@ func (tbl DbCompoundTable) SliceCategory(req require.Requirement, wh where.Expre
 }
 
 func sliceDbCompoundTableCategoryList(tbl DbCompoundTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", d.Quoter().Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -766,7 +760,7 @@ func sliceDbCompoundTableCategoryList(tbl DbCompoundTabler, req require.Requirem
 	return list, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func constructDbCompoundTableInsert(tbl DbCompoundTable, w dialect.StringWriter, v *Compound, withPk bool) (s []interface{}, err error) {
+func constructDbCompoundTableInsert(tbl DbCompoundTable, w io.StringWriter, v *Compound, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 3)
 
@@ -790,7 +784,7 @@ func constructDbCompoundTableInsert(tbl DbCompoundTable, w dialect.StringWriter,
 	return s, nil
 }
 
-func constructDbCompoundTableUpdate(tbl DbCompoundTable, w dialect.StringWriter, v *Compound) (s []interface{}, err error) {
+func constructDbCompoundTableUpdate(tbl DbCompoundTable, w io.StringWriter, v *Compound) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 3)
@@ -840,7 +834,7 @@ func (tbl DbCompoundTable) Insert(req require.Requirement, vv ...*Compound) erro
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 

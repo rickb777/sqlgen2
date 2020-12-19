@@ -9,7 +9,7 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rickb777/sqlapi"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/where/quote"
 	"io"
 	"log"
@@ -36,13 +36,13 @@ func TestMain(m *testing.M) {
 var verbose = false
 var db sqlapi.SqlDB
 
-func connect() (*sql.DB, dialect.Dialect) {
+func connect() (*sql.DB, driver.Dialect) {
 	dbDriver, ok := os.LookupEnv("GO_DRIVER")
 	if !ok {
 		dbDriver = "sqlite3"
 	}
 
-	di := dialect.PickDialect(dbDriver) //.WithQuoter(dialect.NoQuoter)
+	di := driver.PickDialect(dbDriver) //.WithQuoter(dialect.NoQuoter)
 	quoter, ok := os.LookupEnv("PGQUOTE")
 	if ok {
 		q := quote.PickQuoter(quoter)

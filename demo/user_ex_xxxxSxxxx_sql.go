@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.56.3; sqlgen v0.73.0
+// sqlapi v0.57.0-2-gdefb875; sqlgen v0.74.0
 
 package demo
 
@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
@@ -209,7 +209,7 @@ func (tbl SUserTable) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
-func (tbl SUserTable) quotedNameW(w dialect.StringWriter) {
+func (tbl SUserTable) quotedNameW(w driver.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
@@ -510,9 +510,9 @@ func (tbl SUserTable) SelectOneWhere(req require.Requirement, where, orderBy str
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl SUserTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -539,9 +539,9 @@ func (tbl SUserTable) SelectWhere(req require.Requirement, where, orderBy string
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl SUserTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 

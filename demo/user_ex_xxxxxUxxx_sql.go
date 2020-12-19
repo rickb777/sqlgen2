@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.56.3; sqlgen v0.73.0
+// sqlapi v0.57.0-2-gdefb875; sqlgen v0.74.0
 
 package demo
 
@@ -11,10 +11,11 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
+	"io"
 	"strings"
 )
 
@@ -215,7 +216,7 @@ func (tbl UUserTable) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
-func (tbl UUserTable) quotedNameW(w dialect.StringWriter) {
+func (tbl UUserTable) quotedNameW(w driver.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
@@ -363,7 +364,7 @@ func scanUUsers(query string, rows sqlapi.SqlRows, firstOnly bool) (vv []*User, 
 	return vv, n, errors.Wrap(rows.Err(), query)
 }
 
-func constructUUserTableUpdate(tbl UUserTable, w dialect.StringWriter, v *User) (s []interface{}, err error) {
+func constructUUserTableUpdate(tbl UUserTable, w io.StringWriter, v *User) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 21)
@@ -632,7 +633,7 @@ func (tbl UUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("UPDATE ")
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")

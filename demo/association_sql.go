@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.56.3; sqlgen v0.73.0
+// sqlapi v0.57.0-2-gdefb875; sqlgen v0.74.0
 
 package demo
 
@@ -12,11 +12,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
+	"github.com/rickb777/where/dialect"
 	"github.com/rickb777/where/quote"
+	"io"
 	"strings"
 )
 
@@ -311,7 +313,7 @@ func (tbl AssociationTable) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
-func (tbl AssociationTable) quotedNameW(w dialect.StringWriter) {
+func (tbl AssociationTable) quotedNameW(w driver.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
@@ -360,15 +362,6 @@ var sqlAssociationTableCreateColumnsPostgres = []string{
 	"smallint default null",
 }
 
-var sqlAssociationTableCreateColumnsPgx = []string{
-	"bigserial not null primary key",
-	"text default null",
-	"text default null",
-	"bigint default null",
-	"bigint default null",
-	"smallint default null",
-}
-
 //-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
@@ -388,14 +381,12 @@ func createAssociationTableSql(tbl AssociationTabler, ifNotExists bool) string {
 
 	var columns []string
 	switch tbl.Dialect().Index() {
-	case dialect.SqliteIndex:
+	case dialect.Sqlite:
 		columns = sqlAssociationTableCreateColumnsSqlite
-	case dialect.MysqlIndex:
+	case dialect.Mysql:
 		columns = sqlAssociationTableCreateColumnsMysql
-	case dialect.PostgresIndex:
+	case dialect.Postgres:
 		columns = sqlAssociationTableCreateColumnsPostgres
-	case dialect.PgxIndex:
-		columns = sqlAssociationTableCreateColumnsPgx
 	}
 
 	comma := ""
@@ -670,9 +661,9 @@ func (tbl AssociationTable) SelectOneWhere(req require.Requirement, where, order
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl AssociationTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Association, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -699,9 +690,9 @@ func (tbl AssociationTable) SelectWhere(req require.Requirement, where, orderBy 
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl AssociationTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Association, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -777,11 +768,11 @@ func (tbl AssociationTable) SliceCategory(req require.Requirement, wh where.Expr
 }
 
 func sliceAssociationTableCategoryPtrList(tbl AssociationTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", d.Quoter().Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -803,11 +794,11 @@ func sliceAssociationTableCategoryPtrList(tbl AssociationTabler, req require.Req
 }
 
 func sliceAssociationTableQualNamePtrList(tbl AssociationTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]QualName, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", d.Quoter().Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -828,7 +819,7 @@ func sliceAssociationTableQualNamePtrList(tbl AssociationTabler, req require.Req
 	return list, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func constructAssociationTableInsert(tbl AssociationTable, w dialect.StringWriter, v *Association, withPk bool) (s []interface{}, err error) {
+func constructAssociationTableInsert(tbl AssociationTable, w io.StringWriter, v *Association, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 6)
 
@@ -880,7 +871,7 @@ func constructAssociationTableInsert(tbl AssociationTable, w dialect.StringWrite
 	return s, nil
 }
 
-func constructAssociationTableUpdate(tbl AssociationTable, w dialect.StringWriter, v *Association) (s []interface{}, err error) {
+func constructAssociationTableUpdate(tbl AssociationTable, w io.StringWriter, v *Association) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 5)
@@ -974,7 +965,7 @@ func (tbl AssociationTable) Insert(req require.Requirement, vv ...*Association) 
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
@@ -1073,7 +1064,7 @@ func (tbl AssociationTable) Update(req require.Requirement, vv ...*Association) 
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("UPDATE ")
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")

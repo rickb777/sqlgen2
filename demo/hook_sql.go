@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.56.3; sqlgen v0.73.0
+// sqlapi v0.57.0-2-gdefb875; sqlgen v0.74.0
 
 package demo
 
@@ -12,11 +12,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
+	"github.com/rickb777/where/dialect"
 	"github.com/rickb777/where/quote"
+	"io"
 	"strings"
 )
 
@@ -391,7 +393,7 @@ func (tbl HookTable) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
-func (tbl HookTable) quotedNameW(w dialect.StringWriter) {
+func (tbl HookTable) quotedNameW(w driver.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
@@ -473,26 +475,6 @@ var sqlHookTableCreateColumnsPostgres = []string{
 	"text not null",
 }
 
-var sqlHookTableCreateColumnsPgx = []string{
-	"bigserial not null primary key",
-	"text not null",
-	"text not null",
-	"text not null",
-	"smallint not null",
-	"boolean not null",
-	"boolean not null",
-	"boolean not null",
-	"text not null",
-	"text not null",
-	"text not null",
-	"text not null",
-	"text not null",
-	"text not null",
-	"text not null",
-	"text not null",
-	"text not null",
-}
-
 //-------------------------------------------------------------------------------------------------
 
 // CreateTable creates the table.
@@ -512,14 +494,12 @@ func createHookTableSql(tbl HookTabler, ifNotExists bool) string {
 
 	var columns []string
 	switch tbl.Dialect().Index() {
-	case dialect.SqliteIndex:
+	case dialect.Sqlite:
 		columns = sqlHookTableCreateColumnsSqlite
-	case dialect.MysqlIndex:
+	case dialect.Mysql:
 		columns = sqlHookTableCreateColumnsMysql
-	case dialect.PostgresIndex:
+	case dialect.Postgres:
 		columns = sqlHookTableCreateColumnsPostgres
-	case dialect.PgxIndex:
-		columns = sqlHookTableCreateColumnsPgx
 	}
 
 	comma := ""
@@ -812,9 +792,9 @@ func (tbl HookTable) SelectOneWhere(req require.Requirement, where, orderBy stri
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl HookTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Hook, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -841,9 +821,9 @@ func (tbl HookTable) SelectWhere(req require.Requirement, where, orderBy string,
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl HookTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (HookList, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -975,11 +955,11 @@ func (tbl HookTable) SliceHeadCommitCommitterEmail(req require.Requirement, wh w
 }
 
 func sliceHookTableCategoryList(tbl HookTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Category, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", d.Quoter().Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -1001,11 +981,11 @@ func sliceHookTableCategoryList(tbl HookTabler, req require.Requirement, sqlname
 }
 
 func sliceHookTableEmailList(tbl HookTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Email, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", d.Quoter().Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -1026,7 +1006,7 @@ func sliceHookTableEmailList(tbl HookTabler, req require.Requirement, sqlname st
 	return list, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func constructHookTableInsert(tbl HookTable, w dialect.StringWriter, v *Hook, withPk bool) (s []interface{}, err error) {
+func constructHookTableInsert(tbl HookTable, w io.StringWriter, v *Hook, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 17)
 
@@ -1108,7 +1088,7 @@ func constructHookTableInsert(tbl HookTable, w dialect.StringWriter, v *Hook, wi
 	return s, nil
 }
 
-func constructHookTableUpdate(tbl HookTable, w dialect.StringWriter, v *Hook) (s []interface{}, err error) {
+func constructHookTableUpdate(tbl HookTable, w io.StringWriter, v *Hook) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 16)
@@ -1239,7 +1219,7 @@ func (tbl HookTable) Insert(req require.Requirement, vv ...*Hook) error {
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
@@ -1378,7 +1358,7 @@ func (tbl HookTable) Update(req require.Requirement, vv ...*Hook) (int64, error)
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("UPDATE ")
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")

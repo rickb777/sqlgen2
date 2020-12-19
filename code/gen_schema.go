@@ -4,11 +4,15 @@ import (
 	"fmt"
 	"github.com/markbates/inflect"
 	"github.com/rickb777/sqlapi"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
+	"github.com/rickb777/where/dialect"
 	"io"
 )
 
 const sectionBreak = "\n//-------------------------------------------------------------------------------------------------"
+
+var allDialects = []dialect.Dialect{dialect.Sqlite, dialect.Mysql, dialect.Postgres}
+var allDriverDialects = []driver.Dialect{driver.Sqlite(), driver.Mysql(), driver.Postgres()}
 
 type ConstView struct {
 	Name string
@@ -47,7 +51,7 @@ func WriteSchemaDeclarations(w io.Writer, view View) {
 
 	fmt.Fprintln(w, sectionBreak)
 
-	for _, d := range dialect.AllDialects {
+	for _, d := range allDriverDialects {
 		ds := d.Name()
 		fmt.Fprintf(w, "\nvar sql%sCreateColumns%s = []string{\n", fullName, ds)
 		for _, field := range view.Table.Fields {

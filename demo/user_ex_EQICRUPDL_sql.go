@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.56.3; sqlgen v0.73.0
+// sqlapi v0.57.0-2-gdefb875; sqlgen v0.74.0
 
 package demo
 
@@ -13,11 +13,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
+	"github.com/rickb777/where/dialect"
 	"github.com/rickb777/where/quote"
+	"io"
 	"strings"
 )
 
@@ -454,7 +456,7 @@ func (tbl AUserTable) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
-func (tbl AUserTable) quotedNameW(w dialect.StringWriter) {
+func (tbl AUserTable) quotedNameW(w driver.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
@@ -551,31 +553,6 @@ var sqlAUserTableCreateColumnsPostgres = []string{
 	"text not null",
 }
 
-var sqlAUserTableCreateColumnsPgx = []string{
-	"bigserial not null primary key",
-	"text not null",
-	"text not null",
-	"bigint default null",
-	"text default null",
-	"text default null",
-	"boolean not null",
-	"boolean not null",
-	"json",
-	"bigint not null",
-	"int8 not null default -8",
-	"smallint not null default 8",
-	"smallint not null default -16",
-	"integer not null default 16",
-	"integer not null default -32",
-	"bigint not null default 32",
-	"bigint not null default -64",
-	"bigint not null default 64",
-	"real not null default 3.2",
-	"double precision not null default 6.4",
-	"text not null",
-	"text not null",
-}
-
 //-------------------------------------------------------------------------------------------------
 
 const sqlAEmailaddressIdxIndexColumns = "emailaddress"
@@ -605,14 +582,12 @@ func createAUserTableSql(tbl AUserTabler, ifNotExists bool) string {
 
 	var columns []string
 	switch tbl.Dialect().Index() {
-	case dialect.SqliteIndex:
+	case dialect.Sqlite:
 		columns = sqlAUserTableCreateColumnsSqlite
-	case dialect.MysqlIndex:
+	case dialect.Mysql:
 		columns = sqlAUserTableCreateColumnsMysql
-	case dialect.PostgresIndex:
+	case dialect.Postgres:
 		columns = sqlAUserTableCreateColumnsPostgres
-	case dialect.PgxIndex:
-		columns = sqlAUserTableCreateColumnsPgx
 	}
 
 	comma := ""
@@ -683,12 +658,12 @@ func (tbl AUserTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreateEmailaddressIdxIndex creates the emailaddress_idx index.
 func (tbl AUserTable) CreateEmailaddressIdxIndex(ifNotExist bool) error {
-	ine := ternaryAUserTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryAUserTable(ifNotExist && tbl.Dialect().Index() != dialect.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
+	if ifNotExist && tbl.Dialect().Index() == dialect.Mysql {
 		// low-level no-logging Exec
 		tbl.Execer().Exec(tbl.ctx, dropAUserTableEmailaddressIdxSql(tbl, false))
 		ine = ""
@@ -716,24 +691,24 @@ func (tbl AUserTable) DropEmailaddressIdxIndex(ifExists bool) error {
 
 func dropAUserTableEmailaddressIdxSql(tbl AUserTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := ternaryAUserTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	ie := ternaryAUserTable(ifExists && tbl.Dialect().Index() != dialect.Mysql, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%s%s_emailaddress_idx", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	onTbl := ternaryAUserTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
+	onTbl := ternaryAUserTable(tbl.Dialect().Index() == dialect.Mysql, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
 // CreateUserLoginIndex creates the user_login index.
 func (tbl AUserTable) CreateUserLoginIndex(ifNotExist bool) error {
-	ine := ternaryAUserTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryAUserTable(ifNotExist && tbl.Dialect().Index() != dialect.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
+	if ifNotExist && tbl.Dialect().Index() == dialect.Mysql {
 		// low-level no-logging Exec
 		tbl.Execer().Exec(tbl.ctx, dropAUserTableUserLoginSql(tbl, false))
 		ine = ""
@@ -761,13 +736,13 @@ func (tbl AUserTable) DropUserLoginIndex(ifExists bool) error {
 
 func dropAUserTableUserLoginSql(tbl AUserTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := ternaryAUserTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	ie := ternaryAUserTable(ifExists && tbl.Dialect().Index() != dialect.Mysql, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%s%s_user_login", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	onTbl := ternaryAUserTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
+	onTbl := ternaryAUserTable(tbl.Dialect().Index() == dialect.Mysql, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
@@ -1097,9 +1072,9 @@ func (tbl AUserTable) SelectOneWhere(req require.Requirement, where, orderBy str
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl AUserTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*User, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -1126,9 +1101,9 @@ func (tbl AUserTable) SelectWhere(req require.Requirement, where, orderBy string
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl AUserTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*User, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -1281,11 +1256,11 @@ func (tbl AUserTable) SliceF64(req require.Requirement, wh where.Expression, qc 
 }
 
 func sliceAUserTableRolePtrList(tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]Role, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", d.Quoter().Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -1307,11 +1282,11 @@ func sliceAUserTableRolePtrList(tbl AUserTabler, req require.Requirement, sqlnam
 }
 
 func sliceAUserTableFloat32List(tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float32, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", d.Quoter().Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -1333,11 +1308,11 @@ func sliceAUserTableFloat32List(tbl AUserTabler, req require.Requirement, sqlnam
 }
 
 func sliceAUserTableFloat64List(tbl AUserTabler, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]float64, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", d.Quoter().Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -1358,7 +1333,7 @@ func sliceAUserTableFloat64List(tbl AUserTabler, req require.Requirement, sqlnam
 	return list, tbl.Logger().LogIfError(tbl.Ctx(), require.ChainErrorIfQueryNotSatisfiedBy(rows.Err(), req, int64(len(list))))
 }
 
-func constructAUserTableInsert(tbl AUserTable, w dialect.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
+func constructAUserTableInsert(tbl AUserTable, w io.StringWriter, v *User, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 22)
 
@@ -1470,7 +1445,7 @@ func constructAUserTableInsert(tbl AUserTable, w dialect.StringWriter, v *User, 
 	return s, nil
 }
 
-func constructAUserTableUpdate(tbl AUserTable, w dialect.StringWriter, v *User) (s []interface{}, err error) {
+func constructAUserTableUpdate(tbl AUserTable, w io.StringWriter, v *User) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 21)
@@ -1651,7 +1626,7 @@ func (tbl AUserTable) Insert(req require.Requirement, vv ...*User) error {
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
@@ -1805,7 +1780,7 @@ func (tbl AUserTable) Update(req require.Requirement, vv ...*User) (int64, error
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("UPDATE ")
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")

@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/sqlapi/support/test"
@@ -33,10 +33,10 @@ func TestCreateTable_sql_syntax(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	cases := []struct {
-		dialect  dialect.Dialect
+		dialect  driver.Dialect
 		expected string
 	}{
-		{dialect.Sqlite,
+		{driver.Sqlite(),
 			`CREATE TABLE IF NOT EXISTS "prefix_users" (
  "uid" integer not null primary key autoincrement,
  "name" text not null,
@@ -64,7 +64,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
  CONSTRAINT "prefix_users_c2" CHECK (role < 3)
 )`},
 
-		{dialect.Mysql,
+		{driver.Mysql(),
 			`CREATE TABLE IF NOT EXISTS ¬prefix_users¬ (
  ¬uid¬ bigint not null primary key auto_increment,
  ¬name¬ varchar(255) not null,
@@ -92,7 +92,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
  CONSTRAINT ¬prefix_users_c2¬ CHECK (role < 3)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8`},
 
-		{dialect.Postgres.WithQuoter(quote.NoQuoter),
+		{driver.Postgres().WithQuoter(quote.NoQuoter),
 			`CREATE TABLE IF NOT EXISTS prefix_users (
  uid bigserial not null primary key,
  name text not null,
@@ -120,7 +120,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
  CONSTRAINT prefix_users_c2 CHECK (role < 3)
 )`},
 
-		{dialect.Postgres,
+		{driver.Postgres(),
 			`CREATE TABLE IF NOT EXISTS "prefix_users" (
  "uid" bigserial not null primary key,
  "name" text not null,
@@ -179,7 +179,7 @@ func outputDiff(a, name string) {
 func TestCreateIndexSql(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	d := sqlapi.WrapDB(nil, dialect.Postgres, nil)
+	d := sqlapi.WrapDB(nil, driver.Postgres(), nil)
 	tbl := NewDbUserTable("users", d).WithPrefix("prefix_")
 	s := createDbUserTableEmailaddressIdxSql(tbl, "IF NOT EXISTS ")
 	expected := `CREATE UNIQUE INDEX IF NOT EXISTS "prefix_users_emailaddress_idx" ON "prefix_users" ("emailaddress")`
@@ -190,12 +190,12 @@ func TestDropIndexSql(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	cases := []struct {
-		d        dialect.Dialect
+		d        driver.Dialect
 		expected string
 	}{
-		{dialect.Sqlite, `DROP INDEX IF EXISTS "prefix_users_emailaddress_idx"`},
-		{dialect.Mysql, "DROP INDEX `prefix_users_emailaddress_idx` ON `prefix_users`"},
-		{dialect.Postgres, `DROP INDEX IF EXISTS "prefix_users_emailaddress_idx"`},
+		{driver.Sqlite(), `DROP INDEX IF EXISTS "prefix_users_emailaddress_idx"`},
+		{driver.Mysql(), "DROP INDEX `prefix_users_emailaddress_idx` ON `prefix_users`"},
+		{driver.Postgres(), `DROP INDEX IF EXISTS "prefix_users_emailaddress_idx"`},
 	}
 
 	for _, c := range cases {
@@ -210,7 +210,7 @@ func TestUpdateFields_ok_using_mock(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	lgr := &test.StubLogger{}
-	mockDb := &test.StubExecer{N: 1, Di: dialect.Mysql, Lgr: sqlapi.NewLogger(lgr)}
+	mockDb := &test.StubExecer{N: 1, Di: driver.Mysql(), Lgr: sqlapi.NewLogger(lgr)}
 
 	tbl := NewDbUserTable("users", mockDb)
 
@@ -227,7 +227,7 @@ func TestUpdateFields_error_using_mock(t *testing.T) {
 
 	exp := fmt.Errorf("foo")
 	lgr := &test.StubLogger{}
-	mockDb := &test.StubExecer{Err: exp, Di: dialect.Mysql, Lgr: sqlapi.NewLogger(lgr)}
+	mockDb := &test.StubExecer{Err: exp, Di: driver.Mysql(), Lgr: sqlapi.NewLogger(lgr)}
 
 	tbl := NewDbUserTable("users", mockDb)
 
@@ -242,7 +242,7 @@ func TestUpdate_ok_using_mock(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	lgr := &test.StubLogger{}
-	mockDb := &test.StubExecer{N: 1, Di: dialect.Mysql, Lgr: sqlapi.NewLogger(lgr)}
+	mockDb := &test.StubExecer{N: 1, Di: driver.Mysql(), Lgr: sqlapi.NewLogger(lgr)}
 
 	tbl := NewDbUserTable("users", mockDb)
 
@@ -259,7 +259,7 @@ func TestUpdate_error_using_mock(t *testing.T) {
 
 	exp := fmt.Errorf("foo")
 	lgr := &test.StubLogger{}
-	mockDb := &test.StubExecer{Err: exp, Di: dialect.Mysql, Lgr: sqlapi.NewLogger(lgr)}
+	mockDb := &test.StubExecer{Err: exp, Di: driver.Mysql(), Lgr: sqlapi.NewLogger(lgr)}
 
 	tbl := NewDbUserTable("users", mockDb)
 

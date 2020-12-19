@@ -261,9 +261,9 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOneWhere(req require.Requirement
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*{{.TypePkg}}{{.Type}}, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -290,9 +290,9 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) SelectWhere(req require.Requirement, w
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ({{.List}}, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 `
@@ -391,11 +391,11 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Slice{{camel .SqlName}}(req require
 {{- range .Table.SimpleFields.NoSkips.NoPrimary.DerivedType.DistinctTypes}}
 
 func slice{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Tag}}List(tbl {{$.Prefix}}{{$.Type}}{{$.Thinger}}, req require.Requirement, sqlname string, wh where.Expression, qc where.QueryConstraint) ([]{{.Type}}, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	query := fmt.Sprintf("SELECT %s FROM %s %s %s", q.Quote(sqlname), quotedName, whs, orderBy)
+	query := fmt.Sprintf("SELECT %s FROM %s %s %s", d.Quoter().Quote(sqlname), quotedName, whs, orderBy)
 	rows, err := support.Query(tbl, query, args...)
 	if err != nil {
 		return nil, err
@@ -424,7 +424,7 @@ var tSliceItemFunc = template.Must(template.New("SliceItemFunc").Funcs(funcMap).
 //-------------------------------------------------------------------------------------------------
 
 const sConstructInsert = `
-func construct{{.Prefix}}{{.Type}}{{.Thing}}Insert(tbl {{.Prefix}}{{.Type}}{{.Thing}}, w dialect.StringWriter, v *{{.TypePkg}}{{.Type}}, withPk bool) (s []interface{}, err error) {
+func construct{{.Prefix}}{{.Type}}{{.Thing}}Insert(tbl {{.Prefix}}{{.Type}}{{.Thing}}, w io.StringWriter, v *{{.TypePkg}}{{.Type}}, withPk bool) (s []interface{}, err error) {
 {{range .Body1}}{{.}}{{end}}
 {{range .Body2}}{{.}}{{end}}
 	return s, nil
@@ -436,7 +436,7 @@ var tConstructInsert = template.Must(template.New("ConstructInsert").Funcs(funcM
 //-------------------------------------------------------------------------------------------------
 
 const sConstructUpdateFunc = `
-func construct{{.Prefix}}{{.Type}}{{.Thing}}Update(tbl {{.Prefix}}{{.Type}}{{.Thing}}, w dialect.StringWriter, v *{{.TypePkg}}{{.Type}}) (s []interface{}, err error) {
+func construct{{.Prefix}}{{.Type}}{{.Thing}}Update(tbl {{.Prefix}}{{.Type}}{{.Thing}}, w io.StringWriter, v *{{.TypePkg}}{{.Type}}) (s []interface{}, err error) {
 {{range .Body1}}{{.}}{{end}}
 {{range .Body2}}{{.}}{{end}}
 	return s, nil
@@ -484,7 +484,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Insert(req require.Requirement, vv ...
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
@@ -608,7 +608,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Update(req require.Requirement, vv ...
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("UPDATE ")
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")

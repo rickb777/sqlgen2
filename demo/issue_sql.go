@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.56.3; sqlgen v0.73.0
+// sqlapi v0.57.0-2-gdefb875; sqlgen v0.74.0
 
 package demo
 
@@ -13,11 +13,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi"
 	"github.com/rickb777/sqlapi/constraint"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/sqlapi/require"
 	"github.com/rickb777/sqlapi/support"
 	"github.com/rickb777/where"
+	"github.com/rickb777/where/dialect"
 	"github.com/rickb777/where/quote"
+	"io"
 	"strings"
 )
 
@@ -327,7 +329,7 @@ func (tbl IssueTable) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
-func (tbl IssueTable) quotedNameW(w dialect.StringWriter) {
+func (tbl IssueTable) quotedNameW(w driver.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 
@@ -382,17 +384,6 @@ var sqlIssueTableCreateColumnsPostgres = []string{
 	"json",
 }
 
-var sqlIssueTableCreateColumnsPgx = []string{
-	"bigserial not null primary key",
-	"bigint not null",
-	"bytea not null",
-	"text not null",
-	"text not null",
-	"text not null",
-	"text not null",
-	"json",
-}
-
 //-------------------------------------------------------------------------------------------------
 
 const sqlIssueAssigneeIndexColumns = "assignee"
@@ -418,14 +409,12 @@ func createIssueTableSql(tbl IssueTabler, ifNotExists bool) string {
 
 	var columns []string
 	switch tbl.Dialect().Index() {
-	case dialect.SqliteIndex:
+	case dialect.Sqlite:
 		columns = sqlIssueTableCreateColumnsSqlite
-	case dialect.MysqlIndex:
+	case dialect.Mysql:
 		columns = sqlIssueTableCreateColumnsMysql
-	case dialect.PostgresIndex:
+	case dialect.Postgres:
 		columns = sqlIssueTableCreateColumnsPostgres
-	case dialect.PgxIndex:
-		columns = sqlIssueTableCreateColumnsPgx
 	}
 
 	comma := ""
@@ -491,12 +480,12 @@ func (tbl IssueTable) CreateIndexes(ifNotExist bool) (err error) {
 
 // CreateIssueAssigneeIndex creates the issue_assignee index.
 func (tbl IssueTable) CreateIssueAssigneeIndex(ifNotExist bool) error {
-	ine := ternaryIssueTable(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternaryIssueTable(ifNotExist && tbl.Dialect().Index() != dialect.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
+	if ifNotExist && tbl.Dialect().Index() == dialect.Mysql {
 		// low-level no-logging Exec
 		tbl.Execer().Exec(tbl.ctx, dropIssueTableIssueAssigneeSql(tbl, false))
 		ine = ""
@@ -524,13 +513,13 @@ func (tbl IssueTable) DropIssueAssigneeIndex(ifExists bool) error {
 
 func dropIssueTableIssueAssigneeSql(tbl IssueTabler, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := ternaryIssueTable(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	ie := ternaryIssueTable(ifExists && tbl.Dialect().Index() != dialect.Mysql, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%s%s_issue_assignee", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	onTbl := ternaryIssueTable(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
+	onTbl := ternaryIssueTable(tbl.Dialect().Index() == dialect.Mysql, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 
@@ -779,9 +768,9 @@ func (tbl IssueTable) SelectOneWhere(req require.Requirement, where, orderBy str
 // It places a requirement, which may be nil, on the size of the expected results: for example require.One
 // controls whether an error is generated when no result is found.
 func (tbl IssueTable) SelectOne(req require.Requirement, wh where.Expression, qc where.QueryConstraint) (*Issue, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectOneWhere(req, whs, orderBy, args...)
 }
 
@@ -808,9 +797,9 @@ func (tbl IssueTable) SelectWhere(req require.Requirement, where, orderBy string
 // It places a requirement, which may be nil, on the size of the expected results: for example require.AtLeastOne
 // controls whether an error is generated when no result is found.
 func (tbl IssueTable) Select(req require.Requirement, wh where.Expression, qc where.QueryConstraint) ([]*Issue, error) {
-	q := tbl.Dialect().Quoter()
-	whs, args := where.Where(wh, q)
-	orderBy := where.Build(qc, q)
+	d := tbl.Dialect()
+	whs, args := where.Where(wh, d.Quoter())
+	orderBy := where.Build(qc, d.Index())
 	return tbl.SelectWhere(req, whs, orderBy, args...)
 }
 
@@ -885,7 +874,7 @@ func (tbl IssueTable) SliceState(req require.Requirement, wh where.Expression, q
 	return support.SliceStringList(tbl, req, "state", wh, qc)
 }
 
-func constructIssueTableInsert(tbl IssueTable, w dialect.StringWriter, v *Issue, withPk bool) (s []interface{}, err error) {
+func constructIssueTableInsert(tbl IssueTable, w io.StringWriter, v *Issue, withPk bool) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	s = make([]interface{}, 0, 8)
 
@@ -935,7 +924,7 @@ func constructIssueTableInsert(tbl IssueTable, w dialect.StringWriter, v *Issue,
 	return s, nil
 }
 
-func constructIssueTableUpdate(tbl IssueTable, w dialect.StringWriter, v *Issue) (s []interface{}, err error) {
+func constructIssueTableUpdate(tbl IssueTable, w io.StringWriter, v *Issue) (s []interface{}, err error) {
 	q := tbl.Dialect().Quoter()
 	j := 1
 	s = make([]interface{}, 0, 7)
@@ -1017,7 +1006,7 @@ func (tbl IssueTable) Insert(req require.Requirement, vv ...*Issue) error {
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("INSERT INTO ")
 		tbl.quotedNameW(b)
 
@@ -1116,7 +1105,7 @@ func (tbl IssueTable) Update(req require.Requirement, vv ...*Issue) (int64, erro
 			}
 		}
 
-		b := dialect.Adapt(&bytes.Buffer{})
+		b := driver.Adapt(&bytes.Buffer{})
 		b.WriteString("UPDATE ")
 		tbl.quotedNameW(b)
 		b.WriteString(" SET ")

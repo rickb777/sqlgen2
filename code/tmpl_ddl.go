@@ -201,7 +201,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) quotedName() string {
 	return tbl.Dialect().Quoter().Quote(tbl.Nm.String())
 }
 
-func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) quotedNameW(w dialect.StringWriter) {
+func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) quotedNameW(w driver.StringWriter) {
 	tbl.Dialect().Quoter().QuoteW(w, tbl.Nm.String())
 }
 `
@@ -333,7 +333,7 @@ func create{{.Prefix}}{{.Type}}{{.Thing}}Sql(tbl {{.Prefix}}{{.Type}}{{.Thinger}
 	var columns []string
 	switch tbl.Dialect().Index() {
 	{{- range .Dialects}}
-	case dialect.{{.Name}}Index:
+	case dialect.{{.Name}}:
 		columns = sql{{$.Prefix}}{{$.Type}}{{$.Thing}}CreateColumns{{.Name}}
     {{- end}}
 	}
@@ -421,12 +421,12 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) CreateIndexes(ifNotExist bool) (err er
 {{range .Table.Index}}
 // Create{{camel .Name}}Index creates the {{.Name}} index.
 func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Create{{camel .Name}}Index(ifNotExist bool) error {
-	ine := ternary{{$.Prefix}}{{$.Type}}{{$.Thing}}(ifNotExist && tbl.Dialect().Index() != dialect.MysqlIndex, "IF NOT EXISTS ", "")
+	ine := ternary{{$.Prefix}}{{$.Type}}{{$.Thing}}(ifNotExist && tbl.Dialect().Index() != dialect.Mysql, "IF NOT EXISTS ", "")
 
 	// Mysql does not support 'if not exists' on indexes
 	// Workaround: use DropIndex first and ignore an error returned if the index didn't exist.
 
-	if ifNotExist && tbl.Dialect().Index() == dialect.MysqlIndex {
+	if ifNotExist && tbl.Dialect().Index() == dialect.Mysql {
 		// low-level no-logging Exec
 		tbl.Execer().Exec(tbl.ctx, drop{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl, false))
 		ine = ""
@@ -454,13 +454,13 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Drop{{camel .Name}}Index(ifExists b
 
 func drop{{$.Prefix}}{{$.Type}}{{$.Thing}}{{camel .Name}}Sql(tbl {{$.Prefix}}{{$.Type}}{{$.Thinger}}, ifExists bool) string {
 	// Mysql does not support 'if exists' on indexes
-	ie := ternary{{$.Prefix}}{{$.Type}}{{$.Thing}}(ifExists && tbl.Dialect().Index() != dialect.MysqlIndex, "IF EXISTS ", "")
+	ie := ternary{{$.Prefix}}{{$.Type}}{{$.Thing}}(ifExists && tbl.Dialect().Index() != dialect.Mysql, "IF EXISTS ", "")
 	indexPrefix := tbl.Name().PrefixWithoutDot()
 	id := fmt.Sprintf("%s%s_{{.Name}}", indexPrefix, tbl.Name().Name)
 	q := tbl.Dialect().Quoter()
 	// Mysql requires extra "ON tbl" clause
 	quotedName := tbl.Dialect().Quoter().Quote(tbl.Name().String())
-	onTbl := ternary{{$.Prefix}}{{$.Type}}{{$.Thing}}(tbl.Dialect().Index() == dialect.MysqlIndex, fmt.Sprintf(" ON %s", quotedName), "")
+	onTbl := ternary{{$.Prefix}}{{$.Type}}{{$.Thing}}(tbl.Dialect().Index() == dialect.Mysql, fmt.Sprintf(" ON %s", quotedName), "")
 	return "DROP INDEX " + ie + q.Quote(id) + onTbl
 }
 {{end}}

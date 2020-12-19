@@ -4,7 +4,7 @@ import (
 	"fmt"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"github.com/rickb777/sqlapi/dialect"
+	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/sqlapi/pgxapi"
 	"github.com/rickb777/sqlapi/pgxapi/constraint"
 	"github.com/rickb777/sqlapi/pgxapi/support/test"
@@ -26,10 +26,10 @@ func TestCreateTable_sql_syntax(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	cases := []struct {
-		dialect  dialect.Dialect
+		dialect  driver.Dialect
 		expected string
 	}{
-		{dialect.Postgres.WithQuoter(quote.NoQuoter),
+		{driver.Postgres().WithQuoter(quote.NoQuoter),
 			`CREATE TABLE IF NOT EXISTS prefix_users (
  uid bigserial not null primary key,
  name text not null,
@@ -57,7 +57,7 @@ func TestCreateTable_sql_syntax(t *testing.T) {
  CONSTRAINT prefix_users_c2 CHECK (role < 3)
 )`},
 
-		{dialect.Postgres,
+		{driver.Postgres(),
 			`CREATE TABLE IF NOT EXISTS "prefix_users" (
  "uid" bigserial not null primary key,
  "name" text not null,
@@ -127,11 +127,11 @@ func TestDropIndexSql(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	cases := []struct {
-		d        dialect.Dialect
+		d        driver.Dialect
 		expected string
 	}{
-		{dialect.Postgres.WithQuoter(quote.NoQuoter), `DROP INDEX IF EXISTS prefix_users_emailaddress_idx`},
-		{dialect.Postgres.WithQuoter(quote.AnsiQuoter), `DROP INDEX IF EXISTS "prefix_users_emailaddress_idx"`},
+		{driver.Postgres().WithQuoter(quote.NoQuoter), `DROP INDEX IF EXISTS prefix_users_emailaddress_idx`},
+		{driver.Postgres().WithQuoter(quote.AnsiQuoter), `DROP INDEX IF EXISTS "prefix_users_emailaddress_idx"`},
 	}
 
 	for _, c := range cases {
