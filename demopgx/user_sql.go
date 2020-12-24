@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.57.0-2-gdefb875; sqlgen v0.75.0
+// sqlapi v0.59.0; sqlgen v0.76.0
 
 package demopgx
 
@@ -1001,7 +1001,7 @@ func (tbl DbUserTable) GetUsersByUid(req require.Requirement, qc where.QueryCons
 	if req == require.All {
 		req = require.Exactly(len(uid))
 	}
-	return tbl.Select(req, where.In("uid", uid), qc)
+	return tbl.Select(req, where.InSlice("uid", uid), qc)
 }
 
 // GetUserByEmailAddress gets the record with a given emailaddress value.
@@ -1015,7 +1015,7 @@ func (tbl DbUserTable) GetUsersByEmailAddress(req require.Requirement, qc where.
 	if req == require.All {
 		req = require.Exactly(len(emailaddress))
 	}
-	return tbl.Select(req, where.In("emailaddress", emailaddress), qc)
+	return tbl.Select(req, where.InSlice("emailaddress", emailaddress), qc)
 }
 
 // GetUserByName gets the record with a given name value.
@@ -1029,7 +1029,7 @@ func (tbl DbUserTable) GetUsersByName(req require.Requirement, qc where.QueryCon
 	if req == require.All {
 		req = require.Exactly(len(name))
 	}
-	return tbl.Select(req, where.In("name", name), qc)
+	return tbl.Select(req, where.InSlice("name", name), qc)
 }
 
 func doDbUserTableQueryAndScanOne(tbl DbUserTabler, req require.Requirement, query string, args ...interface{}) (*User, error) {

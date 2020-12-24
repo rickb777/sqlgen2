@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.57.0-2-gdefb875; sqlgen v0.75.0
+// sqlapi v0.59.0; sqlgen v0.76.0
 
 package demo
 
@@ -617,7 +617,7 @@ func (tbl AssociationTable) GetAssociationsById(req require.Requirement, qc wher
 	if req == require.All {
 		req = require.Exactly(len(id))
 	}
-	return tbl.Select(req, where.In("id", id), qc)
+	return tbl.Select(req, where.InSlice("id", id), qc)
 }
 
 func doAssociationTableQueryAndScanOne(tbl AssociationTabler, req require.Requirement, query string, args ...interface{}) (*Association, error) {

@@ -15,7 +15,7 @@ require (
 	github.com/rickb777/collection v0.7.0
 	github.com/rickb777/date v1.15.3
 	github.com/rickb777/filemod v0.9.1
-	github.com/rickb777/sqlapi v0.58.0
+	github.com/rickb777/sqlapi v0.59.0
 	github.com/rickb777/where v0.12.0
 	github.com/spf13/cast v1.3.1
 	golang.org/x/crypto v0.0.0-20201217014255-9d1352758620 // indirect

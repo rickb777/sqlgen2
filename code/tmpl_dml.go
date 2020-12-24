@@ -170,7 +170,7 @@ func (tbl {{.Prefix}}{{.Type}}{{.Thing}}) Get{{.Types}}By{{.Table.Primary.Name}}
 	if req == require.All {
 		req = require.Exactly(len({{.Table.Primary.SqlName}}))
 	}
-	return tbl.Select(req, where.In("{{.Table.Primary.SqlName}}", {{.Table.Primary.SqlName}}), qc)
+	return tbl.Select(req, where.InSlice("{{.Table.Primary.SqlName}}", {{.Table.Primary.SqlName}}), qc)
 }
 {{- end}}
 {{- range .Table.Index}}
@@ -188,7 +188,7 @@ func (tbl {{$.Prefix}}{{$.Type}}{{$.Thing}}) Get{{$.Types}}By{{.JoinedNames "And
 	if req == require.All {
 		req = require.Exactly(len({{(index .Fields 0).SqlName}}))
 	}
-	return tbl.Select(req, where.In("{{(index .Fields 0).SqlName}}", {{(index .Fields 0).SqlName}}), qc)
+	return tbl.Select(req, where.InSlice("{{(index .Fields 0).SqlName}}", {{(index .Fields 0).SqlName}}), qc)
 }
 {{- end}}
 {{- else }}

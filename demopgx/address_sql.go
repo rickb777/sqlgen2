@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.57.0-2-gdefb875; sqlgen v0.75.0
+// sqlapi v0.59.0; sqlgen v0.76.0
 
 package demopgx
 
@@ -822,7 +822,7 @@ func (tbl AddressTable) GetAddressesById(req require.Requirement, qc where.Query
 	if req == require.All {
 		req = require.Exactly(len(id))
 	}
-	return tbl.Select(req, where.In("id", id), qc)
+	return tbl.Select(req, where.InSlice("id", id), qc)
 }
 
 // GetAddressesByPostcode gets the records with a given postcode value.
@@ -848,7 +848,7 @@ func (tbl AddressTable) GetAddressesByUPRN(req require.Requirement, qc where.Que
 	if req == require.All {
 		req = require.Exactly(len(uprn))
 	}
-	return tbl.Select(req, where.In("uprn", uprn), qc)
+	return tbl.Select(req, where.InSlice("uprn", uprn), qc)
 }
 
 func doAddressTableQueryAndScanOne(tbl AddressTabler, req require.Requirement, query string, args ...interface{}) (*Address, error) {
