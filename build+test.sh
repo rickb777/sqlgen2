@@ -38,7 +38,8 @@ done
 ### Demo ###
 
 announce demo
-./demo/build.sh sqlite mysql postgres pgx
+./demo/build.sh sqlite postgres pgx
+./demo/build.sh mysql ||:
 
 announce demopgx
 ./demopgx/build.sh

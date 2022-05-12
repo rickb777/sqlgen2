@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.59.0; sqlgen v0.76.0
+// sqlapi v0.59.0; sqlgen v0.77.0
 
 package demopgx
 
