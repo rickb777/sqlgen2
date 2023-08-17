@@ -22,8 +22,8 @@ var scv2 = Type{Name: "Foo", IsScanner: true, IsValuer: true, Base: String, IsPt
 var scv3 = Type{Name: "Foo", IsScanner: true, IsValuer: true, Base: Int32, IsPtr: true}
 var bar1 = Type{Name: "Bar", Base: String}
 
-//var bar2 = Type{Name: "Bar", Base: String, IsPtr: true}
-//var bar3 = Type{Name: "Bar", Base: Int32, IsPtr: true}
+// var bar2 = Type{Name: "Bar", Base: String, IsPtr: true}
+// var bar3 = Type{Name: "Bar", Base: Int32, IsPtr: true}
 var tim = Type{PkgPath: "time", PkgName: "time", Name: "Time", Base: Struct}
 
 var nums = &Node{Name: "Numbers", Type: Type{PkgName: "pkg1", Name: "Numbers", Base: Struct}}
@@ -45,8 +45,8 @@ var fooey2 = &Field{Node{"Foo2", scv2, nil}, "foo2", ENCNONE, nil}
 var fooey3 = &Field{Node{"Foo3", scv3, nil}, "foo3", ENCNONE, nil}
 var barey1 = &Field{Node{"Bar1", bar1, nil}, "bar1", ENCDRIVER, &Tag{Encode: "driver"}}
 
-//var barey2 = &Field{Node{"Bar2", bar2, nil}, "bar2", ENCDRIVER, Tag{Encode: "driver"}}
-//var barey3 = &Field{Node{"Bar3", bar3, nil}, "bar3", ENCDRIVER, Tag{Encode: "driver"}}
+// var barey2 = &Field{Node{"Bar2", bar2, nil}, "bar2", ENCDRIVER, Tag{Encode: "driver"}}
+// var barey3 = &Field{Node{"Bar3", bar3, nil}, "bar3", ENCDRIVER, Tag{Encode: "driver"}}
 var updated = &Field{Node{"Updated", tim, nil}, "updated", ENCTEXT, &Tag{Size: 100, Encode: "text"}}
 
 var icat = &Index{"catIdx", false, FieldList{category}}

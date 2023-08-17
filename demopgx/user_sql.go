@@ -1,5 +1,5 @@
 // THIS FILE WAS AUTO-GENERATED. DO NOT MODIFY.
-// sqlapi v0.59.0; sqlgen v0.77.0
+// sqlapi v0.60.1; sqlgen v0.77.0
 
 package demopgx
 
@@ -9,7 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
 	"github.com/rickb777/sqlapi/driver"
 	"github.com/rickb777/sqlapi/pgxapi"

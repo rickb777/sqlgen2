@@ -23,7 +23,7 @@ func PackagesToImport(flags FuncFlags, pgx bool) collection.StringSet {
 		"context",
 		"database/sql",
 		"strings",
-		"github.com/jackc/pgx/v4",
+		"github.com/jackc/pgx/v5",
 		"github.com/pkg/errors",
 		"github.com/rickb777/sqlapi/driver",
 	)

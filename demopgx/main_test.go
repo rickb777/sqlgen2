@@ -4,8 +4,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/log/testingadapter"
+	"github.com/jackc/pgx/v5/log/testingadapter"
+	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/rickb777/sqlapi/pgxapi"
 	"io"
 	"log"
@@ -33,9 +33,9 @@ var db pgxapi.SqlDB
 
 func connect() pgxapi.SqlDB {
 	lgr := testingadapter.NewLogger(simpleLogger{})
-	var lvl pgx.LogLevel = pgx.LogLevelInfo
+	var lvl tracelog.LogLevel = tracelog.LogLevelInfo
 	if !testing.Verbose() {
-		lvl = pgx.LogLevelWarn
+		lvl = tracelog.LogLevelWarn
 	}
 	d, err := pgxapi.ConnectEnv(context.Background(), lgr, lvl, 1)
 	if err != nil {

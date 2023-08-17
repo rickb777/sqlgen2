@@ -63,7 +63,8 @@ func WriteSchemaDeclarations(w io.Writer, view View) {
 	if len(view.Table.Index) > 0 {
 		// write constants that specify the columns needed in each index
 
-		fmt.Fprintln(w, sectionBreak+"\n")
+		fmt.Fprintln(w, sectionBreak)
+		fmt.Fprintln(w)
 		before := ""
 		for _, ix := range view.Table.Index {
 			cols := ix.Fields.SqlNames()

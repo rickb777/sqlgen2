@@ -32,8 +32,8 @@ export PGHOST=localhost
 export PGDATABASE=test
 export PGUSER PGPASSWORD
 if [[ -z $PGUSER ]]; then
-  PGUSER=testuser
-  PGPASSWORD=TestPasswd.9.9.9
+  PGUSER=test
+  PGPASSWORD=test
 fi
 
 echo

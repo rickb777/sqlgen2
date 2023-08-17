@@ -37,14 +37,14 @@ export DB_CONNECT_TIMEOUT=1s
 export PGHOST=localhost
 export PGDATABASE=test
 if [[ -z $PGUSER ]]; then
-  echo PGUSER=testuser
-  PGUSER=testuser
-  PGPASSWORD=TestPasswd.9.9.9
+  echo PGUSER=test
+  PGUSER=test
+  PGPASSWORD=test
 fi
 if [[ -z $MYUSER ]]; then
-  echo MYUSER=testuser
-  MYUSER=testuser
-  MYPASSWORD=TestPasswd.9.9.9
+  echo MYUSER=test
+  MYUSER=test
+  MYPASSWORD=test
 fi
 export PGUSER PGPASSWORD
 export MYUSER MYPASSWORD
