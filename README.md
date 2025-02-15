@@ -11,6 +11,10 @@ place of a simple ORM or hand-written SQL.
 See the [demo](https://github.com/rickb777/sqlgen2/tree/master/demo) directory for examples. Look in the
 generated files `*_sql.go` and the hand-crafted files (`hook.go`, `issue.go`, `user.go`).
 
+## Status
+
+This module has been archived. No further development is anticipated.
+
 ## Features
 
 * Auto-generates DAO-style table-support code for SQL databases.
